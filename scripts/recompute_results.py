@@ -21,7 +21,7 @@ from pathlib import Path
 
 FILES = ("run.json", "verifier/reward.json", "verifier/junit.xml", "baseline-tests.json")
 TOKENS = ("input_tokens", "cached_input_tokens", "output_tokens")
-PROVENANCE = ("selection_sha256", "dataset_revision", "benchmark_revision", "environment_image", "verifier_image", "runner_version")
+PROVENANCE = ("selection_sha256", "dataset_revision", "benchmark_revision", "environment_image", "verifier_image", "runner_version", "implementation_revision", "uv_lock_sha256", "prompt_sha256")
 OUTCOMES = ("both_success", "baseline_only", "science_only", "both_failure", "unknown", "missing_baseline", "missing_science")
 
 
@@ -176,6 +176,22 @@ def reconstruct_row(root, receipt):
         usage[token] = sum(observations) if observations and all(count(item) for item in observations) else None
     if None in usage.values():
         problems.add("incomplete_token_usage")
+    stage_outcome = data.get("extraction_status")
+    if data["condition"] == "baseline":
+        if stage_outcome not in (None, "not_applicable"):
+            problems.add("unexpected_baseline_extraction_status")
+        stage_outcome = "not_applicable"
+    elif type(stage_outcome) is not str or not stage_outcome.strip():
+        problems.add("missing_extraction_status" if stage_outcome is None else "invalid_extraction_status")
+        stage_outcome = "unknown"
+    coverage = data.get("graph_coverage")
+    if coverage is not None and type(coverage) is not dict:
+        problems.add("invalid_graph_coverage")
+        coverage = None
+    overrun = data.get("over_budget_seconds")
+    if overrun is not None and (not finite(overrun) or overrun < 0):
+        problems.add("invalid_over_budget_seconds")
+        overrun = None
     task = str(data["task_id"])
     if task.isdigit():
         task = task.zfill(3)
@@ -183,6 +199,8 @@ def reconstruct_row(root, receipt):
     row.update({
         "trial_path": directory.relative_to(root).as_posix(), "task_id": task,
         "provenance": {key: data.get(key) for key in PROVENANCE}, "stages": stages, "usage": usage,
+        "extraction_status": stage_outcome, "graph_sha256": data.get("graph_sha256"), "graph_coverage": coverage,
+        "over_budget_seconds": overrun,
         "official_reward": value, "public": public, "private": private,
         "exact_private_success": exact_success(private, statuses, (directory / FILES[2]).exists(), xml_error),
         "matched_test_outcomes": matched, "development_exposed": task in ("002", "077"),
@@ -238,14 +256,15 @@ def compute_metrics(rows, pairs):
         successes = len([row for row in records if row["exact_private_success"] is True])
         failures = len([row for row in records if row["exact_private_success"] is False])
         rewards = [row["official_reward"] for row in records if row["official_reward"] is not None]
-        status_counts = {}
+        status_counts, extraction_counts = {}, {}
         for row in records:
             status_counts[row["status"]] = status_counts.get(row["status"], 0) + 1
+            extraction_counts[row["extraction_status"]] = extraction_counts.get(row["extraction_status"], 0) + 1
         resources, stage_counts = {}, {}
-        for quantity in (*TOKENS, "duration_seconds"):
+        for quantity in (*TOKENS, "duration_seconds", "over_budget_seconds"):
             items = []
             for row in records:
-                value = row.get(quantity) if quantity == "duration_seconds" else row["usage"][quantity]
+                value = row["usage"][quantity] if quantity in TOKENS else row.get(quantity)
                 if finite(value) and value >= 0:
                     items.append(value)
             resources[quantity] = {"observed_trials": len(items), "missing_trials": len(records) - len(items), "observed_total": sum(items) if items else None, "observed_mean": sum(items) / len(items) if items else None}
@@ -261,6 +280,7 @@ def compute_metrics(rows, pairs):
             "success_fraction_all_attempts": successes / len(records) if records else None,
             "official_reward_observations": len(rewards), "official_reward_missing": len(records) - len(rewards),
             "mean_official_reward_observed": sum(rewards) / len(rewards) if rewards else None, "run_status_counts": dict(sorted(status_counts.items())),
+            "extraction_status_counts": dict(sorted(extraction_counts.items())),
             "resources": resources, "stage_status_counts": {stage: dict(sorted(counts.items())) for stage, counts in sorted(stage_counts.items())},
         }
     outcomes = {outcome: len([pair for pair in pairs if pair["outcome"] == outcome]) for outcome in OUTCOMES}

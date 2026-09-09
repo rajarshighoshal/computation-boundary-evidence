@@ -24,7 +24,7 @@ TOKEN_FIELDS = ("input_tokens", "cached_input_tokens", "output_tokens")
 ARTIFACTS = ("run.json", "verifier/reward.json", "verifier/junit.xml", "baseline-tests.json")
 PROVENANCE_FIELDS = (
     "selection_sha256", "dataset_revision", "benchmark_revision", "environment_image",
-    "verifier_image", "runner_version",
+    "verifier_image", "runner_version", "implementation_revision", "uv_lock_sha256", "prompt_sha256",
 )
 
 
@@ -204,6 +204,22 @@ def _trial_row(root: Path, path: Path) -> dict[str, Any]:
         usage[field] = sum(values) if values and all(_count(v) for v in values) else None
     if any(value is None for value in usage.values()):
         diagnostics.append("incomplete_token_usage")
+    extraction_status = run.get("extraction_status")
+    if run["condition"] == "baseline":
+        if extraction_status not in (None, "not_applicable"):
+            diagnostics.append("unexpected_baseline_extraction_status")
+        extraction_status = "not_applicable"
+    elif not isinstance(extraction_status, str) or not extraction_status.strip():
+        diagnostics.append("missing_extraction_status" if extraction_status is None else "invalid_extraction_status")
+        extraction_status = "unknown"
+    graph_coverage = run.get("graph_coverage")
+    if graph_coverage is not None and not isinstance(graph_coverage, dict):
+        diagnostics.append("invalid_graph_coverage")
+        graph_coverage = None
+    over_budget = run.get("over_budget_seconds")
+    if over_budget is not None and (not _number(over_budget) or over_budget < 0):
+        diagnostics.append("invalid_over_budget_seconds")
+        over_budget = None
     task_id = _task_id(run["task_id"])
     return {
         "trial_path": trial.relative_to(root).as_posix(),
@@ -219,6 +235,10 @@ def _trial_row(root: Path, path: Path) -> dict[str, Any]:
         "started_at": run.get("started_at"),
         "finished_at": run.get("finished_at"),
         "duration_seconds": run.get("duration_seconds"),
+        "over_budget_seconds": over_budget,
+        "extraction_status": extraction_status,
+        "graph_sha256": run.get("graph_sha256"),
+        "graph_coverage": graph_coverage,
         "stages": stages,
         "usage": usage,
         "patch_sha256": run.get("patch_sha256"),
@@ -288,8 +308,8 @@ def _metrics(rows: list[dict[str, Any]], pairs: list[dict[str, Any]]) -> dict[st
         failures = sum(row["exact_private_success"] is False for row in selected)
         rewards = [row["official_reward"] for row in selected if row["official_reward"] is not None]
         resources = {}
-        for field in (*TOKEN_FIELDS, "duration_seconds"):
-            values = [row.get(field) if field == "duration_seconds" else row["usage"][field] for row in selected]
+        for field in (*TOKEN_FIELDS, "duration_seconds", "over_budget_seconds"):
+            values = [row["usage"][field] if field in TOKEN_FIELDS else row.get(field) for row in selected]
             observed = [value for value in values if _number(value) and value >= 0]
             resources[field] = {
                 "observed_trials": len(observed), "missing_trials": len(selected) - len(observed),
@@ -309,6 +329,7 @@ def _metrics(rows: list[dict[str, Any]], pairs: list[dict[str, Any]]) -> dict[st
             "official_reward_observations": len(rewards), "official_reward_missing": len(selected) - len(rewards),
             "mean_official_reward_observed": sum(rewards) / len(rewards) if rewards else None,
             "run_status_counts": dict(sorted(Counter(row["status"] for row in selected).items())),
+            "extraction_status_counts": dict(sorted(Counter(row["extraction_status"] for row in selected).items())),
             "resources": resources,
             "stage_status_counts": {name: dict(sorted(counts.items())) for name, counts in sorted(stage_counts.items())},
         }
@@ -350,10 +371,14 @@ def write_summary(root: Path, output: Path) -> dict[str, Any]:
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
     (output / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True, allow_nan=False) + "\n", encoding="utf-8")
-    fields = ["trial_path", "task_id", "run_id", "condition", "status", "duration_seconds", "official_reward", "exact_private_success", "development_exposed", "prior_private_test_exposure", *TOKEN_FIELDS]
+    fields = ["trial_path", "task_id", "run_id", "condition", "status", "duration_seconds", "over_budget_seconds",
+              "extraction_status", "graph_sha256", "graph_coverage", "official_reward", "exact_private_success",
+              "development_exposed", "prior_private_test_exposure", *TOKEN_FIELDS, *PROVENANCE_FIELDS]
     with (output / "trials.csv").open("w", encoding="utf-8", newline="") as stream:
         writer = csv.DictWriter(stream, fieldnames=fields)
         writer.writeheader()
         for trial in summary["trials"]:
-            writer.writerow({key: trial["usage"][key] if key in TOKEN_FIELDS else trial[key] for key in fields})
+            flat = {key: trial["usage"][key] if key in TOKEN_FIELDS else trial["provenance"][key] if key in PROVENANCE_FIELDS else trial[key] for key in fields}
+            # Nested coverage and prompt-bundle hashes remain JSON, not Python repr.
+            writer.writerow({key: json.dumps(value, sort_keys=True, allow_nan=False) if isinstance(value, (dict, list)) else value for key, value in flat.items()})
     return summary

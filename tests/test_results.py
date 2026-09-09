@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import csv
 import json
 import subprocess
 import sys
@@ -262,3 +263,99 @@ def test_empty_root_is_an_explicit_zero_observation_report(tmp_path):
     summary = assert_independent(tmp_path)
     assert summary["trials"] == summary["pairs"] == []
     assert summary["metrics"]["all"]["observed_paired_success_delta_percentage_points"] is None
+
+
+def test_extraction_failures_and_unknowns_survive_summary(tmp_path):
+    trial(tmp_path, task="010")
+    trial(tmp_path, task="010", condition="science", extraction_status="no_valid_graph", graph_coverage=None)
+    trial(tmp_path, task="011", condition="science", extraction_status="timeout")
+    trial(tmp_path, task="012", condition="science")
+    coverage = {"claims": 4, "dimension_resolved": 2, "scale_resolved": 0, "unresolved": {"unsupported_language": 1}}
+    trial(tmp_path, task="013", condition="science", extraction_status="usable_graph", graph_sha256="a" * 64, graph_coverage=coverage)
+    summary = assert_independent(tmp_path)
+    rows = {(row["task_id"], row["condition"]): row for row in summary["trials"]}
+    assert rows["010", "baseline"]["extraction_status"] == "not_applicable"
+    assert rows["010", "science"]["graph_coverage"] is None
+    assert rows["012", "science"]["extraction_status"] == "unknown"
+    assert rows["012", "science"]["graph_coverage"] is None
+    assert rows["013", "science"]["graph_coverage"] == coverage
+    assert "shape_resolved" not in rows["013", "science"]["graph_coverage"]
+    assert rows["013", "science"]["graph_sha256"] == "a" * 64
+    conditions = summary["metrics"]["all"]["conditions"]
+    assert conditions["baseline"]["extraction_status_counts"] == {"not_applicable": 1}
+    assert conditions["science"]["extraction_status_counts"] == {"no_valid_graph": 1, "timeout": 1, "unknown": 1, "usable_graph": 1}
+
+
+def test_empty_and_absent_graph_coverage_are_distinct(tmp_path):
+    trial(tmp_path, task="010", condition="science", graph_coverage={})
+    trial(tmp_path, task="011", condition="science")
+    trial(tmp_path, task="012", condition="science", graph_coverage={"claims": 0})
+    rows = assert_independent(tmp_path)["trials"]
+    assert [row["graph_coverage"] for row in rows] == [{}, None, {"claims": 0}]
+
+
+def test_over_budget_observations_do_not_imply_missing_values_are_zero(tmp_path):
+    trial(tmp_path, task="010", over_budget_seconds=0)
+    trial(tmp_path, task="011", over_budget_seconds=1.75)
+    trial(tmp_path, task="012")
+    summary = assert_independent(tmp_path)
+    assert [row["over_budget_seconds"] for row in summary["trials"]] == [0, 1.75, None]
+    stats = summary["metrics"]["all"]["conditions"]["baseline"]["resources"]["over_budget_seconds"]
+    assert stats == {"observed_trials": 2, "missing_trials": 1, "observed_total": 1.75, "observed_mean": 0.875}
+
+
+@pytest.mark.parametrize("changes,diagnostic,field", [
+    ({"extraction_status": []}, "invalid_extraction_status", "extraction_status"),
+    ({"extraction_status": " "}, "invalid_extraction_status", "extraction_status"),
+    ({"graph_coverage": []}, "invalid_graph_coverage", "graph_coverage"),
+    ({"over_budget_seconds": -1}, "invalid_over_budget_seconds", "over_budget_seconds"),
+    ({"over_budget_seconds": True}, "invalid_over_budget_seconds", "over_budget_seconds"),
+    ({"over_budget_seconds": float("nan")}, "invalid_over_budget_seconds", "over_budget_seconds"),
+])
+def test_invalid_extraction_metadata_is_explicitly_unknown(tmp_path, changes, diagnostic, field):
+    trial(tmp_path, condition="science", **changes)
+    row = assert_independent(tmp_path)["trials"][0]
+    assert diagnostic in row["diagnostics"]
+    assert row[field] == ("unknown" if field == "extraction_status" else None)
+
+
+def test_baseline_never_counts_as_an_extraction_attempt(tmp_path):
+    trial(tmp_path, extraction_status="usable_graph")
+    summary = assert_independent(tmp_path)
+    assert summary["trials"][0]["extraction_status"] == "not_applicable"
+    assert "unexpected_baseline_extraction_status" in summary["trials"][0]["diagnostics"]
+    assert summary["metrics"]["all"]["conditions"]["baseline"]["extraction_status_counts"] == {"not_applicable": 1}
+
+
+@pytest.mark.parametrize("field", ["implementation_revision", "uv_lock_sha256", "prompt_sha256"])
+def test_changed_implementation_dependency_or_prompt_provenance_rejects_pair(tmp_path, field):
+    trial(tmp_path, **{field: "a" * 64})
+    trial(tmp_path, condition="science", **{field: "b" * 64})
+    with pytest.raises(AnalysisError, match="Incomparable"):
+        summarize_runs(tmp_path)
+    with pytest.raises(ValueError, match="Incomparable"):
+        independent.recompute(tmp_path)
+
+
+def test_new_provenance_and_nested_coverage_round_trip_csv_and_audit(tmp_path):
+    root, output = tmp_path / "runs", tmp_path / "summary"
+    provenance = {"implementation_revision": "c" * 40, "uv_lock_sha256": "d" * 64,
+                  "prompt_sha256": {"extract": "e" * 64, "repair": "f" * 64}}
+    coverage = {"claims": 3, "alignment": {"match": 1, "unknown": 2}}
+    trial(root, **provenance)
+    trial(root, condition="science", extraction_status="usable_graph", graph_coverage=coverage, graph_sha256="1" * 64, over_budget_seconds=0.1, **provenance)
+    summary = write_summary(root, output)
+    assert summary == independent.recompute(root)
+    assert {key: summary["trials"][1]["provenance"][key] for key in provenance} == provenance
+    with (output / "trials.csv").open(newline="") as stream:
+        rows = list(csv.DictReader(stream))
+    assert rows[0]["graph_coverage"] == ""
+    assert json.loads(rows[1]["graph_coverage"]) == coverage
+    assert json.loads(rows[1]["prompt_sha256"]) == provenance["prompt_sha256"]
+    assert rows[1]["implementation_revision"] == provenance["implementation_revision"]
+    assert rows[1]["over_budget_seconds"] == "0.1"
+    command = [sys.executable, str(SCRIPT), str(root), "--verify", str(output / "summary.json")]
+    assert subprocess.run(command, capture_output=True).returncode == 0
+    summary["trials"][1]["graph_coverage"]["claims"] = 99
+    dump(output / "summary.json", summary)
+    assert subprocess.run(command, capture_output=True).returncode == 1
