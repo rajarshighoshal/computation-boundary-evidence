@@ -4,10 +4,13 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import signal
 import shutil
 import subprocess
 import sys
 import tempfile
+import threading
+from dataclasses import asdict, replace
 from pathlib import Path
 
 from .controller import TrialConfig
@@ -16,6 +19,103 @@ from .io import digest_file, digest_json, read_json, utc_now, write_json
 
 def _workspace() -> Path:
     return Path(__file__).resolve().parents[2]
+
+
+def _implementation_provenance(workspace: Path) -> dict:
+    revision = subprocess.run(["git", "rev-parse", "HEAD"], cwd=workspace, check=True,
+                              capture_output=True, text=True).stdout.strip()
+    dirty = subprocess.run(["git", "status", "--porcelain", "--untracked-files=no"], cwd=workspace,
+                           check=True, capture_output=True, text=True).stdout.strip()
+    lock = workspace / "uv.lock"
+    return {"implementation_revision": revision, "implementation_dirty": bool(dirty),
+            "uv_lock_sha256": digest_file(lock) if lock.is_file() else None,
+            "prompt_sha256": {path.relative_to(workspace).as_posix(): digest_file(path)
+                              for path in sorted((workspace / "prompts").glob("*.md"))}}
+
+
+def _run_owned_process(command: list[str], *, check: bool = False, **kwargs) -> subprocess.CompletedProcess:
+    """Own a separate process group and stop it before unwinding private auth.
+
+    Only the process group created by this call is signalled; Docker services and
+    unrelated Pier runs are never discovered or killed by name.
+    """
+    process = subprocess.Popen(command, start_new_session=True, **kwargs)
+    try:
+        code = process.wait()
+    except BaseException:
+        try:
+            os.killpg(process.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            pass
+        finally:
+            # Descendants may outlive their leader, including ones ignoring TERM.
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            process.wait(timeout=5)
+        raise
+    result = subprocess.CompletedProcess(command, code)
+    if check:
+        result.check_returncode()
+    return result
+
+
+def _interrupt_schedule(signum, frame):
+    raise KeyboardInterrupt(f"Received signal {signum}")
+
+
+def _reconcile_trial(output: Path, item: dict, budget: TrialConfig, task_row: dict,
+                     config: dict, plan: dict, return_code: int | None,
+                     *, forced_status: str | None = None, error: str | None = None) -> str:
+    """Preserve an attempted trial even when setup failed before agent.run()."""
+    job = output / "jobs" / f"task-{item['task_id']}-{item['condition']}"
+    # Pier places each trial directly under its job. Scratch files may themselves
+    # be named run.json and must never be interpreted or rewritten as receipts.
+    records = sorted(job.glob("*/run.json"))
+    status = forced_status or ("infrastructure_failure" if return_code or not records else "completed")
+    if not records:
+        path = job / "setup-failure/run.json"
+        record = {"schema_version": "1.0", "task_id": item["task_id"], "condition": item["condition"],
+                  "model": budget.model, "reasoning_effort": budget.reasoning_effort,
+                  "codex_version": budget.codex_version, "config": asdict(budget),
+                  "status": status, "stages": [], "started_at": item["started_at"],
+                  "finished_at": utc_now(), "duration_seconds": None,
+                  "error": error or "No agent record; inspect preserved Pier setup/runner artifacts"}
+        write_json(path, record)
+        records = [path]
+    for path in records:
+        record = read_json(path)
+        if record.get("status") == "infrastructure_failure":
+            status = forced_status or "infrastructure_failure"
+        if record.get("status") == "running":
+            record["status"] = forced_status or "infrastructure_failure"
+            record["finished_at"] = utc_now()
+            status = forced_status or "infrastructure_failure"
+        expected_image = task_row["environment_image"]
+        if record.get("environment_image") not in (None, expected_image):
+            raise ValueError("Executed environment image differs from the pinned task selection")
+        patch = path.parent / "artifacts/model.patch"
+        record.update({"patch_sha256": digest_file(patch) if patch.is_file() else None,
+                       "selection_sha256": plan["selection_sha256"], "config_sha256": plan["config_sha256"],
+                       "release_commit": config["release_commit"], "benchmark_revision": config["release_commit"],
+                       "dataset_revision": config["dataset_revision"], "runner_version": config["pier_version"],
+                       "environment_image": expected_image, "verifier_image": task_row["verifier_image"],
+                       "experiment_kind": plan["kind"], "orchestration_status": status,
+                       **{key: plan[key] for key in ("implementation_revision", "implementation_dirty", "uv_lock_sha256", "prompt_sha256")}})
+        write_json(path, record)
+    log = output / f"task-{item['task_id']}-{item['condition']}-runner.log"
+    write_json(output / f"task-{item['task_id']}-{item['condition']}-receipt.json", {
+        "task_id": item["task_id"], "condition": item["condition"], "status": status,
+        "phase": item["phase"], "started_at": item["started_at"], "finished_at": utc_now(),
+        "return_code": return_code, "error": error,
+        "runner_log_sha256": digest_file(log) if log.is_file() else None,
+    })
+    return status
 
 
 def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
@@ -41,11 +141,12 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
     for task in tasks:
         conditions = ["baseline"] if smoke else (["baseline", "science"] if int(task) % 2 == 0 else ["science", "baseline"])
         for condition in conditions:
-            schedule.append({"task_id": task, "condition": condition})
+            schedule.append({"task_id": task, "condition": condition, "status": "pending", "phase": "not_started"})
     plan = {"schema_version": "1.0", "kind": "subscription_smoke" if smoke else "development_pilot",
             "config": config, "config_sha256": digest_file(config_path),
             "selection_sha256": receipt["selection_sha256"], "schedule": schedule,
             "output": str(output.resolve()), "execute": execute}
+    plan.update(_implementation_provenance(workspace))
     if not execute:
         return plan
     if output.exists():
@@ -63,25 +164,43 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
     del auth_mode
     output.mkdir(parents=True)
     plan["started_at"] = utc_now()
+    plan["status"] = "running"
     write_json(output / "schedule.json", plan)
-    with tempfile.TemporaryDirectory(prefix="scicontext-auth-") as private_dir:
+    actual_budget = replace(budget, total_seconds=60, extraction_seconds=10) if smoke else budget
+    current = None
+    task_row = None
+    return_code = None
+    summary = None
+    private_session = None
+    prior_sigterm = None
+    try:
+        if threading.current_thread() is threading.main_thread():
+            prior_sigterm = signal.signal(signal.SIGTERM, _interrupt_schedule)
+        private_session = tempfile.TemporaryDirectory(prefix="scicontext-auth-")
+        private_dir = private_session.name
         os.chmod(private_dir, 0o700)
         private_auth = Path(private_dir) / "auth.json"
         shutil.copyfile(auth_file, private_auth)
         private_auth.chmod(0o600)
         for item in schedule:
+            current = item
+            item.update({"status": "running", "phase": "preparing", "started_at": utc_now()})
+            write_json(output / "schedule.json", plan)
+            return_code = None
             task, condition = item["task_id"], item["condition"]
+            task_row = None
+            task_row = next(r for r in receipt["tasks"] if r["task_id"] == task)
             task_input = output / "inputs" / f"task-{task}-{condition}"
             task_input.mkdir(parents=True)
             shutil.copytree(selected / f"task_{task}", task_input / f"task_{task}")
             write_json(task_input / "selection.json", {"task_ids": [task], "allow_restricted_licenses": False})
-            total = 60 if smoke else budget.total_seconds
-            extract = 10 if smoke else budget.extraction_seconds
-            task_row = next(r for r in receipt["tasks"] if r["task_id"] == task)
+            total, extract = actual_budget.total_seconds, actual_budget.extraction_seconds
             # Pier 0.3.0 prioritizes a named built-in agent over import_path. The
             # release wrapper always supplies --agent, so invoke Pier directly.
+            item["phase"] = "pulling_images"
+            write_json(output / "schedule.json", plan)
             for image in (task_row["environment_image"], task_row["verifier_image"]):
-                subprocess.run(["docker", "pull", "--platform", "linux/amd64", image], check=True, stdout=subprocess.DEVNULL)
+                _run_owned_process(["docker", "pull", "--platform", "linux/amd64", image], check=True, stdout=subprocess.DEVNULL)
             command = [str(Path(sys.executable).parent / "pier"), "run",
                        "--path", str(task_input.resolve()), "--env", "docker", "--model", budget.model,
                        "--agent-import-path", "scicontext.pier_agent:ScientificCodex",
@@ -105,44 +224,54 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
                 if any(token in name.upper() for token in ("API_KEY", "AUTH_TOKEN", "BEARER", "SECRET")):
                     environment.pop(name, None)
             environment["PYTHONPATH"] = str(workspace / "src")
+            item["phase"] = "pier"
+            write_json(output / "schedule.json", plan)
             with log.open("w") as stream:
-                result = subprocess.run(command, env=environment, stdout=stream, stderr=subprocess.STDOUT, cwd=workspace)
-            write_json(output / f"task-{task}-{condition}-receipt.json", {**item, "return_code": result.returncode, "finished_at": utc_now(), "runner_log_sha256": digest_file(log)})
-            # Add final patch and provenance hashes without reading private assertion text.
-            job = output / "jobs" / f"task-{task}-{condition}"
-            found_records = list(job.rglob("run.json"))
-            if not found_records:
-                setup_record = {"schema_version": "1.0", **item,
-                                "model": budget.model, "reasoning_effort": budget.reasoning_effort,
-                                "codex_version": budget.codex_version,
-                                "config": {"total_seconds": total, "extraction_seconds": extract},
-                                "status": "infrastructure_failure", "stages": [],
-                                "started_at": plan["started_at"], "finished_at": utc_now(),
-                                "duration_seconds": None, "error": "No agent record; inspect preserved Pier setup/runner artifacts"}
-                write_json(job / "setup-failure/run.json", setup_record)
-                found_records = [job / "setup-failure/run.json"]
-            for run_file in found_records:
-                record = read_json(run_file)
-                patch = run_file.parent / "artifacts/model.patch"
-                record["patch_sha256"] = digest_file(patch) if patch.is_file() else None
-                record["selection_sha256"] = receipt["selection_sha256"]
-                record["config_sha256"] = plan["config_sha256"]
-                record["release_commit"] = config["release_commit"]
-                record["benchmark_revision"] = config["release_commit"]
-                record["dataset_revision"] = config["dataset_revision"]
-                record["runner_version"] = config["pier_version"]
-                task_row = next(r for r in receipt["tasks"] if r["task_id"] == task)
-                record["verifier_image"] = task_row["verifier_image"]
-                write_json(run_file, record)
-            if result.returncode or any(read_json(p).get("status") == "infrastructure_failure" for p in found_records):
-                plan["status"] = "runner_failure"
-                write_json(output / "schedule.json", plan)
+                result = _run_owned_process(command, env=environment, stdout=stream, stderr=subprocess.STDOUT, cwd=workspace)
+            return_code = result.returncode
+            item["status"] = _reconcile_trial(output, item, actual_budget, task_row, config, plan, return_code)
+            item["finished_at"] = utc_now()
+            write_json(output / "schedule.json", plan)
+            if item["status"] != "completed":
                 raise RuntimeError(f"Runner failed; retained {log}. Remaining schedule has not been executed.")
-    plan["status"] = "completed"
-    plan["finished_at"] = utc_now()
-    write_json(output / "schedule.json", plan)
-    from .results import write_summary
-    return write_summary(output / "jobs", output / "summary")
+            item["phase"] = "finished"
+            current = None
+        plan["status"] = "completed"
+    except BaseException as error:
+        interrupted = isinstance(error, (KeyboardInterrupt, SystemExit))
+        plan["status"] = "interrupted" if interrupted else "runner_failure"
+        plan["error"] = f"{type(error).__name__}: {error}"
+        if current is not None and task_row is not None:
+            status = "interrupted" if interrupted else "infrastructure_failure"
+            current["status"] = status
+            current["finished_at"] = utc_now()
+            code = error.returncode if isinstance(error, subprocess.CalledProcessError) else return_code
+            try:
+                _reconcile_trial(output, current, actual_budget, task_row, config, plan, code,
+                                 forced_status=status, error=plan["error"])
+            except Exception as accounting_error:
+                plan["accounting_error"] = f"{type(accounting_error).__name__}: {accounting_error}"
+        raise
+    finally:
+        if prior_sigterm is not None:
+            signal.signal(signal.SIGTERM, prior_sigterm)
+        if private_session is not None:
+            private_session.cleanup()
+        for item in schedule:
+            if item["status"] == "pending":
+                item.update({"status": "not_run", "reason": "schedule_stopped_before_launch"})
+        plan["finished_at"] = utc_now()
+        write_json(output / "schedule.json", plan)
+        if (output / "jobs").is_dir():
+            from .results import write_summary
+            try:
+                summary = write_summary(output / "jobs", output / "summary")
+            except Exception as error:
+                plan["summary_error"] = f"{type(error).__name__}: {error}"
+                write_json(output / "schedule.json", plan)
+        if plan["status"] == "completed" and summary is None:
+            raise RuntimeError("Schedule completed, but summary generation failed; inspect schedule.json")
+    return summary
 
 
 def main(argv: list[str] | None = None) -> int:
