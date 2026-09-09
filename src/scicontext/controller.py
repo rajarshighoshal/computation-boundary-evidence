@@ -79,7 +79,23 @@ async def run_trial(driver: Driver, config: TrialConfig, task_id: str, condition
 
     async def stage(name: str, prompt: str, seconds: float) -> dict:
         begin = time.monotonic()
-        result = await asyncio.wait_for(driver.run_stage(name, prompt, seconds), timeout=max(0.001, seconds))
+        try:
+            result = await asyncio.wait_for(driver.run_stage(name, prompt, seconds), timeout=max(0.001, seconds))
+        except BaseException as error:
+            # A killed/failed turn still consumed budget. Preserve its presence;
+            # absent usage must not silently become zero in paired accounting.
+            record["stages"].append({
+                "name": name,
+                "status": "timeout" if isinstance(error, asyncio.TimeoutError) else
+                          "interrupted" if isinstance(error, asyncio.CancelledError) else "failed",
+                "duration_seconds": time.monotonic() - begin,
+                "cleanup_complete": None,
+                "usage": {"input_tokens": None, "cached_input_tokens": None, "output_tokens": None,
+                          "accounting": "unavailable_after_stage_exception"},
+                "error": f"{type(error).__name__}: {error}",
+            })
+            save()
+            raise
         result = {**result, "name": name, "duration_seconds": time.monotonic() - begin}
         record["stages"].append(result)
         save()
@@ -95,7 +111,12 @@ async def run_trial(driver: Driver, config: TrialConfig, task_id: str, condition
             # Reserve a bounded portion for deterministic validation/copy/cleanup.
             reserve = min(15.0, config.extraction_seconds / 5)
             try:
-                await stage("extract", instruction, max(0.001, extraction_deadline - time.monotonic() - reserve))
+                try:
+                    await stage("extract", instruction, max(0.001, extraction_deadline - time.monotonic() - reserve))
+                except asyncio.TimeoutError:
+                    record["extraction_status"] = "timeout"
+                # A final answer may be missing while an early checkpoint is
+                # perfectly usable. Validation uses only the reserved time.
                 left = extraction_deadline - time.monotonic()
                 if left > 0:
                     handoff = await asyncio.wait_for(driver.collect_graph(left), timeout=left)

@@ -15,6 +15,7 @@ class FakeDriver:
         self.calls = []
         self.finished = False
         self.cleaned = False
+        self.collected = False
 
     async def run_stage(self, name, instruction, seconds):
         self.calls.append((name, instruction, seconds))
@@ -22,6 +23,7 @@ class FakeDriver:
         return {"status": "completed", "cleanup_complete": True, "usage": {"input_tokens": 5, "cached_input_tokens": 2, "output_tokens": 1}}
 
     async def collect_graph(self, seconds):
+        self.collected = True
         return self.graph
 
     async def finish_extraction(self):
@@ -56,13 +58,25 @@ def test_failed_extraction_falls_back_without_extra_time(tmp_path):
     assert d.calls[-1][1] == "Fix"
     assert d.calls[-1][2] < .5
     assert d.finished and d.cleaned
+    assert d.collected
+    assert r["stages"][0]["status"] == "timeout"
+    assert r["stages"][0]["usage"]["input_tokens"] is None
 
 
 def test_timeout_retains_record(tmp_path):
     d = FakeDriver(delay=1)
     r = asyncio.run(run_trial(d, TrialConfig(total_seconds=.08, extraction_seconds=.02), "002", "baseline", "Fix", tmp_path))
     assert r["status"] == "timeout" and d.cleaned
+    assert r["stages"][0]["status"] == "timeout"
     assert json.loads((tmp_path / "run.json").read_text())["finished_at"]
+
+
+def test_checkpoint_survives_extract_stage_timeout(tmp_path):
+    d = FakeDriver({"graph_sha256": "b" * 64, "handoff": "saved evidence", "graph": {}}, delay=.15)
+    r = asyncio.run(run_trial(d, TrialConfig(total_seconds=.5, extraction_seconds=.1), "077", "science", "Fix", tmp_path))
+    assert r["extraction_status"] == "usable_graph"
+    assert "saved evidence" in d.calls[-1][1]
+    assert r["stages"][0]["usage"]["output_tokens"] is None
 
 
 def test_refuse_overwriting_attempt(tmp_path):

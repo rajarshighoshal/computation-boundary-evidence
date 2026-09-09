@@ -36,6 +36,14 @@ def _quoted(command: list[str]) -> str:
     return shlex.join(command)
 
 
+def _runtime_env(home: str) -> dict[str, str]:
+    return {"CODEX_HOME": home, "HOME": REMOTE + "/client-home",
+            "PYTHONDONTWRITEBYTECODE": "1", "TMPDIR": SCRATCH + "/tmp",
+            "TMP": SCRATCH + "/tmp", "TEMP": SCRATCH + "/tmp",
+            "XDG_CACHE_HOME": SCRATCH + "/cache", "MPLCONFIGDIR": SCRATCH + "/cache/matplotlib",
+            "NUMBA_CACHE_DIR": SCRATCH + "/cache/numba"}
+
+
 class ScientificCodex(BaseAgent):
     SUPPORTS_ATIF = False
 
@@ -91,7 +99,7 @@ class ScientificCodex(BaseAgent):
 
     async def _setup_environment(self, environment, profile):
         root = self.root
-        await self.checked(environment, f"mkdir -p {CONTROL}/{profile}/home {SCRATCH}/checkpoints {REMOTE}/client-home {REMOTE}/context {root}/outputs")
+        await self.checked(environment, f"mkdir -p {CONTROL}/{profile}/home {SCRATCH}/checkpoints {SCRATCH}/tmp {SCRATCH}/cache/matplotlib {SCRATCH}/cache/numba {REMOTE}/client-home {REMOTE}/context {REMOTE}/src {root}/outputs")
         await environment.upload_dir(self.codex_package, REMOTE + "/codex")
         await environment.upload_dir(self.helper_deps, REMOTE + "/deps")
         await environment.upload_dir(self.workspace / "src/scicontext", REMOTE + "/src/scicontext")
@@ -103,7 +111,7 @@ class ScientificCodex(BaseAgent):
         await self._put(environment, "task_statement.md", task_statement, REMOTE + "/context/task_statement.md")
         await self._put(environment, "dummy-secret", "dummy", CONTROL + "/dummy-secret")
         await self._put(environment, "permission-marker", "probe", root + "/.scicontext-permission-probe")
-        env = {"CODEX_HOME": home, "HOME": REMOTE + "/client-home", "PYTHONDONTWRITEBYTECODE": "1"}
+        env = _runtime_env(home)
         version = await self.checked(environment, _quoted([self.binary, "--version"]), env=env)
         if version.strip() != "codex-cli " + self.config.codex_version:
             raise RuntimeError("Guest Codex version mismatch")
@@ -184,8 +192,8 @@ class ScientificCodex(BaseAgent):
             command += ["--output-schema", CONTROL + "/schema.json"]
         command.append("-")
         spec = {"command": command, "cwd": self.root,
-                "env": {"CODEX_HOME": home, "HOME": REMOTE + "/client-home",
-                        "PYTHONPATH": self.root + ":" + self.root + "/source", "PYTHONDONTWRITEBYTECODE": "1",
+                "env": {**_runtime_env(home),
+                        "PYTHONPATH": self.root + ":" + self.root + "/source",
                         "SCICONTEXT_PROMPT_FILE": prompt_path},
                 "stdin_path": prompt_path,
                 "timeout_seconds": max(0.05, stage_deadline - time.monotonic() - min(10.0, seconds / 5)),

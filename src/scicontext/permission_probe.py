@@ -2,24 +2,30 @@
 from __future__ import annotations
 
 import json
+import os
 import socket
 import sys
+import tempfile
 from pathlib import Path
 
 
 def main() -> int:
     mode, root, scratch, control = sys.argv[1:]
     marker = Path(root) / ".scicontext-permission-probe"
+    metadata = marker.stat()
+    diagnostics = {"uid": os.getuid(), "marker_uid": metadata.st_uid,
+                   "marker_mode": oct(metadata.st_mode), "source_write_errno": None}
     checks = {"source_read": marker.read_text() == "probe"}
     try:
         marker.write_text("write")
         checks["source_write_policy"] = mode == "repair"
-    except PermissionError:
-        checks["source_write_policy"] = mode == "extract"
     except OSError as error:
+        diagnostics["source_write_errno"] = error.errno
         checks["source_write_policy"] = mode == "extract" and error.errno in (1, 13, 30)
     (Path(scratch) / "permission-probe").write_text("scratch")
     checks["scratch_write"] = True
+    with tempfile.TemporaryDirectory() as temporary:
+        checks["temporary_directory"] = Path(temporary).is_relative_to(Path(scratch))
     try:
         (Path(control) / "dummy-secret").read_text()
         checks["credential_read_denied"] = False
@@ -33,7 +39,7 @@ def main() -> int:
     except OSError as error:
         # Refused/timed-out alone is not evidence of sandbox enforcement.
         checks["network_denied"] = error.errno in (1, 13)
-    print(json.dumps({"profile": mode, "checks": checks}, sort_keys=True))
+    print(json.dumps({"profile": mode, "checks": checks, "diagnostics": diagnostics}, sort_keys=True))
     return 0 if all(checks.values()) else 2
 
 

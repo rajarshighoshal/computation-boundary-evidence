@@ -6,12 +6,12 @@ Canonical live ledger. Approved plan: `RESEARCH_PLAN.md`. Only the primary agent
 | --- | --- | --- |
 | 1. Reconcile approved protocol, establish package and restore pinned release | complete | `eff036b`; pinned source and HF snapshot restored; `data/release-receipt.json`; `uv.lock` |
 | 2. Implement evidence, graph contract, alignment and semantic rules | complete | Integrated commits `11ba626`, `44ea3c1`, `04faa4d`, `39a5f8c`; focused synthetic tests pass |
-| 3. Implement bounded Codex/Pier controller and reproducible analysis | in progress | Analysis `432c629` integrated; controller/integration tests underway |
-| 4. Verify container permissions and subscription integration | in progress | Native ARM64 Codex passes dummy sandbox checks inside unchanged amd64 task002 image; authenticated integration pending |
+| 3. Implement bounded Codex/Pier controller and reproducible analysis | in progress | `00357e4`, `93ce14b`; 175 tests passed/5 Linux-only skipped before final audit fixes; fresh locked install succeeds; timeout/provenance review underway |
+| 4. Verify container permissions and subscription integration | in progress | Native ARM64 passes standalone dummy checks. Smoke v1 selected upstream built-in incorrectly (stopped); v2 missing upload parent; v3 integrated repair-write check fails. All retained under `runs/subscription-smoke-v*`; no authenticated call yet |
 | 5. Development pilot: 002 and 077, one attempt per condition | pending | Graphs, trajectories, patches, timing, usage and verifier receipts |
 | 6. Final verification and handoff | pending | Clean test/install; independent summary recomputation; ledger/Git reconciliation |
 
-Full 119-task evaluation follows pilot throughput review and the restricted-license decision. Old /tmp smoke artifacts are no longer available and are not reproducible receipts.
+Full 119-task evaluation follows pilot throughput review and the restricted-license decision. Smoke failures are infrastructure development, not scientific-method outcomes. Initial-session /tmp artifacts are no longer available; current-session native probe files must be copied to durable receipts before handoff.
 
 ## Accepted decisions
 
