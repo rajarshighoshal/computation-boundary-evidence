@@ -148,7 +148,8 @@ class ScientificCodex(BaseAgent):
         self.logs_dir.mkdir(parents=True, exist_ok=True)
         self._homes = {}
         self._guest_owners = {}
-        daemon_arch = subprocess.run(["docker", "info", "--format", "{{.Architecture}}"], check=True, text=True, capture_output=True).stdout.strip()
+        daemon_info = subprocess.run(["docker", "info", "--format", "{{.Architecture}} {{.MemTotal}} {{.NCPU}}"], check=True, text=True, capture_output=True).stdout.split()
+        daemon_arch = daemon_info[0]
         self.harness_arch = "arm64" if daemon_arch in {"arm64", "aarch64"} else "x64"
         self.codex_package = await asyncio.to_thread(prepare_codex, self.workspace / ".cache", self.harness_arch)
         triple = "aarch64-unknown-linux-musl" if self.harness_arch == "arm64" else "x86_64-unknown-linux-musl"
@@ -173,6 +174,9 @@ class ScientificCodex(BaseAgent):
             "codex_version": self.config.codex_version, "harness_architecture": self.harness_arch,
             "scientific_image_architecture": "amd64", "environment_image": environment.task_env_config.docker_image,
             "python_minor": pyminor, "baseline_tree": self._baseline_tree,
+            "docker_memory_bytes": int(daemon_info[1]), "docker_cpus": int(daemon_info[2]),
+            "task_requested_memory_mb": environment.task_env_config.memory_mb,
+            "host_memory_below_task_request": int(daemon_info[1]) < environment.task_env_config.memory_mb * 1024 * 1024,
             "helper_hashes": {p.name: digest_file(p) for p in sorted((self.workspace / "src/scicontext").glob("*.py"))},
             "codex_receipt": read_json(self.codex_package.parent / "receipt.json"),
         })
