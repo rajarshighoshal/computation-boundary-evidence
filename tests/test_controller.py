@@ -4,7 +4,7 @@ import time
 
 import pytest
 
-from scicontext.controller import TrialConfig, read_usage, run_trial
+from scicontext.controller import TrialConfig, read_usage, run_trial, verify_smoke
 from scicontext.configuration import codex_config
 
 
@@ -102,3 +102,19 @@ def test_configuration_is_isolated_and_native():
     assert c["permissions"]["repair"]["filesystem"]["/app/task_002"] == "write"
     assert not c["permissions"]["repair"]["network"]["enabled"]
     assert not c["features"]["multi_agent"]
+    assert c["shell_environment_policy"]["filters"]["*PROXY*"] == "exclude"
+
+
+def test_smoke_needs_real_tool_execution_and_completed_turn(tmp_path):
+    events, final = tmp_path / "events.jsonl", tmp_path / "final.txt"
+    assert not verify_smoke(events, final)
+    final.write_text("READY\n")
+    events.write_text(json.dumps({"type": "turn.completed", "usage": {
+        "input_tokens": 10, "cached_input_tokens": 0, "output_tokens": 5}}) + "\n")
+    assert not verify_smoke(events, final)
+    with events.open("a") as stream:
+        stream.write(json.dumps({"type": "item.completed", "item": {
+            "type": "command_execution", "exit_code": 0, "aggregated_output": "42\n"}}) + "\n")
+    assert verify_smoke(events, final)
+    final.write_text("Unable to connect")
+    assert not verify_smoke(events, final)

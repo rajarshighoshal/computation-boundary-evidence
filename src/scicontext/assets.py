@@ -10,10 +10,10 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
-from .io import digest_file, read_json, write_json
+from .io import digest_file, digest_json, read_json, write_json
 
 CODEX_VERSION = "0.153.4"
-HELPER_PACKAGES = ["jsonschema==4.26.0", "attrs==26.1.0", "jsonschema-specifications==2025.9.1", "referencing==0.37.0", "rpds-py==2026.6.3"]
+HELPER_PACKAGES = ["jsonschema==4.26.0", "attrs==26.1.0", "jsonschema-specifications==2025.9.1", "referencing==0.37.0", "rpds-py==2026.6.3", "typing-extensions==4.16.0"]
 
 
 def prepare_codex(cache: Path, architecture: str) -> Path:
@@ -52,16 +52,20 @@ def prepare_codex(cache: Path, architecture: str) -> Path:
 def prepare_helpers(cache: Path, python_minor: str) -> Path:
     if python_minor not in {"310", "311", "312", "313"}:
         raise ValueError(f"Unsupported task helper Python: {python_minor}")
-    destination = cache / f"helper-deps-cp{python_minor}"
+    # pip's cross-platform download still evaluates some dependency markers
+    # against its host interpreter. Pin the complete helper closure explicitly,
+    # including typing-extensions needed by the scientific guests' Python 3.11.
+    identity = digest_json(HELPER_PACKAGES)[:12]
+    destination = cache / f"helper-deps-cp{python_minor}-{identity}"
     receipt = destination / "receipt.json"
     if receipt.is_file():
         recorded = read_json(receipt)
         if not all((destination / p).is_file() and digest_file(destination / p) == h for p, h in recorded["files"].items()):
             raise ValueError("Helper dependency cache changed")
         return destination
-    wheels = cache / f"helper-wheels-cp{python_minor}"
+    wheels = cache / f"helper-wheels-cp{python_minor}-{identity}"
     wheels.mkdir(parents=True, exist_ok=True)
-    subprocess.run(["uvx", "--from", "pip", "pip", "download", "--dest", str(wheels), "--only-binary=:all:",
+    subprocess.run(["uvx", "--from", "pip", "pip", "download", "--dest", str(wheels), "--only-binary=:all:", "--no-deps",
                     "--platform", "manylinux2014_x86_64", "--python-version", python_minor,
                     "--implementation", "cp", "--abi", f"cp{python_minor}", *HELPER_PACKAGES], check=True)
     destination.mkdir(parents=True, exist_ok=True)

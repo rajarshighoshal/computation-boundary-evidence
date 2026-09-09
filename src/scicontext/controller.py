@@ -58,6 +58,26 @@ def read_usage(path: Path) -> dict:
             "malformed_log_lines": malformed, "accounting": "completed_turn_events_only"}
 
 
+def verify_smoke(events: Path, final: Path) -> bool:
+    """Require a completed real turn and the requested successful shell result."""
+    import json
+
+    if not final.is_file() or final.read_text().strip() != "READY":
+        return False
+    if not read_usage(events)["completed_turns"]:
+        return False
+    for line in events.read_text(errors="replace").splitlines():
+        try:
+            event = json.loads(line)
+        except ValueError:
+            continue
+        item = event.get("item", {})
+        if (event.get("type") == "item.completed" and item.get("type") == "command_execution"
+                and item.get("exit_code") == 0 and item.get("aggregated_output", "").strip() == "42"):
+            return True
+    return False
+
+
 async def run_trial(driver: Driver, config: TrialConfig, task_id: str, condition: str,
                     instruction: str, output: Path) -> dict:
     if condition not in {"baseline", "science"}:

@@ -22,7 +22,7 @@ from pier.models.trial.paths import TrialPaths
 
 from .assets import prepare_codex, prepare_helpers
 from .configuration import codex_config
-from .controller import TrialConfig, read_usage, run_trial
+from .controller import TrialConfig, read_usage, run_trial, verify_smoke
 from .graph import graph_schema
 from .io import digest_file, digest_json, read_json, write_json
 
@@ -99,6 +99,8 @@ class ScientificCodex(BaseAgent):
 
     async def _setup_environment(self, environment, profile):
         root = self.root
+        owner = (await self.checked(environment, "python -c 'import os; print(str(os.getuid())+\":\"+str(os.getgid()))'")).strip()
+        self._guest_owners[profile] = owner
         await self.checked(environment, f"mkdir -p {CONTROL}/{profile}/home {SCRATCH}/checkpoints {SCRATCH}/tmp {SCRATCH}/cache/matplotlib {SCRATCH}/cache/numba {REMOTE}/client-home {REMOTE}/context {REMOTE}/src {root}/outputs")
         await environment.upload_dir(self.codex_package, REMOTE + "/codex")
         await environment.upload_dir(self.helper_deps, REMOTE + "/deps")
@@ -111,6 +113,9 @@ class ScientificCodex(BaseAgent):
         await self._put(environment, "task_statement.md", task_statement, REMOTE + "/context/task_statement.md")
         await self._put(environment, "dummy-secret", "dummy", CONTROL + "/dummy-secret")
         await self._put(environment, "permission-marker", "probe", root + "/.scicontext-permission-probe")
+        # Compose cp retains the host uid. The native sandbox's user namespace
+        # cannot write a host-owned fixture, even when the task root is writable.
+        await self.checked(environment, _quoted(["chown", owner, root + "/.scicontext-permission-probe"]))
         env = _runtime_env(home)
         version = await self.checked(environment, _quoted([self.binary, "--version"]), env=env)
         if version.strip() != "codex-cli " + self.config.codex_version:
@@ -128,6 +133,7 @@ class ScientificCodex(BaseAgent):
         await self.checked(environment, f"PYTHONPATH={REMOTE}/src:{REMOTE}/deps python -c 'from scicontext.graph import graph_schema; print(graph_schema()[\"type\"])'")
         # Only after no-model enforcement has passed do we introduce real auth.
         await environment.upload_file(self._auth_cache, home + "/auth.json")
+        await self.checked(environment, _quoted(["chown", owner, home + "/auth.json"]))
         await self.checked(environment, _quoted(["chmod", "600", home + "/auth.json"]))
         self._homes[profile] = home
 
@@ -141,6 +147,7 @@ class ScientificCodex(BaseAgent):
         self.task_id = self.root.rsplit("_", 1)[-1]
         self.logs_dir.mkdir(parents=True, exist_ok=True)
         self._homes = {}
+        self._guest_owners = {}
         daemon_arch = subprocess.run(["docker", "info", "--format", "{{.Architecture}}"], check=True, text=True, capture_output=True).stdout.strip()
         self.harness_arch = "arm64" if daemon_arch in {"arm64", "aarch64"} else "x64"
         self.codex_package = await asyncio.to_thread(prepare_codex, self.workspace / ".cache", self.harness_arch)
@@ -177,6 +184,7 @@ class ScientificCodex(BaseAgent):
         home = self._homes[profile]
         # Refresh transfer is private, serialized, and never enters the task tree.
         await environment.upload_file(self._auth_cache, home + "/auth.json")
+        await self.checked(environment, _quoted(["chown", self._guest_owners[profile], home + "/auth.json"]))
         if name == "extract":
             template = (self.workspace / "prompts/extract.md").read_text()
             prompt = template.format(helper=HELPER, root=self.root, scratch=SCRATCH,
@@ -191,10 +199,13 @@ class ScientificCodex(BaseAgent):
         if name == "extract":
             command += ["--output-schema", CONTROL + "/schema.json"]
         command.append("-")
-        spec = {"command": command, "cwd": self.root,
-                "env": {**_runtime_env(home),
+        client_env = {**_runtime_env(home),
                         "PYTHONPATH": self.root + ":" + self.root + "/source",
-                        "SCICONTEXT_PROMPT_FILE": prompt_path},
+                        "SCICONTEXT_PROMPT_FILE": prompt_path}
+        # DockerEnvironment.exec does not inject Pier's service egress proxy.
+        # Native command networking remains separately disabled by the profile.
+        spec = {"command": command, "cwd": self.root,
+                "env": environment.agent_process_env(client_env),
                 "stdin_path": prompt_path,
                 "timeout_seconds": max(0.05, stage_deadline - time.monotonic() - min(10.0, seconds / 5)),
                 "stdout_path": f"/logs/agent/{name}.jsonl", "stderr_path": f"/logs/agent/{name}.stderr",
@@ -291,6 +302,12 @@ class ScientificCodex(BaseAgent):
             record["harness_architecture"] = self.harness_arch
             record["environment_image"] = environment.task_env_config.docker_image
             record["experiment_kind"] = "subscription_smoke" if self.smoke else "development_pilot"
+            if self.smoke:
+                record["smoke_success"] = record["status"] == "completed" and verify_smoke(
+                    self.logs_dir / "repair.jsonl", self.logs_dir / "repair-final.txt")
+                if not record["smoke_success"]:
+                    record["status"] = "infrastructure_failure"
+                    record["error"] = "Subscription smoke did not complete the requested shell command and final response"
             write_json(self.logs_dir.parent / "run.json", record)
             usages = [s.get("usage", {}) for s in record["stages"]]
             for source, target in (("input_tokens", "n_input_tokens"), ("cached_input_tokens", "n_cache_tokens"), ("output_tokens", "n_output_tokens")):
@@ -300,5 +317,7 @@ class ScientificCodex(BaseAgent):
             # Preserve refreshed runner credentials privately for the next serialized trial.
             shutil.copyfile(self._auth_cache, self.auth_file)
             self.auth_file.chmod(0o600)
+            if self.smoke and not record["smoke_success"]:
+                raise RuntimeError(record["error"])
         finally:
             self._private.cleanup()

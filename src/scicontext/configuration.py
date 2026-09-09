@@ -24,6 +24,13 @@ check_for_update_on_startup = false
 allow_login_shell = false
 history.persistence = "none"
 
+[shell_environment_policy]
+ignore_default_excludes = false
+
+[shell_environment_policy.filters]
+"*PROXY*" = "exclude"
+"SCICONTEXT_PROMPT_FILE" = "exclude"
+
 [features]
 apps = false
 plugins = false
