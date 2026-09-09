@@ -181,7 +181,7 @@ def _read_source(root: Path, relative: str) -> bytes:
         os.close(directory)
 
 
-def validate_graph(graph: dict, root: Path, *, max_claims: int = 12, max_nodes: int = 64) -> dict:
+def validate_graph(graph: dict, root: Path, *, max_claims: int = 12, max_nodes: int = 64, context_root: Path | None = None) -> dict:
     """Validate the contract and exact public-source citations without executing code."""
     errors: list[str] = []
     warnings = ["Source matches establish traceability, not scientific correctness or code-derived expression validity."]
@@ -262,10 +262,21 @@ def validate_graph(graph: dict, root: Path, *, max_claims: int = 12, max_nodes: 
         if reason := _safe_relative(ev["path"]):
             errors.append(f"{prefix}: unsafe evidence path ({reason})")
             continue
-        path = root.joinpath(ev["path"])
-        current = root
+        source_root = root
+        relative = ev["path"]
+        if relative.startswith("@context/"):
+            if context_root is None:
+                errors.append(f"{prefix}: immutable task context root was not supplied")
+                continue
+            source_root = Path(context_root).resolve()
+            relative = relative.removeprefix("@context/")
+            if relative != "task_statement.md":
+                errors.append(f"{prefix}: unknown task-context source")
+                continue
+        path = source_root.joinpath(relative)
+        current = source_root
         symlink = False
-        for part in PurePosixPath(ev["path"]).parts:
+        for part in PurePosixPath(relative).parts:
             current /= part
             if current.is_symlink():
                 symlink = True
@@ -275,10 +286,10 @@ def validate_graph(graph: dict, root: Path, *, max_claims: int = 12, max_nodes: 
             continue
         try:
             resolved = path.resolve(strict=True)
-            if not resolved.is_relative_to(root) or not resolved.is_file():
+            if not resolved.is_relative_to(source_root) or not resolved.is_file():
                 raise ValueError("evidence must be a regular file beneath root")
             if ev["path"] not in cache:
-                data = _read_source(root, ev["path"])
+                data = _read_source(source_root, relative)
                 cache[ev["path"]] = (hashlib.sha256(data).hexdigest(), data.decode("utf-8").splitlines())
             digest, lines = cache[ev["path"]]
             if digest != ev["sha256"]:
@@ -315,6 +326,12 @@ def render_graph(graph: dict, analysis: dict | None = None) -> str:
     for obs in sorted(graph.get("observations", []), key=lambda x: x["id"]):
         lines.append(f"Observation {obs['id']} [{obs['status']}; execution not certified here]: {json.dumps(obs, sort_keys=True, ensure_ascii=True)}")
     if analysis:
+        for item in analysis.get("code_grounding", []):
+            lines.append("Implementation provenance: " + json.dumps(item, sort_keys=True))
+        for item in analysis.get("alignments", []):
+            lines.append("Scientific/model-code structural alignment: " + json.dumps(item, sort_keys=True))
+        if analysis.get("source_coverage"):
+            lines.append("Mechanical source coverage: " + json.dumps(analysis["source_coverage"], sort_keys=True))
         for finding in sorted(analysis.get("findings", []), key=lambda f: (f.get("claim_id", ""), f.get("kind", ""), f.get("explanation", ""))):
             lines.append("Analysis: " + json.dumps(finding, sort_keys=True, ensure_ascii=True))
     for entry in graph.get("unresolved", []):

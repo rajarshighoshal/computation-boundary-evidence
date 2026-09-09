@@ -77,18 +77,27 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
             write_json(task_input / "selection.json", {"task_ids": [task], "allow_restricted_licenses": False})
             total = 60 if smoke else budget.total_seconds
             extract = 10 if smoke else budget.extraction_seconds
-            command = [sys.executable, str(workspace / "vendor/swe-bench-science/scripts/run_batch.py"),
-                       "--path", str(task_input.resolve()), "--agent", "codex", "--model", budget.model,
+            task_row = next(r for r in receipt["tasks"] if r["task_id"] == task)
+            # Pier 0.3.0 prioritizes a named built-in agent over import_path. The
+            # release wrapper always supplies --agent, so invoke Pier directly.
+            for image in (task_row["environment_image"], task_row["verifier_image"]):
+                subprocess.run(["docker", "pull", "--platform", "linux/amd64", image], check=True, stdout=subprocess.DEVNULL)
+            command = [str(Path(sys.executable).parent / "pier"), "run",
+                       "--path", str(task_input.resolve()), "--env", "docker", "--model", budget.model,
                        "--agent-import-path", "scicontext.pier_agent:ScientificCodex",
-                       "--no-auto-provider", "--no-auto-agent-adapter", "--n-concurrent", "1", "--n-attempts", "1",
+                       "--no-force-build", "--no-delete", "--yes", "--n-concurrent", "1", "--n-attempts", "1",
                        "--max-retries", "0", "--agent-timeout-multiplier", str(total / 5400),
-                       "--jobs-dir", str((output / "jobs").resolve()), "--job-name", f"task-{task}-{condition}",
-                       "--pier-bin", str(Path(sys.executable).parent / "pier")]
+                       "--jobs-dir", str((output / "jobs").resolve()), "--job-name", f"task-{task}-{condition}"]
             for key, value in {"condition": condition, "total_seconds": total, "extraction_seconds": extract,
                                "reasoning_effort": budget.reasoning_effort, "codex_version": budget.codex_version,
                                "workspace": str(workspace), "auth_file": str(private_auth), "smoke": smoke}.items():
                 command += ["--agent-kwarg", f"{key}={str(value).lower() if isinstance(value, bool) else value}"]
             log = output / f"task-{task}-{condition}-runner.log"
+            write_json(output / f"task-{task}-{condition}-launch.json", {
+                **item, "command": ["auth_file=<private>" if arg.startswith("auth_file=") else arg for arg in command],
+                "images": {k: task_row[k] for k in ("environment_image", "verifier_image")},
+                "task_selection_sha256": digest_file(task_input / "selection.json"),
+            })
             print(f"Running {task}/{condition}; receipt: {log}", flush=True)
             environment = os.environ.copy()
             # Never forward unrelated provider credentials to benchmark tooling.

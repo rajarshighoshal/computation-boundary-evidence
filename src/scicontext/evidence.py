@@ -33,7 +33,7 @@ _BLOCKED_PARTS = {
 }
 _BLOCKED_NAMES = {"auth.json", "credentials.json", "credentials.toml", "token", "tokens"}
 _KNOWN_CALLS = {
-    "builtins.sum": "sum", "math.sqrt": "sqrt", "numpy.sum": "sum",
+    "math.sqrt": "sqrt", "numpy.sum": "sum",
     "numpy.sqrt": "sqrt", "numpy.matmul": "matmul", "numpy.linalg.norm": "norm",
 }
 _LIMITATIONS = [
@@ -181,8 +181,6 @@ class _Scope:
         result = {}
         if self.is_dynamic():
             return result
-        if self.lookup("sum")[0] is None:
-            result["sum"] = "sum"
         for alias, imported in self.imported_names(line).items():
             for qualified, canonical in _KNOWN_CALLS.items():
                 if qualified == imported:

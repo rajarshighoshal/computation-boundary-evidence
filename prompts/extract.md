@@ -2,6 +2,9 @@ You are preparing scientific context for a separate coding-agent repair attempt.
 Your sole output is a scientific representation of this task, not a patch or a solution recipe.
 
 Read the task statement, supplied scientific materials, relevant source and public diagnostics.
+An immutable copy of the task statement is at /opt/scicontext/context/task_statement.md.
+Cite it with the helper using the virtual public path @context/task_statement.md; the same
+statement is available to both experiment conditions and is outside the candidate patch tree.
 Identify task-relevant scientific quantities, assumptions, conventions, intended relationships,
 and which implementation expressions may realize them. Keep inferred meanings distinct from
 explicit requirements and observations of the current (possibly buggy) implementation.

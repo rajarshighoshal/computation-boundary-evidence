@@ -40,7 +40,7 @@ def test_extracts_supported_statements_and_hashes(tmp_path):
     ("from numpy.linalg import norm as length\nx = length(y)\n", "length(y)", "norm"),
     ("import numpy.linalg as la\nx = la.norm(y)\n", "la.norm(y)", "norm"),
     ("import math\nx = math.sqrt(y)\n", "math.sqrt(y)", "sqrt"),
-    ("x = sum(y)\n", "sum(y)", "sum"),
+    ("x = sum(y)\n", "sum(y)", "unknown"),
     ("def sum(x):\n    return 0\nx = sum(y)\n", "sum(y)", "unknown"),
     ("from .numpy import sqrt\nx = sqrt(y)\n", "sqrt(y)", "unknown"),
     ("import unknown as np\nx = np.sqrt(y)\n", "np.sqrt(y)", "unknown"),

@@ -29,7 +29,7 @@ from .io import digest_file, digest_json, read_json, write_json
 REMOTE = "/opt/scicontext"
 CONTROL = REMOTE + "/control"
 SCRATCH = REMOTE + "/scratch"
-HELPER = f"PYTHONPATH={REMOTE}/src:{REMOTE}/deps python -m scicontext.tool_cli"
+HELPER = f"SCICONTEXT_CONTEXT_ROOT={REMOTE}/context PYTHONPATH={REMOTE}/src:{REMOTE}/deps python -m scicontext.tool_cli"
 
 
 def _quoted(command: list[str]) -> str:
@@ -91,7 +91,7 @@ class ScientificCodex(BaseAgent):
 
     async def _setup_environment(self, environment, profile):
         root = self.root
-        await self.checked(environment, f"mkdir -p {CONTROL}/{profile}/home {SCRATCH}/checkpoints {REMOTE}/client-home {root}/outputs")
+        await self.checked(environment, f"mkdir -p {CONTROL}/{profile}/home {SCRATCH}/checkpoints {REMOTE}/client-home {REMOTE}/context {root}/outputs")
         await environment.upload_dir(self.codex_package, REMOTE + "/codex")
         await environment.upload_dir(self.helper_deps, REMOTE + "/deps")
         await environment.upload_dir(self.workspace / "src/scicontext", REMOTE + "/src/scicontext")
@@ -99,6 +99,8 @@ class ScientificCodex(BaseAgent):
         home = f"{CONTROL}/{profile}/home"
         await self._put(environment, profile + "-config.toml", config_text, home + "/config.toml")
         await self._put(environment, "schema.json", json.dumps(graph_schema()), CONTROL + "/schema.json")
+        task_statement = (environment.environment_dir.parent / "instruction.md").read_text()
+        await self._put(environment, "task_statement.md", task_statement, REMOTE + "/context/task_statement.md")
         await self._put(environment, "dummy-secret", "dummy", CONTROL + "/dummy-secret")
         await self._put(environment, "permission-marker", "probe", root + "/.scicontext-permission-probe")
         env = {"CODEX_HOME": home, "HOME": REMOTE + "/client-home", "PYTHONDONTWRITEBYTECODE": "1"}
@@ -247,7 +249,7 @@ class ScientificCodex(BaseAgent):
             "candidates=sorted(directory.glob('*.json'),key=lambda p:(p.stat().st_mtime_ns,p.name),reverse=True); selected=None\n"
             "for p in candidates[:64]:\n"
             " try:\n"
-            "  raw=json.loads(p.read_text()); g=raw['graph']; v=validate_graph(g,root)\n"
+            f"  raw=json.loads(p.read_text()); g=raw['graph']; v=validate_graph(g,root,context_root=pathlib.Path({(REMOTE + '/context')!r}))\n"
             f"  if not v['valid'] or g['task_id'] != {self.task_id!r}: continue\n"
             "  a=analyze_grounded(g,root); selected={'graph':g,'validation':v,'analysis':a,'graph_sha256':digest_json(g),'handoff':render_graph(g,a)}; break\n"
             " except (ValueError,KeyError,TypeError,OSError): continue\n"
