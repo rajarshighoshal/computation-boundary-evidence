@@ -135,9 +135,9 @@ def test_hidden_verifier_credentials_traversal_and_symlink_paths(tmp_path):
     (tmp_path / "outside.py").write_text("secret = 2\n")
     (public / "link.py").symlink_to(tmp_path / "outside.py")
     (public / "linked_dir").symlink_to(tmp_path, target_is_directory=True)
-    for name in [".hidden.py", "verifier.py", "private_tests.py", "credentials.py"]:
+    for name in [".hidden.py", "verifier.py", "private_tests.py", "credentials.py", "auth.py", "token.py"]:
         (public / name).write_text("secret = 2\n")
-    result = extract_evidence(public, ["ok.py", "../outside.py", "link.py", "linked_dir/outside.py", ".hidden.py", "verifier.py", "private_tests.py", "credentials.py", str(tmp_path / "outside.py")])
+    result = extract_evidence(public, ["ok.py", "../outside.py", "link.py", "linked_dir/outside.py", ".hidden.py", "verifier.py", "private_tests.py", "credentials.py", "auth.py", "token.py", str(tmp_path / "outside.py")])
     assert {entry["path"] for entry in result["entries"]} == {"ok.py"}
     assert {entry["reason"] for entry in result["coverage"]["skipped"]} >= {"symlink", "excluded_path", "path_outside_root"}
     default = extract_evidence(public)

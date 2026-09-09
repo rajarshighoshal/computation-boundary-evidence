@@ -54,7 +54,7 @@ def _blocked(path: Path) -> bool:
         lowered = component.casefold()
         if lowered.startswith(".") or lowered in _BLOCKED_PARTS or lowered in _BLOCKED_NAMES:
             return True
-        if re.search(r"(^|[_-])(verifier|credentials|secrets|private)([_\-.]|$)", lowered):
+        if re.search(r"(^|[_-])(auth|authentication|tokens?|verifier|credentials|secrets|private)([_\-.]|$)", lowered):
             return True
     return path.suffix.casefold() in {".pem", ".key", ".p12", ".pfx"}
 
