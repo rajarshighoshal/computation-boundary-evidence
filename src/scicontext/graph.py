@@ -259,6 +259,9 @@ def validate_graph(graph: dict, root: Path, *, max_claims: int = 12, max_nodes: 
     cache: dict[str, tuple[str, list[str]]] = {}
     for ev in graph["evidence"]:
         prefix = f"{ev['id']} ({ev['path']})"
+        if PurePosixPath(ev["path"]).parts[:1] == ("outputs",):
+            errors.append(f"{prefix}: generated task outputs are not immutable source evidence; use observations.artifact")
+            continue
         if reason := _safe_relative(ev["path"]):
             errors.append(f"{prefix}: unsafe evidence path ({reason})")
             continue

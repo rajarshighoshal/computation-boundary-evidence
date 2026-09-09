@@ -181,6 +181,18 @@ def test_public_tests_included_and_private_directory_excluded(tmp_path):
     assert {entry["path"] for entry in result["entries"]} == {"tests/test_public.py"}
 
 
+def test_generated_root_outputs_excluded_but_nested_scientific_module_retained(tmp_path):
+    (tmp_path / "outputs").mkdir()
+    (tmp_path / "outputs" / "probe.py").write_text("result = density * volume\n")
+    nested = tmp_path / "source" / "outputs"
+    nested.mkdir(parents=True)
+    (nested / "model.py").write_text("result = density * volume\n")
+    for paths in (None, ["outputs/probe.py", "source/outputs/model.py"]):
+        result = extract_evidence(tmp_path, paths)
+        assert {entry["path"] for entry in result["entries"]} == {"source/outputs/model.py"}
+        assert any(entry["path"].startswith("outputs") for entry in result["coverage"]["skipped"])
+
+
 def test_bad_limits_are_errors(tmp_path):
     with pytest.raises(ValueError):
         extract_evidence(tmp_path, max_files=0)

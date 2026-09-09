@@ -50,6 +50,11 @@ class _FileTooLarge(ValueError):
 
 
 def _blocked(path: Path) -> bool:
+    # The extractor may write this task-root subtree. Its probe products are
+    # observations, never evidence of the original candidate implementation.
+    # A nested scientific package named source/outputs remains eligible.
+    if path.parts[:1] == ("outputs",):
+        return True
     for component in path.parts:
         lowered = component.casefold()
         if lowered.startswith(".") or lowered in _BLOCKED_PARTS or lowered in _BLOCKED_NAMES:

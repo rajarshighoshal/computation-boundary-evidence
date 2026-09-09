@@ -101,6 +101,8 @@ def main(argv: list[str] | None = None) -> int:
     elif args.command == "cite":
         root = args.root.resolve()
         original_path = args.path
+        if Path(args.path).parts[:1] == ("outputs",):
+            raise ValueError("Generated task outputs are observations, not immutable source evidence")
         if args.path.startswith("@context/"):
             context = args.context_root or os.environ.get("SCICONTEXT_CONTEXT_ROOT")
             if not context or args.path != "@context/task_statement.md":
