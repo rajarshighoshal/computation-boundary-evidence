@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "model": "gpt-6-astra",
+  "reasoning_effort": "high",
+  "codex_version": "0.153.4",
+  "pier_version": "0.3.0",
+  "total_seconds": 1800,
+  "extraction_seconds": 360,
+  "verifier_seconds": 1800,
+  "task_ids": ["002", "077"],
+  "conditions": ["baseline", "science"],
+  "attempts": 1,
+  "concurrency": 1,
+  "allow_restricted_licenses": false,
+  "development_task_ids": ["002", "077"],
+  "release_commit": "42e7e97915ff7d73436a5d37b5cbe6b77e9c2a00",
+  "dataset_revision": "d8bdbcb4ecb2b565686382459c815d2b6291fd31"
+}

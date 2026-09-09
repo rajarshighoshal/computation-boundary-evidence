@@ -21,8 +21,8 @@ Package `scicontext`, Python 3.12+. Core helpers use stdlib and jsonschema. JSON
 
 Canonical graph fields (required): schema_version="1.0", task_id, quantities, claims, evidence, observations, unresolved.
 
-- Quantity: id, name, meaning, code_symbol, dimensions (dimension-label to rational-as-string exponent object or null), scale (positive canonical-unit multiplier or null), shape (list of positive integer/string extents or null), evidence_ids, status (explicit/inferred/unresolved).
-- Claim: id, description, relation (expression tree or null), actual (expression tree or null), bindings (expected-symbol to actual-symbol strings), quantity_ids, evidence_ids, assumptions, operation (unit_conversion/weighted_sum/normalization/linear_transform/other), status.
+- Quantity: id, name, meaning, code_symbol, dimensions (array of {dimension, exponent-as-rational-string} or null), scale (positive rational string or null), shape (list of positive integer/string extents or null), evidence_ids, status (explicit/inferred/unresolved).
+- Claim: id, description, relation (expression tree or null), actual (expression tree or null), bindings (array of {expected, actual} strings), quantity_ids, evidence_ids, assumptions, operation (unit_conversion/weighted_sum/normalization/linear_transform/other), status.
 - Evidence: id, path, sha256, start_line, end_line, quote.
 - Observation: id, claim_id, description, status (proposed/reported), artifact (relative scratch path or null). Reported observations require execution-log corroboration; the graph alone cannot certify execution.
 - unresolved: string array.
