@@ -9,6 +9,17 @@ import tempfile
 from pathlib import Path
 
 
+def process_information(proc: Path = Path("/proc"), pid: int | None = None) -> tuple[bool, dict]:
+    pid = os.getpid() if pid is None else pid
+    try:
+        identity_matches = str((proc / "self").readlink()) == str(pid)
+        fields = (proc / str(pid) / "statm").read_text().split()
+        valid = identity_matches and len(fields) >= 2 and all(v.isdigit() for v in fields[:2])
+        return valid, {"process_info_errno": None, "proc_self_matches_pid": identity_matches}
+    except OSError as error:
+        return False, {"process_info_errno": error.errno}
+
+
 def main() -> int:
     mode, root, scratch, control = sys.argv[1:]
     marker = Path(root) / ".scicontext-permission-probe"
@@ -26,6 +37,11 @@ def main() -> int:
     checks["scratch_write"] = True
     with tempfile.TemporaryDirectory() as temporary:
         checks["temporary_directory"] = Path(temporary).is_relative_to(Path(scratch))
+    # Scientific libraries such as PySCF require their own process memory
+    # accounting. A visible outer /proc mounted inside a new PID namespace is
+    # not sufficient: /proc/self must resolve to the command's actual PID.
+    checks["scientific_process_info"], process_diagnostics = process_information()
+    diagnostics.update(process_diagnostics)
     try:
         (Path(control) / "dummy-secret").read_text()
         checks["credential_read_denied"] = False

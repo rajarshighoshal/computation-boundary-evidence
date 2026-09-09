@@ -4,6 +4,8 @@ An experimental preparation stage for SWE-bench Science. It combines source-back
 
 The controlled comparison is ordinary Codex versus extraction followed by repair. Both use GPT-6 Astra/high and a 30-minute total agent allowance; extraction consumes at most six minutes of the treatment allowance. This implementation is a research prototype, not a scientific-correctness prover.
 
+Current status: offline helpers and the basic subscription smoke work; the scientific pilot is blocked by a sandbox process-filesystem incompatibility on the tested local setup. No valid paired result exists yet. See [runtime status](docs/RUNTIME_STATUS.md) before launching a live trial. The preflight fails closed on the known-bad setup.
+
 ## Layout
 
 ```text
@@ -64,7 +66,7 @@ Use a fresh output directory for every attempt. Existing attempts are never over
 
 Authentication defaults to the saved ChatGPT cache at `~/.codex/auth.json`; `--auth-file` accepts an explicitly supplied private subscription cache. API-key auth is rejected. Runtime copies stay in private temporary/controller locations, outside sources, image build contexts and collected artifacts. The tool sandbox must deny credential reads before any credentials are uploaded.
 
-On Apple Silicon, the adapter uses **native ARM64 Linux Codex 0.153.4 inside the pinned amd64 scientific image**. The amd64 Codex binary fails seccomp installation under the tested emulation; native ARM64 passed without privileged containers or security overrides. Scientific Python/libraries remain amd64. Both architectures are recorded. A supported Docker memory allocation must accommodate the task's declared resources; check `docker info` before full runs.
+On Apple Silicon, the adapter uses **native ARM64 Linux Codex 0.153.4 inside the pinned amd64 scientific image**. The amd64 Codex binary fails seccomp installation under the tested emulation; native ARM64 passed basic shell/security checks, but subsequent scientific-process checks failed. This is not a verified scientific execution route yet. Scientific Python/libraries remain amd64. Both architectures are recorded. Docker allocation must also accommodate the task's declared resources.
 
 ## Recompute results
 
