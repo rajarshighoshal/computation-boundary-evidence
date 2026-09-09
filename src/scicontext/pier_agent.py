@@ -282,6 +282,7 @@ class ScientificCodex(BaseAgent):
         await self.checked(environment, f"PYTHONPATH={REMOTE}/src:{REMOTE}/deps python {CONTROL}/collect.py", timeout_sec=max(1, math.ceil(seconds)))
         await environment.download_file(CONTROL + "/selected-graph.json", self._temporary / "selected-graph.json")
         await environment.download_dir(SCRATCH, self.logs_dir / "extract-scratch")
+        await environment.download_dir(self.root + "/outputs", self.logs_dir / "extract-outputs")
         graph = json.loads((self._temporary / "selected-graph.json").read_text())
         return graph
 
