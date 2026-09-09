@@ -62,8 +62,10 @@ def test_missing_reciprocal_conversion_retains_conflict():
     data["observations"] = [{"description": "Baseline failed the probe", "status": "reported"}]
     before = copy.deepcopy(data)
     result = analyze_graph(data)
-    assert finding(result, "scale_comparison")["status"] == "conflict"
+    assert finding(result, "scale_comparison")["status"] == "conditional"
     assert "Retain the intended requirement" in finding(result, "scale_comparison")["explanation"]
+    assert finding(result, "scale_comparison")["expected_factor"] == "1"
+    assert finding(result, "scale_comparison")["actual_factor"] == "8"
     assert data == before
 
 
@@ -81,6 +83,27 @@ def test_addition_scale_difference_not_invented_as_sum_value():
     assert properties(result)["dimensions"] == {"L": "1"}
     assert properties(result)["scale"] is None
     assert any("different formal scale factors" in f["explanation"] for f in result["findings"])
+
+
+@pytest.mark.parametrize("first,second", [(2, 3), (1, 1), (2, 2)])
+def test_ordinary_additive_coefficients_are_not_unit_conflicts(first, second):
+    q = quantity("x", {"L": "1"}, "Distance", shape=[])
+    expected = op("add", op("mul", const(first), sym("x")), op("mul", const(second), sym("x")))
+    actual = op("mul", const(first + second), sym("x"))
+    result = analyze_graph(graph([q], expected, actual))
+    assert properties(result)["dimensions"] == {"L": "1"}
+    assert properties(result)["scale"] is None
+    assert finding(result, "dimensions_comparison")["status"] == "agreement"
+    assert finding(result, "scale_comparison")["status"] == "unknown"
+    assert not any(f["status"] == "conflict" for f in result["findings"])
+
+
+def test_literal_factor_difference_is_conditional_not_unit_conflict():
+    q = quantity("x", {"L": "1"}, "Distance", shape=[])
+    result = analyze_graph(graph([q], op("mul", const(2), sym("x")), op("mul", const(3), sym("x"))))
+    assert finding(result, "scale_comparison")["status"] == "conditional"
+    assert "not a physical-unit inconsistency" in finding(result, "scale_comparison")["explanation"]
+    assert not any(f["status"] == "conflict" for f in result["findings"])
 
 
 def test_normalization_requires_denominator_assumption():
@@ -129,6 +152,13 @@ def test_symbolic_and_batched_matmul_are_unknown_not_false_conflicts():
     assert any("Batched" in f["explanation"] for f in analyze_graph(graph(qs, op("matmul", sym("A"), sym("B"))))["findings"])
 
 
+@pytest.mark.parametrize("left,right,status", [(["N"], ["M"], "unknown"), (["N"], [3], "unknown"), (["N", 3], ["M", 4], "conflict"), (["N"], ["N", 1], "conflict")])
+def test_shape_comparison_distinguishes_symbolic_unknowns(left, right, status):
+    qs = [quantity("x", {}, shape=left), quantity("y", {}, shape=right)]
+    result = analyze_graph(graph(qs, sym("x"), sym("y")))
+    assert finding(result, "shape_comparison")["status"] == status
+
+
 @pytest.mark.parametrize("right,expected_shape,conflict", [([3], [2, 3], False), ([1, 3], [2, 3], False), ([4], None, True), (["N"], None, False)])
 def test_elementwise_broadcast(right, expected_shape, conflict):
     qs = [quantity("x", {}, shape=[2, 3]), quantity("y", {}, shape=right)]
@@ -171,6 +201,16 @@ def test_bindings_array_and_internal_mapping():
         data = graph([q], sym("x"), sym("field"))
         data["claims"][0]["bindings"] = binding
         assert finding(analyze_graph(data), "dimensions_comparison")["status"] == "agreement"
+
+
+def test_binding_never_invents_a_unit_for_unanchored_actual_symbol():
+    q = quantity("field", None, scale=None, shape=[])
+    data = graph([q], sym("rho"), sym("field"))
+    data["claims"][0]["bindings"] = [{"expected": "rho", "actual": "field"}]
+    result = analyze_graph(data)
+    assert properties(result)["dimensions"] is None
+    assert properties(result, "actual")["dimensions"] is None
+    assert finding(result, "dimensions_comparison")["status"] == "unknown"
 
 
 @pytest.mark.parametrize("expr", [

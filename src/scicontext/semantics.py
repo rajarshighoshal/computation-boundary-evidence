@@ -112,6 +112,14 @@ def _constant_value(node: dict, depth: int = 0) -> Fraction:
 
 @dataclass
 class _Properties:
+    """Conditional properties; scale is a formal factor, never a unit identity.
+
+The factor includes both numeric literals and unit-basis anchors. Its equality
+or inequality therefore cannot independently establish dimensional consistency
+or a scientifically incorrect conversion. Additive expressions do not have an
+unambiguous single coefficient under this deliberately small value model.
+"""
+
     dimensions: dict[str, Fraction] | None = None
     scale: Fraction | None = None
     shape: tuple | None = None
@@ -260,10 +268,13 @@ class _Evaluator:
                     self.issue("conflict", "Addition/subtraction combines different dimensions; scientific anchors or implementation disagree.")
                 else:
                     dims = a.dimensions
-            # A scale is a common anchored factor, not the value of the sum.
-            scale = a.scale if a.scale == b.scale else None
+            # No coefficient algebra is implemented for sums. Even x + x versus
+            # 2*x must not produce a misleading coefficient/units disagreement.
+            scale = None
             if a.scale is not None and b.scale is not None and a.scale != b.scale:
-                self.issue("unknown", "Addition/subtraction has different formal scale factors; an explicit conversion or a richer value model is needed.")
+                self.issue("unknown", "Addition/subtraction has different formal scale factors, which may simply be ordinary numeric coefficients. The combined factor is unknown; this is not a unit inconsistency or evidence that conversion is required.")
+            else:
+                self.issue("unknown", "A single formal factor for addition/subtraction is not inferred; dimensions remain independently checkable.")
             return _Properties(dims, scale, shape)
         dims = _combine(a.dimensions, b.dimensions, -1 if op == "div" else 1)
         scale = None
@@ -410,6 +421,12 @@ accepts mapping-form dimensions/bindings for local analysis and synthetic tests.
                     if attribute == "scale":
                         explanation += " Exact rational cancellation describes formal factors only, not floating-point error or empirical invariance."
                     finding(f"{attribute}_comparison", "agreement", explanation)
+                elif attribute == "scale":
+                    finding("scale_comparison", "conditional",
+                            "Expected and actual formal multiplicative factors differ under supplied anchors. This is a candidate expression difference, not a physical-unit inconsistency or proof of an incorrect repair. Retain the intended requirement and investigate the expression, bindings, and assumptions.",
+                            expected_factor=str(a), actual_factor=str(b))
+                elif attribute == "shape" and len(a) == len(b) and not any(isinstance(x, int) and isinstance(y, int) and x != y for x, y in zip(a, b)):
+                    finding("shape_comparison", "unknown", "Expected and actual symbolic shape extents lack established equality or inequality; no shape conflict is asserted.")
                 else:
                     finding(f"{attribute}_comparison", "conflict", f"Expected and actual {attribute} differ under supplied anchors. Retain the intended requirement; the code, binding, or scientific interpretation may need correction.")
         status, explanation = _lift(claim, selected, evidence_ids)
