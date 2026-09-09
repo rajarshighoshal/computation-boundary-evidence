@@ -4,12 +4,14 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import signal
 import shutil
 import subprocess
 import sys
 import tempfile
 import threading
+import time
 from dataclasses import asdict, replace
 from pathlib import Path
 
@@ -67,6 +69,115 @@ def _run_owned_process(command: list[str], *, check: bool = False, **kwargs) -> 
 
 def _interrupt_schedule(signum, frame):
     raise KeyboardInterrupt(f"Received signal {signum}")
+
+
+_CONTAINER_INSPECT_FORMAT = (
+    '{"id":{{json .Id}},"running":{{json .State.Running}},'
+    '"project":{{json (index .Config.Labels "com.docker.compose.project")}},'
+    '"working_dir":{{json (index .Config.Labels "com.docker.compose.project.working_dir")}},'
+    '"config_files":{{json (index .Config.Labels "com.docker.compose.project.config_files")}}}'
+)
+
+
+def _cleanup_owned_containers(output: Path, item: dict) -> dict:
+    """Stop, never remove, containers proved to belong to this interrupted job.
+
+    Pier 0.3.0's exact trial names and Compose path labels jointly establish
+    ownership. A project-name match alone never authorizes stopping a container.
+    Only running containers are queried; successful jobs do not call this helper.
+    """
+    job = (output / "jobs" / f"task-{item['task_id']}-{item['condition']}").resolve()
+    task = (output / "inputs" / f"task-{item['task_id']}-{item['condition']}" / f"task_{item['task_id']}").resolve()
+    result = {"started_at": utc_now(), "status": "complete", "containers": [], "errors": [], "warnings": []}
+    deadline = time.monotonic() + 45
+    owned: dict[str, dict] = {}
+
+    def docker(*arguments):
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError("Owned-container cleanup exceeded its 45-second allowance")
+        return subprocess.run(["docker", *arguments], check=True, capture_output=True, text=True,
+                              timeout=min(10, remaining)).stdout
+
+    def inspect(identity):
+        return json.loads(docker("inspect", "--format", _CONTAINER_INSPECT_FORMAT, identity))
+
+    try:
+        for path in sorted(job.glob("*/config.json")):
+            trial = path.parent
+            config = read_json(path)
+            name = config.get("trial_name")
+            task_config = config.get("task") if isinstance(config.get("task"), dict) else {}
+            if (path.is_symlink() or trial.is_symlink() or trial.parent.resolve() != job
+                    or name != trial.name or not isinstance(name, str)
+                    or not re.fullmatch(rf"task_{re.escape(item['task_id'])}__[A-Za-z0-9]+", name)
+                    or Path(config.get("trials_dir", "")).resolve() != job
+                    or Path(task_config.get("path", "")).resolve() != task):
+                result["errors"].append(f"Unproven trial ownership: {path.relative_to(output.resolve())}")
+                continue
+            # These session IDs and contexts are fixed by the pinned Pier runner
+            # and this adapter; do not scan or stop matching name prefixes.
+            projects = [(name.lower(), task / "environment", trial / "docker-compose-mounts.json")]
+            if item["condition"] == "science":
+                projects.append((name.lower() + "-extract", task / "environment", trial / "extraction_environment/docker-compose-mounts.json"))
+            projects.append((name.lower() + "__verifier__trial", task / "tests", trial / "docker-compose-mounts.json"))
+            for project, working_dir, mounts_file in projects:
+                identities = docker("ps", "--quiet", "--no-trunc", "--filter", f"label=com.docker.compose.project={project}").split()
+                for identity in dict.fromkeys(identities):
+                    if not re.fullmatch(r"[a-f0-9]{64}", identity):
+                        result["errors"].append(f"Invalid container identity returned for exact project {project}")
+                        continue
+                    metadata = inspect(identity)
+                    raw_paths = metadata.get("config_files")
+                    config_paths = {Path(value).resolve() for value in raw_paths.split(",")} if isinstance(raw_paths, str) else set()
+                    valid = (metadata.get("id") == identity and metadata.get("project") == project
+                             and isinstance(metadata.get("working_dir"), str)
+                             and Path(metadata["working_dir"]).resolve() == working_dir.resolve()
+                             and mounts_file.is_file() and not mounts_file.is_symlink()
+                             and mounts_file.resolve().is_relative_to(trial.resolve())
+                             and mounts_file.resolve() in config_paths)
+                    entry = {"id": identity, "project": project, "ownership_verified": valid,
+                             "initially_running": metadata.get("running"), "stopped": False}
+                    result["containers"].append(entry)
+                    if not valid:
+                        result["errors"].append(f"Refused container {identity}: Compose project/path ownership differs")
+                    elif metadata.get("running") is True:
+                        owned[identity] = entry
+                    elif metadata.get("running") is False:
+                        entry["stopped"] = True
+                    else:
+                        result["errors"].append(f"Unknown running state for {identity}")
+    except (OSError, ValueError, TypeError, subprocess.SubprocessError) as error:
+        result["errors"].append(f"{type(error).__name__}: {error}")
+    try:
+        # Discovery of another role can fail after a main container was proved
+        # owned. Still stop every already-proven container before reporting it.
+        if owned:
+            try:
+                docker("stop", "--time", "5", *owned)
+            except (subprocess.SubprocessError, OSError) as error:
+                result["warnings"].append(f"Docker stop reported {type(error).__name__}; inspecting exact owned IDs")
+            remaining = []
+            for identity, entry in owned.items():
+                state = inspect(identity).get("running")
+                if state is False:
+                    entry["stopped"] = True
+                elif state is True:
+                    remaining.append(identity)
+                else:
+                    result["errors"].append(f"Unknown final running state for {identity}")
+            if remaining:
+                docker("kill", "--signal", "KILL", *remaining)
+                for identity in remaining:
+                    owned[identity]["stopped"] = inspect(identity).get("running") is False
+    except (OSError, ValueError, TypeError, subprocess.SubprocessError) as error:
+        result["errors"].append(f"{type(error).__name__}: {error}")
+    finally:
+        if result["errors"] or any(not entry["stopped"] for entry in result["containers"]):
+            result["status"] = "incomplete"
+        result["finished_at"] = utc_now()
+        write_json(output / f"task-{item['task_id']}-{item['condition']}-container-cleanup.json", result)
+    return result
 
 
 def _reconcile_trial(output: Path, item: dict, budget: TrialConfig, task_row: dict,
@@ -242,6 +353,10 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
         plan["status"] = "interrupted" if interrupted else "runner_failure"
         plan["error"] = f"{type(error).__name__}: {error}"
         if current is not None and task_row is not None:
+            # The owned Pier process has already stopped. Docker daemon children
+            # may survive that process group; resolve and stop only this job's
+            # proven containers before the private auth directory is removed.
+            plan["container_cleanup"] = _cleanup_owned_containers(output, current)
             status = "interrupted" if interrupted else "infrastructure_failure"
             current["status"] = status
             current["finished_at"] = utc_now()

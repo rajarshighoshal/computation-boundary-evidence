@@ -119,7 +119,14 @@ def test_success_and_setup_failure_still_make_comparable_unknown_pair(workspace,
 @pytest.mark.parametrize("termination_signal", [False, True])
 def test_interrupt_stops_only_owned_group_before_private_auth_cleanup(workspace, monkeypatch, termination_signal):
     signals, auth_paths, waits = [], [], []
+    container_cleanup_seen = []
     previous_handler = signal.getsignal(signal.SIGTERM)
+    original_cleanup = cli._cleanup_owned_containers
+    def cleanup_containers(output, item):
+        assert auth_paths[-1].is_file()
+        assert waits == [None, 5, 5]
+        container_cleanup_seen.append(True)
+        return original_cleanup(output, item)
     class SyntheticProcess:
         pid = 314159
         def __init__(self, command, **kwargs):
@@ -145,11 +152,13 @@ def test_interrupt_stops_only_owned_group_before_private_auth_cleanup(workspace,
         signals.append((pid, sig))
     monkeypatch.setattr(cli.subprocess, "Popen", SyntheticProcess)
     monkeypatch.setattr(cli.os, "killpg", kill)
+    monkeypatch.setattr(cli, "_cleanup_owned_containers", cleanup_containers)
     with pytest.raises(KeyboardInterrupt):
         run_pilot(workspace)
     assert signals == [(314159, signal.SIGTERM), (314159, signal.SIGKILL)]
     assert waits == [None, 5, 5]
     assert not auth_paths[-1].exists()
+    assert container_cleanup_seen == [True]
     assert signal.getsignal(signal.SIGTERM) == previous_handler
     output = workspace / "output"
     schedule = read_json(output / "schedule.json")
@@ -198,6 +207,7 @@ def test_successful_smoke_preserves_actual_budget_and_provenance(workspace, monk
             fake_agent_record(command)
         return subprocess.CompletedProcess(command, 0)
     monkeypatch.setattr(cli, "_run_owned_process", execute)
+    monkeypatch.setattr(cli, "_cleanup_owned_containers", lambda *a: pytest.fail("Completed schedules must not stop retained containers"))
     summary = run_pilot(workspace, smoke=True)
     row = summary["trials"][0]
     assert row["config"]["total_seconds"] == 60
@@ -241,3 +251,161 @@ def test_provenance_is_shared_prompt_bundle_not_stage_input(tmp_path, monkeypatc
     assert result["uv_lock_sha256"] == digest_file(tmp_path / "uv.lock")
     assert set(result["prompt_sha256"]) == {"prompts/extract.md", "prompts/repair.md"}
     assert "--untracked-files=no" in calls[-1]
+
+
+class SyntheticDocker:
+    """Docker metadata only; never invokes the daemon or exposes environment."""
+    def __init__(self, records):
+        self.records = records
+        self.listings = {}
+        for identity, record in records.items():
+            self.listings.setdefault(record["project"], []).append(identity)
+        self.calls = []
+        self.stop_failure = False
+        self.ignore_kill = False
+        self.fail_query = None
+
+    def __call__(self, command, **kwargs):
+        self.calls.append(command)
+        assert command[0] == "docker"
+        assert 0 < kwargs["timeout"] <= 10
+        operation = command[1]
+        if operation == "ps":
+            assert command[2:5] == ["--quiet", "--no-trunc", "--filter"]
+            project = command[-1].split("=", 2)[-1]
+            if project == self.fail_query:
+                raise subprocess.CalledProcessError(1, command)
+            output = "\n".join(identity for identity in self.listings.get(project, []) if self.records[identity]["running"])
+        elif operation == "inspect":
+            assert ".Config.Env" not in command[3]
+            output = json.dumps(self.records[command[-1]])
+        elif operation in {"stop", "kill"}:
+            assert command[2:4] == (["--time", "5"] if operation == "stop" else ["--signal", "KILL"])
+            if operation == "stop" and self.stop_failure:
+                raise subprocess.CalledProcessError(1, command)
+            for identity in command[4:]:
+                assert identity in self.records and len(identity) == 64
+                if operation == "stop" or not self.ignore_kill:
+                    self.records[identity]["running"] = False
+            output = "\n".join(command[4:])
+        else:
+            pytest.fail(f"Unscoped/unexpected Docker operation: {operation}")
+        return subprocess.CompletedProcess(command, 0, stdout=output)
+
+
+def container_fixture(workspace, *, all_roles=False):
+    output = workspace / "output"
+    condition = "science" if all_roles else "baseline"
+    item = {"task_id": "002", "condition": condition}
+    job = output / "jobs" / f"task-002-{condition}"
+    trial = job / "task_002__AbC123"
+    task = output / "inputs" / f"task-002-{condition}" / "task_002"
+    write_json(trial / "config.json", {"trial_name": trial.name, "trials_dir": str(job), "task": {"path": str(task)}})
+    write_json(trial / "docker-compose-mounts.json", {"services": {}})
+    write_json(trial / "extraction_environment/docker-compose-mounts.json", {"services": {}})
+    project = trial.name.lower()
+    records = {"a" * 64: {"id": "a" * 64, "running": True, "project": project,
+               "working_dir": str(task / "environment"), "config_files": str(trial / "docker-compose-mounts.json")}}
+    if all_roles:
+        records["b" * 64] = {**records["a" * 64], "id": "b" * 64}
+        records["c" * 64] = {**records["a" * 64], "id": "c" * 64, "project": project + "-extract",
+                              "config_files": str(trial / "extraction_environment/docker-compose-mounts.json")}
+        records["d" * 64] = {**records["a" * 64], "id": "d" * 64, "project": project + "__verifier__trial",
+                              "working_dir": str(task / "tests")}
+    return output, item, trial, SyntheticDocker(records)
+
+
+def test_container_cleanup_stops_exact_proven_roles_but_no_prefix_neighbors(workspace, monkeypatch):
+    output, item, trial, docker = container_fixture(workspace, all_roles=True)
+    unrelated = "e" * 64
+    docker.records[unrelated] = {"id": unrelated, "running": True, "project": trial.name.lower() + "-unrelated"}
+    docker.listings[docker.records[unrelated]["project"]] = [unrelated]
+    monkeypatch.setattr(cli.subprocess, "run", docker)
+    result = cli._cleanup_owned_containers(output, item)
+    assert result["status"] == "complete"
+    assert all(entry["ownership_verified"] and entry["stopped"] for entry in result["containers"])
+    assert len(result["containers"]) == 4
+    assert docker.records[unrelated]["running"] is True
+    stop = next(command for command in docker.calls if command[1] == "stop")
+    assert set(stop[4:]) == {char * 64 for char in "abcd"}
+    assert all(command[1] not in {"rm", "compose"} for command in docker.calls)
+    assert (trial / "config.json").exists()
+    assert read_json(output / "task-002-science-container-cleanup.json")["status"] == "complete"
+
+
+@pytest.mark.parametrize("field,value", [
+    ("project", "other-project"),
+    ("working_dir", "/unrelated/environment"),
+    ("config_files", "/unrelated/docker-compose-mounts.json"),
+    ("config_files", None),
+])
+def test_container_cleanup_refuses_mismatching_ownership(workspace, monkeypatch, field, value):
+    output, item, trial, docker = container_fixture(workspace)
+    docker.records["a" * 64][field] = value
+    monkeypatch.setattr(cli.subprocess, "run", docker)
+    result = cli._cleanup_owned_containers(output, item)
+    assert result["status"] == "incomplete" and result["errors"]
+    assert docker.records["a" * 64]["running"] is True
+    assert not any(command[1] in {"stop", "kill"} for command in docker.calls)
+
+
+def test_container_cleanup_refuses_foreign_task_receipt_before_querying(workspace, monkeypatch):
+    output, item, trial, docker = container_fixture(workspace)
+    config = read_json(trial / "config.json")
+    config["task"]["path"] = str(workspace / "another-job")
+    write_json(trial / "config.json", config)
+    monkeypatch.setattr(cli.subprocess, "run", docker)
+    assert cli._cleanup_owned_containers(output, item)["status"] == "incomplete"
+    assert docker.calls == []
+
+
+def test_container_cleanup_refuses_symlinked_mounts_receipt(workspace, monkeypatch):
+    output, item, trial, docker = container_fixture(workspace)
+    elsewhere = workspace / "other-job/mounts.json"
+    write_json(elsewhere, {"services": {}})
+    mount = trial / "docker-compose-mounts.json"
+    mount.unlink()
+    mount.symlink_to(elsewhere)
+    monkeypatch.setattr(cli.subprocess, "run", docker)
+    assert cli._cleanup_owned_containers(output, item)["status"] == "incomplete"
+    assert not any(command[1] in {"stop", "kill"} for command in docker.calls)
+
+
+def test_container_cleanup_kill_fallback_requires_verified_ids(workspace, monkeypatch):
+    output, item, trial, docker = container_fixture(workspace)
+    docker.stop_failure = True
+    monkeypatch.setattr(cli.subprocess, "run", docker)
+    result = cli._cleanup_owned_containers(output, item)
+    assert result["status"] == "complete" and result["warnings"]
+    kill = next(command for command in docker.calls if command[1] == "kill")
+    assert kill[4:] == ["a" * 64]
+    assert result["containers"][0]["stopped"] is True
+
+
+def test_container_cleanup_never_claims_unstopped_container_complete(workspace, monkeypatch):
+    output, item, trial, docker = container_fixture(workspace)
+    docker.stop_failure = docker.ignore_kill = True
+    monkeypatch.setattr(cli.subprocess, "run", docker)
+    result = cli._cleanup_owned_containers(output, item)
+    assert result["status"] == "incomplete"
+    assert result["containers"][0]["stopped"] is False
+
+
+def test_discovery_failure_still_stops_already_proven_owned_container(workspace, monkeypatch):
+    output, item, trial, docker = container_fixture(workspace)
+    docker.fail_query = trial.name.lower() + "__verifier__trial"
+    monkeypatch.setattr(cli.subprocess, "run", docker)
+    result = cli._cleanup_owned_containers(output, item)
+    assert result["status"] == "incomplete" and result["errors"]
+    assert result["containers"][0]["stopped"] is True
+
+
+def test_container_cleanup_deadline_is_explicit_and_bounded(workspace, monkeypatch):
+    output, item, trial, docker = container_fixture(workspace)
+    clock = iter([0.0, 46.0])
+    monkeypatch.setattr(cli.time, "monotonic", lambda: next(clock))
+    monkeypatch.setattr(cli.subprocess, "run", docker)
+    result = cli._cleanup_owned_containers(output, item)
+    assert result["status"] == "incomplete"
+    assert "45-second allowance" in result["errors"][0]
+    assert docker.calls == []
