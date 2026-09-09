@@ -359,3 +359,27 @@ def test_new_provenance_and_nested_coverage_round_trip_csv_and_audit(tmp_path):
     summary["trials"][1]["graph_coverage"]["claims"] = 99
     dump(output / "summary.json", summary)
     assert subprocess.run(command, capture_output=True).returncode == 1
+
+
+@pytest.mark.parametrize("reserved", ["agent", "artifacts", "extraction_environment", "verifier"])
+def test_agent_owned_run_filenames_are_not_trial_receipts(tmp_path, reserved):
+    directory = trial(tmp_path, name="jobs/batch-01/task-010/baseline")
+    trial(tmp_path, name="jobs/batch-01/task-010/science", condition="science")
+    baseline = assert_independent(tmp_path)
+    fake = directory / reserved / "extract-scratch/nested/run.json"
+    fake.parent.mkdir(parents=True, exist_ok=True)
+    fake.write_text("malformed untrusted probe content", encoding="utf-8")
+    # Also exclude an artifact tree alongside jobs rather than only under trials.
+    dump(tmp_path / reserved / "other/run.json", {"condition": "science"})
+    summary = assert_independent(tmp_path)
+    assert summary == baseline
+    assert len(summary["trials"]) == 2
+    assert summary["pairs"][0]["outcome"] == "both_success"
+
+
+def test_invalid_receipt_in_nested_job_still_fails_closed(tmp_path):
+    dump(tmp_path / "jobs/batch-01/task-010/science/run.json", {"condition": "science"})
+    with pytest.raises(AnalysisError, match="Invalid run"):
+        summarize_runs(tmp_path)
+    with pytest.raises(ValueError, match="Invalid run"):
+        independent.recompute(tmp_path)

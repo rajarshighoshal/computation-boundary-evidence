@@ -11,6 +11,7 @@ import csv
 import hashlib
 import json
 import math
+import os
 import xml.etree.ElementTree as ET
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -26,6 +27,7 @@ PROVENANCE_FIELDS = (
     "selection_sha256", "dataset_revision", "benchmark_revision", "environment_image",
     "verifier_image", "runner_version", "implementation_revision", "uv_lock_sha256", "prompt_sha256",
 )
+OWNED_ARTIFACT_SUBTREES = {"agent", "artifacts", "extraction_environment", "verifier"}
 
 
 class AnalysisError(ValueError):
@@ -353,7 +355,15 @@ def summarize_runs(root: Path) -> dict[str, Any]:
     root = Path(root).resolve()
     if not root.is_dir():
         raise AnalysisError(f"Trial root is not a directory: {root}")
-    rows = [_trial_row(root, path) for path in sorted(root.rglob("run.json"))]
+    receipts = []
+    for directory, subdirectories, files in os.walk(root, followlinks=False):
+        # Agent-controlled scratch and verifier artifacts may contain arbitrary
+        # run.json files. They are never experiment trial receipts. Prune these
+        # trees before descending, while retaining arbitrary nested job layouts.
+        subdirectories[:] = sorted(name for name in subdirectories if name not in OWNED_ARTIFACT_SUBTREES)
+        if "run.json" in files:
+            receipts.append(Path(directory) / "run.json")
+    rows = [_trial_row(root, path) for path in sorted(receipts)]
     pairs = _pairs(rows)
     untouched_rows = [row for row in rows if not row["development_exposed"]]
     untouched_pairs = [pair for pair in pairs if not pair["development_exposed"]]

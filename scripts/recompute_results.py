@@ -14,6 +14,7 @@ import argparse
 import hashlib
 import json
 import math
+import os
 import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -292,7 +293,12 @@ def recompute(root):
     root = Path(root).resolve()
     if not root.is_dir():
         raise ValueError(f"Missing trial directory: {root}")
-    rows = [reconstruct_row(root, receipt) for receipt in sorted(root.rglob("run.json"))]
+    paths = []
+    for directory, children, files in os.walk(root, followlinks=False):
+        children[:] = sorted(child for child in children if child not in ("agent", "artifacts", "extraction_environment", "verifier"))
+        if "run.json" in files:
+            paths.append(Path(directory) / "run.json")
+    rows = [reconstruct_row(root, receipt) for receipt in sorted(paths)]
     pairs = reconstruct_pairs(rows)
     return {
         "schema_version": "1.0", "task_ids": sorted({row["task_id"] for row in rows}),
