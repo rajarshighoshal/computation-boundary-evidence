@@ -61,6 +61,29 @@ Agent time includes extraction and handoff where applicable, but excludes image 
 | science | output_tokens | 28253 | 2 | 1 |
 | science | over_budget_seconds | 0.00 | 2 | 1 |
 
+### Raw-event token breakdown by task and stage
+
+Input includes cached input; output includes reasoning. Total = input + output, with neither subset added again. Nonreasoning output = output − reasoning; this is not necessarily visible text. These counts are tokens, not monetary cost. Raw `agent/{extract,repair}.jsonl` completed-turn events are cross-checked against stage receipts. Missing reasoning stays unknown. Incomplete stages have unknown full costs; the earlier receipt totals can contain completed turns from an interrupted stage. Trial totals require every expected stage to be present and measured. CLI diagnostic lines are skipped, as in receipt collection.
+
+| Task | Arm | Stage | Status | Input | Cached input | Uncached input | Output | Reasoning output | Nonreasoning output | Total |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 091 | science | extract | completed | 204061 | 173184 | 30877 | 3244 | 266 | 2978 | 207305 |
+| 091 | science | repair | completed | 349567 | 296832 | 52735 | 3589 | 389 | 3200 | 353156 |
+| 091 | science | trial total | completed | 553628 | 470016 | 83612 | 6833 | 655 | 6178 | 560461 |
+| 091 | baseline | repair | completed | 296679 | 252416 | 44263 | 3360 | 505 | 2855 | 300039 |
+| 091 | baseline | trial total | completed | 296679 | 252416 | 44263 | 3360 | 505 | 2855 | 300039 |
+| 058 | baseline | repair | completed | 1829450 | 1732480 | 96970 | 13029 | 3263 | 9766 | 1842479 |
+| 058 | baseline | trial total | completed | 1829450 | 1732480 | 96970 | 13029 | 3263 | 9766 | 1842479 |
+| 058 | science | extract | completed | 259970 | 222208 | 37762 | 3041 | 550 | 2491 | 263011 |
+| 058 | science | repair | completed | 1539783 | 1465088 | 74695 | 18379 | 5455 | 12924 | 1558162 |
+| 058 | science | trial total | completed | 1799753 | 1687296 | 112457 | 21420 | 6005 | 15415 | 1821173 |
+| 009 | science | trial total | interrupted | unknown | unknown | unknown | unknown | unknown | unknown | unknown |
+| 009 | baseline | trial total | no receipt | unknown | unknown | unknown | unknown | unknown | unknown | unknown |
+| 114 | baseline | trial total | no receipt | unknown | unknown | unknown | unknown | unknown | unknown | unknown |
+| 114 | science | trial total | no receipt | unknown | unknown | unknown | unknown | unknown | unknown | unknown |
+| 001 | science | trial total | no receipt | unknown | unknown | unknown | unknown | unknown | unknown | unknown |
+| 001 | baseline | trial total | no receipt | unknown | unknown | unknown | unknown | unknown | unknown | unknown |
+
 Schedule elapsed seconds (including setup and verification): 2529.41.
 
 ## Extraction and graph coverage

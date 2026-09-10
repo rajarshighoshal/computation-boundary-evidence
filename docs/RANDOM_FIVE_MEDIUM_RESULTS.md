@@ -54,6 +54,23 @@ Agent time includes extraction and handoff where applicable, but excludes image 
 | science | output_tokens | 15059 | 1 | 0 |
 | science | over_budget_seconds | 0.00 | 1 | 0 |
 
+### Raw-event token breakdown by task and stage
+
+Input includes cached input; output includes reasoning. Total = input + output, with neither subset added again. Nonreasoning output = output − reasoning; this is not necessarily visible text. These counts are tokens, not monetary cost. Raw `agent/{extract,repair}.jsonl` completed-turn events are cross-checked against stage receipts. Missing reasoning stays unknown. Incomplete stages have unknown full costs; the earlier receipt totals can contain completed turns from an interrupted stage. Trial totals require every expected stage to be present and measured. CLI diagnostic lines are skipped, as in receipt collection.
+
+| Task | Arm | Stage | Status | Input | Cached input | Uncached input | Output | Reasoning output | Nonreasoning output | Total |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 009 | science | extract | completed | 168989 | 137088 | 31901 | 2436 | 221 | 2215 | 171425 |
+| 009 | science | repair | completed | 459997 | 419072 | 40925 | 12623 | 4351 | 8272 | 472620 |
+| 009 | science | trial total | completed | 628986 | 556160 | 72826 | 15059 | 4572 | 10487 | 644045 |
+| 009 | baseline | repair | completed | 527301 | 474112 | 53189 | 15049 | 5956 | 9093 | 542350 |
+| 009 | baseline | trial total | completed | 527301 | 474112 | 53189 | 15049 | 5956 | 9093 | 542350 |
+| 114 | baseline | repair | failed | unknown | unknown | unknown | unknown | unknown | unknown | unknown |
+| 114 | baseline | trial total | infrastructure_failure | unknown | unknown | unknown | unknown | unknown | unknown | unknown |
+| 114 | science | trial total | no receipt | unknown | unknown | unknown | unknown | unknown | unknown | unknown |
+| 001 | science | trial total | no receipt | unknown | unknown | unknown | unknown | unknown | unknown | unknown |
+| 001 | baseline | trial total | no receipt | unknown | unknown | unknown | unknown | unknown | unknown | unknown |
+
 Schedule elapsed seconds (including setup and verification): 1300.56.
 
 ## Extraction and graph coverage
