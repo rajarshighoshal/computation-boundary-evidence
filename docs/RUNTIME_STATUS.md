@@ -36,3 +36,9 @@ COMMAND`, without the platform subcommand shown in current online examples.
 OpenAI Docs was used to check [native read-only options and container limitations](https://learn.chatgpt.com/docs/agent-approvals-security).
 The actual pinned CLI and saved execution receipts determine local feasibility. Scientific probes
 are code-owned executions after annotation, not model-generated commands inside the read-only phase.
+
+The actual task009 extraction session also records medium effort, read-only sandbox policy and
+approval policy `never`; its delivered graph and completed repair are preserved in the
+[medium initial-check report](RANDOM_FIVE_MEDIUM_RESULTS.md). The continuation is now stopped by
+subscription quota on task114, not by a read-only/runtime compatibility failure. No benchmark
+containers remain active. Unfinished tasks require restored quota or an explicitly approved route.

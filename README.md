@@ -52,11 +52,13 @@ The graph uses evidence IDs, exact source lines/hashes, quantities, claims, assu
 
 The current extractor uses code-owned indexing, citations, graph assembly and checks; the LLM returns compact scientific annotations and optional inline probe scripts as JSON. Code saves them. Preparation overlaps interpretation, and independent probes can run concurrently. The shared extraction allowance includes bounded interpretation, probes, collection and shutdown. See [the implemented contract](docs/EXTRACTION_V2.md).
 
-The remaining initial checks use the saved medium-effort configuration (inspect without inference first):
+The medium-effort initial configuration is saved below. Its task009 pair completed, then the
+subscription quota blocked task114; see [medium results](docs/RANDOM_FIVE_MEDIUM_RESULTS.md).
+Do not replay the whole configuration as a resume: only task114/task001 pairs remain, and the
+quota-failed receipt must be preserved. Inspecting the saved schedule does not use inference:
 
 ```bash
 uv run --no-sync scicontext pilot --config configs/random-five-medium-v1.json --output runs/random-five-medium-v1
-uv run --no-sync scicontext pilot --config configs/random-five-medium-v1.json --output runs/random-five-medium-v1 --execute
 ```
 
 The configuration preserves the remaining tasks from the original draw; it is not a reroll. Do not pool different effort/method revisions into a purported uniform experiment. The development commands below use the historical development configuration unless an explicit `--config` is supplied.
