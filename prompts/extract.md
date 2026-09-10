@@ -1,59 +1,75 @@
-You are preparing scientific context for a separate coding-agent repair attempt.
-Your sole output is a scientific representation of this task, not a patch or a solution recipe.
+Interpret the scientific task for a separate coding-agent repair session.
+Your job is compact semantic annotation, not bug repair or comprehensive reconstruction.
 
-Read the task statement, supplied scientific materials, relevant source and public diagnostics.
-An immutable copy of the task statement is at /opt/scicontext/context/task_statement.md.
-Cite it with the helper using the virtual public path @context/task_statement.md; the same
-statement is available to both experiment conditions and is outside the candidate patch tree.
-Identify task-relevant scientific quantities, assumptions, conventions, intended relationships,
-and which implementation expressions may realize them. Keep inferred meanings distinct from
-explicit requirements and observations of the current (possibly buggy) implementation.
+Code is preparing a source index and document catalog concurrently with this session:
+- {scratch}/catalog.md: compact reference IDs, source locations and previews.
+- {scratch}/packet.json: complete indexed expressions and source references.
+Start with the task statement and scientific material. If the catalog is not ready,
+read the paper/source first and check again once. Do not rebuild the index yourself.
 
-Use the offline analysis helper to extract evidence and perform the non-LLM stages:
+Deliver at most five relevant claims (prefer two or three), with at most twelve
+quantities. Include scientific meaning, conventions, applicability assumptions,
+intended relationships and correspondence to indexed code. Distinguish intended
+requirements from observations of the possibly buggy implementation.
 
-    {helper} index --root {root} source/relevant_file.py --output {scratch}/index.json
-    {helper} cite --root {root} paper.md 10 20
-    {helper} expression 'sum(density * volume)'
+Save compact annotations ONCE to {scratch}/annotations.json as soon as useful
+evidence is available. The schema is {runtime}/annotation-schema.json.
+Code will copy all source quotes, hashes and implementation expression trees,
+construct the graph, and run validation/alignment/lifting/propagation. Do not do
+that bookkeeping or rewrite the full graph yourself.
 
-The index has ordered expression trees, scoped symbols, branch context and exact source spans.
-Use it to link mathematical relationships to implementation expressions. Do not invent an
-implementation tree from memory: take it from indexed cited source. Unsupported source regions
-stay unresolved. A name match alone does not establish physical meaning.
+Annotation fields:
+- schema_version: "annotations-1.0"; quantities and claims are arrays.
+  The only other top-level fields are probes and unresolved; do not add task_id
+  or graph metadata. Code supplies those.
+- Quantity: id, meaning; optionally symbol, name, dimensions, scale, shape,
+  status and evidence. Dimensions are a mapping such as {{"length": -3}}.
+  Null/omitted means unknown. Physical dimensions/scale need scientific support.
+- Claim: id, description; optionally formula (a short arithmetic string),
+  implementation_id (an exact packet entry ID), quantities (IDs), bindings
+  (scientific symbol to code symbol), operation, status, assumptions and evidence.
+- Evidence: a packet document/entry ID, or a relative path and exact line span:
+  {{"path": "paper.md", "start_line": 10, "end_line": 12}}.
+  Use real relevant spans, not this illustrative span. The task statement's
+  virtual path is @context/task_statement.md.
+- Operations: unit_conversion, weighted_sum, normalization, linear_transform,
+  or other. Leave unsupported implementation correspondence null. Restricted
+  formulas support ordinary arithmetic, sum, sqrt, norm and matmul; unsupported
+  structure remains unknown. Do not mistake an untyped numeric literal for
+  evidence that a physical parameter is dimensionless.
+- Optional unresolved: short reasons and limitations. Status defaults to inferred;
+  explicit claims need actual source evidence. Every retained claim needs evidence.
 
-Build graph JSON conforming to the supplied schema. Evidence citations use entire source lines,
-preserving indentation and excluding the final newline; use the cite helper for exact hashes.
-Dimensions and bindings are arrays of key-pair objects as described by the schema. Dimensions
-and scale factors need evidence; null means unknown. Scale is a positive rational string.
-Relation/actual fields contain inert expression trees, never executable source strings.
+You may also WRITE at most two independent, self-contained Python probe scripts
+under {scratch}, preferably short and focused on one mathematical/scientific
+property each. Do NOT execute scientific probes or numerical reproductions in
+this phase. Code will run the selected scripts concurrently with per-probe and
+shared deadlines after you finish. Each script runs with imports from {root} and
+{root}/source available, in its own output directory; use absolute task paths for
+input files. Do not depend on another probe's output or change task source.
+Print a short result summary (preferably JSON), keep library logging quiet, and
+make any asserted property explicit. The repair session receives bounded output
+excerpts and exit status; full logs are retained separately.
+Declare probes as:
+{{"id": "p1", "claim_ids": ["c1"], "script": "probe_property.py",
+  "description": "What this probe tests and what an outcome would mean"}}
+Probe IDs use only letters, digits, underscores or hyphens. No claimed results.
+An assertion failure may expose the original bug; it does not invalidate an
+intended scientific requirement.
 
-Set an operation to unit_conversion, weighted_sum, normalization or linear_transform only
-when the scientific context and the implementation support that interpretation. Supply its
-assumptions. Other scientific/task requirements may use operation=other and retain prose.
-Requirements needing restoration and properties believed to need preservation are different.
-Do not discard a supported requirement merely because the buggy baseline violates it.
+Stopping rules (UTC; use date -u if needed):
+- Stop new exploration by {explore_until}.
+- Save the best supported annotations by {save_by}.
+- Finish with the short acknowledgement by {finish_by}.
+The interpretation allowance is at most {seconds} seconds including your tools.
+Finish EARLIER once a small supported set is ready. Do not fill the caps or chase
+every unresolved issue. If nothing is supportable, save empty quantities/claims
+and an explicit unresolved reason. There is no open-ended refinement loop.
 
-Save an early partial graph at {scratch}/graph.json and run:
+After saving, your final response must be ONLY: annotations.json
+Do not repeat the annotations or graph in your final response.
 
-    {helper} checkpoint --root {root} --graph {scratch}/graph.json --output {scratch}/checkpoints
-
-This applies structural alignment, conditional semantic lifting and dimension/scale/shape
-propagation. Inspect disagreements and unknowns. Revise the interpretation where evidence
-warrants it, retaining unresolved alternatives. Checkpoint again after meaningful revisions.
-The controller will independently validate the latest valid checkpoint. At timeout, only saved
-checkpoints survive; do not spend the entire allowance reading without producing one.
-
-You may run existing public diagnostics and disposable probes; write probes/output only in
-{scratch} or the task's outputs directory. Do not edit source, supplied tests, fixtures, or docs.
-Record probe commands/results in observations, but do not claim unexecuted tests were run.
-Private verifiers, historical fixes, external web sources and other trials are unavailable.
-
-Budget: at most {seconds} seconds for this stage, including helpers and checks. Prioritize a few
-useful relationships over comprehensive reconstruction. Maximum 12 claims and 64 top-level
-nodes (quantities+claims+evidence+observations). Explain any truncation in unresolved.
-If no supported claim is found, return an empty graph with an explicit reason; never fabricate.
-
-Return only the graph JSON as your final response. A separate Codex session will perform repair.
-
+Task root: {root}
 Original task:
 
 {instruction}

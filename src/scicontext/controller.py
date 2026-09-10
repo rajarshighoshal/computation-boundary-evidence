@@ -79,9 +79,11 @@ def verify_smoke(events: Path, final: Path) -> bool:
 
 
 async def run_trial(driver: Driver, config: TrialConfig, task_id: str, condition: str,
-                    instruction: str, output: Path) -> dict:
+                    instruction: str, output: Path, *, extraction_only: bool = False) -> dict:
     if condition not in {"baseline", "science"}:
         raise ValueError("Unknown condition")
+    if extraction_only and condition != "science":
+        raise ValueError("Extraction-only verification requires the science condition")
     if (output / "run.json").exists():
         raise FileExistsError("Trial artifact already exists; preserve prior attempts")
     output.mkdir(parents=True, exist_ok=True)
@@ -129,7 +131,7 @@ async def run_trial(driver: Driver, config: TrialConfig, task_id: str, condition
         if condition == "science":
             extraction_deadline = min(deadline, started + config.extraction_seconds)
             # Reserve a bounded portion for deterministic validation/copy/cleanup.
-            reserve = min(15.0, config.extraction_seconds / 5)
+            reserve = min(60.0, config.extraction_seconds / 6)
             try:
                 try:
                     await stage("extract", instruction, max(0.001, extraction_deadline - time.monotonic() - reserve))
@@ -156,7 +158,10 @@ async def run_trial(driver: Driver, config: TrialConfig, task_id: str, condition
                 record.setdefault("extraction_status", "no_valid_graph")
             save()
         remaining = deadline - time.monotonic()
-        if remaining > 0:
+        if extraction_only:
+            record["status"] = "completed"
+            record["extraction_only"] = True
+        elif remaining > 0:
             prompt = instruction
             if handoff is not None:
                 prompt += "\n\nSCIENTIFIC_CONTEXT_HANDOFF\n" + handoff["handoff"]

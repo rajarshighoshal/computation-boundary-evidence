@@ -62,10 +62,30 @@ def fake_agent_record(command, *, status="completed"):
         "codex_version": config.codex_version, "config": asdict(config),
         "status": status, "stages": [], "environment_image": f"env-{task}@sha256:00",
     })
-    if status == "completed":
+    if status == "completed" and "--disable-verification" not in command:
         write_json(path / "verifier/reward.json", {"reward": 1,
                    "private": {"passed": 2, "collected": 2, "return_code": 0}})
     return path
+
+
+def test_extract_only_has_no_repair_or_private_verifier(workspace, monkeypatch):
+    calls = []
+    def execute(command, **kwargs):
+        calls.append(command)
+        if command[0] != "docker":
+            assert "--disable-verification" in command
+            assert "condition=science" in command
+            assert "extraction_only=true" in command
+            fake_agent_record(command)
+        return subprocess.CompletedProcess(command, 0)
+    monkeypatch.setattr(cli, "_run_owned_process", execute)
+    cli.pilot(workspace, workspace / "config.json", workspace / "output", True,
+              workspace / "synthetic-auth.json", extraction_only=True)
+    assert len(calls) == 4
+    assert all("verifier-" not in " ".join(c) for c in calls)
+    schedule = read_json(workspace / "output/schedule.json")
+    assert schedule["kind"] == "extraction_verification"
+    assert [i["condition"] for i in schedule["schedule"]] == ["science", "science"]
 
 
 def test_pull_failure_retains_attempt_and_unstarted_schedule(workspace, monkeypatch):

@@ -265,11 +265,12 @@ def test_only_runner_receipts_create_observations_without_proving_science(source
     draft = annotations([backed_claim()], probes=[probe()])
     receipt = {"id": "p_speed", "claim_ids": ["c_speed"], "description": "Speed measured.",
                "status": status, "exit_code": exit_code, "duration_seconds": 1.2,
-               "script_sha256": "a" * 64, "artifact": "probes/p_speed.json", "stdout": "Observed 2.0"}
+               "script_sha256": "a" * 64, "artifact": "probes/p_speed.json", "stdout_excerpt": "Observed 2.0"}
     bundle = assemble_annotations(draft, packet, root, probe_results=[receipt])
     assert bundle["validation"]["valid"]
     assert bundle["analysis"]["probe_results"] == [receipt]
     observation = bundle["graph"]["observations"][0]
+    assert "Observed 2.0" in observation["description"]
     assert observation["claim_id"] == "c_speed" and observation["status"] == "reported"
     assert "not scientific proof" in observation["description"]
     assert "failure does not disprove" in observation["description"]

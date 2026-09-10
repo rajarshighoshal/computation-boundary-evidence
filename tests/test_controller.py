@@ -79,6 +79,14 @@ def test_checkpoint_survives_extract_stage_timeout(tmp_path):
     assert r["stages"][0]["usage"]["output_tokens"] is None
 
 
+def test_extraction_only_never_launches_repair(tmp_path):
+    d = FakeDriver({"graph_sha256": "c" * 64, "handoff": "context", "graph": {}})
+    r = asyncio.run(run_trial(d, TrialConfig(total_seconds=2, extraction_seconds=.5), "002", "science", "Inspect", tmp_path, extraction_only=True))
+    assert [c[0] for c in d.calls] == ["extract"]
+    assert r["extraction_only"] and r["extraction_status"] == "usable_graph"
+    assert d.finished and d.cleaned
+
+
 def test_refuse_overwriting_attempt(tmp_path):
     (tmp_path / "run.json").write_text("{}")
     with pytest.raises(FileExistsError):

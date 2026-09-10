@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime, timedelta, timezone
 import json
 import math
 import shlex
@@ -19,9 +20,10 @@ from pier.models.agent.network import NetworkAllowlist
 from pier.models.trial.paths import TrialPaths
 
 from .assets import prepare_codex, prepare_helpers
+from .annotations import annotation_schema
 from .configuration import codex_config
 from .controller import TrialConfig, read_usage, run_trial, verify_smoke
-from .graph import graph_schema
+from .extraction import run_extraction
 from .io import digest_file, read_json, write_json
 
 REMOTE = "/opt/scicontext"
@@ -40,10 +42,7 @@ class OutputCodex(Codex):
         super().__init__(*args, **kwargs)
 
     def build_cli_flags(self):
-        flags = super().build_cli_flags() + f" -o /logs/agent/{self.stage}-final.txt"
-        if self.stage == "extract":
-            flags += f" --output-schema {CONTROL}/schema.json"
-        return flags
+        return super().build_cli_flags() + f" -o /logs/agent/{self.stage}-final.txt"
 
 
 def timeout_launcher(binary: str) -> str:
@@ -64,7 +63,7 @@ class ScientificCodex(BaseAgent):
 
     def __init__(self, *args, condition="baseline", total_seconds=1800,
                  extraction_seconds=360, reasoning_effort="high", codex_version="0.153.4",
-                 workspace=None, auth_file=None, smoke=False, **kwargs):
+                 workspace=None, auth_file=None, smoke=False, extraction_only=False, **kwargs):
         super().__init__(*args, **kwargs)
         if condition not in {"baseline", "science"}:
             raise ValueError("Unknown experiment condition")
@@ -78,6 +77,7 @@ class ScientificCodex(BaseAgent):
         if not self.auth_file.is_file():
             raise ValueError("A private subscription auth-file path is required; no API fallback")
         self.smoke = str(smoke).lower() in {"true", "1"}
+        self.extraction_only = str(extraction_only).lower() in {"true", "1"}
         self.environment = None
         self.extract_environment = None
         self._finished_extraction = False
@@ -88,7 +88,7 @@ class ScientificCodex(BaseAgent):
         return "scicontext-codex"
 
     def version(self):
-        return "0.2.0"
+        return "0.3.0"
 
     def network_allowlist(self):
         return NetworkAllowlist(domains=["chatgpt.com", "auth.openai.com", "auth0.openai.com", "api.openai.com"])
@@ -111,7 +111,7 @@ class ScientificCodex(BaseAgent):
         await environment.upload_dir(self.workspace / "src/scicontext", REMOTE + "/src/scicontext")
         await self._put(environment, "codex-launcher", timeout_launcher(self.binary), REMOTE + "/bin/codex")
         await self.checked(environment, f"chmod 755 {REMOTE}/bin/codex; command -v timeout")
-        await self._put(environment, "schema.json", json.dumps(graph_schema()), CONTROL + "/schema.json")
+        await self._put(environment, "annotation-schema.json", json.dumps(annotation_schema()), CONTROL + "/annotation-schema.json")
         statement = (environment.environment_dir.parent / "instruction.md").read_text()
         await self._put(environment, "task_statement.md", statement, REMOTE + "/context/task_statement.md")
         version = await self.checked(environment, shlex.join([self.binary, "--version"]))
@@ -155,6 +155,8 @@ class ScientificCodex(BaseAgent):
             "codex_version": self.config.codex_version, "harness_architecture": "x64",
             "scientific_image_architecture": "amd64", "environment_image": environment.task_env_config.docker_image,
             "execution": "upstream_pier_codex_docker_boundary", "timeout": "GNU timeout foreground process group",
+            "extractor": "bounded_annotations_v1", "claim_cap": 5, "probe_cap": 2,
+            "interpretation_cap_seconds": min(240, self.config.extraction_seconds * 2 / 3),
             "python_minor": pyminor, "baseline_tree": self._baseline_tree,
             "docker_memory_bytes": int(info[0]), "docker_cpus": int(info[1]),
             "task_requested_memory_mb": environment.task_env_config.memory_mb,
@@ -164,14 +166,58 @@ class ScientificCodex(BaseAgent):
         })
 
     async def run_stage(self, name, instruction, seconds):
+        if name == "extract":
+            self._selected_remote = None
+            result = await run_extraction(self, instruction, seconds)
+            write_json(self.logs_dir / "extraction-phases.json", result)
+            return result
+        prompt = instruction + f"\n\nTime allowance remaining: at most {max(1, int(seconds))} seconds."
+        return await self._run_codex(name, prompt, seconds)
+
+    async def _helper(self, command, seconds):
+        bounded = f"timeout --signal=TERM --kill-after=2s {max(.05, seconds - 3)}s bash -c {shlex.quote(command)}"
+        output = await self.checked(self.extract_environment, bounded, timeout_sec=max(1, math.ceil(seconds)))
+        return json.loads(output)
+
+    async def prepare(self, seconds):
+        return await self._helper(
+            f"{HELPER} packet --root {self.root} --context-root {REMOTE}/context --task-id {self.task_id} "
+            f"--output {SCRATCH}/packet.json --catalog {SCRATCH}/catalog.md", seconds)
+
+    async def interpret(self, instruction, seconds):
+        now = datetime.now(timezone.utc)
+        clock = lambda duration: (now + timedelta(seconds=max(0, duration))).strftime("%H:%M:%S UTC")
+        template = (self.workspace / "prompts/extract.md").read_text()
+        prompt = template.format(root=self.root, scratch=SCRATCH, runtime=CONTROL,
+                                 seconds=max(1, int(seconds)), explore_until=clock(seconds * .75),
+                                 save_by=clock(seconds * .90), finish_by=clock(seconds - 15),
+                                 instruction=instruction)
+        return await self._run_codex("extract", prompt, seconds)
+
+    async def assemble(self, outcomes, seconds):
+        target = CONTROL + ("/initial-bundle.json" if outcomes is None else "/bounded-graph.json")
+        extra = ""
+        if outcomes is not None:
+            await self._put(self.extract_environment, "probe-results.json", json.dumps({"results": outcomes}), SCRATCH + "/probe-results.json")
+            extra = f" --probe-results {SCRATCH}/probe-results.json"
+        result = await self._helper(
+            f"{HELPER} assemble --root {self.root} --context-root {REMOTE}/context --packet {SCRATCH}/packet.json "
+            f"--annotations {SCRATCH}/annotations.json --output {target}{extra}", seconds)
+        if result.get("usable"):
+            self._selected_remote = target
+        write_json(self.logs_dir / ("assembly-initial.json" if outcomes is None else "assembly-final.json"), result)
+        return result
+
+    async def probe(self, specs, seconds):
+        await self._put(self.extract_environment, "probe-specs.json", json.dumps({"probes": specs}), SCRATCH + "/probe-specs.json")
+        result = await self._helper(
+            f"{HELPER} run-probes --root {self.root} --scratch {SCRATCH} --specs {SCRATCH}/probe-specs.json "
+            f"--seconds {max(.05, seconds - 5)} --output {SCRATCH}/probe-results.json", seconds)
+        return result["results"]
+
+    async def _run_codex(self, name, prompt, seconds):
         started = time.monotonic()
         environment = self.extract_environment if name == "extract" else self.environment
-        if name == "extract":
-            template = (self.workspace / "prompts/extract.md").read_text()
-            prompt = template.format(helper=HELPER, root=self.root, scratch=SCRATCH,
-                                     seconds=max(1, int(seconds)), instruction=instruction)
-        else:
-            prompt = instruction + f"\n\nTime allowance remaining: at most {max(1, int(seconds))} seconds."
         path = (await self.checked(environment, "printenv PATH")).strip()
         duration = max(0.05, seconds - min(10.0, seconds / 5) - 3)
         stage_agent = OutputCodex(
@@ -218,29 +264,16 @@ class ScientificCodex(BaseAgent):
         added = await self.checked(environment, "git ls-files --others --exclude-standard -- . ':(exclude)outputs/**'", cwd=self.root)
         source_changed = bool(diff.strip() or added.strip())
         write_json(self.logs_dir / "extraction-source-check.json", {"source_changed": source_changed, "changed": diff.splitlines(), "untracked": added.splitlines()})
-        command = (f"if test -s /logs/agent/extract-final.txt; then {HELPER} checkpoint --root {shlex.quote(self.root)} "
-                   f"--graph /logs/agent/extract-final.txt --output {SCRATCH}/checkpoints; fi")
-        await environment.exec(command, timeout_sec=max(1, min(10, math.ceil(seconds))))
-        collector = (
-            "import json,pathlib; from scicontext.graph import validate_graph,render_graph; "
-            "from scicontext.tool_cli import analyze_grounded; from scicontext.io import digest_json; "
-            f"root=pathlib.Path({self.root!r}); directory=pathlib.Path({(SCRATCH + '/checkpoints')!r}); "
-            "candidates=sorted(directory.glob('*.json'),key=lambda p:(p.stat().st_mtime_ns,p.name),reverse=True); selected=None\n"
-            "for p in candidates[:64]:\n"
-            " try:\n"
-            f"  raw=json.loads(p.read_text()); g=raw['graph']; v=validate_graph(g,root,context_root=pathlib.Path({(REMOTE + '/context')!r}))\n"
-            f"  if not v['valid'] or g['task_id'] != {self.task_id!r}: continue\n"
-            "  a=analyze_grounded(g,root); selected={'graph':g,'validation':v,'analysis':a,'graph_sha256':digest_json(g),'handoff':render_graph(g,a)}; break\n"
-            " except (ValueError,KeyError,TypeError,OSError): continue\n"
-            f"pathlib.Path({(CONTROL + '/selected-graph.json')!r}).write_text(json.dumps(selected))\n"
-        )
-        await self._put(environment, "collect.py", collector, CONTROL + "/collect.py")
-        await self.checked(environment, f"PYTHONPATH={REMOTE}/src:{REMOTE}/deps python {CONTROL}/collect.py", timeout_sec=max(1, math.ceil(seconds)))
-        selected = Path(self._temporary.name) / "selected-graph.json"
-        await environment.download_file(CONTROL + "/selected-graph.json", selected)
         await environment.download_dir(SCRATCH, self.logs_dir / "extract-scratch")
         await environment.download_dir(self.root + "/outputs", self.logs_dir / "extract-outputs")
-        return None if source_changed else json.loads(selected.read_text())
+        if not self._selected_remote:
+            return None
+        selected = self.logs_dir / "compiled-graph.json"
+        await environment.download_file(self._selected_remote, selected)
+        bundle = read_json(selected)
+        if source_changed or bundle["graph"]["task_id"] != self.task_id:
+            return None
+        return bundle if bundle["assembly"]["usable"] else None
 
     async def finish_extraction(self):
         if self.extract_environment and not self._finished_extraction:
@@ -254,10 +287,11 @@ class ScientificCodex(BaseAgent):
         if self.smoke:
             instruction = "Infrastructure smoke only. Run python -c 'from pyscf import lib; lib.current_memory(); print(7*6)' using the shell tool, then reply READY. Do not edit task source."
         try:
-            record = await run_trial(self, self.config, self.task_id, self.condition, instruction, self.logs_dir.parent)
+            record = await run_trial(self, self.config, self.task_id, self.condition, instruction, self.logs_dir.parent,
+                                     extraction_only=self.extraction_only)
             record.update({"harness_architecture": "x64", "execution": "upstream_pier_codex_docker_boundary",
                            "environment_image": environment.task_env_config.docker_image,
-                           "experiment_kind": "subscription_smoke" if self.smoke else "development_pilot"})
+                           "experiment_kind": "extraction_verification" if self.extraction_only else "subscription_smoke" if self.smoke else "development_pilot"})
             if self.smoke:
                 record["smoke_success"] = record["status"] == "completed" and verify_smoke(self.logs_dir / "repair.jsonl", self.logs_dir / "repair-final.txt")
                 if not record["smoke_success"]:

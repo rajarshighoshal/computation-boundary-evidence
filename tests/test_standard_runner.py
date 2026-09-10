@@ -34,17 +34,19 @@ def test_reuses_upstream_run_without_reimplementing_authentication(tmp_path):
     launch = next(command for command in environment.commands if "codex exec " in command)
     assert "--dangerously-bypass-approvals-and-sandbox" in launch
     assert "--enable unified_exec" in launch
-    assert "--output-schema /opt/scicontext/runtime/schema.json" in launch
+    assert "--output-schema" not in launch
+    assert "-o /logs/agent/extract-final.txt" in launch
     assert "model_reasoning_effort=high" in launch
     assert environment.uploads == [(auth, "/tmp/codex-secrets/auth.json")]
     assert any("rm -rf /tmp/codex-secrets" in command for command in environment.commands)
     assert all("--permission-profile" not in command for command in environment.commands)
 
 
-def test_only_extraction_adds_schema(tmp_path):
-    agent = OutputCodex(stage="repair", logs_dir=tmp_path, model_name="gpt-6-astra")
+@pytest.mark.parametrize("stage", ["extract", "repair"])
+def test_both_stages_use_plain_final_files(tmp_path, stage):
+    agent = OutputCodex(stage=stage, logs_dir=tmp_path, model_name="gpt-6-astra")
     assert "--output-schema" not in agent.build_cli_flags()
-    assert "repair-final.txt" in agent.build_cli_flags()
+    assert stage + "-final.txt" in agent.build_cli_flags()
 
 
 def test_deadline_uses_standard_timeout_not_custom_supervisor():

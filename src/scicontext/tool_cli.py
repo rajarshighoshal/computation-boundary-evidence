@@ -91,6 +91,25 @@ def main(argv: list[str] | None = None) -> int:
     check.add_argument("--graph", type=Path, required=True)
     check.add_argument("--output", type=Path, required=True)
     check.add_argument("--context-root", type=Path)
+    packet = subs.add_parser("packet")
+    packet.add_argument("--root", type=Path, required=True)
+    packet.add_argument("--context-root", type=Path, required=True)
+    packet.add_argument("--task-id", required=True)
+    packet.add_argument("--output", type=Path, required=True)
+    packet.add_argument("--catalog", type=Path, required=True)
+    assemble = subs.add_parser("assemble")
+    assemble.add_argument("--root", type=Path, required=True)
+    assemble.add_argument("--context-root", type=Path, required=True)
+    assemble.add_argument("--packet", type=Path, required=True)
+    assemble.add_argument("--annotations", type=Path, required=True)
+    assemble.add_argument("--probe-results", type=Path)
+    assemble.add_argument("--output", type=Path, required=True)
+    probes = subs.add_parser("run-probes")
+    probes.add_argument("--root", type=Path, required=True)
+    probes.add_argument("--scratch", type=Path, required=True)
+    probes.add_argument("--specs", type=Path, required=True)
+    probes.add_argument("--seconds", type=float, required=True)
+    probes.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
     if args.command == "index":
         result = extract_evidence(args.root, args.paths or None, max_entries=args.max_entries)
@@ -120,9 +139,43 @@ def main(argv: list[str] | None = None) -> int:
         result = {"id": "e_" + digest_json([args.path, digest_file(path), args.start, args.end])[:16],
                   "path": original_path, "sha256": digest_file(path), "start_line": args.start,
                   "end_line": args.end, "quote": "\n".join(lines[args.start - 1:args.end])}
-    else:
+    elif args.command == "checkpoint":
         context = args.context_root or os.environ.get("SCICONTEXT_CONTEXT_ROOT")
         result = checkpoint(args.graph, args.root, args.output, Path(context) if context else None)
+    elif args.command == "packet":
+        from .packet import build_packet, render_catalog
+        value = build_packet(args.root, args.context_root)
+        value["task_id"] = args.task_id
+        write_json(args.output, value)
+        args.catalog.parent.mkdir(parents=True, exist_ok=True)
+        args.catalog.write_text(render_catalog(value))
+        result = {"status": "ready", "entries": len(value["entries"]),
+                  "documents": len(value["documents"]), "coverage": value["coverage"]}
+    elif args.command == "assemble":
+        from .annotations import assemble_annotations
+        try:
+            if args.annotations.stat().st_size > 65536:
+                raise ValueError("Compact annotations exceed 64 KiB")
+            annotations = read_json(args.annotations)
+            packet_value = read_json(args.packet)
+            outcomes = read_json(args.probe_results)["results"] if args.probe_results else None
+            bundle = assemble_annotations(annotations, packet_value, args.root, args.context_root, outcomes)
+            write_json(args.output, bundle)
+            usable = bundle["assembly"]["usable"]
+            result = {"status": "usable_graph" if usable else "abstained",
+                      "usable": usable, "graph_sha256": bundle.get("graph_sha256"),
+                      "accepted_claim_ids": bundle["assembly"]["accepted_claim_ids"],
+                      "probes": bundle["probes"], "assembly": bundle["assembly"]}
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            result = {"status": "invalid_or_missing_annotations", "usable": False,
+                      "error": f"{type(error).__name__}: {error}", "probes": []}
+            write_json(args.output, {"assembly": result, "graph": None})
+    else:
+        from .probes import run_probes
+        specs = read_json(args.specs)["probes"]
+        results = run_probes(specs, args.root, args.scratch, args.seconds)
+        write_json(args.output, {"results": results})
+        result = {"status": "completed", "results": results}
     print(json.dumps(result, indent=2, sort_keys=True, allow_nan=False))
     return 0 if args.command != "checkpoint" or result["saved"] else 2
 

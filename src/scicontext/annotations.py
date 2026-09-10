@@ -71,7 +71,7 @@ def annotation_schema() -> dict:
             "evidence": _array(reference),
         }, ["id", "description"]), MAX_CLAIMS),
         "probes": _array(_object({
-            "id": identifier, "claim_ids": {**_array(identifier, MAX_CLAIMS), "minItems": 1},
+            "id": {"type": "string", "pattern": "^[A-Za-z0-9_-]{1,64}$"}, "claim_ids": {**_array(identifier, MAX_CLAIMS), "minItems": 1},
             "script": {"type": "string", "minLength": 1, "maxLength": 1024, "pattern": r"\.py$"},
             "description": text,
         }, ["id", "claim_ids", "script", "description"]), MAX_PROBES),
@@ -335,7 +335,10 @@ def assemble_annotations(
                 continue
             description = (f"Probe {identifier}: status={result['status']}, exit_code={result['exit_code']}, "
                            f"duration_seconds={result['duration_seconds']}. "
-                           "Execution success is not scientific proof; failure does not disprove an intended requirement.")
+                           "Execution success is not scientific proof; failure does not disprove an intended requirement.\n"
+                           f"Proposed purpose: {specification['description'][:500]}\n"
+                           f"stdout: {str(result.get('stdout_excerpt', ''))[:1420]}\n"
+                           f"stderr: {str(result.get('stderr_excerpt', ''))[:920]}")
             node = {"id": "o_" + digest_json([identifier, claim_id, result["artifact"]])[:24],
                     "claim_id": claim_id, "description": description,
                     "status": "reported", "artifact": result["artifact"]}

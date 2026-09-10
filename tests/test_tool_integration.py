@@ -114,3 +114,43 @@ def test_generated_output_paths_remain_available_for_probe_observations(tmp_path
     result = validate_graph(graph, tmp_path)
     assert result["valid"]
     assert any("corroborating runner logs" in message for message in result["warnings"])
+def test_compact_annotation_cli_builds_graph_without_model_owned_evidence(tmp_path, capsys):
+    import json
+    from scicontext.tool_cli import main
+    root = tmp_path / "task"
+    root.mkdir()
+    (root / "model.py").write_text("def convert(x):\n    return x * 100\n")
+    (root / "paper.md").write_text("Convert metres to centimetres by multiplying by 100.\n")
+    context = tmp_path / "context"
+    context.mkdir()
+    (context / "task_statement.md").write_text("Inspect model.py and paper.md\n")
+    packet_path, catalog = tmp_path / "packet.json", tmp_path / "catalog.md"
+    assert main(["packet", "--root", str(root), "--context-root", str(context), "--task-id", "synthetic",
+                 "--output", str(packet_path), "--catalog", str(catalog)]) == 0
+    packet = json.loads(packet_path.read_text())
+    entry = next(e for e in packet["entries"] if (e.get("expression") or {}).get("op") == "mul")
+    annotation = {"schema_version": "annotations-1.0", "quantities": [], "claims": [
+        {"id": "c1", "description": "The conversion follows the supplied multiplicative rule.",
+         "formula": "x * 100", "implementation_id": entry["id"],
+         "evidence": [{"path": "paper.md", "start_line": 1, "end_line": 1}]}]}
+    annotation_path, output = tmp_path / "annotations.json", tmp_path / "bundle.json"
+    annotation_path.write_text(json.dumps(annotation))
+    assert main(["assemble", "--root", str(root), "--context-root", str(context),
+                 "--packet", str(packet_path), "--annotations", str(annotation_path), "--output", str(output)]) == 0
+    result = json.loads(output.read_text())
+    assert result["assembly"]["usable"]
+    assert result["graph"]["task_id"] == "synthetic"
+    assert result["analysis"]["code_grounding"][0]["status"] == "source_matched"
+    assert all(len(e["sha256"]) == 64 and e["quote"] for e in result["graph"]["evidence"])
+    capsys.readouterr()
+
+
+def test_invalid_annotation_cli_saves_explicit_fallback(tmp_path, capsys):
+    import json
+    from scicontext.tool_cli import main
+    output = tmp_path / "bundle.json"
+    assert main(["assemble", "--root", str(tmp_path), "--context-root", str(tmp_path),
+                 "--packet", str(tmp_path / "missing-packet.json"),
+                 "--annotations", str(tmp_path / "missing-annotations.json"), "--output", str(output)]) == 0
+    assert json.loads(output.read_text())["assembly"]["status"] == "invalid_or_missing_annotations"
+    capsys.readouterr()

@@ -230,7 +230,9 @@ def _reconcile_trial(output: Path, item: dict, budget: TrialConfig, task_row: di
 
 
 def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
-          auth_file: Path | None, smoke: bool = False) -> dict:
+          auth_file: Path | None, smoke: bool = False, extraction_only: bool = False) -> dict:
+    if smoke and extraction_only:
+        raise ValueError("Choose subscription smoke or extraction-only verification, not both")
     config = read_json(config_path)
     budget = TrialConfig(config["model"], config["reasoning_effort"], config["codex_version"],
                          config["total_seconds"], config["extraction_seconds"])
@@ -250,10 +252,10 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
     tasks = ["002"] if smoke else config["task_ids"]
     schedule = []
     for task in tasks:
-        conditions = ["baseline"] if smoke else (["baseline", "science"] if int(task) % 2 == 0 else ["science", "baseline"])
+        conditions = ["baseline"] if smoke else ["science"] if extraction_only else (["baseline", "science"] if int(task) % 2 == 0 else ["science", "baseline"])
         for condition in conditions:
             schedule.append({"task_id": task, "condition": condition, "status": "pending", "phase": "not_started"})
-    plan = {"schema_version": "1.0", "kind": "subscription_smoke" if smoke else "development_pilot",
+    plan = {"schema_version": "1.0", "kind": "extraction_verification" if extraction_only else "subscription_smoke" if smoke else "development_pilot",
             "config": config, "config_sha256": digest_file(config_path),
             "selection_sha256": receipt["selection_sha256"], "schedule": schedule,
             "output": str(output.resolve()), "execute": execute}
@@ -310,7 +312,8 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
             # release wrapper always supplies --agent, so invoke Pier directly.
             item["phase"] = "pulling_images"
             write_json(output / "schedule.json", plan)
-            for image in (task_row["environment_image"], task_row["verifier_image"]):
+            images = [task_row["environment_image"]] if extraction_only else [task_row["environment_image"], task_row["verifier_image"]]
+            for image in images:
                 _run_owned_process(["docker", "pull", "--platform", "linux/amd64", image], check=True, stdout=subprocess.DEVNULL)
             command = [str(Path(sys.executable).parent / "pier"), "run",
                        "--path", str(task_input.resolve()), "--env", "docker", "--model", budget.model,
@@ -318,9 +321,12 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
                        "--no-force-build", "--no-delete", "--yes", "--n-concurrent", "1", "--n-attempts", "1",
                        "--max-retries", "0", "--agent-timeout-multiplier", str(total / 5400),
                        "--jobs-dir", str((output / "jobs").resolve()), "--job-name", f"task-{task}-{condition}"]
+            if extraction_only:
+                command += ["--disable-verification"]
             for key, value in {"condition": condition, "total_seconds": total, "extraction_seconds": extract,
                                "reasoning_effort": budget.reasoning_effort, "codex_version": budget.codex_version,
-                               "workspace": str(workspace), "auth_file": str(private_auth), "smoke": smoke}.items():
+                               "workspace": str(workspace), "auth_file": str(private_auth), "smoke": smoke,
+                               "extraction_only": extraction_only}.items():
                 command += ["--agent-kwarg", f"{key}={str(value).lower() if isinstance(value, bool) else value}"]
             log = output / f"task-{task}-{condition}-runner.log"
             write_json(output / f"task-{task}-{condition}-launch.json", {
@@ -391,7 +397,7 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
 
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
-    if argv and argv[0] in {"index", "cite", "expression", "checkpoint"}:
+    if argv and argv[0] in {"index", "cite", "expression", "checkpoint", "packet", "assemble", "run-probes"}:
         from .tool_cli import main as helper_main
         return helper_main(argv)
     parser = argparse.ArgumentParser(description=__doc__)
@@ -415,7 +421,8 @@ def main(argv: list[str] | None = None) -> int:
     run.add_argument("--auth-file", type=Path)
     run.add_argument("--execute", action="store_true")
     run.add_argument("--smoke", action="store_true")
-    for name in ("index", "cite", "expression", "checkpoint"):
+    run.add_argument("--extract-only", action="store_true", help="Verify only extraction on configured development tasks; no repair or private verifier")
+    for name in ("index", "cite", "expression", "checkpoint", "packet", "assemble", "run-probes"):
         subs.add_parser(name, help="Offline extraction helper; use command --help")
     args = parser.parse_args(argv)
     if args.command == "schema":
@@ -433,7 +440,7 @@ def main(argv: list[str] | None = None) -> int:
         from .results import write_summary
         result = write_summary(args.root, args.output)
     else:
-        result = pilot(args.workspace.resolve(), args.config, args.output, args.execute, args.auth_file, args.smoke)
+        result = pilot(args.workspace.resolve(), args.config, args.output, args.execute, args.auth_file, args.smoke, args.extract_only)
     print(json.dumps(result, indent=2, sort_keys=True, allow_nan=False))
     return 0
 
