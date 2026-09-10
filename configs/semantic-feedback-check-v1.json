@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "study_kind": "semantic_feedback_extraction_development_check",
-  "purpose": "Proposed extraction-only quality check, pending explicit launch approval. Previously inspected development tasks; no repair or hidden tests. Use --extract-only.",
+  "purpose": "User-approved extraction-only quality check of scientific-object bindings and bounded feedback. Previously inspected development tasks; no repair or hidden tests. Use --extract-only.",
   "model": "gpt-6-astra",
   "reasoning_effort": "medium",
   "codex_version": "0.153.4",
@@ -11,7 +11,8 @@
   "release_receipt": "data/random-five-v1-release.json",
   "task_ids": ["091", "114"],
   "development_task_ids": ["001", "002", "009", "058", "077", "091", "114"],
-  "conditions": ["baseline", "science"],
+  "conditions": ["science"],
+  "condition_order": {"091": ["science"], "114": ["science"]},
   "total_seconds": 1800,
   "extraction_seconds": 360,
   "verifier_seconds": 1800,
