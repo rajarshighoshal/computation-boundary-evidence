@@ -108,13 +108,13 @@ def test_initial_assembly_uses_remaining_work_budget_not_fifteen_seconds(monkeyp
             clock[0] += 112
             return result
         async def assemble(outcomes, seconds):
-            assert seconds == 53  # Preserve revision/probe/final work up front.
+            assert seconds == 188  # No quota withheld for an optional model revision.
             clock[0] += 20  # Slow enough to exceed the retired assembly cap.
             return {"status": "usable_graph", "usable": True, "probes": []}
         d.interpret, d.assemble = interpret, assemble
         result = await run_extraction(d, "task", 300)
         phase = next(p for p in result["phases"] if p["name"] == "assemble_initial")
-        assert phase["allowance_seconds"] == 53
+        assert phase["allowance_seconds"] == 188
         assert phase["duration_seconds"] == 20
         assert result["usable_checkpoint"] and result["duration_seconds"] == 132
     asyncio.run(check())
@@ -136,6 +136,7 @@ def test_one_revision_receives_failed_observation_and_aggregates_all_calls():
         assert result["usage"]["input_tokens"] == 19
         assert result["usage"]["output_tokens"] is None
         assert result["selected_model_call"] == "extract_revision"
+        assert d.calls.count("probe") == 1  # Unchanged failed experiments are not retried.
     asyncio.run(check())
 
 
@@ -190,11 +191,12 @@ def test_completed_invalid_draft_can_receive_planned_correction():
         d.revise = revise
         result = await run_extraction(d, "task", 1)
         assert result["usable_checkpoint"] and result["selected_model_call"] == "extract_revision"
-        assert "probe" not in d.calls  # New final probes are supplied unexecuted.
+        assert d.calls.count("probe") == 1  # New revision probes are actually executed.
+        assert result["probe_rounds"][0]["phase"] == "revision_probes"
     asyncio.run(check())
 
 
-def test_slow_assemblies_leave_revision_and_final_reserves(monkeypatch):
+def test_slow_draft_gets_old_revision_quota_and_finishes_probe_before_optional_revision(monkeypatch):
     clock = [0.0]
     monkeypatch.setattr(extraction, "time", SimpleNamespace(monotonic=lambda: clock[0]))
     async def check():
@@ -202,8 +204,9 @@ def test_slow_assemblies_leave_revision_and_final_reserves(monkeypatch):
         original = d.interpret
         async def interpret(instruction, seconds):
             result = await original(instruction, seconds)
-            assert seconds == 135
-            clock[0] += 135
+            assert seconds == 225
+            assert seconds > min(240, 300 * .45)  # Reproduce the retired early cutoff.
+            clock[0] += seconds
             return result
         count = [0]
         async def assemble(outcomes, seconds):
@@ -212,21 +215,21 @@ def test_slow_assemblies_leave_revision_and_final_reserves(monkeypatch):
             clock[0] += 20
             return {"status": "usable_graph", "usable": True, "probes": [{"id": "p1"}]}
         async def probe(specs, seconds):
+            assert seconds == 30
             clock[0] += seconds
             return [{"id": "p1", "status": "failed"}]
         async def revise(instruction, feedback, seconds):
-            assert seconds >= 45
-            clock[0] += seconds
-            return {"status": "completed", "usage": {"input_tokens": 1}}
+            raise AssertionError("Optional revision must not displace the first useful artifact")
         d.interpret, d.assemble, d.probe, d.revise = interpret, assemble, probe, revise
         result = await run_extraction(d, "task", 300)
-        assert count[0] == 3
-        assert result["selected_model_call"] == "extract_revision"
+        assert count[0] == 2
+        assert result["selected_model_call"] == "extract_draft"
+        assert result["revision"]["reason"] == "insufficient_time_for_optional_revision_and_execution"
         assert result["duration_seconds"] <= 300
     asyncio.run(check())
 
 
-def test_initial_timeout_cannot_spend_reserved_revision_allowance():
+def test_slow_initial_assembly_is_not_cut_short_to_fund_optional_revision():
     async def check():
         d = Driver(delay=0)
         allowances = []
@@ -238,9 +241,9 @@ def test_initial_timeout_cannot_spend_reserved_revision_allowance():
             return {"status": "completed", "annotations_status": "no_valid_annotations", "usage": {}}
         d.assemble, d.revise = assemble, revise
         result = await run_extraction(d, "task", .2)
-        assert len(allowances) == 1 and allowances[0] > .04
+        assert not allowances
         assert next(p for p in result["phases"] if p["name"] == "assemble_initial")["status"] == "timeout"
-        assert len(result["model_calls"]) == 2
+        assert len(result["model_calls"]) == 1
         assert result["duration_seconds"] < .3
     asyncio.run(check())
 
@@ -335,3 +338,38 @@ def test_no_assembly_starts_after_work_budget_exhaustion(monkeypatch):
         assert not any(isinstance(call, tuple) for call in d.calls)
         assert next(p for p in result["phases"] if p["name"] == "assemble_initial")["status"] == "not_run"
     asyncio.run(check())
+
+
+def test_draft_finishes_after_retired_cutoff_without_a_second_call():
+    async def check():
+        d = Driver(delay=.18)
+        result = await run_extraction(d, "task", .3)
+        assert result["status"] == "completed"
+        assert result["usable_checkpoint"]
+        assert len(result["model_calls"]) == 1
+        draft = next(p for p in result["phases"] if p["name"] == "extract_draft")
+        assert draft["duration_seconds"] > .3 * .45
+        assert draft["allowance_seconds"] > .3 * .70
+    asyncio.run(check())
+
+
+def test_successful_probe_without_diagnostics_skips_revision():
+    async def check():
+        d = Driver(delay=0)
+        async def probe(specs, seconds):
+            return [{"id": s["id"], "status": "completed", "exit_code": 0} for s in specs]
+        async def revise(*args):
+            raise AssertionError("Do not spend another call when no correction is indicated")
+        d.probe, d.revise = probe, revise
+        result = await run_extraction(d, "task", 1)
+        assert result["selected_model_call"] == "extract_draft"
+        assert result["revision"]["reason"] == "no_correction_needed"
+        assert len(result["model_calls"]) == 1
+    asyncio.run(check())
+
+
+def test_passing_probe_does_not_hide_unresolved_scientific_bindings():
+    for diagnostic in ({"unresolved": ["c: unresolved consumer 'absent'"]},
+                       {"scientific_binding_uses": [{"status": "unknown"}]}):
+        assert extraction.revision_reasons({"usable": True, "probes": [{"id": "p"}],
+            "assembly": diagnostic}, [{"id": "p", "status": "completed"}]) == ["grounding_diagnostics"]

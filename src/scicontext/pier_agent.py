@@ -22,7 +22,7 @@ from .assets import prepare_codex, prepare_helpers
 from .annotations import annotation_schema
 from .configuration import codex_config
 from .controller import TrialConfig, read_usage, run_trial, verify_smoke
-from .extraction import run_extraction
+from .extraction import extraction_reserve, run_extraction
 from .io import digest_file, read_json, write_json
 
 REMOTE = "/opt/scicontext"
@@ -218,12 +218,14 @@ class ScientificCodex(BaseAgent):
             "codex_version": self.config.codex_version, "harness_architecture": "x64",
             "scientific_image_architecture": "amd64", "environment_image": environment.task_env_config.docker_image,
             "execution": "upstream_pier_codex_docker_boundary", "timeout": "GNU timeout foreground process group",
-            "extractor": "scientific_entities_feedback_v1", "claim_cap": 5, "probe_cap": 2,
+            "extractor": "scientific_probe_first_v1", "claim_cap": 5, "probe_cap": 2,
             "extraction_model_call_cap": 2 if self.condition == "science" else 0,
             "extraction_harness_architecture": self.extraction_architecture,
             "extraction_access_mode": "read-only" if self.condition == "science" else None,
             "extraction_codex_receipt": read_json(self.extract_codex_package.parent / "receipt.json") if self.extract_codex_package else None,
-            "interpretation_cap_seconds": min(240, (self.config.extraction_seconds - min(60, self.config.extraction_seconds / 6)) * .45),
+            "interpretation_cap_seconds": (self.config.extraction_seconds - min(60, self.config.extraction_seconds / 6)
+                - extraction_reserve(self.config.extraction_seconds - min(60, self.config.extraction_seconds / 6))),
+            "revision_policy": "optional_on_diagnostics_and_remaining_time; no reserved second model call",
             "python_minor": pyminor, "baseline_tree": self._baseline_tree,
             "docker_memory_bytes": int(info[0]), "docker_cpus": int(info[1]),
             "task_requested_memory_mb": environment.task_env_config.memory_mb,
@@ -275,9 +277,14 @@ class ScientificCodex(BaseAgent):
         now = datetime.now(timezone.utc)
         clock = lambda duration: (now + timedelta(seconds=max(0, duration))).strftime("%H:%M:%S UTC")
         template = (self.workspace / ("prompts/extract.md" if name == "extract_draft" else "prompts/extract_revision.md")).read_text()
+        # Prompt milestones are earlier soft targets, not extra process cutoffs.
+        # Allow for the existing CLI collection/termination work when reporting
+        # the actual time available to the model, including small test budgets.
+        model_seconds = max(0.0, seconds - min(10.0, seconds / 5)
+                            - min(3.0, seconds / 10) - min(1.0, seconds / 10))
         prompt = template.format(root=self.root, scratch=SCRATCH, runtime=CONTROL,
-                                 seconds=max(1, int(seconds)), explore_until=clock(seconds * .75),
-                                 save_by=clock(seconds * .90), finish_by=clock(seconds - 15),
+                                 seconds=max(1, int(model_seconds)), explore_until=clock(model_seconds * .60),
+                                 save_by=clock(model_seconds * .80), finish_by=clock(model_seconds * .95),
                                  instruction=instruction, feedback=json.dumps(feedback, sort_keys=True, ensure_ascii=False))
         result = await self._run_codex(name, prompt, seconds)
         if result.get("fatal_model_error"):
@@ -320,18 +327,17 @@ class ScientificCodex(BaseAgent):
         return result
 
     async def probe(self, specs, seconds):
-        # Specs have already passed the assembler's existing path/size checks.
-        for spec in specs:
-            if "source" in spec:
-                destination = SCRATCH + "/" + spec["script"]
-                await self.checked(self.extract_environment,
-                                   "mkdir -p " + shlex.quote(str(Path(destination).parent)))
-                await self._put(self.extract_environment, spec["id"] + ".py",
-                                spec["source"], destination)
-        await self._put(self.extract_environment, "probe-specs.json", json.dumps({"probes": specs}), SCRATCH + "/probe-specs.json")
+        # Each call owns immutable specs/results. The runner saves each inline
+        # script with its receipt, so repeated names cannot overwrite evidence.
+        sequence = getattr(self, "_probe_sequence", 0) + 1
+        self._probe_sequence = sequence
+        name = f"probe-round-{sequence}"
+        await self._put(self.extract_environment, name + "-specs.json", json.dumps({"probes": specs}),
+                        SCRATCH + "/" + name + "-specs.json")
         result = await self._helper(
-            f"{HELPER} run-probes --root {self.root} --scratch {SCRATCH} --specs {SCRATCH}/probe-specs.json "
-            f"--seconds {max(.05, seconds - 5)} --output {SCRATCH}/probe-results.json", seconds)
+            f"{HELPER} run-probes --root {self.root} --scratch {SCRATCH} --specs {SCRATCH}/{name}-specs.json "
+            f"--seconds {max(.05, seconds - 5)} --output {SCRATCH}/{name}-results.json", seconds)
+        write_json(self.logs_dir / (name + "-results.json"), result)
         return result["results"]
 
     async def _run_codex(self, name, prompt, seconds):

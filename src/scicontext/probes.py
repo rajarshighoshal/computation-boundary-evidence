@@ -8,6 +8,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -40,10 +41,13 @@ def run_probes(specs: list[dict], root: Path, scratch: Path, seconds: float,
         raise ValueError("Probe IDs must be unique safe names")
     phase_started = time.monotonic()
     deadline = phase_started + seconds
+    rounds = scratch / "probe-results"
+    rounds.mkdir(parents=True, exist_ok=True)
+    round_dir = Path(tempfile.mkdtemp(prefix="round-", dir=rounds))
 
     def execute(spec):
         start = time.monotonic()
-        destination = scratch / "probe-results" / spec["id"]
+        destination = round_dir / spec["id"]
         destination.mkdir(parents=True, exist_ok=True)
         artifact = (destination / "receipt.json").relative_to(scratch).as_posix()
         receipt = {"id": spec["id"], "claim_ids": spec["claim_ids"], "description": spec["description"],
@@ -56,13 +60,18 @@ def run_probes(specs: list[dict], root: Path, scratch: Path, seconds: float,
             if (relative.is_absolute() or relative.suffix != ".py" or "\\" in spec["script"]
                     or any(x.startswith(".") or x == ".." for x in relative.parts)):
                 raise ValueError("Probe script must be a relative Python file under scratch")
-            source = scratch / relative
-            if (any((scratch.joinpath(*relative.parts[:i])).is_symlink() for i in range(1, len(relative.parts) + 1))
-                    or not source.resolve().is_relative_to(scratch) or source.stat().st_size > 32768):
-                raise ValueError("Probe script is outside scratch or exceeds the size limit")
             # Preserve exactly the script used by this execution separately from outputs.
             copied = destination / "script.py"
-            shutil.copyfile(source, copied)
+            if "source" in spec:
+                if not isinstance(spec["source"], str) or len(spec["source"].encode("utf-8")) > 32768:
+                    raise ValueError("Inline probe source must be a string of at most 32 KiB")
+                copied.write_text(spec["source"], encoding="utf-8")
+            else:
+                source = scratch / relative
+                if (any((scratch.joinpath(*relative.parts[:i])).is_symlink() for i in range(1, len(relative.parts) + 1))
+                        or not source.resolve().is_relative_to(scratch) or source.stat().st_size > 32768):
+                    raise ValueError("Probe script is outside scratch or exceeds the size limit")
+                shutil.copyfile(source, copied)
             receipt["script_sha256"] = digest_file(copied)
             allowance = min(per_probe_seconds, deadline - time.monotonic())
             if allowance <= 3:

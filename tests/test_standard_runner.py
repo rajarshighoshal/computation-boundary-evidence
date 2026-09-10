@@ -123,6 +123,8 @@ def test_setup_uses_native_extractor_asset_and_keeps_x64_repair(tmp_path, monkey
     assert receipt["extraction_harness_architecture"] == expected
     assert receipt["extraction_access_mode"] == "read-only"
     assert receipt["extraction_codex_receipt"]["architecture"] == expected
+    assert receipt["interpretation_cap_seconds"] == 225
+    assert receipt["extractor"] == "scientific_probe_first_v1"
 
 
 def test_each_call_uses_extraction_environment_distinct_logs_and_sessions(tmp_path, monkeypatch):

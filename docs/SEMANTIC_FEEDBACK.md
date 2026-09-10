@@ -1,4 +1,4 @@
-# Scientific extraction with one feedback revision
+# Probe-first scientific extraction with optional feedback
 
 Implementation approved by Rajarshi after the task001 diagnosis. This document describes the
 mechanism; local tests do not establish better scientific understanding or repair outcomes.
@@ -20,14 +20,24 @@ of treating invariant outputs alone as sufficient.
 
 ## Bounded sequence
 
-Code-owned preparation overlaps the draft interpretation. Code then assembles the draft, runs
-accepted public probes and can save an observed draft checkpoint. One short revision receives the
-draft, binding diagnostics and actual probe receipts before final assembly. There is no open-ended
+Code-owned preparation overlaps the draft interpretation. The first deliverable is one supported
+scientific claim and a small executable check of the actual repository computation, with its
+applicability and expected relationship grounded in public evidence. A diagnostic comparison may
+leave the scientific expectation unresolved; if no useful probe is possible, the prompt requires
+a specific evidence-backed explanation in `unresolved`. No oracle is invented to force coverage.
+Code then assembles the draft, runs accepted probes and saves an observed draft checkpoint.
+One optional revision receives the draft, binding diagnostics and actual probe receipts when
+correction is indicated and time remains. New or changed probes are executed after revised assembly;
+unchanged attempted probes are not automatically retried. There is no open-ended
 refinement loop. Model access to task source remains native read-only; code-owned probes run using
 the existing bounded subprocess executor in the disposable task environment.
 
-The existing extraction and total-agent allowances are unchanged. The pipeline reserves revision
-and final-assembly time before starting the draft; unused earlier time can flow forward. The outer
+The existing extraction and total-agent allowances are unchanged. The arbitrary 45-percent draft
+allocation and mandatory correction pass are removed. `extraction_reserve()` leaves only code-owned
+assembly/probe time after the first call, not a quota for a second model call. Initial assembly can
+use all remaining work time; probe execution leaves room for observed assembly. Revision is skipped
+when there is too little time for both the optional call and subsequent code work. Prompt deadlines
+are earlier soft milestones within the actual CLI allowance, not additional process cutoffs. The outer
 collection/shutdown reserve remains outside the work allowance. A valid draft survives an invalid
 or ordinarily timed-out revision. Provider/execution failures are not treated as invitations for
 another model call. Upstream execution, cancellation cleanup and artifact collection have bounded
@@ -52,6 +62,12 @@ Top-level trial stages remain `extract` and `repair`. New extraction records con
 `model_calls` for `extract_draft` and, when attempted, `extract_revision`. Each has distinct JSONL,
 final/exit/process receipts and saved sessions. `selected_model_call` identifies the annotations
 actually chosen for handoff. Draft and later assembly bundles are separate files.
+Each probe call has separate `probe-round-N-specs.json`/`probe-round-N-results.json` files, and
+each script/output/receipt lives in a unique directory under `extract-scratch/probe-results`.
+Inline scripts with the same logical filename cannot overwrite another probe. `probe_rounds`
+preserves every attempted interpretation; `probe_delivery` distinguishes retained probes with
+actual execution receipts from unexecuted or absent probes. A citation-only valid graph is labelled
+untested guidance, not an executed scientific check.
 
 Extraction totals include every attempted call once. Input includes cached input, output includes
 reasoning; neither subset is added again. Missing or incomplete attempted-call costs stay unknown.
@@ -72,6 +88,8 @@ A separately approved, predeclared [extractor-only development check](SEMANTIC_F
 has now completed with mixed outcomes. [Its quality review](SEMANTIC_FEEDBACK_CHECK_V1_NOTES.md)
 records useful geometry distinctions without probes and a storage draft timeout. It does not
 establish improved repair performance or complete scientific understanding.
+That check motivated the probe-first corrections above. Their local verification is recorded in
+`results/probe-first-verification.json`; a new live scientific-quality check is still required.
 Task001 is diagnostic-exposed; its hidden assertion and constructed diagnostic case are not included
 in the new prompts or integration examples. No larger experiment is authorized by implementation.
 

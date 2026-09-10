@@ -50,3 +50,21 @@ def test_symlink_and_insufficient_time_do_not_run(tmp_path, monkeypatch):
     assert probes.run_probes([spec], tmp_path, tmp_path, 10)[0]["status"] == "failed"
     spec["script"] = "real.py"
     assert probes.run_probes([spec], tmp_path, tmp_path, 1)[0]["status"] == "not_run"
+
+
+def test_inline_scripts_with_same_filename_and_later_revision_keep_every_attempt(tmp_path):
+    if probes.shutil.which("timeout") is None:
+        pytest.skip("GNU timeout required")
+    specs = [{"id": name, "claim_ids": ["c"], "script": "same.py", "description": name,
+              "source": f"print('{name}')\n", "fingerprint": name * 64} for name in ("a", "b")]
+    first = probes.run_probes(specs, tmp_path, tmp_path, 10)
+    assert [r["stdout_excerpt"] for r in first] == ["a\n", "b\n"]
+    revised = {**specs[0], "source": "print('changed')\n", "fingerprint": "c" * 64}
+    second = probes.run_probes([revised], tmp_path, tmp_path, 10)[0]
+    assert second["stdout_excerpt"] == "changed\n"
+    assert len({r["artifact"] for r in [*first, second]}) == 3
+    for receipt, spec in zip([*first, second], [*specs, revised]):
+        path = tmp_path / receipt["artifact"]
+        assert json.loads(path.read_text()) == receipt
+        assert (path.parent / "script.py").read_text() == spec["source"]
+        assert receipt["status"] == "completed"

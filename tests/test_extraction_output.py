@@ -78,13 +78,30 @@ def test_final_json_is_saved_by_code_and_inline_probe_is_saved_after_assembly(dr
 
         async def runner(command, seconds):
             assert "run-probes" in command
-            assert driver.extract_environment.files[SCRATCH + "/probes/speed.py"] == "print(2 / 1)\n"
-            assert json.loads(driver.extract_environment.files[SCRATCH + "/probe-specs.json"])["probes"] == bundle["probes"]
+            assert SCRATCH + "/probes/speed.py" not in driver.extract_environment.files
+            assert json.loads(driver.extract_environment.files[SCRATCH + "/probe-round-1-specs.json"])["probes"] == bundle["probes"]
+            assert "probe-round-1-results.json" in command
             return {"results": [{"id": "p_speed", "status": "completed"}]}
 
         driver._helper = AsyncMock(side_effect=runner)
         assert await driver.probe(bundle["probes"], 45) == [{"id": "p_speed", "status": "completed"}]
+        assert (driver.logs_dir / "probe-round-1-results.json").is_file()
         driver._run_codex.assert_awaited_once()
+    asyncio.run(check())
+
+
+def test_adapter_keeps_separate_draft_and_revision_probe_receipts(driver):
+    async def check():
+        driver._helper = AsyncMock(side_effect=[{"results": [{"id": "p", "status": "failed"}]},
+                                               {"results": [{"id": "p", "status": "completed"}]}])
+        for source in ("print('draft')\n", "print('revision')\n"):
+            await driver.probe([{"id": "p", "source": source, "script": "p.py"}], 45)
+        first = json.loads(driver.extract_environment.files[SCRATCH + "/probe-round-1-specs.json"])
+        second = json.loads(driver.extract_environment.files[SCRATCH + "/probe-round-2-specs.json"])
+        assert first["probes"][0]["source"] == "print('draft')\n"
+        assert second["probes"][0]["source"] == "print('revision')\n"
+        assert json.loads((driver.logs_dir / "probe-round-1-results.json").read_text())["results"][0]["status"] == "failed"
+        assert json.loads((driver.logs_dir / "probe-round-2-results.json").read_text())["results"][0]["status"] == "completed"
     asyncio.run(check())
 
 

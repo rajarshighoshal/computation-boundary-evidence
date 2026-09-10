@@ -1,6 +1,7 @@
 """No-model integration of real binding, probe execution, revision and repair handoff."""
 import asyncio
 import copy
+import json
 import shutil
 
 import pytest
@@ -66,8 +67,6 @@ class LocalDriver:
                 "probes": bundle["probes"], "assembly": bundle["assembly"]}
 
     async def probe(self, specs, seconds):
-        for spec in specs:
-            (self.scratch / spec["script"]).write_text(spec["source"])
         return await asyncio.to_thread(run_probes, specs, self.root, self.scratch, seconds)
 
     async def revise(self, instruction, feedback, seconds):
@@ -125,12 +124,20 @@ def test_grounded_feedback_reaches_repair_without_claiming_probe_success(tmp_pat
     assert final["graph"]["claims"][0]["scientific_object"] in driver.prompt
     assert "assert compute" in driver.prompt and "Rerun applicable" in driver.prompt
     if bad_binding:
-        # Correcting a claim's code correspondence changes its probe interpretation identity.
-        assert not final["graph"]["observations"]
-        assert "unexecuted for this final interpretation" in driver.prompt
+        # Correcting a code correspondence changes experiment identity: execute it
+        # again, retain both real receipts, and hand off only the current outcome.
+        assert len(stage["probe_rounds"]) == 2
+        first, second = [r["results"][0] for r in stage["probe_rounds"]]
+        assert first["fingerprint"] != second["fingerprint"]
+        assert first["artifact"] != second["artifact"]
+        for result in (first, second):
+            assert json.loads((scratch / result["artifact"]).read_text()) == result
+        assert final["graph"]["observations"][0]["artifact"] == second["artifact"]
     else:
-        assert final["graph"]["observations"]
-        assert "failed, exit_code=1 (identity verified)" in driver.prompt
+        assert len(stage["probe_rounds"]) == 1  # No retry of an unchanged failing probe.
+    assert final["graph"]["observations"]
+    assert "failed, exit_code=1 (identity verified)" in driver.prompt
+    assert stage["probe_delivery"] == {"accepted_ids": ["p"], "executed_ids": ["p"], "status": "executed"}
     assert (root / "model.py").read_text() == source
 
 
@@ -150,3 +157,36 @@ def test_timed_out_draft_with_pending_cleanup_is_fatal(tmp_path):
     result = asyncio.run(run_extraction(PendingDriver(), "synthetic", .1))
     assert result["fatal_model_error"] and result["status"] == "failed"
     assert [c["name"] for c in result["model_calls"]] == ["extract_draft"]
+
+
+def test_revised_broken_probe_is_executed_without_weakening_scientific_expectation(tmp_path):
+    if shutil.which("timeout") is None:
+        pytest.skip("GNU timeout required")
+    root, scratch = tmp_path / "task", tmp_path / "scratch"
+    root.mkdir()
+    scratch.mkdir()
+    (root / "model.py").write_text("def compute(distance, elapsed):\n    return distance * elapsed\n")
+    (root / "paper.md").write_text("Rate is displacement divided by positive elapsed time.\n")
+    class BrokenProbeDriver(LocalDriver):
+        async def interpret(self, instruction, seconds):
+            receipt = await super().interpret(instruction, seconds)
+            self.correct_source = self.annotations["probes"][0]["source"]
+            self.annotations["probes"][0]["source"] = "from missing_probe_dependency import compute\n"
+            return receipt
+        async def revise(self, instruction, feedback, seconds):
+            assert "ModuleNotFoundError" in feedback["public_probe_results"][0]["stderr_excerpt"]
+            self.annotations["probes"][0]["source"] = self.correct_source
+            return await super().revise(instruction, feedback, seconds)
+    driver = BrokenProbeDriver(root, scratch, "numeric", False)
+    result = asyncio.run(run_extraction(driver, "public scientific definition", 20))
+    first, final = [r["results"][0] for r in result["probe_rounds"]]
+    assert first["script_sha256"] != final["script_sha256"]
+    assert first["fingerprint"] != final["fingerprint"]
+    assert "ModuleNotFoundError" in first["stderr_excerpt"]
+    assert "AssertionError" in final["stderr_excerpt"]
+    assert driver.selected["graph"]["observations"][0]["artifact"] == final["artifact"]
+    assert "failed, exit_code=1 (identity verified)" in driver.selected["handoff"]
+    assert len(result["model_calls"]) == 2
+    assert result["probe_delivery"]["status"] == "executed"
+    for receipt in (first, final):
+        assert json.loads((scratch / receipt["artifact"]).read_text()) == receipt

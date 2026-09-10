@@ -574,6 +574,9 @@ def assemble_annotations(
             reject("unresolved", {}, "unresolved entries must be strings of at most 4096 characters")
         else:
             note(unresolved)
+    if not probes:
+        note("No executable public probe retained: this is untested scientific guidance. "
+             "See unresolved evidence limitations; a valid graph is not an executed scientific check.")
     if not graph["claims"]:
         note("Abstained: no source-backed scientific claims were accepted.")
     graph["unresolved"] = [message[:4096] for message in assembly["unresolved"][:64]]
