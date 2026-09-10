@@ -133,6 +133,70 @@ def test_stale_source_prevents_copying_old_implementation(source_packet):
     assert "stale packet source hash" in " ".join(bundle["assembly"]["unresolved"])
 
 
+def test_source_operands_and_equation_output_keep_science_unknown(tmp_path):
+    (tmp_path / "model.py").write_text("def volume(arrays):\n    V = -sum(arrays['rpvi'])\n    return V\n")
+    packet = {"task_id": "example", "entries": extract_evidence(tmp_path)["entries"], "documents": []}
+    ref = {"path": "model.py", "start_line": 2, "end_line": 2}
+    draft = annotations([{"id": "c_volume", "description": "Proposed signed volume relation",
+                         "formula": "V = -sum(J)", "implementation_ref": ref,
+                         "quantities": ["q_j"], "bindings": {"J": "arrays[\"rpvi\"]"},
+                         "status": "unresolved"}],
+                        quantities=[{"id": "q_j", "meaning": "Scientific definition unavailable",
+                                     "status": "unresolved", "code_ref": {**ref, "symbol": 'arrays["rpvi"]'}}],
+                        unresolved=["Projection frame and normalization are unspecified."])
+    bundle = assemble_annotations(draft, packet, tmp_path)
+    assert bundle["validation"]["valid"]
+    quantity = bundle["graph"]["quantities"][0]
+    assert quantity["code_symbol"] == "arrays['rpvi']"
+    assert quantity["evidence_ids"] and quantity["status"] == "unresolved"
+    assert quantity["dimensions"] is None and quantity["scale"] is None and quantity["shape"] is None
+    record = bundle["assembly"]["relations"][0]
+    assert record["target"] == "V" and record["actual_targets"] == ["V"]
+    assert bundle["graph"]["claims"][0]["bindings"] == [{"expected": "J", "actual": "arrays['rpvi']"}]
+    assert bundle["analysis"]["code_grounding"][0]["status"] == "source_matched"
+    assert "scientific target='V'" in bundle["handoff"]
+    assert "Projection frame and normalization are unspecified." in bundle["handoff"]
+
+
+def test_unknown_cast_is_source_grounded_without_claiming_equivalence(tmp_path):
+    (tmp_path / "model.py").write_text("import numpy as np\ndef volume(bjac_i):\n    V = -float(np.sum(bjac_i))\n")
+    packet = {"entries": extract_evidence(tmp_path)["entries"]}
+    draft = annotations([{"id": "c_v", "description": "Conditional volume formula", "formula": "V = -sum(J)",
+                         "implementation_ref": {"path": "model.py", "start_line": 3, "end_line": 3},
+                         "bindings": {"J": "bjac_i"}}])
+    bundle = assemble_annotations(draft, packet, tmp_path)
+    assert bundle["assembly"]["usable"]
+    assert bundle["graph"]["claims"][0]["actual"]["args"][0]["op"] == "unknown"
+    assert bundle["analysis"]["code_grounding"][0]["status"] == "source_matched"
+    assert bundle["analysis"]["alignments"][0]["status"] == "unknown"
+
+
+@pytest.mark.parametrize("reference", [
+    {"path": "model.py", "start_line": 1, "end_line": 4, "symbol": "x"},
+    {"path": "model.py", "start_line": 2, "end_line": 2, "symbol": "missing"},
+    {"path": "model.py", "start_line": 2, "end_line": 2, "symbol": "x", "scope": "wrong"},
+    {"path": "model.py", "start_line": 1, "end_line": 1, "symbol": "x"},
+])
+def test_ambiguous_or_unproven_operand_does_not_fall_back_to_model_symbol(tmp_path, reference):
+    (tmp_path / "model.py").write_text("def first(x):\n    return x * 2\ndef second(x):\n    return x * 3\n")
+    packet = {"entries": extract_evidence(tmp_path)["entries"]}
+    draft = annotations(quantities=[{"id": "q_x", "meaning": "unknown", "symbol": "invented",
+                                     "code_ref": reference}])
+    bundle = assemble_annotations(draft, packet, tmp_path)
+    assert bundle["graph"]["quantities"][0]["code_symbol"] is None
+    assert bundle["assembly"]["code_bindings"][0]["status"] == "unknown"
+
+
+def test_exact_scope_selects_operand_without_inventing_semantics(tmp_path):
+    (tmp_path / "model.py").write_text("def first(x):\n    return x * 2\ndef second(x):\n    return x * 3\n")
+    packet = {"entries": extract_evidence(tmp_path)["entries"]}
+    ref = {"path": "model.py", "start_line": 1, "end_line": 4,
+           "symbol": "x", "scope": "<module>.second@3"}
+    bundle = assemble_annotations(annotations(quantities=[{"id": "q_x", "meaning": "unknown", "code_ref": ref}]), packet, tmp_path)
+    assert bundle["graph"]["quantities"][0]["code_symbol"] == "x"
+    assert bundle["assembly"]["code_bindings"][0]["start_line"] == 4
+
+
 def test_document_quote_is_read_from_source_but_snapshot_hash_is_enforced(source_packet):
     root, packet, _ = source_packet
     packet["documents"][0]["quote"] = "invented quotation"

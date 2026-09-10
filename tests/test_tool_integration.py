@@ -154,3 +154,49 @@ def test_invalid_annotation_cli_saves_explicit_fallback(tmp_path, capsys):
                  "--annotations", str(tmp_path / "missing-annotations.json"), "--output", str(output)]) == 0
     assert json.loads(output.read_text())["assembly"]["status"] == "invalid_or_missing_annotations"
     capsys.readouterr()
+
+
+def test_annotation_references_expand_late_computation_once(tmp_path, capsys, monkeypatch):
+    import scicontext.packet as packet_module
+    from scicontext.tool_cli import main
+    root = tmp_path / "task"
+    root.mkdir()
+    (root / "model.py").write_text("\n".join(f"unused_{i} = {i}" for i in range(260)) +
+                                    "\ndef volume(arrays):\n    V = -sum(arrays['rpvi'])\n    return V\n")
+    context = tmp_path / "context"
+    context.mkdir()
+    (context / "task_statement.md").write_text("Inspect scientific computation.\n")
+    packet_path, catalog = tmp_path / "packet.json", tmp_path / "catalog.md"
+    main(["packet", "--root", str(root), "--context-root", str(context), "--task-id", "late",
+          "--output", str(packet_path), "--catalog", str(catalog)])
+    initial = json.loads(packet_path.read_text())
+    assert not any(e["start_line"] == 262 for e in initial["entries"])
+    ref = {"path": "model.py", "start_line": 262, "end_line": 262}
+    annotation = {"schema_version": "annotations-1.0", "quantities": [
+        {"id": "q_j", "meaning": "Unknown scientific definition", "status": "unresolved",
+         "code_ref": {**ref, "symbol": "arrays[\"rpvi\"]"}}], "claims": [
+        {"id": "c1", "description": "Conditional volume relation", "formula": "V = -sum(J)",
+         "implementation_ref": ref, "quantities": ["q_j"], "bindings": {"J": "arrays['rpvi']"}}]}
+    annotation_path, output = tmp_path / "annotations.json", tmp_path / "bundle.json"
+    annotation_path.write_text(json.dumps(annotation))
+    calls = []
+    expand = packet_module.expand_packet
+    def counted(*args, **kwargs):
+        calls.append(1)
+        return expand(*args, **kwargs)
+    monkeypatch.setattr(packet_module, "expand_packet", counted)
+    args = ["assemble", "--root", str(root), "--context-root", str(context),
+            "--packet", str(packet_path), "--annotations", str(annotation_path), "--output", str(output)]
+    main(args)
+    main(args)
+    assert calls == [1]
+    result = json.loads(output.read_text())
+    expanded = json.loads(packet_path.read_text())
+    assert expanded["documents"] == initial["documents"] and expanded["task_id"] == "late"
+    assert expanded["annotation_expansion_sha256"]
+    assert result["assembly"]["usable"]
+    assert result["graph"]["claims"][0]["actual"] is not None
+    assert result["analysis"]["code_grounding"][0]["status"] == "source_matched"
+    assert result["graph"]["quantities"][0]["code_symbol"] == "arrays['rpvi']"
+    assert result["assembly"]["relations"][0]["actual_targets"] == ["V"]
+    capsys.readouterr()

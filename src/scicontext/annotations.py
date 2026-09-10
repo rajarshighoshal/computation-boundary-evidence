@@ -7,6 +7,7 @@ probe execution receipts establish neither scientific truth nor repair success.
 from __future__ import annotations
 
 import copy
+import ast
 import hashlib
 from fractions import Fraction
 from pathlib import Path, PurePosixPath
@@ -14,7 +15,7 @@ from pathlib import Path, PurePosixPath
 from jsonschema import Draft202012Validator
 
 from .evidence import _has_unknown, _read_regular, _safe_file
-from .expressions import parse_expression
+from .expressions import parse_relation, symbol_name
 from .graph import _check_json, _safe_relative, graph_schema, render_graph, validate_graph
 from .io import digest_json
 from .tool_cli import analyze_grounded
@@ -45,6 +46,11 @@ def annotation_schema() -> dict:
         "start_line": {"type": "integer", "minimum": 1},
         "end_line": {"type": "integer", "minimum": 1},
     }, ["path", "start_line", "end_line"])]}
+    source_ref = {**reference["anyOf"][1], "properties": {
+        **reference["anyOf"][1]["properties"],
+        "symbol": {"type": "string", "minLength": 1, "maxLength": 512},
+        "scope": {"type": "string", "minLength": 1, "maxLength": 512}}}
+    quantity_ref = {**source_ref, "required": ["path", "start_line", "end_line", "symbol"]}
     rational = {"type": "string", "pattern": r"^-?\d+(?:/\d+|\.\d+)?$", "maxLength": 80}
     dimensions = {"type": ["object", "null"], "maxProperties": 16,
                   "propertyNames": {"type": "string", "minLength": 1, "maxLength": 40},
@@ -54,6 +60,7 @@ def annotation_schema() -> dict:
         "schema_version": {"type": "string", "const": "annotations-1.0"},
         "quantities": _array(_object({
             "id": identifier, "meaning": text, "symbol": quantity["code_symbol"],
+            "code_ref": quantity_ref,
             "name": quantity["name"], "dimensions": dimensions,
             "scale": quantity["scale"], "shape": quantity["shape"],
             "status": status, "evidence": _array(reference),
@@ -62,6 +69,7 @@ def annotation_schema() -> dict:
             "id": identifier, "description": text,
             "formula": {"type": ["string", "null"], "maxLength": 16384},
             "implementation_id": {"anyOf": [identifier, {"type": "null"}]},
+            "implementation_ref": source_ref,
             "quantities": _array(identifier, MAX_QUANTITIES),
             "bindings": {"type": "object", "maxProperties": 64,
                          "propertyNames": {"type": "string", "minLength": 1, "maxLength": 512},
@@ -150,6 +158,63 @@ class _Sources:
                 "path": path, "sha256": digest, "start_line": start, "end_line": end,
                 "quote": quote}
 
+    def binding(self, reference: dict) -> tuple[dict, dict, str | None]:
+        """Resolve one indexed occurrence, without inferring its scientific meaning."""
+        self.resolve(reference)
+        wanted = canonical_symbol(reference.get("symbol"))
+        if reference.get("symbol") is not None and wanted is None:
+            raise ValueError("reference symbol is not a static source symbol")
+        matches = []
+        for entry in self.entries.values():
+            if entry["path"] != reference["path"] or not (
+                reference["start_line"] <= entry["start_line"] and
+                entry["end_line"] <= reference["end_line"]):
+                continue
+            if reference.get("scope") is not None and reference["scope"] != entry.get("scope"):
+                continue
+            if entry.get("expression") is None or entry.get("kind") == "augmented_assignment":
+                continue
+            symbols = set(entry.get("symbol_scopes", {})) | set(entry.get("reads", []))
+            symbols.update(filter(None, (canonical_symbol(t) for t in entry.get("targets", []))))
+            if wanted is not None and wanted not in symbols:
+                continue
+            matches.append(entry)
+        if len(matches) != 1:
+            raise ValueError(f"source reference resolves to {len(matches)} indexed occurrences; use an exact span/scope")
+        entry = matches[0]
+        return entry, self.resolve(entry["id"]), wanted
+
+
+def canonical_symbol(value: str | None) -> str | None:
+    if value is None:
+        return None
+    try:
+        return symbol_name(ast.parse(value, mode="eval").body)
+    except (SyntaxError, ValueError):
+        return None
+
+
+def annotation_references(annotations: object) -> tuple[list[dict], list[str]]:
+    """Collect bounded, schema-valid requests for the single post-annotation expansion."""
+    refs, keep = [], []
+    if not isinstance(annotations, dict):
+        return refs, keep
+    schema = annotation_schema()
+    for group, field, cap in (("quantities", "code_ref", MAX_QUANTITIES),
+                              ("claims", "implementation_ref", MAX_CLAIMS)):
+        values = annotations.get(group, [])
+        if not isinstance(values, list):
+            continue
+        for item in values[:cap]:
+            if not isinstance(item, dict) or _schema_errors(item, schema["properties"][group]["items"]):
+                continue
+            if field in item:
+                refs.append(item[field])
+            if isinstance(item.get("implementation_id"), str):
+                keep.append(item["implementation_id"])
+            keep.extend(ref for ref in item.get("evidence", []) if isinstance(ref, str))
+    return refs, list(dict.fromkeys(keep))
+
 
 def assemble_annotations(
     annotations: dict, packet: dict, root: Path, context_root: Path | None = None,
@@ -167,7 +232,8 @@ def assemble_annotations(
              "quantities": [], "claims": [], "evidence": [], "observations": [], "unresolved": []}
     assembly = {"schema_version": "assembly-1.0", "accepted_claim_ids": [],
                 "accepted_quantity_ids": [], "accepted_probe_ids": [], "rejected": [],
-                "unresolved": [], "packet_coverage": copy.deepcopy(packet.get("coverage", {}))}
+                "unresolved": [], "code_bindings": [], "relations": [],
+                "packet_coverage": copy.deepcopy(packet.get("coverage", {}))}
     schema = annotation_schema()
     sources = _Sources(packet, root, context_root)
 
@@ -233,6 +299,19 @@ def assemble_annotations(
 
     for item in items("quantities", "quantity", MAX_QUANTITIES):
         evidence = citations(item)
+        code_symbol = item.get("symbol")
+        if "code_ref" in item:
+            code_symbol = None
+            try:
+                entry, citation, code_symbol = sources.binding(item["code_ref"])
+                if citation["id"] not in {e["id"] for e in evidence}:
+                    evidence.append(citation)
+                assembly["code_bindings"].append({"quantity_id": item["id"], "status": "source_matched",
+                    "code_symbol": code_symbol, "entry_id": entry["id"], "scope": entry.get("scope"),
+                    "path": entry["path"], "start_line": entry["start_line"], "end_line": entry["end_line"]})
+            except (OSError, ValueError, UnicodeError) as exc:
+                note(f"{item['id']}: unresolved code binding: {exc}")
+                assembly["code_bindings"].append({"quantity_id": item["id"], "status": "unknown", "reason": str(exc)})
         try:
             dimensions = item.get("dimensions")
             dimensions = ([{"dimension": name, "exponent": str(Fraction(exponent))}
@@ -242,7 +321,7 @@ def assemble_annotations(
             reject("quantity", item, f"invalid rational: {exc}")
             continue
         node = {"id": item["id"], "name": item.get("name", item.get("symbol") or item["id"]),
-                "meaning": item["meaning"], "code_symbol": item.get("symbol"),
+                "meaning": item["meaning"], "code_symbol": code_symbol,
                 "dimensions": dimensions, "scale": scale, "shape": item.get("shape"),
                 "status": item.get("status", "inferred"), "evidence_ids": [e["id"] for e in evidence]}
         if append("quantities", node, evidence):
@@ -255,8 +334,16 @@ def assemble_annotations(
             continue
         evidence = {e["id"]: e for e in citations(item)}
         actual = None
+        entry = None
         implementation_id = item.get("implementation_id")
-        if implementation_id is not None:
+        if "implementation_ref" in item:
+            try:
+                entry, citation, _ = sources.binding(item["implementation_ref"])
+                evidence[citation["id"]] = citation
+                actual = copy.deepcopy(entry["expression"])
+            except (OSError, ValueError, UnicodeError) as exc:
+                note(f"{item['id']}: unresolved implementation reference: {exc}")
+        elif implementation_id is not None:
             entry = sources.entries.get(implementation_id)
             if entry is None:
                 note(f"{item['id']}: implementation reference {implementation_id!r} is unknown or not a source entry")
@@ -275,17 +362,25 @@ def assemble_annotations(
         if not evidence:
             reject("claim", item, "every accepted claim requires source evidence")
             continue
-        relation = parse_expression(item["formula"]) if item.get("formula") is not None else None
+        parsed = parse_relation(item["formula"]) if item.get("formula") is not None else None
+        relation = parsed["expression"] if parsed is not None else None
+        for diagnostic in parsed["diagnostics"] if parsed else []:
+            note(f"{item['id']}: {diagnostic}")
+        relation_record = {"claim_id": item["id"], "target": parsed["target"] if parsed else None,
+                           "actual_targets": entry.get("targets", []) if entry and actual is not None else [],
+                           "implementation_entry_id": entry["id"] if entry and actual is not None else None}
         if relation is not None and _has_unknown(relation):
             note(f"{item['id']}: scientific formula contains unsupported or unresolved syntax")
         node = {"id": item["id"], "description": item["description"], "relation": relation,
                 "actual": actual, "bindings": [{"expected": key, "actual": value}
-                                               for key, value in item.get("bindings", {}).items()],
+                                               for key, value in ((canonical_symbol(k) or k, canonical_symbol(v) or v)
+                                                                  for k, v in item.get("bindings", {}).items())],
                 "quantity_ids": list(dict.fromkeys(item.get("quantities", []))),
                 "evidence_ids": list(evidence), "assumptions": item.get("assumptions", []),
                 "operation": item.get("operation", "other"), "status": item.get("status", "inferred")}
         if append("claims", node, list(evidence.values())):
             assembly["accepted_claim_ids"].append(node["id"])
+            assembly["relations"].append(relation_record)
 
     probes = []
     for item in items("probes", "probe", MAX_PROBES):
@@ -367,6 +462,11 @@ def assemble_annotations(
     if usable:
         try:
             handoff = render_graph(graph, analysis)
+            links = [f"- {r['claim_id']}: scientific target={r['target']!r}; actual targets={r['actual_targets']!r}; source entry={r['implementation_entry_id']!r}."
+                     for r in assembly["relations"]]
+            links.extend(f"- {b['quantity_id']}: binding={b['status']}; symbol={b.get('code_symbol')!r}; source={b.get('path')!r}:{b.get('start_line')}; scope={b.get('scope')!r}."
+                         for b in assembly["code_bindings"])
+            handoff += "\n\nScientific/code links (syntax only; units, frame and normalization require independent evidence):\n" + "\n".join(links)
         except ValueError as exc:
             note(f"Scientific handoff unavailable: {exc}")
             usable = False

@@ -18,7 +18,8 @@ def analyze_grounded(graph: dict, root: Path) -> dict:
 
     evidence = {e["id"]: e for e in graph["evidence"]}
     paths = sorted({e["path"] for e in graph["evidence"] if e["path"].endswith(".py") and not e["path"].startswith("@context/")})
-    index = extract_evidence(root, paths) if paths else {"entries": [], "coverage": {}}
+    source_refs = [e for e in graph["evidence"] if e["path"] in paths]
+    index = extract_evidence(root, paths, references=source_refs) if paths else {"entries": [], "coverage": {}}
     checked = copy.deepcopy(graph)
     grounding = []
     for claim in checked["claims"]:
@@ -31,7 +32,8 @@ def analyze_grounded(graph: dict, root: Path) -> dict:
                    and any(ref["path"] == entry["path"] and ref["sha256"] == entry["sha256"]
                            and ref["start_line"] <= (entry.get("expression_span") or entry)["start_line"]
                            and ref["end_line"] >= (entry.get("expression_span") or entry)["end_line"] for ref in refs)
-                   and align_expressions(claim["actual"], entry["expression"])["status"] == "match"]
+                   and (claim["actual"] == entry["expression"] or
+                        align_expressions(claim["actual"], entry["expression"])["status"] == "match")]
         if len(matches) == 1:
             grounding.append({"claim_id": claim["id"], "status": "source_matched", "entry_ids": [e["id"] for e in matches],
                               "locations": [{k: e.get(k) for k in ("path", "scope", "branch", "expression_span")} for e in matches],
@@ -152,12 +154,19 @@ def main(argv: list[str] | None = None) -> int:
         result = {"status": "ready", "entries": len(value["entries"]),
                   "documents": len(value["documents"]), "coverage": value["coverage"]}
     elif args.command == "assemble":
-        from .annotations import assemble_annotations
+        from .annotations import annotation_references, assemble_annotations
+        from .packet import expand_packet
         try:
             if args.annotations.stat().st_size > 65536:
                 raise ValueError("Compact annotations exceed 64 KiB")
             annotations = read_json(args.annotations)
             packet_value = read_json(args.packet)
+            references, keep_ids = annotation_references(annotations)
+            expansion_identity = digest_json([references, keep_ids])
+            if references and packet_value.get("annotation_expansion_sha256") != expansion_identity:
+                packet_value = expand_packet(args.root, packet_value, references, keep_ids=keep_ids)
+                packet_value["annotation_expansion_sha256"] = expansion_identity
+                write_json(args.packet, packet_value)
             outcomes = read_json(args.probe_results)["results"] if args.probe_results else None
             bundle = assemble_annotations(annotations, packet_value, args.root, args.context_root, outcomes)
             write_json(args.output, bundle)

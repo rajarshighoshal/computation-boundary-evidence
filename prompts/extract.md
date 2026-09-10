@@ -9,7 +9,8 @@ read the paper/source first and check again once. Do not rebuild the index yours
 
 Deliver at most five relevant claims (prefer two or three), with at most twelve
 quantities. Include scientific meaning, conventions, applicability assumptions,
-intended relationships and correspondence to indexed code. Distinguish intended
+intended input/output relationships and correspondence to actual code operands
+and outputs. Distinguish intended
 requirements from observations of the possibly buggy implementation.
 
 Return compact annotations ONCE as the JSON object in your final response as soon
@@ -24,12 +25,24 @@ Annotation fields:
 - schema_version: "annotations-1.0"; quantities and claims are arrays.
   The only other top-level fields are probes and unresolved; do not add task_id
   or graph metadata. Code supplies those.
-- Quantity: id, meaning; optionally symbol, name, dimensions, scale, shape,
+- Quantity: id, meaning; optionally symbol, code_ref, name, dimensions, scale, shape,
   status and evidence. Dimensions are a mapping such as {{"length": -3}}.
   Null/omitted means unknown. Physical dimensions/scale need scientific support.
-- Claim: id, description; optionally formula (a short arithmetic string),
-  implementation_id (an exact packet entry ID), quantities (IDs), bindings
+  For an operand or output, prefer code_ref with path, exact start_line/end_line,
+  symbol, and optional scope (copy the index scope verbatim when available):
+  {{"path": "source/model.py", "start_line": 20, "end_line": 20, "symbol": "arrays['rpvi']"}}.
+  Use inspected source locations. A source binding does not establish scientific
+  meaning, units, frame, shape or normalization; leave each unsupported property
+  unknown and state missing scientific definitions in unresolved.
+- Claim: id, description; optionally formula (a short RHS or equation such as
+  "V = -sum(J)"), implementation_id (an exact packet entry ID),
+  implementation_ref (path, exact start_line/end_line, optional symbol and scope), quantities (IDs), bindings
   (scientific symbol to code symbol), operation, status, assumptions and evidence.
+  Use implementation_ref for relevant computation discovered after the initial
+  packet, or when its packet ID is absent. Code expands the index once from these
+  references after you finish. Prefer the exact assignment/return span rather
+  than an entire function. Reference actual operands separately instead of one
+  broad label for unrelated coordinates, derivatives and outputs.
 - Evidence: a packet document/entry ID, or a relative path and exact line span:
   {{"path": "paper.md", "start_line": 10, "end_line": 12}}.
   Use real relevant spans, not this illustrative span. The task statement's
@@ -39,12 +52,15 @@ Annotation fields:
   formulas support ordinary arithmetic, sum, sqrt, norm and matmul; unsupported
   structure remains unknown. Do not mistake an untyped numeric literal for
   evidence that a physical parameter is dimensionless.
-- Optional unresolved: short reasons and limitations. Status defaults to inferred;
+- Optional unresolved: short reasons and limitations. Status is explicit, inferred
+  or unresolved and defaults to inferred;
   explicit claims need actual source evidence. Every retained claim needs evidence.
 
 You may also INCLUDE at most two independent, self-contained Python probe scripts
 as inline source in the JSON, preferably short and focused on one mathematical/scientific
-property each. Do NOT execute scientific probes or numerical reproductions in
+property each. Derive the property from scientific evidence and explicit assumptions;
+do not manufacture a missing geometric definition to make a probe possible. State
+what observation could falsify the proposed correspondence. Do NOT execute probes in
 this phase. Code will run the selected scripts concurrently with per-probe and
 shared deadlines after you finish. Each script runs with imports from {root} and
 {root}/source available, in its own output directory; use absolute task paths for
