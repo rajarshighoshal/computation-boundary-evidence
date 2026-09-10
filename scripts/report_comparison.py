@@ -19,11 +19,41 @@ BREAKDOWN = ("input_tokens", "cached_input_tokens", "uncached_input_tokens", "ou
              "reasoning_output_tokens", "nonreasoning_output_tokens", "total_tokens")
 
 
+def extraction_calls(stage):
+    """Return attempted leaves, or None for the legacy single-call contract."""
+    if "model_calls" not in stage:
+        return None
+    calls = stage["model_calls"]
+    if (stage.get("name") != "extract" or not isinstance(calls, list)
+            or any(not isinstance(call, dict) or "model_calls" in call for call in calls)
+            or [call.get("name") for call in calls] not in (
+                [], ["extract_draft"], ["extract_draft", "extract_revision"])):
+        raise ValueError("Malformed extraction model_calls: expected draft and optional revision once each")
+    return calls
+
+
 def stage_token_breakdown(trial, stage):
+    calls = extraction_calls(stage)
+    if calls is None:
+        return leaf_token_breakdown(trial, stage)
+    measured = [leaf_token_breakdown(trial, call) for call in calls]
+    values = {field: sum(v[field] for v in measured) if measured and all(
+        v[field] is not None for v in measured) else None for field in BREAKDOWN}
+    recorded = stage.get("usage") or {}
+    for field in (*TOKENS, "reasoning_output_tokens"):
+        if values[field] is not None and recorded.get(field) is not None and values[field] != recorded[field]:
+            raise ValueError(f"Raw token usage differs from extraction aggregate: {trial}/{field}")
+    if stage.get("status") != "completed" or any(
+            type(recorded.get(field)) is not int or recorded[field] < 0 for field in TOKENS):
+        return dict.fromkeys(BREAKDOWN)
+    return values
+
+
+def leaf_token_breakdown(trial, stage):
     """Audit completed-turn usage; incomplete stages cannot establish full cost."""
     unknown = dict.fromkeys(BREAKDOWN)
     name = stage.get("name")
-    if name not in ("extract", "repair"):
+    if name not in ("extract", "repair", "extract_draft", "extract_revision"):
         return unknown
     path = trial / "agent" / f"{name}.jsonl"
     if not path.is_file():
@@ -44,7 +74,8 @@ def stage_token_breakdown(trial, stage):
         isinstance(u, dict) and valid(u.get(field)) for u in usages) else None
         for field in (*TOKENS, "reasoning_output_tokens")}
     recorded = stage.get("usage") or {}
-    for field in TOKENS:
+    receipt_fields = (*TOKENS, "reasoning_output_tokens") if name in ("extract_draft", "extract_revision") else TOKENS
+    for field in receipt_fields:
         if values[field] is not None and recorded.get(field) is not None and values[field] != recorded[field]:
             raise ValueError(f"Raw token usage differs from stage receipt: {path}/{field}")
     if recorded.get("completed_turns") is not None and recorded["completed_turns"] != len(usages):
@@ -222,16 +253,26 @@ def render(run_root, summary):
               "the earlier receipt totals can contain completed turns from an interrupted stage. "
               "Trial totals require every expected stage to be present and measured. CLI diagnostic lines are skipped, as in receipt collection.", ""]
     breakdown_rows = []
+    if any("model_calls" in stage for row in rows.values() for stage in row.get("stages", [])):
+        lines += ["Multi-call extraction uses separate `agent/extract_draft.jsonl` and `agent/extract_revision.jsonl` logs. "
+                  "Draft and attempted revision are shown separately; `extract total` sums them once. "
+                  "Trial and treatment totals include this aggregate once. An incomplete attempted call leaves full extraction cost unknown.", ""]
     stage_totals, trial_totals = {}, {}
     for item, key in zip(planned, keys):
         row = rows.get(key, {})
         stages = row.get("stages", [])
         measured = []
         for stage in stages:
+            calls = extraction_calls(stage)
+            if calls is not None:
+                for call in calls:
+                    leaf = leaf_token_breakdown(trial_path(run_root, row), call)
+                    breakdown_rows.append((*key, call.get("name"), call.get("status"),
+                                           *(number(leaf[field], 0) for field in BREAKDOWN)))
             values = stage_token_breakdown(trial_path(run_root, row), stage)
             measured.append(values)
             stage_totals[(*key, stage.get("name"))] = values["total_tokens"]
-            breakdown_rows.append((*key, stage.get("name"), stage.get("status"),
+            breakdown_rows.append((*key, "extract total" if calls is not None else stage.get("name"), stage.get("status"),
                                    *(number(values[field], 0) for field in BREAKDOWN)))
         expected = {"repair"} if item["condition"] == "baseline" else {"extract", "repair"}
         complete = len(stages) == len(expected) and {s.get("name") for s in stages} == expected

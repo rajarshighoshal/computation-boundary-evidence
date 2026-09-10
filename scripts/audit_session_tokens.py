@@ -22,11 +22,38 @@ def events(path):
 
 
 def audit_stage(trial, stage):
+    if "model_calls" in stage:
+        calls = stage["model_calls"]
+        if (stage.get("name") != "extract" or not isinstance(calls, list)
+                or any(not isinstance(call, dict) or "model_calls" in call for call in calls)
+                or [call.get("name") for call in calls] not in (
+                    [], ["extract_draft"], ["extract_draft", "extract_revision"])):
+            raise ValueError("Malformed extraction model_calls: expected draft and optional revision once each")
+        leaves = [audit_leaf(trial, call, allow_missing=True) for call in calls]
+        result = {"stage": "extract", "model_calls": leaves}
+        if stage.get("status") != "completed" or not leaves or any(
+                leaf["status"] != "verified" for leaf in leaves):
+            return {**result, "status": "unknown_incomplete_stage"}
+        totals = {field: sum(leaf["usage"][field] for leaf in leaves) for field in leaves[0]["usage"]}
+        recorded = stage.get("usage") or {}
+        if any(type(recorded.get(field)) is not int or recorded[field] < 0 for field in FIELDS[:3]):
+            return {**result, "status": "unknown_missing_usage"}
+        if any(recorded[field] != totals[field] for field in FIELDS[:3]) or (
+                recorded.get("reasoning_output_tokens") is not None
+                and recorded["reasoning_output_tokens"] != totals["reasoning_output_tokens"]):
+            raise ValueError(f"Extraction aggregate receipt differs from raw usage: {trial}")
+        return {**result, "status": "verified", "usage": totals}
+    return audit_leaf(trial, stage)
+
+
+def audit_leaf(trial, stage, *, allow_missing=False):
     name = stage["name"]
     if stage.get("status") != "completed":
         return {"stage": name, "status": "unknown_incomplete_stage"}
     raw = trial / "agent" / f"{name}.jsonl"
     sessions = sorted((trial / "agent" / f"{name}-sessions").rglob("*.jsonl"))
+    if allow_missing and (not raw.is_file() or not sessions):
+        return {"stage": name, "status": "unknown_missing_artifacts"}
     if len(sessions) != 1:
         raise ValueError(f"Expected one session for independent accounting, found {len(sessions)}: {trial}/{name}")
     session_events = list(events(sessions[0]))
@@ -36,7 +63,12 @@ def audit_stage(trial, stage):
     counters = [e["payload"]["info"]["total_token_usage"] for e in session_events
                 if e.get("type") == "event_msg" and e.get("payload", {}).get("type") == "token_count"
                 and e["payload"].get("info")]
-    usages = [e["usage"] for e in events(raw) if e.get("type") == "turn.completed"]
+    usages = [e.get("usage") for e in events(raw) if e.get("type") == "turn.completed"]
+    if allow_missing and (not counters or not usages or any(
+            not isinstance(u, dict) or any(type(u.get(field)) is not int or u[field] < 0 for field in FIELDS)
+            for u in usages) or any(type((stage.get("usage") or {}).get(field)) is not int
+                                  for field in FIELDS[:3])):
+        return {"stage": name, "status": "unknown_missing_usage"}
     if not counters or not usages:
         raise ValueError(f"Missing token counters: {trial}/{name}")
     if any(type(u.get(field)) is not int or u[field] < 0 for u in usages for field in FIELDS):
@@ -47,7 +79,10 @@ def audit_stage(trial, stage):
         raise ValueError(f"CLI and cumulative session usage disagree: {trial}/{name}")
     if any(stage.get("usage", {}).get(field) != totals[field] for field in FIELDS[:3]):
         raise ValueError(f"Stage receipt differs from raw usage: {trial}/{name}")
-    if totals["cached_input_tokens"] > totals["input_tokens"] or totals["reasoning_output_tokens"] > totals["output_tokens"]:
+    if allow_missing and stage["usage"].get("reasoning_output_tokens") is not None and (
+            stage["usage"]["reasoning_output_tokens"] != totals["reasoning_output_tokens"]):
+        raise ValueError(f"Stage receipt differs from raw usage: {trial}/{name}/reasoning_output_tokens")
+    if any(u["cached_input_tokens"] > u["input_tokens"] or u["reasoning_output_tokens"] > u["output_tokens"] for u in usages):
         raise ValueError(f"Invalid token subsets: {trial}/{name}")
     totals["uncached_input_tokens"] = totals["input_tokens"] - totals["cached_input_tokens"]
     totals["nonreasoning_output_tokens"] = totals["output_tokens"] - totals["reasoning_output_tokens"]

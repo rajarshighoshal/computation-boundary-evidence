@@ -9,17 +9,21 @@ import json
 from pathlib import Path
 
 from recompute_results import recompute
-from report_comparison import BREAKDOWN, number, optional_object, read, stage_token_breakdown, table
+from report_comparison import (BREAKDOWN, extraction_calls, leaf_token_breakdown, number,
+                               optional_object, read, stage_token_breakdown, table)
 
 
 def counts(items):
     return dict(collections.Counter(item.get("status", "unknown") for item in items)) if isinstance(items, list) else None
 
 
-def session_metadata(trial):
+def session_metadata(trial, stage=None):
     """Read only session headers; do not copy prompts or model trajectories."""
     result = []
-    for path in sorted((trial / "agent/extract-sessions").rglob("*.jsonl")):
+    calls = extraction_calls(stage or {})
+    names = [call["name"] for call in calls] if calls is not None else ["extract"]
+    paths = [path for name in names for path in (trial / "agent" / f"{name}-sessions").rglob("*.jsonl")]
+    for path in sorted(paths):
         with path.open(encoding="utf-8", errors="replace") as stream:
             try:
                 event = json.loads(next(stream, "{}"))
@@ -83,7 +87,12 @@ def collect(root):
         grounding, bindings, alignments = (counts(analysis.get("code_grounding")),
                                           counts(assembly.get("code_bindings")), counts(analysis.get("alignments")))
         metric = lambda value, key: value.get(key, 0) if measured and value is not None else None
-        annotations, annotations_status = optional_object(trial / "agent/extract-final.txt") if trial else ({}, "missing")
+        calls = extraction_calls(stage)
+        selected = stage.get("selected_model_call") if calls is not None else "extract"
+        if calls is not None and selected is not None and selected not in [call["name"] for call in calls]:
+            raise ValueError(f"Selected extraction call has no receipt: {task}")
+        annotations, annotations_status = (optional_object(trial / "agent" / f"{selected}-final.txt")
+                                           if trial and selected else ({}, "missing"))
         probes, probes_status = optional_object(trial / "agent/extract-scratch/probe-results.json") if trial else ({}, "missing")
         setup, setup_status = optional_object(trial / "agent/setup.json") if trial else ({}, "missing")
         records.append({"task_id": task, "schedule_status": item.get("status"), "status": run.get("status", "no receipt"),
@@ -102,11 +111,15 @@ def collect(root):
                             and isinstance(annotations.get("probes", []), list) else None,
                         "probe_receipt_status": probes_status, "probe_results": probes.get("results"),
                         "setup_status": setup_status, "setup": setup or None,
-                        "session_metadata": session_metadata(trial) if trial else None,
+                        "session_metadata": session_metadata(trial, stage) if trial else None,
                         "provenance": {key: run.get(key) for key in (
                             "model", "reasoning_effort", "codex_version", "implementation_revision", "dataset_revision",
                             "benchmark_revision", "environment_image", "prompt_sha256", "selection_sha256", "config")},
                         "trial_path": trial.relative_to(root).as_posix() if trial else None})
+        if calls is not None:
+            records[-1]["selected_model_call"] = selected
+            records[-1]["model_calls"] = [{"name": call["name"], "status": call.get("status"),
+                                          "tokens": leaf_token_breakdown(trial, call)} for call in calls]
     return {"kind": "development_extraction_quality", "source_run_root": str(root), "task_ids": task_ids,
             "summary_audit": "verified" if summary_paths else "independently reconstructed; stored summary missing",
             "schedule": schedule, "records": records}
@@ -129,6 +142,13 @@ def render(result):
               "input_tokens", "cached_input_tokens", "output_tokens", "reasoning_output_tokens", "total_tokens"))) for r in records])
     lines += ["Total = input + output. Cached input and reasoning are already included. Missing usage and incomplete-stage "
               "costs remain unknown. Missing graphs and incomplete stages do not produce zero quality counts.", ""]
+    if any("model_calls" in r for r in records):
+        lines += ["Attempted extraction calls are shown below. The task totals above include each call once.", ""]
+        table(lines, ["Task", "Call", "Status", "Input", "Cached input (subset)", "Output",
+                      "Reasoning (output subset)", "Total"],
+              [(r["task_id"], call["name"], call["status"], *(number(call["tokens"][key], 0) for key in (
+                  "input_tokens", "cached_input_tokens", "output_tokens", "reasoning_output_tokens", "total_tokens")))
+               for r in records for call in r.get("model_calls", [])])
     for r in records:
         statuses = counts(r["probe_results"])
         lines.append(f"Task {r['task_id']} probe results: " + (json.dumps(statuses, sort_keys=True)

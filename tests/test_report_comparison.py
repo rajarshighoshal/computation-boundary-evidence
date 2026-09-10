@@ -319,3 +319,74 @@ def test_missing_expected_science_stage_prevents_trial_total(tmp_path):
     content = generate(tmp_path)
     assert "| 010 | science | repair | completed | 100 | 20 | 80 | 30 | 12 | 18 | 130 |" in content
     assert "| 010 | science | trial total | completed | unknown | unknown | unknown | unknown | unknown | unknown | unknown |" in content
+
+
+def multicall(directory, *, revision=True):
+    record = report.read(directory / "run.json")
+    stage = record["stages"][0]
+    calls = [{"name": name, "status": "completed", "usage": dict(stage["usage"])} for name in
+             (["extract_draft", "extract_revision"] if revision else ["extract_draft"])]
+    stage["model_calls"] = calls
+    stage["usage"] = {field: value * len(calls) for field, value in stage["usage"].items()}
+    for call in calls:
+        raw_usage(directory, call["name"])
+    dump(directory / "run.json", record)
+    return stage
+
+
+@pytest.mark.parametrize("revision", [False, True])
+def test_multicall_extraction_and_trial_totals(tmp_path, revision):
+    schedule(tmp_path, tasks=("010",))
+    baseline = trial(tmp_path, "010", "baseline")
+    science = trial(tmp_path, "010", "science", graph=True)
+    raw_usage(baseline)
+    raw_usage(science)
+    stage = multicall(science, revision=revision)
+    assert report.stage_token_breakdown(science, stage)["total_tokens"] == (260 if revision else 130)
+    content = generate(tmp_path)
+    assert "| 010 | science | extract_draft | completed | 100 | 20 | 80 | 30 | 12 | 18 | 130 |" in content
+    if revision:
+        assert "| 010 | science | extract_revision | completed | 100 | 20 | 80 | 30 | 12 | 18 | 130 |" in content
+        assert "| 010 | science | extract total | completed | 200 | 40 | 160 | 60 | 24 | 36 | 260 |" in content
+        assert "| 010 | 130 | 260 | 130 | 390 | +200.0% |" in content
+        assert "| All planned tasks | 130 | 260 | 130 | 390 | +200.0% |" in content
+
+
+@pytest.mark.parametrize("missing", ["usage", "log", "timeout"])
+def test_multicall_missing_attempt_is_unknown(tmp_path, missing):
+    directory = trial(tmp_path, "010", "science", graph=True)
+    stage = multicall(directory)
+    if missing == "usage":
+        stage["model_calls"][1]["usage"] = None
+    elif missing == "log":
+        (directory / "agent/extract_revision.jsonl").unlink()
+    else:
+        stage["model_calls"][1]["status"] = "timeout"
+    assert all(v is None for v in report.stage_token_breakdown(directory, stage).values())
+
+
+@pytest.mark.parametrize("calls", [None, {}, [{"name": "extract_revision"}],
+                                    [{"name": "extract_draft"}] * 2, [{"name": "../repair"}]])
+def test_malformed_multicall_receipts_rejected(tmp_path, calls):
+    with pytest.raises(ValueError, match="Malformed"):
+        report.stage_token_breakdown(tmp_path, {"name": "extract", "model_calls": calls})
+
+
+def test_multicall_aggregate_mismatch_detected(tmp_path):
+    directory = trial(tmp_path, "010", "science", graph=True)
+    stage = multicall(directory)
+    stage["usage"]["input_tokens"] += 1
+    with pytest.raises(ValueError, match="extraction aggregate"):
+        report.stage_token_breakdown(directory, stage)
+
+
+def test_empty_call_list_and_missing_reasoning_remain_unknown(tmp_path):
+    directory = trial(tmp_path, "010", "science", graph=True)
+    stage = multicall(directory)
+    raw_usage(directory, "extract_revision", usages=[stage["model_calls"][1]["usage"]])
+    values = report.stage_token_breakdown(directory, stage)
+    assert values["total_tokens"] == 260
+    assert values["reasoning_output_tokens"] is None
+    stage["model_calls"] = []
+    stage["usage"] = {field: 0 for field in report.TOKENS}
+    assert all(v is None for v in report.stage_token_breakdown(directory, stage).values())

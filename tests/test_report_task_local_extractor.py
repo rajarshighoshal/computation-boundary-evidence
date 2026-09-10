@@ -82,6 +82,34 @@ def test_unknown_reasoning_is_not_zero(tmp_path):
     assert row["tokens"]["total_tokens"] == 120
 
 
+def test_multicall_totals_and_leaf_rows(tmp_path):
+    trial = fixture(tmp_path)
+    run = report.read(trial / "run.json")
+    stage = run["stages"][0]
+    stage["model_calls"] = [{"name": name, "status": "completed", "usage": dict(stage["usage"])}
+                            for name in ("extract_draft", "extract_revision")]
+    stage["usage"] = {field: value * 2 for field, value in stage["usage"].items()}
+    stage["selected_model_call"] = "extract_draft"
+    dump(trial / "agent/extract_draft-final.txt", {"schema_version": "annotations-1.0", "probes": [{}]})
+    for call in stage["model_calls"]:
+        dump(trial / "agent" / f"{call['name']}.jsonl", {
+            "type": "turn.completed", "usage": {**call["usage"], "reasoning_output_tokens": 5}})
+        dump(trial / "agent" / f"{call['name']}-sessions/session.jsonl", {
+            "type": "session_meta", "payload": {"source": "exec", "id": call["name"]}})
+    dump(trial / "run.json", run)
+    dump(tmp_path / "summary/summary.json", report.recompute(tmp_path / "jobs"))
+    result = report.collect(tmp_path)
+    row = result["records"][0]
+    assert row["tokens"]["total_tokens"] == 240
+    assert row["selected_model_call"] == "extract_draft"
+    assert row["declared_probes"] == 1
+    assert [m["id"] for m in row["session_metadata"]] == ["extract_draft", "extract_revision"]
+    content = report.render(result)
+    assert "| 009 | 200 | 80 | 40 | 10 | 240 |" in content
+    assert "| 009 | extract_draft | completed | 100 | 40 | 20 | 5 | 120 |" in content
+    assert "| 009 | extract_revision | completed | 100 | 40 | 20 | 5 | 120 |" in content
+
+
 def test_graph_hash_mismatch_is_rejected(tmp_path):
     trial = fixture(tmp_path)
     bundle = report.read(trial / "graph-bundle.json")
