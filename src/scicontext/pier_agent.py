@@ -169,7 +169,7 @@ class ScientificCodex(BaseAgent):
             "codex_version": self.config.codex_version, "harness_architecture": "x64",
             "scientific_image_architecture": "amd64", "environment_image": environment.task_env_config.docker_image,
             "execution": "upstream_pier_codex_docker_boundary", "timeout": "GNU timeout foreground process group",
-            "extractor": "bounded_annotations_v1", "claim_cap": 5, "probe_cap": 2,
+            "extractor": "task_local_annotations_v2", "claim_cap": 5, "probe_cap": 2,
             "extraction_harness_architecture": self.extraction_architecture,
             "extraction_access_mode": "read-only" if self.condition == "science" else None,
             "extraction_codex_receipt": read_json(self.extract_codex_package.parent / "receipt.json") if self.extract_codex_package else None,
