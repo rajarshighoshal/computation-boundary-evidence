@@ -76,3 +76,14 @@ def test_task_named_symbol_and_relative_reexport(tmp_path, monkeypatch):
           'def late_compute():\n    return 42\n')
     result = build_packet(root, context)
     assert any(e['text'] == 'return 42' for e in result['entries'])
+
+
+def test_downstream_dependencies_do_not_displace_reproducer_reader(tmp_path, monkeypatch):
+    write(tmp_path, 'reproduce.py', 'from reader import read\nresult = read()\n')
+    write(tmp_path, 'reader.py', 'from aaa import dependency\ndef read():\n    return dependency()\n')
+    write(tmp_path, 'aaa.py', 'def dependency():\n' +
+          ''.join(f'    padding{i} = 0\n' for i in range(160)) + '    return 1\n')
+    monkeypatch.setattr(packet, 'MAX_ENTRIES', 8)
+    result = build_packet(tmp_path)
+    assert len(result['entries']) <= 8
+    assert any(e['path'] == 'reader.py' and e['text'] == 'return dependency()' for e in result['entries'])
