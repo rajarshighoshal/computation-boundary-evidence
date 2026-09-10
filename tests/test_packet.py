@@ -22,6 +22,42 @@ def test_entries_unchanged_deterministic_and_target_never_executed(tmp_path):
     assert result["coverage"]["files_parsed"] == 1
 
 
+def test_capped_reference_allocation_preserves_later_body_and_parameters(tmp_path, monkeypatch):
+    import ast
+
+    parameters = ", ".join(f"p{i}" for i in range(150))
+    source = (f"def early({parameters}):\n" +
+              "".join(f"    x{i} = p0 + {i}\n" for i in range(160)) +
+              "    return x159\n" +
+              f"def later({parameters}):\n" +
+              "".join(f"    y{i} = p0 + {i}\n" for i in range(10)) +
+              "    selected = scientific_transform(y9)\n    return selected\n" +
+              "def last(value):\n    return value\n")
+    write(tmp_path, "model.py", source)
+    functions = ast.parse(source).body
+    references = [{"path": "model.py", "start_line": f.lineno, "end_line": f.end_lineno}
+                  for f in functions]
+    monkeypatch.setattr(packet, "seed_references", lambda *args: (references, {"references": references}))
+    result = build_packet(tmp_path)
+    entries = result["entries"]
+    assert len(entries) == packet.MAX_ENTRIES_PER_FILE == 128
+    assert len(entries) <= packet.MAX_ENTRIES == 512
+    assert result["coverage"]["entries_truncated"]
+    assert any(e["expression_text"] == "scientific_transform(y9)" for e in entries)
+    for function in functions:
+        scoped = [e for e in entries if e["scope"] == f"<module>.{function.name}@{function.lineno}"]
+        assert any(e["kind"] == "parameter" for e in scoped)
+        assert any(e["kind"] in {"assignment", "return"} for e in scoped)
+    complete = {e["id"]: e for e in extract_evidence(tmp_path)["entries"]}
+    assert all(e["id"] in complete for e in entries)
+    assert all(e["text"] == complete[e["id"]]["text"] for e in entries)
+    assert build_packet(tmp_path) == result
+    # A repeated broad reference cannot buy its function extra allocation.
+    repeated = extract_evidence(tmp_path, ["model.py"], max_entries=128,
+                                 references=[*references, references[0]])
+    assert [e["id"] for e in repeated["entries"]] == [e["id"] for e in entries]
+
+
 def test_documents_validate_exact_lines_hashes_and_explicit_context(tmp_path):
     root, context = tmp_path / "root", tmp_path / "context"
     root.mkdir()

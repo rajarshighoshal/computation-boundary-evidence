@@ -456,8 +456,31 @@ def _file_entries(path: str, raw: bytes, source: str, tree: ast.AST, limit: int,
         regions.append((start, end, owner.lineno if owner else max(1, start - 3),
                         owner.end_lineno if owner else end + 3))
     if regions:
+        needs_allocation = len(candidates) > limit
+        bucket_counts = {}
+        fair_order = {}
+        for node, kind, _ in candidates:
+            direct = [(end - start, i) for i, (start, end, _, _) in enumerate(regions)
+                      if kind != "signature" and node.lineno <= end and node.end_lineno >= start]
+            nearby = [(hi - lo, i) for i, (_, _, lo, hi) in enumerate(regions)
+                      if lo <= node.lineno <= hi]
+            tier, matches = (0, direct) if direct else (1, nearby) if nearby else (2, [])
+            region = min(matches)[1] if matches else len(regions)
+            # Round-robin inspected regions. Reserve one parameter occurrence
+            # per region alongside statements; remaining parameters follow
+            # direct statements so large signatures cannot crowd out body code.
+            # Assign overlaps to the tightest region to avoid duplicate votes.
+            category = 1 if kind == "parameter" else 0
+            bucket = (tier, region, category)
+            rank = bucket_counts.get(bucket, 0)
+            bucket_counts[bucket] = rank + 1
+            allocation_tier = tier * 2 + int(category == 1 and rank > 0)
+            fair_order[id(node)] = (allocation_tier, rank, region, category)
+
         def priority(item):
             node = item[0]
+            if needs_allocation:
+                return (*fair_order[id(node)], node.lineno, node.col_offset, item[1])
             direct = any(node.lineno <= end and node.end_lineno >= start for start, end, _, _ in regions)
             nearby = any(lo <= node.lineno <= hi for _, _, lo, hi in regions)
             return (0 if direct and item[1] != "signature" else 1 if nearby else 2,
