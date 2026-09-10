@@ -2,12 +2,14 @@
 from __future__ import annotations
 
 import base64
+import fcntl
 import hashlib
 import json
 import subprocess
 import tarfile
 import urllib.request
 import zipfile
+from functools import wraps
 from pathlib import Path
 
 from .io import digest_file, digest_json, read_json, write_json
@@ -16,6 +18,25 @@ CODEX_VERSION = "0.153.4"
 HELPER_PACKAGES = ["jsonschema==4.26.0", "attrs==26.1.0", "jsonschema-specifications==2025.9.1", "referencing==0.37.0", "rpds-py==2026.6.3", "typing-extensions==4.16.0"]
 
 
+def _locked_asset(builder):
+    """Serialize cache validation and creation across independent Pier processes.
+
+    Locks live outside the verified asset directories and release on process
+    exit. Different builders may run together; no unneeded variants are fetched.
+    """
+    @wraps(builder)
+    def locked(cache: Path, *args, **kwargs) -> Path:
+        cache.mkdir(parents=True, exist_ok=True)
+        with (cache / f".{builder.__name__}.lock").open("a") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            try:
+                return builder(cache, *args, **kwargs)
+            finally:
+                fcntl.flock(lock, fcntl.LOCK_UN)
+    return locked
+
+
+@_locked_asset
 def prepare_codex(cache: Path, architecture: str) -> Path:
     if architecture not in {"arm64", "x64"}:
         raise ValueError("Harness architecture must be arm64 or x64")
@@ -49,6 +70,7 @@ def prepare_codex(cache: Path, architecture: str) -> Path:
     return destination / "package"
 
 
+@_locked_asset
 def prepare_helpers(cache: Path, python_minor: str) -> Path:
     if python_minor not in {"310", "311", "312", "313"}:
         raise ValueError(f"Unsupported task helper Python: {python_minor}")

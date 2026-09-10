@@ -45,26 +45,30 @@ def _run_owned_process(command: list[str], *, check: bool = False, **kwargs) -> 
     try:
         code = process.wait()
     except BaseException:
-        try:
-            os.killpg(process.pid, signal.SIGTERM)
-        except ProcessLookupError:
-            pass
-        try:
-            process.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            pass
-        finally:
-            # Descendants may outlive their leader, including ones ignoring TERM.
-            try:
-                os.killpg(process.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
-            process.wait(timeout=5)
+        _stop_owned_process(process)
         raise
     result = subprocess.CompletedProcess(command, code)
     if check:
         result.check_returncode()
     return result
+
+
+def _stop_owned_process(process) -> None:
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        pass
+    try:
+        process.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        pass
+    finally:
+        # Descendants may outlive their leader, including ones ignoring TERM.
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        process.wait(timeout=5)
 
 
 def _interrupt_schedule(signum, frame):
@@ -219,6 +223,8 @@ def _reconcile_trial(output: Path, item: dict, budget: TrialConfig, task_row: di
                        "experiment_kind": plan["kind"], "orchestration_status": status,
                        "development_exposed": item["task_id"] in config.get("development_task_ids", ["002", "077"]),
                        **{key: plan[key] for key in ("implementation_revision", "implementation_dirty", "uv_lock_sha256", "prompt_sha256")}})
+        if "execution_policy" in plan:
+            record["execution_policy"] = plan["execution_policy"]
         write_json(path, record)
     log = output / f"task-{item['task_id']}-{item['condition']}-runner.log"
     write_json(output / f"task-{item['task_id']}-{item['condition']}-receipt.json", {
@@ -237,8 +243,9 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
     config = read_json(config_path)
     budget = TrialConfig(config["model"], config["reasoning_effort"], config["codex_version"],
                          config["total_seconds"], config["extraction_seconds"])
-    if config.get("attempts") != 1 or config.get("concurrency") != 1:
-        raise ValueError("Pilot supports exactly one attempt and serial execution")
+    concurrency = config.get("concurrency")
+    if config.get("attempts") != 1 or type(concurrency) is not int or concurrency not in (1, 2):
+        raise ValueError("Pilot supports exactly one attempt and concurrency 1 or 2")
     if config.get("allow_restricted_licenses"):
         raise ValueError("Development pilot does not opt into restricted licenses")
     ids = config["task_ids"]
@@ -276,6 +283,12 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
             "selection_sha256": receipt["selection_sha256"], "schedule": schedule,
             "output": str(output.resolve()), "execute": execute}
     plan.update(_implementation_provenance(workspace))
+    plan["execution_policy"] = {
+        "concurrency": 1 if smoke else concurrency,
+        "admission": "serial" if smoke or concurrency == 1 else "two_task_extraction_groups" if extraction_only else "paired_task_barrier",
+        "pier_concurrency_per_process": 1,
+        "shared_resources": concurrency == 2 and not smoke,
+    }
     if not execute:
         return plan
     if output.exists():
@@ -302,6 +315,7 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
     summary = None
     private_session = None
     prior_sigterm = None
+    active = []
     try:
         if threading.current_thread() is threading.main_thread():
             prior_sigterm = signal.signal(signal.SIGTERM, _interrupt_schedule)
@@ -311,7 +325,8 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
         private_auth = Path(private_dir) / "auth.json"
         shutil.copyfile(auth_file, private_auth)
         private_auth.chmod(0o600)
-        for item in schedule:
+        def prepare_attempt(item):
+            nonlocal current, task_row, return_code
             current = item
             item.update({"status": "running", "phase": "preparing", "started_at": utc_now()})
             write_json(output / "schedule.json", plan)
@@ -359,32 +374,117 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
             environment["PYTHONPATH"] = str(workspace / "src")
             item["phase"] = "pier"
             write_json(output / "schedule.json", plan)
-            with log.open("w") as stream:
-                result = _run_owned_process(command, env=environment, stdout=stream, stderr=subprocess.STDOUT, cwd=workspace)
-            return_code = result.returncode
-            item["status"] = _reconcile_trial(output, item, actual_budget, task_row, config, plan, return_code)
+            return command, environment, log
+
+        def finish_attempt(state, code):
+            nonlocal current, task_row, return_code
+            item = current = state["item"]
+            task_row = state["task_row"]
+            return_code = state["return_code"] = code
+            if state.get("stream") is not None:
+                state["stream"].close()
+            item["status"] = _reconcile_trial(output, item, actual_budget, task_row, config, plan, code)
             item["finished_at"] = utc_now()
             write_json(output / "schedule.json", plan)
             if item["status"] != "completed":
-                raise RuntimeError(f"Runner failed; retained {log}. Remaining schedule has not been executed.")
+                raise RuntimeError(f"Runner failed; retained {state['log']}. Remaining schedule has not been executed.")
             item["phase"] = "finished"
+            state["finalized"] = True
             current = None
+
+        width = plan["execution_policy"]["concurrency"]
+        for offset in range(0, len(schedule), width):
+            # Comparison schedules contain adjacent arms for exactly one task.
+            # Prepare the whole group before admitting either runner, and drain
+            # both before admitting the next task (or extraction-only group).
+            active = []
+            for item in schedule[offset:offset + width]:
+                state = {"item": item, "task_row": available[item["task_id"]], "return_code": None}
+                active.append(state)
+                command, environment, log = prepare_attempt(item)
+                state.update(command=command, environment=environment, log=log)
+            if width == 1:
+                state = active[0]
+                with state["log"].open("w") as stream:
+                    result = _run_owned_process(state["command"], env=state["environment"], stdout=stream,
+                                                stderr=subprocess.STDOUT, cwd=workspace)
+                finish_attempt(state, result.returncode)
+            else:
+                for state in active:
+                    current = state["item"]
+                    state["stream"] = state["log"].open("w")
+                    state["process"] = subprocess.Popen(
+                        state["command"], start_new_session=True, env=state["environment"],
+                        stdout=state["stream"], stderr=subprocess.STDOUT, cwd=workspace)
+                while any(not state.get("finalized") for state in active):
+                    for state in active:
+                        if not state.get("finalized"):
+                            code = state["process"].poll()
+                            if code is not None:
+                                finish_attempt(state, code)
+                    if any(not state.get("finalized") for state in active):
+                        time.sleep(0.05)
+            active = []
         plan["status"] = "completed"
     except BaseException as error:
         interrupted = isinstance(error, (KeyboardInterrupt, SystemExit))
         plan["status"] = "interrupted" if interrupted else "runner_failure"
         plan["error"] = f"{type(error).__name__}: {error}"
-        if current is not None and task_row is not None:
+        # A sibling may have exited between polls. Preserve an already finished
+        # attempt instead of reclassifying its result as cancellation.
+        if not interrupted:
+            for state in active:
+                if state.get("finalized") or state["item"] is current or state.get("process") is None:
+                    continue
+                code = state["process"].poll()
+                if code is not None:
+                    state["return_code"] = code
+                    state["stream"].close()
+                    try:
+                        item = state["item"]
+                        item["status"] = _reconcile_trial(output, item, actual_budget, state["task_row"], config, plan, code)
+                        item["finished_at"] = utc_now()
+                        if item["status"] == "completed":
+                            item["phase"] = "finished"
+                            state["finalized"] = True
+                        else:
+                            state["observed_failure"] = True
+                    except Exception as accounting_error:
+                        state["observed_failure"] = True
+                        plan["accounting_error"] = f"{type(accounting_error).__name__}: {accounting_error}"
+        # Stop every owned sibling before container cleanup, reconciliation, or
+        # auth removal. A cancelled peer is interrupted, never a repair failure.
+        for state in active:
+            if state.get("finalized"):
+                continue
+            if state.get("process") is not None:
+                try:
+                    _stop_owned_process(state["process"])
+                except Exception as cleanup_error:
+                    plan.setdefault("process_cleanup_errors", []).append(f"{type(cleanup_error).__name__}: {cleanup_error}")
+            if state.get("stream") is not None:
+                state["stream"].close()
+        for state in active:
+            if state.get("finalized"):
+                continue
+            item, row = state["item"], state["task_row"]
             # The owned Pier process has already stopped. Docker daemon children
             # may survive that process group; resolve and stop only this job's
             # proven containers before the private auth directory is removed.
-            plan["container_cleanup"] = _cleanup_owned_containers(output, current)
-            status = "interrupted" if interrupted else "infrastructure_failure"
-            current["status"] = status
-            current["finished_at"] = utc_now()
-            code = error.returncode if isinstance(error, subprocess.CalledProcessError) else return_code
             try:
-                _reconcile_trial(output, current, actual_budget, task_row, config, plan, code,
+                cleanup = _cleanup_owned_containers(output, item)
+            except Exception as cleanup_error:
+                cleanup = {"status": "incomplete", "errors": [f"{type(cleanup_error).__name__}: {cleanup_error}"]}
+            if width == 1:
+                plan["container_cleanup"] = cleanup
+            else:
+                plan.setdefault("container_cleanups", {})[f"task-{item['task_id']}-{item['condition']}"] = cleanup
+            status = "interrupted" if interrupted or (item is not current and not state.get("observed_failure")) else "infrastructure_failure"
+            item["status"] = status
+            item["finished_at"] = utc_now()
+            code = (error.returncode if isinstance(error, subprocess.CalledProcessError) else return_code) if item is current else state["return_code"]
+            try:
+                _reconcile_trial(output, item, actual_budget, row, config, plan, code,
                                  forced_status=status, error=plan["error"])
             except Exception as accounting_error:
                 plan["accounting_error"] = f"{type(accounting_error).__name__}: {accounting_error}"
