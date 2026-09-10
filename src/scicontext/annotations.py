@@ -232,7 +232,7 @@ def assemble_annotations(
              "quantities": [], "claims": [], "evidence": [], "observations": [], "unresolved": []}
     assembly = {"schema_version": "assembly-1.0", "accepted_claim_ids": [],
                 "accepted_quantity_ids": [], "accepted_probe_ids": [], "rejected": [],
-                "unresolved": [], "code_bindings": [], "relations": [],
+                "unresolved": [], "code_bindings": [], "scientific_binding_uses": [], "relations": [],
                 "packet_coverage": copy.deepcopy(packet.get("coverage", {}))}
     schema = annotation_schema()
     sources = _Sources(packet, root, context_root)
@@ -371,11 +371,28 @@ def assemble_annotations(
                            "implementation_entry_id": entry["id"] if entry and actual is not None else None}
         if relation is not None and _has_unknown(relation):
             note(f"{item['id']}: scientific formula contains unsupported or unresolved syntax")
+        quantity_ids = list(dict.fromkeys(item.get("quantities", [])))
+        # The graph's semantic evaluator anchors bare symbols. Do not transfer a
+        # source-bound quantity to another lexical scope merely because names
+        # coincide. Retain its original scientific annotation and source binding,
+        # but omit this unestablished claim-to-quantity edge from propagation.
+        for binding in assembly["code_bindings"]:
+            if binding["quantity_id"] not in quantity_ids:
+                continue
+            compatible = (binding["status"] == "source_matched" and entry is not None and actual is not None
+                          and binding.get("path") == entry.get("path")
+                          and binding.get("scope") == entry.get("scope"))
+            if not compatible:
+                quantity_ids.remove(binding["quantity_id"])
+                reason = "Scientific use has no established source binding in the implementation's path and lexical scope."
+                assembly["scientific_binding_uses"].append({"claim_id": item["id"],
+                    "quantity_id": binding["quantity_id"], "status": "unknown", "reason": reason})
+                note(f"{item['id']}: {binding['quantity_id']} excluded from scientific propagation: {reason}")
         node = {"id": item["id"], "description": item["description"], "relation": relation,
                 "actual": actual, "bindings": [{"expected": key, "actual": value}
                                                for key, value in ((canonical_symbol(k) or k, canonical_symbol(v) or v)
                                                                   for k, v in item.get("bindings", {}).items())],
-                "quantity_ids": list(dict.fromkeys(item.get("quantities", []))),
+                "quantity_ids": quantity_ids,
                 "evidence_ids": list(evidence), "assumptions": item.get("assumptions", []),
                 "operation": item.get("operation", "other"), "status": item.get("status", "inferred")}
         if append("claims", node, list(evidence.values())):

@@ -197,6 +197,32 @@ def test_exact_scope_selects_operand_without_inventing_semantics(tmp_path):
     assert bundle["assembly"]["code_bindings"][0]["start_line"] == 4
 
 
+def test_quantity_meaning_does_not_cross_functions_with_the_same_operand(tmp_path):
+    (tmp_path / "model.py").write_text("def length(x):\n    return x * 2\ndef duration(x):\n    return x * 3\n")
+    packet = {"entries": extract_evidence(tmp_path)["entries"]}
+    first = {"path": "model.py", "start_line": 2, "end_line": 2}
+    second = {"path": "model.py", "start_line": 4, "end_line": 4}
+    draft = annotations([
+        {"id": "c_length", "description": "Length relation", "formula": "x * 2",
+         "implementation_ref": first, "quantities": ["q_length"]},
+        {"id": "c_duration", "description": "A different x is elapsed time", "formula": "x * 3",
+         "implementation_ref": second, "quantities": ["q_length"]}],
+        quantities=[{"id": "q_length", "name": "x", "meaning": "Length in the first function only",
+                     "dimensions": {"L": 1}, "status": "explicit", "code_ref": {**first, "symbol": "x"}}])
+    bundle = assemble_annotations(draft, packet, tmp_path)
+    assert bundle["assembly"]["usable"]
+    assert bundle["assembly"]["code_bindings"][0]["status"] == "source_matched"
+    assert bundle["graph"]["quantities"][0]["status"] == "explicit"
+    assert bundle["graph"]["claims"][0]["quantity_ids"] == ["q_length"]
+    assert bundle["graph"]["claims"][1]["quantity_ids"] == []
+    properties = {f["claim_id"]: f["properties"] for f in bundle["analysis"]["findings"]
+                  if f["kind"] == "actual_properties"}
+    assert properties["c_length"]["dimensions"] == {"L": "1"}
+    assert properties["c_duration"]["dimensions"] is None
+    assert bundle["assembly"]["scientific_binding_uses"][0]["status"] == "unknown"
+    assert "q_length excluded from scientific propagation" in bundle["handoff"]
+
+
 def test_document_quote_is_read_from_source_but_snapshot_hash_is_enforced(source_packet):
     root, packet, _ = source_packet
     packet["documents"][0]["quote"] = "invented quotation"
