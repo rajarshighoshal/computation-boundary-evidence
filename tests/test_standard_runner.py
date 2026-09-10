@@ -1,5 +1,9 @@
 import asyncio
+import json
+import os
+import subprocess
 from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -7,7 +11,7 @@ pytest.importorskip("pier")
 
 from pier.agents.installed.codex import Codex
 from pier.models.agent.context import AgentContext
-from scicontext.pier_agent import OutputCodex, timeout_launcher
+from scicontext.pier_agent import OutputCodex, ScientificCodex, timeout_launcher
 
 
 def test_reuses_upstream_run_without_reimplementing_authentication(tmp_path):
@@ -47,6 +51,7 @@ def test_both_stages_use_plain_final_files(tmp_path, stage):
     agent = OutputCodex(stage=stage, logs_dir=tmp_path, model_name="gpt-6-astra")
     assert "--output-schema" not in agent.build_cli_flags()
     assert stage + "-final.txt" in agent.build_cli_flags()
+    assert agent.build_cli_flags() == Codex.build_cli_flags(agent) + f" -o /logs/agent/{stage}-final.txt"
 
 
 def test_deadline_uses_standard_timeout_not_custom_supervisor():
@@ -54,3 +59,66 @@ def test_deadline_uses_standard_timeout_not_custom_supervisor():
     assert "timeout --signal=TERM --kill-after=3s" in script
     assert "SCICONTEXT_STAGE_SECONDS" in script
     assert "scicontext.supervise" not in script and "/proc" not in script
+
+
+@pytest.mark.parametrize("stage", ["extract", "repair"])
+def test_launcher_replaces_pier_bypass_only_for_extraction(tmp_path, stage):
+    binary = tmp_path / "codex"
+    binary.write_text('#!/bin/sh\nprintf "%s\\n" "$@"\n')
+    binary.chmod(0o755)
+    original = ["exec", "--dangerously-bypass-approvals-and-sandbox", "--json", "task with spaces"]
+    result = subprocess.run(["/bin/sh", "-c", timeout_launcher(str(binary)), "launcher", *original],
+                            env={**os.environ, "SCICONTEXT_STAGE_NAME": stage, "SCICONTEXT_STAGE_SECONDS": ""},
+                            text=True, capture_output=True, check=True)
+    actual = result.stdout.splitlines()
+    expected = (["exec", "--sandbox", "read-only", "-c", 'approval_policy="never"', *original[2:]]
+                if stage == "extract" else original)
+    assert actual == expected
+    assert not ("--sandbox" in actual and "--dangerously-bypass-approvals-and-sandbox" in actual)
+
+
+@pytest.mark.parametrize("architecture,expected", [("aarch64", "arm64"), ("arm64", "arm64"), ("x86_64", "x64")])
+def test_setup_uses_native_extractor_asset_and_keeps_x64_repair(tmp_path, monkeypatch, architecture, expected):
+    import scicontext.pier_agent as module
+    packages = {}
+    for arch in ("arm64", "x64"):
+        package = tmp_path / arch / "package"
+        package.mkdir(parents=True)
+        (package.parent / "receipt.json").write_text(json.dumps({"architecture": arch}))
+        packages[arch] = package
+    prepared = []
+    def assets(cache, arch):
+        prepared.append(arch)
+        return packages[arch]
+    monkeypatch.setattr(module, "prepare_codex", assets)
+    monkeypatch.setattr(module, "prepare_helpers", lambda *args: tmp_path)
+    monkeypatch.setattr(module.subprocess, "run", lambda *args, **kwargs:
+                        SimpleNamespace(stdout=f"8589934592 4 {architecture}"))
+    task = SimpleNamespace(workdir="/app/task_058", docker_image="pinned@sha256:fixture", memory_mb=8192)
+    task.model_copy = lambda **kwargs: task
+    class Docker:
+        def __init__(self, **kwargs):
+            self.task_env_config = task
+            self.environment_dir = tmp_path
+            self.environment_name = "fixture"
+            self.session_id = "fixture"
+            self.default_user = None
+        async def start(self, **kwargs):
+            pass
+    monkeypatch.setattr(module, "DockerEnvironment", Docker)
+    d = SimpleNamespace(logs_dir=tmp_path / "logs", condition="science", workspace=tmp_path,
+                        config=SimpleNamespace(codex_version="0.153.4", extraction_seconds=360),
+                        network_allowlist=lambda: None)
+    d.checked = AsyncMock(side_effect=["312", "base-commit"])
+    staged = []
+    async def setup_stage(environment, stage):
+        staged.append((stage, d.extract_codex_package if stage == "extract" else d.codex_package))
+    d._setup_environment = setup_stage
+    asyncio.run(ScientificCodex.setup(d, Docker()))
+    assert staged == [("repair", packages["x64"]), ("extract", packages[expected])]
+    assert prepared == (["x64", "arm64"] if expected == "arm64" else ["x64"])
+    receipt = json.loads((d.logs_dir / "setup.json").read_text())
+    assert receipt["harness_architecture"] == "x64"
+    assert receipt["extraction_harness_architecture"] == expected
+    assert receipt["extraction_access_mode"] == "read-only"
+    assert receipt["extraction_codex_receipt"]["architecture"] == expected

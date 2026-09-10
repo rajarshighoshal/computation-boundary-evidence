@@ -73,6 +73,7 @@ def annotation_schema() -> dict:
         "probes": _array(_object({
             "id": {"type": "string", "pattern": "^[A-Za-z0-9_-]{1,64}$"}, "claim_ids": {**_array(identifier, MAX_CLAIMS), "minItems": 1},
             "script": {"type": "string", "minLength": 1, "maxLength": 1024, "pattern": r"\.py$"},
+            "source": {"type": "string", "minLength": 1, "maxLength": 32768},
             "description": text,
         }, ["id", "claim_ids", "script", "description"]), MAX_PROBES),
         "unresolved": _array(text),
@@ -289,6 +290,8 @@ def assemble_annotations(
     probes = []
     for item in items("probes", "probe", MAX_PROBES):
         problem = _scratch_path_problem(item["script"], ".py")
+        if "source" in item and len(item["source"].encode("utf-8")) > 32768:
+            problem = "probe source exceeds the 32 KiB size limit"
         claim_ids = [identifier for identifier in dict.fromkeys(item["claim_ids"])
                      if identifier in assembly["accepted_claim_ids"]]
         if problem or not claim_ids:

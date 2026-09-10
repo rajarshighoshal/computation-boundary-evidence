@@ -259,6 +259,19 @@ def test_probe_specs_are_bounded_sanitized_and_do_not_claim_execution(source_pac
     assert len(bundle["assembly"]["rejected"]) == 2
 
 
+def test_inline_probe_source_uses_existing_path_and_byte_limit(source_packet):
+    root, packet, _ = source_packet
+    inline = probe(source="print(2 / 1)\n")
+    bundle = assemble_annotations(annotations([backed_claim()], probes=[inline]), packet, root)
+    assert bundle["probes"] == [inline]
+    assert not (root / inline["script"]).exists()  # Assembly itself does not write/execute.
+    for fields in ({"script": "../escape.py"}, {"source": "é" * 16385}):
+        rejected = assemble_annotations(
+            annotations([backed_claim()], probes=[{**inline, **fields}]), packet, root)
+        assert rejected["probes"] == []
+        assert rejected["assembly"]["accepted_claim_ids"] == ["c_speed"]
+
+
 @pytest.mark.parametrize("exit_code,status", [(0, "completed"), (1, "completed"), (None, "timeout")])
 def test_only_runner_receipts_create_observations_without_proving_science(source_packet, exit_code, status):
     root, packet, _ = source_packet

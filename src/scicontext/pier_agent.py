@@ -46,8 +46,12 @@ class OutputCodex(Codex):
 
 
 def timeout_launcher(binary: str) -> str:
-    """Use GNU timeout, not a custom process supervisor or nested sandbox."""
+    """Use native read-only Codex for extraction and GNU timeout for both stages."""
     return f'''#!/bin/sh
+if [ "${{SCICONTEXT_STAGE_NAME:-}}" = extract ] && [ "${{1:-}}" = exec ] && [ "${{2:-}}" = --dangerously-bypass-approvals-and-sandbox ]; then
+  shift 2
+  set -- exec --sandbox read-only -c 'approval_policy="never"' "$@"
+fi
 if [ -z "${{SCICONTEXT_STAGE_SECONDS:-}}" ]; then
   exec {shlex.quote(binary)} "$@"
 fi
@@ -105,16 +109,20 @@ class ScientificCodex(BaseAgent):
         await environment.upload_file(path, destination)
 
     async def _setup_environment(self, environment, stage):
+        package = self.extract_codex_package if stage == "extract" else self.codex_package
+        architecture = self.extraction_architecture if stage == "extract" else "x64"
+        triple = "aarch64" if architecture == "arm64" else "x86_64"
+        binary = REMOTE + f"/codex/vendor/{triple}-unknown-linux-musl/bin/codex"
         await self.checked(environment, f"mkdir -p {CONTROL} {REMOTE}/bin {REMOTE}/src {REMOTE}/context {SCRATCH}/checkpoints {self.root}/outputs")
-        await environment.upload_dir(self.codex_package, REMOTE + "/codex")
+        await environment.upload_dir(package, REMOTE + "/codex")
         await environment.upload_dir(self.helper_deps, REMOTE + "/deps")
         await environment.upload_dir(self.workspace / "src/scicontext", REMOTE + "/src/scicontext")
-        await self._put(environment, "codex-launcher", timeout_launcher(self.binary), REMOTE + "/bin/codex")
+        await self._put(environment, "codex-launcher", timeout_launcher(binary), REMOTE + "/bin/codex")
         await self.checked(environment, f"chmod 755 {REMOTE}/bin/codex; command -v timeout")
         await self._put(environment, "annotation-schema.json", json.dumps(annotation_schema()), CONTROL + "/annotation-schema.json")
         statement = (environment.environment_dir.parent / "instruction.md").read_text()
         await self._put(environment, "task_statement.md", statement, REMOTE + "/context/task_statement.md")
-        version = await self.checked(environment, shlex.join([self.binary, "--version"]))
+        version = await self.checked(environment, shlex.join([binary, "--version"]))
         if version.strip() != "codex-cli " + self.config.codex_version:
             raise RuntimeError("Guest Codex version mismatch")
         probe = "import os; print(open('/proc/%s/statm' % os.getpid()).read().strip())"
@@ -133,8 +141,15 @@ class ScientificCodex(BaseAgent):
             raise ValueError("Expected a benchmark workdir")
         self.task_id = self.root.rsplit("_", 1)[-1]
         self.logs_dir.mkdir(parents=True, exist_ok=True)
+        info = subprocess.run(["docker", "info", "--format", "{{.MemTotal}} {{.NCPU}} {{.Architecture}}"],
+                              check=True, text=True, capture_output=True).stdout.split()
         self.codex_package = await asyncio.to_thread(prepare_codex, self.workspace / ".cache", "x64")
-        self.binary = REMOTE + "/codex/vendor/x86_64-unknown-linux-musl/bin/codex"
+        self.extraction_architecture = None
+        self.extract_codex_package = None
+        if self.condition == "science":
+            self.extraction_architecture = "arm64" if info[2].lower() in {"aarch64", "arm64"} else "x64"
+            self.extract_codex_package = (self.codex_package if self.extraction_architecture == "x64" else
+                await asyncio.to_thread(prepare_codex, self.workspace / ".cache", self.extraction_architecture))
         pyminor = (await self.checked(environment, "python -c 'import sys; print(str(sys.version_info.major)+str(sys.version_info.minor))'")).strip()
         self.helper_deps = await asyncio.to_thread(prepare_helpers, self.workspace / ".cache", pyminor)
         self._baseline_tree = (await self.checked(environment, "git rev-parse HEAD", cwd=self.root)).strip()
@@ -150,12 +165,14 @@ class ScientificCodex(BaseAgent):
             )
             await self.extract_environment.start(force_build=False)
             await self._setup_environment(self.extract_environment, "extract")
-        info = subprocess.run(["docker", "info", "--format", "{{.MemTotal}} {{.NCPU}}"], check=True, text=True, capture_output=True).stdout.split()
         write_json(self.logs_dir / "setup.json", {
             "codex_version": self.config.codex_version, "harness_architecture": "x64",
             "scientific_image_architecture": "amd64", "environment_image": environment.task_env_config.docker_image,
             "execution": "upstream_pier_codex_docker_boundary", "timeout": "GNU timeout foreground process group",
             "extractor": "bounded_annotations_v1", "claim_cap": 5, "probe_cap": 2,
+            "extraction_harness_architecture": self.extraction_architecture,
+            "extraction_access_mode": "read-only" if self.condition == "science" else None,
+            "extraction_codex_receipt": read_json(self.extract_codex_package.parent / "receipt.json") if self.extract_codex_package else None,
             "interpretation_cap_seconds": min(240, self.config.extraction_seconds * 2 / 3),
             "python_minor": pyminor, "baseline_tree": self._baseline_tree,
             "docker_memory_bytes": int(info[0]), "docker_cpus": int(info[1]),
@@ -192,7 +209,17 @@ class ScientificCodex(BaseAgent):
                                  seconds=max(1, int(seconds)), explore_until=clock(seconds * .75),
                                  save_by=clock(seconds * .90), finish_by=clock(seconds - 15),
                                  instruction=instruction)
-        return await self._run_codex("extract", prompt, seconds)
+        result = await self._run_codex("extract", prompt, seconds)
+        # Codex returns one compact JSON response; orchestration owns file writes.
+        try:
+            annotations = read_json(self.logs_dir / "extract-final.txt")
+        except (OSError, ValueError) as error:
+            result.update(annotations_status="no_valid_annotations", annotations_error=str(error))
+            write_json(self.logs_dir / "extract-process.json", result)
+            return result
+        await self._put(self.extract_environment, "annotations.json", json.dumps(annotations),
+                        SCRATCH + "/annotations.json")
+        return result
 
     async def assemble(self, outcomes, seconds):
         target = CONTROL + ("/initial-bundle.json" if outcomes is None else "/bounded-graph.json")
@@ -209,6 +236,14 @@ class ScientificCodex(BaseAgent):
         return result
 
     async def probe(self, specs, seconds):
+        # Specs have already passed the assembler's existing path/size checks.
+        for spec in specs:
+            if "source" in spec:
+                destination = SCRATCH + "/" + spec["script"]
+                await self.checked(self.extract_environment,
+                                   "mkdir -p " + shlex.quote(str(Path(destination).parent)))
+                await self._put(self.extract_environment, spec["id"] + ".py",
+                                spec["source"], destination)
         await self._put(self.extract_environment, "probe-specs.json", json.dumps({"probes": specs}), SCRATCH + "/probe-specs.json")
         result = await self._helper(
             f"{HELPER} run-probes --root {self.root} --scratch {SCRATCH} --specs {SCRATCH}/probe-specs.json "
@@ -260,10 +295,6 @@ class ScientificCodex(BaseAgent):
 
     async def collect_graph(self, seconds):
         environment = self.extract_environment
-        diff = await self.checked(environment, shlex.join(["git", "diff", "--name-only", self._baseline_tree, "--", ".", ":(exclude)outputs/**"]), cwd=self.root)
-        added = await self.checked(environment, "git ls-files --others --exclude-standard -- . ':(exclude)outputs/**'", cwd=self.root)
-        source_changed = bool(diff.strip() or added.strip())
-        write_json(self.logs_dir / "extraction-source-check.json", {"source_changed": source_changed, "changed": diff.splitlines(), "untracked": added.splitlines()})
         await environment.download_dir(SCRATCH, self.logs_dir / "extract-scratch")
         await environment.download_dir(self.root + "/outputs", self.logs_dir / "extract-outputs")
         if not self._selected_remote:
@@ -271,7 +302,7 @@ class ScientificCodex(BaseAgent):
         selected = self.logs_dir / "compiled-graph.json"
         await environment.download_file(self._selected_remote, selected)
         bundle = read_json(selected)
-        if source_changed or bundle["graph"]["task_id"] != self.task_id:
+        if bundle["graph"]["task_id"] != self.task_id:
             return None
         return bundle if bundle["assembly"]["usable"] else None
 
