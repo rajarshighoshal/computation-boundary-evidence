@@ -8,9 +8,13 @@ Probes support the representation, not replace it. No benchmark runs or harness 
 
 ## Active work
 
-- In progress: code-driven extractor, `scientific_objects_core` worker in isolated
-  `.cache/worktrees/scientific-objects-core`; owns `scientific_objects.py` and its tests.
-- Next: root integrates contextual enrichment and a small offline cross-domain demonstration.
+- Core and tests are in isolated `.cache/worktrees/scientific-objects-core`; worker owns
+  `scientific_objects.py` and its tests. Current core is ready for a reviewed checkpoint.
+- Enrichment spec/schema: `docs/OBJECT_ENRICHMENT.md`. Public scientific context stays available;
+  LLM output only annotates existing IDs. The earlier uncommitted enrichment code must be replaced
+  before integration; it allowed dimensional anchors outside this contract.
+- Next: bounded wrapper visibility and per-file coverage, tool-fit checks, then anchored enrichment
+  and an offline demonstration. No new API rule families. Codex writes; Rajarshi decides handoffs.
 - Final check: inspect generated representations, run local tests, and state unsupported cases.
   This does not establish repair improvement or authorize another experiment.
 
