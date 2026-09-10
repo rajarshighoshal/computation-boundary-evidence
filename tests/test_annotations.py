@@ -223,6 +223,20 @@ def test_quantity_meaning_does_not_cross_functions_with_the_same_operand(tmp_pat
     assert "q_length excluded from scientific propagation" in bundle["handoff"]
 
 
+def test_selected_dependency_locations_reach_handoff_and_unknown_stays_unknown(tmp_path):
+    (tmp_path / "model.py").write_text("def compute(external):\n    local = 2\n    result = local + external\n    return result\n")
+    packet = {"entries": extract_evidence(tmp_path)["entries"]}
+    draft = annotations([{"id": "c_local", "description": "Local computation",
+                         "implementation_ref": {"path": "model.py", "start_line": 3, "end_line": 3}}])
+    bundle = assemble_annotations(draft, packet, tmp_path)
+    links = {link["read"]: link for link in bundle["assembly"]["selected_dependencies"]}
+    assert links["local"]["status"] == "resolved"
+    assert links["local"]["definition"]["start_line"] == 2
+    assert links["external"]["status"] == "unknown"
+    assert "read 'local' at model.py:3-3 -> model.py:2-2" in bundle["handoff"]
+    assert "read 'external' at model.py:3-3 -> unknown" in bundle["handoff"]
+
+
 def test_document_quote_is_read_from_source_but_snapshot_hash_is_enforced(source_packet):
     root, packet, _ = source_packet
     packet["documents"][0]["quote"] = "invented quotation"

@@ -233,6 +233,7 @@ def assemble_annotations(
     assembly = {"schema_version": "assembly-1.0", "accepted_claim_ids": [],
                 "accepted_quantity_ids": [], "accepted_probe_ids": [], "rejected": [],
                 "unresolved": [], "code_bindings": [], "scientific_binding_uses": [], "relations": [],
+                "selected_dependencies": [],
                 "packet_coverage": copy.deepcopy(packet.get("coverage", {}))}
     schema = annotation_schema()
     sources = _Sources(packet, root, context_root)
@@ -398,6 +399,23 @@ def assemble_annotations(
         if append("claims", node, list(evidence.values())):
             assembly["accepted_claim_ids"].append(node["id"])
             assembly["relations"].append(relation_record)
+            if entry is not None and actual is not None:
+                dependencies = entry.get("local_dependencies", [])
+                for dependency in dependencies[:4]:
+                    link = {"claim_id": node["id"], "read": dependency["name"],
+                            "status": "unknown", "reason": dependency.get("reason", "unresolved"),
+                            "use": {key: entry.get(key) for key in ("path", "start_line", "end_line", "scope")}}
+                    definition = sources.entries.get(dependency.get("definition_id"))
+                    if dependency.get("status") == "resolved" and definition is not None:
+                        try:
+                            sources.resolve(definition["id"])
+                            link.update(status="resolved", definition={key: definition.get(key)
+                                        for key in ("path", "start_line", "end_line", "scope")})
+                        except (OSError, ValueError, UnicodeError) as exc:
+                            link["reason"] = str(exc)
+                    assembly["selected_dependencies"].append(link)
+                if len(dependencies) > 4:
+                    note(f"{node['id']}: {len(dependencies) - 4} additional dependency links omitted from the compact handoff; retained in the packet.")
 
     probes = []
     for item in items("probes", "probe", MAX_PROBES):
@@ -484,6 +502,14 @@ def assemble_annotations(
             links.extend(f"- {b['quantity_id']}: binding={b['status']}; symbol={b.get('code_symbol')!r}; source={b.get('path')!r}:{b.get('start_line')}; scope={b.get('scope')!r}."
                          for b in assembly["code_bindings"])
             handoff += "\n\nScientific/code links (syntax only; units, frame and normalization require independent evidence):\n" + "\n".join(links)
+            if assembly["selected_dependencies"]:
+                dependency_lines = []
+                for link in assembly["selected_dependencies"]:
+                    use = link["use"]
+                    destination = (f"{link['definition']['path']}:{link['definition']['start_line']}-{link['definition']['end_line']}"
+                                   if link["status"] == "resolved" else f"unknown ({link['reason']})")
+                    dependency_lines.append(f"- {link['claim_id']} read {link['read']!r} at {use['path']}:{use['start_line']}-{use['end_line']} -> {destination}.")
+                handoff += "\n\nSelected local dependencies (source syntax only; no runtime or scientific equivalence):\n" + "\n".join(dependency_lines)
         except ValueError as exc:
             note(f"Scientific handoff unavailable: {exc}")
             usable = False
