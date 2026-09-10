@@ -10,7 +10,7 @@ The comparison evaluates the complete procedure. It does not isolate the causal 
 
 ## Conditions
 
-- Ordinary Codex baseline: GPT-6 Astra/high, 1800 seconds total agent allowance.
+- Ordinary Codex baseline: GPT-6 Astra, 1800 seconds total agent allowance. Current initial checks use medium effort at the user's request; historical high-effort runs remain separately identified.
 - Treatment: same model and harness; extraction cap 360 seconds including helpers, probes, validation and handoff; fresh repair receives the remaining total allowance.
 - Pin Codex 0.153.4 and Pier 0.3.0, prompts/configuration, dependencies, exact task IDs and immutable image digests.
 - Develop on 002 and 077, one attempt per condition. Full evaluation targets all 119 tasks after throughput review and explicit restricted-license opt-in.
@@ -20,23 +20,23 @@ The comparison evaluates the complete procedure. It does not isolate the causal 
 ## Combined algorithm
 
 1. Code builds a bounded source index and document catalog while Codex reads the task/scientific context. Other languages remain eligible with mechanical coverage limitations recorded.
-2. Codex saves compact annotations: a small set of relevant quantities, scientific relationships, assumptions and source/implementation references, each with explicit/inferred/unresolved status. Code resolves references and supplies actual expressions, source quotes and hashes; the LLM does not assemble the final graph.
+2. Read-only Codex returns compact annotations: a small set of relevant quantities, scientific relationships, assumptions and source/implementation references, each with explicit/inferred/unresolved status. Code saves the output, resolves references and supplies actual expressions, source quotes and hashes; the LLM does not assemble the final graph.
 3. Match ordered scientific and implementation expression graphs using proposed quantity bindings. Report structure/correspondences, not mathematical-equivalence proofs.
 4. Lift recognized conversions, weighted reductions, normalizations and linear transformations into candidate scientific operations under stated assumptions.
 5. Propagate supported dimensions, scale factors and explicit shapes. Preserve disagreements between intended requirements and buggy code. Code runs declared independent Python probes under shared deadlines and adds actual execution/output receipts, without equating exit zero with scientific proof.
-6. Code saves a canonical JSON graph and deterministic handoff. Compact annotations are capped at five claims, twelve quantities and two probes; the existing internal graph bound remains. The LLM returns only the annotation filename, not a duplicate graph. No open-ended refinement loop is added.
+6. Code saves a canonical JSON graph and deterministic handoff. Compact annotations are capped at five claims, twelve quantities and two probes; the existing internal graph bound remains. The LLM returns the compact annotation JSON once, including optional probe source, not a duplicate graph. No open-ended refinement loop is added.
 
 Expressions are structured data and are never evaluated as generated Python. Matching citations are not scientific proof. A baseline failure does not automatically invalidate a scientific requirement. Repair may challenge an inferred constraint with evidence.
 
 ## Execution
 
-Use upstream Pier Codex execution for both conditions, with a thin adapter for extraction and handoff. Per Rajarshi's explicit simplification request, Docker supplies isolation; no custom nested sandbox or process supervisor is added. Prepare images/harness before the clock; include every agent stage, helper and probe inside one monotonic deadline. Private verification receives the same separate allowance in both conditions.
+Use upstream Pier Codex execution, with a thin adapter for extraction and handoff. Per Rajarshi's simplification request, extraction uses only Codex's native read-only option; repair retains standard Docker execution. No custom permission framework or process supervisor is added. Prepare images/harness before the clock; include every agent stage, helper and probe inside one monotonic deadline. Private verification receives the same separate allowance in both conditions.
 
-Extraction may run diagnostics/scratch probes on its disposable copy. It is instructed not to edit source; detected source changes invalidate its handoff. It cannot modify the separate repair candidate. Repair starts from the original workspace with only the declared handoff. Graphs, temporary credentials and scratch artifacts remain outside the patch root. Standard container mode does not hide credentials from commands inside that container.
+The extractor model reads its disposable task copy and returns annotations. Code saves outputs and runs declared scientific probes afterward. The Git source-change guard is removed; native read-only commands prevent model edits, without a bespoke enforcement layer. Repair starts from a separate original workspace with only the declared handoff. Graphs, temporary credentials and scratch artifacts remain outside the patch root. Standard container execution is not a credential-isolation system.
 
 At extraction timeout, use the latest valid code-assembled checkpoint; without one, continue ordinary repair using remaining time and record extraction failure. The interpretation sub-deadline is before the probe/assembly sub-deadline, leaving an explicit collection/shutdown reserve. Finish early when sufficient annotations are saved. No dropped tasks, silent model retries or extra unbudgeted inference. Use GNU timeout for normal foreground groups and bounded Pier lifecycle calls; do not claim exhaustive detached-child supervision. Evaluate the collected patch through the official verifier.
 
-The implemented phase and annotation contracts are in `docs/EXTRACTION_V2.md`. The previous paired pilot used the earlier full-graph extraction workflow; the new revision has separate extraction-only verification, not new repair-success results.
+The implemented contracts are in `docs/EXTRACTION_V2.md`. Earlier full-graph and annotation-based runs remain versioned separately; current initial-check outcomes and limitations are in generated reports and `docs/RANDOM_FIVE_NOTES.md`.
 
 ## Verification and evaluation
 
@@ -48,11 +48,14 @@ Task 002 private failures were previously inspected. Disclose development exposu
 
 Full-benchmark launch remains a subsequent scientific/budget checkpoint.
 
-The user subsequently authorized a random-five exploratory comparison of the revised method.
+The user subsequently authorized random-five initial checks of the revised method.
 `configs/random-five-v1.selection.json` freezes the seed, full eligible population, exclusions and
 draw before comparative outcomes. `configs/random-five-v1.json` freezes the paired condition order
-and otherwise unchanged model/total budget. This is separate from the earlier development pilot;
-tasks are not replaced after outcomes or infrastructure failures.
+and original high-effort budget. During the initial checks, the user requested medium effort and
+native-read-only simplification and explicitly clarified this is not the locked experiment.
+`configs/random-five-medium-v1.json` continues the remaining drawn tasks. Preserve the old runs,
+identify method/effort changes, and do not claim these are a uniform controlled evaluation.
+Production hardening and polish are deferred; focus on the research question and useful evidence.
 
 ## Literature basis
 

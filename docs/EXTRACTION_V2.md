@@ -1,14 +1,14 @@
 # Bounded hybrid extractor — implementation contract
 
-Approved for implementation after the first development pilot. The model, standard Pier/Codex Docker execution and total/extraction allowances remain unchanged. The earlier pilot is immutable evidence for the previous method version.
+Approved after the first development pilot, then simplified at the user's request during initial feasibility checks. Current continuation uses medium effort, native read-only extraction and code-owned final-output saving. Total/extraction allowances remain unchanged. Earlier runs are evidence for their recorded versions, not a locked experiment with this revision.
 
 ## Responsibility and stopping
 
 - Code prepares a bounded source index and document catalog while the LLM starts reading the task/scientific context.
-- The LLM saves compact semantic annotations and optional independent Python probe scripts. It does not build the final graph, copy source quotes/hashes/expression trees, or execute scientific probes itself.
+- The read-only LLM returns compact semantic annotations and optional inline Python probe source as its final JSON. Code saves these files. The LLM does not build the final graph, copy source quotes/hashes/expression trees, or execute scientific probes itself.
 - Code resolves references, parses formulas, assembles the existing graph format, and runs the existing validation/alignment/lifting/propagation checks.
 - Code runs at most two independent probes concurrently, preserving separate output and exit receipts. A failing probe is evidence about the current implementation, not automatic disproof of an intended requirement.
-- Code adds execution observations and finalizes a checkpoint. No second full graph JSON is requested from the LLM. The LLM's final response is only `annotations.json`.
+- Code adds execution observations and finalizes a checkpoint. The LLM returns the annotation JSON once, not a filename acknowledgement or duplicate full graph.
 - Limits: five claims, twelve quantities, two probes. Stop with explicit unresolved/abstention reasons rather than fill the caps.
 
 For a 360-second extraction allowance, interpretation stops by 240 seconds, code-owned probes/assembly finish by 300 seconds, and the final 60 seconds are reserved for validation, artifact collection and stopping the disposable extraction container. Finish earlier whenever possible. Each probe is bounded by both a 45-second cap and the remaining phase allowance. These are shared deadlines, not additional budgets.
@@ -37,7 +37,7 @@ Claim fields: required `id`, `description`; optional `formula` (restricted arith
 
 An evidence reference is either a packet entry/document ID or `{path, start_line, end_line}`. Code reads exact quotes and file hashes. Implementation expressions come only from the selected packet entry, never model-written trees. Missing/unsupported implementation correspondence stays unknown.
 
-Probe fields: `id`, `claim_ids`, `script` (relative `.py` path under scratch), `description`. No command strings or claimed results in annotations. The runner chooses the Python invocation and records actual execution. Absolute/traversal/hidden script paths are invalid. No extra model is used for probes.
+Probe fields: `id`, `claim_ids`, `script` (relative `.py` path under scratch), `description`, and optional inline `source`. The read-only extractor includes source for proposed probes; code saves accepted scripts and chooses the Python invocation. No claimed results in annotations. Existing path/size checks remain. No extra model is used for probes.
 
 `assemble_annotations(annotations: dict, packet: dict, root: Path, context_root: Path | None = None, probe_results: list[dict] | None = None) -> dict`
 
@@ -47,6 +47,6 @@ Probe result fields: `id`, `claim_ids`, `description`, `status`, `exit_code`, `d
 
 ## Integration
 
-No graph output schema on the Codex final response. Annotations are written once to the fixed scratch path, with a short final acknowledgement. Packet preparation and interpretation overlap; dependent assembly waits for them. Initial assembly may save a useful checkpoint before probes. Final collection rejects source edits in the disposable copy and uses the separate unchanged repair candidate.
+No full-graph output schema on the Codex final response. Codex's `-o` captures the compact annotation JSON; orchestration saves it to the fixed scratch path. Packet preparation and interpretation overlap; dependent assembly waits for them. Initial assembly may save a useful checkpoint before probes. Extraction uses native `--sandbox read-only` with approvals disabled; the custom Git diff/untracked rejection is removed. Repair uses a separate original candidate. Code-owned probes execute on the disposable extraction copy outside the model's read-only command sandbox.
 
 Artifact failures/absent annotations/unsupported meaning produce explicit fallback records, not silent extra model retries. Retain all phase timings, timeout flags, packet coverage, annotations, scripts, execution receipts and graph bundles. New verification must not overwrite old pilot artifacts.

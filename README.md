@@ -2,9 +2,9 @@
 
 An experimental preparation stage for SWE-bench Science. It combines source-backed expression alignment, conditional scientific operation interpretation, and dimension/scale/shape analysis before a fresh Codex repair session.
 
-The controlled comparison is ordinary Codex versus extraction followed by repair. Both use GPT-6 Astra/high and a 30-minute total agent allowance; extraction consumes at most six minutes of the treatment allowance. This implementation is a research prototype, not a scientific-correctness prover.
+The research comparison is ordinary Codex versus extraction followed by repair under the same total agent allowance. Current initial checks use GPT-6 Astra/medium; earlier checks used high. These are exploratory feasibility checks, not a locked experiment. This implementation is a research prototype, not a scientific-correctness prover.
 
-The runner reuses Pier's standard Codex launch and subscription authentication. Docker provides isolation; there is no extra Codex sandbox policy. The earlier development pilot passed both tasks in both conditions, with greater elapsed time for context and no observed success gain. The revised bounded extractor has now passed extraction-only checks without timing out; repair effectiveness has not been re-evaluated for this revision. See [pilot results](docs/PILOT_RESULTS.md), [extractor verification](docs/EXTRACTOR_VERIFICATION.md), and [runtime status](docs/RUNTIME_STATUS.md).
+The runner reuses Pier's Codex launch and subscription authentication. Extraction uses Codex's built-in read-only mode; code saves its returned annotations and probe scripts. Repair retains standard container execution. There is no custom Git source-change guard. See [initial high-effort results](docs/RANDOM_FIVE_HIGH_RESULTS.md), [qualitative notes](docs/RANDOM_FIVE_NOTES.md), and [runtime status](docs/RUNTIME_STATUS.md). Historical development results remain separate.
 
 ## Layout
 
@@ -50,7 +50,16 @@ The graph uses evidence IDs, exact source lines/hashes, quantities, claims, assu
 
 ## Run the development pilot
 
-The current extractor uses code-owned indexing, citations, graph assembly and checks; the LLM saves compact scientific annotations and optional probe scripts. Preparation overlaps interpretation, and independent probes can run concurrently. The shared extraction allowance includes bounded interpretation, probes, collection and shutdown. See [the implemented contract](docs/EXTRACTION_V2.md).
+The current extractor uses code-owned indexing, citations, graph assembly and checks; the LLM returns compact scientific annotations and optional inline probe scripts as JSON. Code saves them. Preparation overlaps interpretation, and independent probes can run concurrently. The shared extraction allowance includes bounded interpretation, probes, collection and shutdown. See [the implemented contract](docs/EXTRACTION_V2.md).
+
+The remaining initial checks use the saved medium-effort configuration (inspect without inference first):
+
+```bash
+uv run --no-sync scicontext pilot --config configs/random-five-medium-v1.json --output runs/random-five-medium-v1
+uv run --no-sync scicontext pilot --config configs/random-five-medium-v1.json --output runs/random-five-medium-v1 --execute
+```
+
+The configuration preserves the remaining tasks from the original draw; it is not a reroll. Do not pool different effort/method revisions into a purported uniform experiment. The development commands below use the historical development configuration unless an explicit `--config` is supplied.
 
 Verify only extraction on the development tasks, without repair or private verification:
 
@@ -71,11 +80,11 @@ uv run --no-sync scicontext pilot --smoke --execute --output runs/standard-smoke
 uv run --no-sync scicontext pilot --execute --output runs/pilot-v3
 ```
 
-Use a fresh output directory for every attempt. Existing attempts are never overwritten. The pilot runs one attempt per condition on tasks **002 and 077**, with counterbalanced condition order. The CLI deliberately does not launch unrestricted full-suite experiments. Full 119-task evaluation follows pilot review and the benchmark's restricted-license opt-in decision.
+Use a fresh output directory for every attempt. Existing attempts are never overwritten. The default development configuration uses tasks **002 and 077**; explicit configurations support bounded selections from a materialized release receipt. Full-benchmark evaluation requires a subsequent protocol/budget decision and restricted-license opt-in where applicable.
 
 Authentication defaults to the saved ChatGPT cache at `~/.codex/auth.json`; `--auth-file` accepts a private subscription cache. API-key auth is rejected. Upstream Pier uploads and removes its temporary authentication files. They stay outside source/Git and image builds, but commands inside the same container can access them. This is the documented standard container mode, not a hostile-code credential-isolation system. Do not mount personal home directories or a Docker socket into task containers, and review raw logs before publishing.
 
-Codex 0.153.4 uses the normal Linux x64 binary in the pinned amd64 task image, including on Apple Silicon through Docker's existing emulation. The standard Pier command does not create the extra nested sandbox that caused the earlier `/proc` failure. Both conditions use the same execution path. Docker memory allocation still needs to accommodate the task's declared resources before locked evaluation.
+Repair uses pinned Codex's Linux x64 binary in the original amd64 task image. On an ARM Docker host, extraction uses the native ARM Codex build so its built-in read-only mode works; it does not change the scientific image or repair runtime. No bespoke permission profile is added. Setup receipts record both architectures. Docker memory allocation still needs to accommodate the task's declared resources before locked evaluation.
 
 ## Recompute results
 

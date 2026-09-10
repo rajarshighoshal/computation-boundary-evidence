@@ -15,8 +15,8 @@ Canonical live ledger. Approved plan: `RESEARCH_PLAN.md`. Only the primary agent
 | 9. Verify revised extractor and document handoff | complete | `runs/extractor-annotations-v1`: both development checks finished cleanly with valid graphs, short acknowledgements and recorded token use; no repairs/private verification. Programmatic report `docs/EXTRACTOR_VERIFICATION.md`; bounded shutdown fix covered by deadline tests. Old pilot independently rechecked unchanged; plan/docs updated; no running containers or full benchmark |
 | 10. Freeze a random five-task comparison cohort | complete | `8790658` freezes seed/population/draw: 091, 058, 009, 114, 001 from 94 eligible tasks; separate release receipt preserves development selection; public TOML/Dockerfile checks and dry-run schedule verified; 289 tests pass |
 | 11. Run initial random-five checks | complete after scope revision | `runs/random-five-v1` high-effort checks on 091/058 completed. User requested medium/native-read-only simplification for later initial checks; operator stop caught 009 during image pull, before model inference. Receipts/audit: `operator-stop-request.json`, `results/random-five-v1-high.json`, `docs/RANDOM_FIVE_HIGH_RESULTS.md`. No benchmark containers remain running |
-| 12. Simplify extraction and lower effort | in progress | Native ARM Codex read-only reads taskfile and rejects writes; x64 build fails seccomp in this emulated Docker setup. No-model receipt: `runs/readonly-native-preflight/receipt.json`. Medium remaining-task config dry-run verified. Isolated worker implements code-owned saving/removes Git guard, uses native CLI only for extraction. Final verification: focused/full tests and bounded native CLI check |
-| 13. Continue remaining selected initial checks | pending | Same drawn tasks, no reroll; use verified simplification and medium effort for remaining pairs. Track method/effort changes explicitly; no claim of a locked uniform comparison |
+| 12. Simplify extraction and lower effort | complete | Integrated `d3e2ff4`; 313 tests pass. Native ARM Codex read-only reads taskfile and rejects writes; no-model receipt `runs/readonly-native-preflight/receipt.json`. Medium remaining-task config dry-run verified. Code saves final JSON/scripts; Git guard removed; native CLI only for extraction, repair unchanged. No custom permission framework |
+| 13. Continue remaining selected initial checks | in progress | Preparing launch for 009/114/001 with simplified extraction and Astra/medium; original draw/order retained. Track method/effort changes explicitly; no claim of a locked uniform comparison |
 | 14. Verify and report initial checks | pending | Generic audited report generator/test commit `ef5e567` prepared in isolated `/private/tmp/tug-random-five-report`. Recompute each run/version independently, preserve interruption/fallback records, distinguish high/medium and method revisions; ledger/Git reconciliation |
 
 Full 119-task evaluation follows pilot throughput review and the restricted-license decision. Smoke failures are infrastructure development, not scientific-method outcomes. Initial-session /tmp artifacts are no longer available; current-session native probe files must be copied to durable receipts before handoff.
@@ -27,10 +27,10 @@ The user explicitly rejected the extra sandbox layer and requested standard tool
 
 ## Accepted decisions
 
-- Exactly two conditions, both rerun with GPT-6 Astra/high: ordinary Codex and extraction then fresh repair.
+- Exactly two conditions: ordinary Codex and extraction then fresh repair. Historical runs use GPT-6 Astra/high; current initial-check continuation uses medium by user request.
 - 1800 seconds total per trial; extraction cap 360 seconds including helpers/probes/handoff.
 - One combined alignment, semantic lifting and propagation stage.
-- Public scratch execution allowed; candidate source immutable during extraction.
+- Native Codex read-only extraction; code saves outputs and executes declared public scratch probes. Repair uses a separate original candidate; no Git source-change guard.
 - Repair may challenge inferred constraints with evidence.
 - All 119 tasks remain the target population; unsupported mechanical regions are recorded.
 - Development tasks 002/077. Prior private-test exposure on 002 must be disclosed.
