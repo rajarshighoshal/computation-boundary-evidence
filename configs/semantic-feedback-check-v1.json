@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0",
+  "study_kind": "semantic_feedback_extraction_development_check",
+  "purpose": "Proposed extraction-only quality check, pending explicit launch approval. Previously inspected development tasks; no repair or hidden tests. Use --extract-only.",
+  "model": "gpt-6-astra",
+  "reasoning_effort": "medium",
+  "codex_version": "0.153.4",
+  "pier_version": "0.3.0",
+  "release_commit": "42e7e97915ff7d73436a5d37b5cbe6b77e9c2a00",
+  "dataset_revision": "d8bdbcb4ecb2b565686382459c815d2b6291fd31",
+  "release_receipt": "data/random-five-v1-release.json",
+  "task_ids": ["091", "114"],
+  "development_task_ids": ["001", "002", "009", "058", "077", "091", "114"],
+  "conditions": ["baseline", "science"],
+  "total_seconds": 1800,
+  "extraction_seconds": 360,
+  "verifier_seconds": 1800,
+  "attempts": 1,
+  "concurrency": 2,
+  "allow_restricted_licenses": false
+}

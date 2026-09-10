@@ -71,3 +71,20 @@ This verifies implementation behavior—not whether a live LLM discovers useful 
 A separately approved, predeclared extractor-only development check is the next research step.
 Task001 is diagnostic-exposed; its hidden assertion and constructed diagnostic case are not included
 in the new prompts or integration examples. No larger experiment is authorized by implementation.
+
+The [recorded local verification](SEMANTIC_FEEDBACK_VERIFICATION.md) also preserves the initially
+failed original-source coverage check and its fix. New entity entries share the existing cap across
+referenced regions; adding parameters must not silently crowd out later relevant computations.
+
+## Optional parallel execution
+
+Config `concurrency` accepts one or two simultaneous trials. With two, full comparisons run a task's
+baseline and treatment together and wait for both before moving to the next task. Extraction-only
+checks group two selected tasks. Standard single-trial Pier processes, separate input copies and
+receipts remain; provider/infrastructure failure cancels the active sibling and stops future
+admission. Scientific test failure alone does not cancel the other arm. Shared asset-cache builders
+use a process lock, and authentication stays alive until owned runners finish.
+
+Concurrency counts trials, not containers. The Docker allocation is shared; per-task memory limits
+do not reserve that memory. Local overlap/cancellation/cache tests pass, but actual scientific
+container memory pressure and wall-clock speedup still need observation in the next approved check.

@@ -73,3 +73,9 @@ The subsequent [scientific feedback revision](SEMANTIC_FEEDBACK.md) is implement
 draft/revision artifacts and shared deadlines. Local tests cover binding/probe feedback, fallback,
 native read-only routing and accounting; review also corrected bounded upstream cleanup and fatal
 error propagation. Its live extraction quality and repair performance have not yet been measured.
+
+At the user's request, the scheduler now supports two concurrent attempts using separate standard
+Pier processes and a per-task pair barrier. Local concurrency, failure/interrupt and cache-safety
+checks pass; [verification receipts](SEMANTIC_FEEDBACK_VERIFICATION.md) are saved. The proposed next
+extractor-only check is dry-run validated but not launched. Actual parallel memory pressure and
+throughput are still unmeasured under the shared Docker allocation.

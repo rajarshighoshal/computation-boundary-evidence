@@ -9,6 +9,8 @@ The runner reuses Pier's Codex launch and subscription authentication. Extractio
 The current approved revision adds [scientific-object bindings and a bounded feedback correction](docs/SEMANTIC_FEEDBACK.md).
 Local tests check the implementation; improved live extraction quality and repair performance have
 not yet been established for this revision. Earlier results below evaluate their recorded versions.
+The [local verification](docs/SEMANTIC_FEEDBACK_VERIFICATION.md) is complete, including a preserved-source
+regression and its fix. Parallel mode now supports two simultaneous attempts with separate receipts.
 
 The original random-five checks are complete: [outcomes and token accounting](docs/INITIAL_FIVE_OVERVIEW.md).
 The task-local redesign is now implemented and has separate [extraction-only results](docs/EXTRACTOR_TASK_LOCAL_CHECK.md).
@@ -96,6 +98,20 @@ documented in [the historical extraction contract](docs/EXTRACTION_V2.md). The l
 revision adds one planned correction call inside the same budget; no larger model allowance is implied.
 
 Use a fresh output directory for every attempt. Existing attempts are never overwritten. The default development configuration uses tasks **002 and 077**; explicit configurations support bounded selections from a materialized release receipt. Full-benchmark evaluation requires a subsequent protocol/budget decision and restricted-license opt-in where applicable.
+
+Set `concurrency` to `2` for paired parallel execution, or retain `1` for serial. Full comparisons
+drain each task's baseline/treatment pair before the next task; extraction-only checks group two
+tasks. Both share Docker memory and CPU capacity. Provider/infrastructure failure stops further
+admission and interrupts the active peer; a failed scientific test is retained as an outcome.
+
+The proposed next extraction-only check can be inspected without model calls:
+
+```bash
+uv run --no-sync scicontext pilot --config configs/semantic-feedback-check-v1.json --extract-only --output runs/semantic-feedback-check-v1
+```
+
+That configuration is prepared, not authorization to execute it. Live execution requires the
+separate task/budget approval requested from Rajarshi.
 
 To inspect a reproduction of the frozen task-local comparison, materialize its existing selection
 without drawing replacement tasks, then create a dry-run schedule:
