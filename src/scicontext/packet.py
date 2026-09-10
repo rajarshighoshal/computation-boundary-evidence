@@ -10,10 +10,12 @@ import hashlib
 import json
 import os
 import re
+import copy
 from pathlib import Path
 
 from . import evidence
 from .graph import _safe_relative
+from .task_slice import seed_references
 
 MAX_SCAN_FILES = 2000
 MAX_SCAN_DIRECTORIES = 256
@@ -182,6 +184,13 @@ def build_packet(root: Path, context_root: Path | None = None) -> dict:
         else:
             coverage["skipped"].append({"path": path, "reason": problem or "excluded_path"})
     ordered = sorted(paths, key=lambda p: _rank(p, task_paths, repro_paths))
+    refs, retrieval = seed_references(root, paths,
+        task_paths | {p for p in paths if _reproducer(p) and p.endswith('.py')}, context[1] if context else '')
+    coverage['task_local_retrieval'] = retrieval
+    focus_paths = {ref['path'] for ref in refs}
+    focus_order = {path: index for index, path in enumerate(dict.fromkeys(ref['path'] for ref in refs))}
+    ordered.sort(key=lambda p: (0 if p in focus_paths else 1, focus_order.get(p, len(refs)),
+                               _rank(p, task_paths, repro_paths)))
     sources = [p for p in ordered if Path(p).suffix.casefold() == ".py"]
     document_paths = [p for p in ordered if Path(p).suffix.casefold() in _DOCUMENT_SUFFIXES]
     for path in ordered:
@@ -196,7 +205,7 @@ def build_packet(root: Path, context_root: Path | None = None) -> dict:
             coverage["entries_truncated"] = True
             coverage["skipped"].append({"path": path, "reason": "entry_limit"})
             continue
-        result = evidence.extract_evidence(root, [path], max_files=1, max_entries=min(MAX_ENTRIES_PER_FILE, MAX_ENTRIES - len(entries)))
+        result = evidence.extract_evidence(root, [path], max_files=1, max_entries=min(MAX_ENTRIES_PER_FILE, MAX_ENTRIES - len(entries)), references=refs)
         entries.extend(result["entries"])
         for key in ("files_considered", "files_parsed", "entries", "expressions", "supported_expressions"):
             coverage[key] += result["coverage"][key]
@@ -224,6 +233,64 @@ def build_packet(root: Path, context_root: Path | None = None) -> dict:
     coverage["unsupported_expressions"] = coverage["expressions"] - coverage["supported_expressions"]
     coverage["limitations"].append("Packet ranks literal task/reproducer paths, entry points and shallow files; omission is not evidence of irrelevance. Document excerpts and per-file entries are bounded.")
     return {"schema_version": "packet-1.0", "entries": entries, "documents": documents, "coverage": coverage}
+
+
+def expand_packet(root: Path, packet: dict, references: list[dict], *, keep_ids=()) -> dict:
+    """Index cited statements and enclosing functions under the existing caps.
+
+    Existing IDs are source-derived and unchanged. Explicitly retained entries
+    precede referenced regions; omissions are reported when caps conflict.
+    """
+    root = Path(root).resolve(strict=True)
+    result = copy.deepcopy(packet)
+    coverage = result['coverage']
+    refs = [ref for ref in references[:128] if isinstance(ref, dict)
+            and isinstance(ref.get('path'), str) and type(ref.get('start_line')) is int
+            and type(ref.get('end_line')) is int and 1 <= ref['start_line'] <= ref['end_line']
+            and ref['path'].endswith('.py') and not ref['path'].startswith('@context/')]
+    original = {entry['id']: entry for entry in result['entries']}
+    retained = [entry for entry in result['entries'] if entry['id'] in set(keep_ids)]
+    candidates = []
+    for path in list(dict.fromkeys(ref['path'] for ref in refs))[:MAX_SOURCE_FILES]:
+        extracted = evidence.extract_evidence(root, [path], max_files=1,
+            max_entries=MAX_ENTRIES_PER_FILE, references=refs)
+        candidates.extend(extracted['entries'])
+        coverage['skipped'].extend(extracted['coverage']['skipped'])
+    direct_scopes = {(entry['path'], entry['scope']) for entry in candidates
+                     if any(ref['path'] == entry['path'] and entry['start_line'] <= ref['end_line']
+                            and entry['end_line'] >= ref['start_line'] for ref in refs)}
+    def expansion_priority(entry):
+        direct = any(ref['path'] == entry['path'] and entry['start_line'] <= ref['end_line']
+                     and entry['end_line'] >= ref['start_line'] for ref in refs)
+        return 0 if direct else 1 if (entry['path'], entry['scope']) in direct_scopes else 2
+    candidates.sort(key=expansion_priority)
+    candidates = retained + candidates
+    candidates.extend(original.values())
+    selected, seen, counts = [], set(), {}
+    for entry in candidates:
+        path = entry['path']
+        if entry['id'] in seen:
+            continue
+        if len(selected) >= MAX_ENTRIES or counts.get(path, 0) >= MAX_ENTRIES_PER_FILE or (
+                path not in counts and len(counts) >= MAX_SOURCE_FILES):
+            coverage['entries_truncated'] = True
+            continue
+        selected.append(entry)
+        seen.add(entry['id'])
+        counts[path] = counts.get(path, 0) + 1
+    # A definition evicted by packet-level budgeting is explicitly unresolved.
+    for entry in selected:
+        for link in entry.get('local_dependencies', []):
+            if link['definition_id'] and link['definition_id'] not in seen:
+                link.update(definition_id=None, status='unresolved', reason='definition_outside_packet')
+    result['entries'] = selected
+    coverage.update(entries=len(selected), selected_source_paths=list(counts), files_parsed=len(counts),
+                    expressions=sum(e['expression'] is not None for e in selected),
+                    supported_expressions=sum(e['expression'] is not None and not evidence._has_unknown(e['expression']) for e in selected))
+    coverage['unsupported_expressions'] = coverage['expressions'] - coverage['supported_expressions']
+    coverage['reference_expansion'] = {'references': refs, 'dropped_keep_ids': sorted(set(keep_ids) - seen),
+                                      'added_entries': len(seen - original.keys())}
+    return result
 
 
 def render_catalog(packet: dict) -> str:

@@ -398,7 +398,8 @@ def _has_unknown(expression: dict | None) -> bool:
     return False
 
 
-def _file_entries(path: str, raw: bytes, source: str, tree: ast.AST, limit: int) -> tuple[list[dict], bool]:
+def _file_entries(path: str, raw: bytes, source: str, tree: ast.AST, limit: int,
+                  references: list[dict] | None = None) -> tuple[list[dict], bool]:
     digest = hashlib.sha256(raw).hexdigest()
     index = _ScopeIndex(tree)
     entries = []
@@ -435,6 +436,27 @@ def _file_entries(path: str, raw: bytes, source: str, tree: ast.AST, limit: int)
         if kind is not None:
             candidates.append((node, kind, expression_node))
     candidates.sort(key=lambda item: (item[0].lineno, item[0].col_offset, item[1]))
+    regions = []
+    for ref in references or []:
+        if ref.get("path") != path:
+            continue
+        start, end = ref.get("start_line"), ref.get("end_line")
+        if type(start) is not int or type(end) is not int or start < 1 or end < start:
+            continue
+        enclosing = [n for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+                     and n.lineno <= start <= end <= n.end_lineno]
+        owner = min(enclosing, key=lambda n: n.end_lineno - n.lineno) if enclosing else None
+        regions.append((start, end, owner.lineno if owner else max(1, start - 3),
+                        owner.end_lineno if owner else end + 3))
+    if regions:
+        def priority(item):
+            node = item[0]
+            direct = any(node.lineno <= end and node.end_lineno >= start for start, end, _, _ in regions)
+            nearby = any(lo <= node.lineno <= hi for _, _, lo, hi in regions)
+            return (0 if direct and item[1] != "signature" else 1 if nearby else 2,
+                    node.lineno, node.col_offset, item[1])
+        candidates.sort(key=priority)
+    entry_nodes = {}
     for node, kind, expression_node in candidates[:limit]:
         scope = index.scopes[id(node)]
         line = node.lineno
@@ -513,11 +535,55 @@ def _file_entries(path: str, raw: bytes, source: str, tree: ast.AST, limit: int)
         if entry["branch"]:
             entry["limitations"].append("Evidence is branch-dependent; execution of this branch is not established.")
         entries.append(entry)
+        entry_nodes[entry["id"]] = node
+    definitions = {}
+    for entry in entries:
+        for target in entry.get("targets", []):
+            if target.isidentifier():
+                definitions[(entry["scope"], target, entry["start_line"])] = entry["id"]
+    for entry in entries:
+        node = entry_nodes[entry["id"]]
+        scope = index.scopes[id(node)]
+        # AST reads preserve operands even when the expression parser cannot
+        # represent an operation. Names are exact, never similarity matches.
+        value = getattr(node, "value", None)
+        reads = sorted({part.id for part in ast.walk(value) if isinstance(part, ast.Name)
+                        and isinstance(part.ctx, ast.Load)}) if isinstance(value, ast.AST) else []
+        if isinstance(node, ast.AugAssign) and isinstance(node.target, ast.Name):
+            reads = sorted(set(reads) | {node.target.id})
+        entry["reads"] = reads
+        links = []
+        for name in reads:
+            owner, bindings = scope.lookup(name)
+            prior = [binding for binding in bindings if binding.line < node.lineno]
+            latest = max(prior, key=lambda binding: binding.line) if prior else None
+            reason = "no_local_definition"
+            definition = None
+            if owner is not scope:
+                reason = "nonlocal_or_external"
+            elif latest is not None:
+                definition = definitions.get((scope.name, name, latest.line))
+                if scope.is_dynamic() or latest.branch or entry["branch"]:
+                    reason, definition = "branch_or_dynamic_binding", None
+                elif latest.imported is not None:
+                    reason, definition = "import_or_external_call", None
+                elif definition is None:
+                    reason = "parameter_alias_or_unindexed_definition"
+                else:
+                    reason = None
+            links.append({"name": name, "scope": owner.name if owner else None,
+                          "definition_id": definition, "status": "resolved" if definition else "unresolved",
+                          "reason": reason})
+        entry["local_dependencies"] = links
+        entry["unresolved_operations"] = sorted({"call" for part in ast.walk(value) if isinstance(part, ast.Call)}
+                                                | {"alias_or_index" for part in ast.walk(value)
+                                                   if isinstance(part, (ast.Attribute, ast.Subscript))}) if isinstance(value, ast.AST) else []
     return entries, len(candidates) > limit
 
 
 def extract_evidence(
-    root: Path, paths: list[str] | None = None, *, max_files: int = 200, max_entries: int = 2000
+    root: Path, paths: list[str] | None = None, *, max_files: int = 200, max_entries: int = 2000,
+    references: list[dict] | None = None
 ) -> dict:
     """Index bounded Python evidence without following symlinks or executing code."""
     _valid_limit(max_files, "max_files")
@@ -592,7 +658,7 @@ def extract_evidence(
             if not _ast_within_limits(tree):
                 coverage["skipped"].append({"path": relative, "reason": "ast_size_or_depth_limit"})
                 continue
-            file_entries, truncated = _file_entries(relative, raw, source, tree, max_entries - len(entries))
+            file_entries, truncated = _file_entries(relative, raw, source, tree, max_entries - len(entries), references)
         except _FileTooLarge:
             coverage["skipped"].append({"path": relative, "reason": "file_size_limit"})
             continue
