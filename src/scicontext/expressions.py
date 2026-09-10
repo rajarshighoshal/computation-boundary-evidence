@@ -128,6 +128,15 @@ def expression_from_ast(
             if op in _ARITY and len(current.args) == _ARITY[op] and not current.keywords \
                     and not any(isinstance(arg, ast.Starred) for arg in current.args):
                 return {"op": op, "args": [convert(arg) for arg in current.args]}
+            # Preserve operand evidence without interpreting the callee (even
+            # familiar spellings such as float may be shadowed). Keywords keep
+            # their own unknown wrapper so they cannot look like positional args.
+            result = _unknown(text_of(current))
+            result["args"] = [convert(arg) for arg in current.args] + [
+                {**_unknown(text_of(keyword)), "args": [convert(keyword.value)]}
+                for keyword in current.keywords
+            ]
+            return result
         return _unknown(text_of(current))
 
     return convert(node)
@@ -147,6 +156,58 @@ def parse_expression(text: str) -> dict:
     except (SyntaxError, ValueError, UnicodeError, RecursionError, MemoryError):
         return _unknown(text)
     return expression_from_ast(node, text.strip(), calls=FORMULA_CALLS)
+
+
+def parse_relation(text: str) -> dict:
+    """Separate a formula's optional assignment target from its RHS.
+
+    A single ``=`` is the equation convention. Comparisons (including ``==``),
+    chained assignments, and dynamic targets are deliberately not equations.
+    No code is executed. Diagnostics identify unsupported syntax, not truth.
+    """
+    def rejected(reason: str) -> dict:
+        return {"target": None, "expression": _unknown(
+            text if isinstance(text, str) else "non-string relation"
+        ), "diagnostics": [reason]}
+
+    if not isinstance(text, str):
+        return rejected("Relation must be a string.")
+    try:
+        if len(text.encode("utf-8")) > MAX_EXPRESSION_BYTES:
+            return rejected("Relation exceeds the expression byte limit.")
+        source = text.strip()
+        module = ast.parse(source, mode="exec")
+    except (SyntaxError, ValueError, UnicodeError, RecursionError, MemoryError):
+        return rejected("Relation is not valid bounded formula syntax.")
+    if not _bounded_ast(module):
+        return rejected("Relation exceeds the expression node/depth limit.")
+    if len(module.body) != 1:
+        return rejected("Relation requires one expression or one simple assignment.")
+    statement = module.body[0]
+    target = None
+    if isinstance(statement, ast.Expr):
+        rhs = statement.value
+    elif isinstance(statement, ast.Assign) and len(statement.targets) == 1:
+        lhs = statement.targets[0]
+        if not isinstance(lhs, (ast.Name, ast.Subscript)):
+            return rejected("Relation target must be a name or static indexed symbol.")
+        target = symbol_name(lhs)
+        if target is None:
+            return rejected("Relation target must be a name or static indexed symbol.")
+        rhs = statement.value
+    else:
+        return rejected("Relation requires one expression or one simple assignment.")
+    if any(isinstance(node, (ast.Compare, ast.NamedExpr)) for node in ast.walk(rhs)):
+        return rejected("Comparisons and embedded assignments are ambiguous relation syntax.")
+    expression = expression_from_ast(rhs, source, calls=FORMULA_CALLS)
+    pending = [expression]
+    unsupported = False
+    while pending:
+        node = pending.pop()
+        unsupported |= node["op"] == "unknown"
+        pending.extend(node.get("args", []))
+    return {"target": target, "expression": expression,
+            "diagnostics": ["Relation contains unsupported or unresolved syntax."] if unsupported else []}
 
 
 def _tree_problem(tree: Any) -> str | None:
@@ -178,9 +239,13 @@ def _tree_problem(tree: Any) -> str | None:
                     or (type(value) is int and value.bit_length() > 4096):
                 return "non-finite or oversized constant"
         elif op == "unknown":
-            if set(node) != {"op", "text"} or not isinstance(node["text"], str) \
+            if set(node) not in ({"op", "text"}, {"op", "text", "args"}) or not isinstance(node["text"], str) \
                     or len(node["text"]) > MAX_EXPRESSION_BYTES:
                 return "invalid unknown node"
+            if "args" in node:
+                if not isinstance(node["args"], list):
+                    return "invalid unknown children"
+                stack.extend((child, depth + 1) for child in node["args"])
         elif isinstance(op, str) and op in _ARITY:
             args = node.get("args")
             if set(node) != {"op", "args"} or not isinstance(args, list) \

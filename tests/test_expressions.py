@@ -3,7 +3,7 @@ import ast
 import pytest
 
 from scicontext.expressions import (
-    MAX_EXPRESSION_BYTES, align_expressions, expression_from_ast, parse_expression,
+    MAX_EXPRESSION_BYTES, align_expressions, expression_from_ast, parse_expression, parse_relation,
 )
 
 
@@ -86,3 +86,47 @@ def test_bad_bindings_and_nonfinite_constants_do_not_crash():
     assert align_expressions(parse_expression("x"), parse_expression("x"), {"x": None})["status"] == "unknown"
     assert align_expressions({"op": "constant", "value": float("nan")}, parse_expression("1"))["status"] == "unknown"
     assert parse_expression("\ud800")["op"] == "unknown"
+
+
+def test_unknown_float_preserves_resolved_reduction_without_identity_claim():
+    source = "-float(np.sum(bjac_i))"
+    node = ast.parse(source, mode="eval").body
+    actual = expression_from_ast(node, source, calls={"np.sum": "sum"})
+    assert actual == {"op": "neg", "args": [{"op": "unknown", "text": "float(np.sum(bjac_i))",
+        "args": [{"op": "sum", "args": [{"op": "symbol", "name": "bjac_i"}]}]}]}
+    result = align_expressions(parse_expression("-sum(J)"), actual, {"J": "bjac_i"})
+    assert result["status"] == "unknown"
+    assert not any("invalid" in item for item in result["limitations"])
+    assert align_expressions(actual, actual)["status"] == "unknown"
+    unresolved = expression_from_ast(node, source)
+    assert unresolved["args"][0]["args"][0]["op"] == "unknown"
+
+
+def test_unknown_keyword_children_keep_keyword_boundary():
+    tree = parse_expression("float(sum(x), axis=sum(y))")
+    assert tree["args"][0]["op"] == "sum"
+    assert tree["args"][1]["op"] == "unknown"
+    assert tree["args"][1]["args"][0]["op"] == "sum"
+    assert align_expressions({"op": "unknown", "text": "x", "args": "bad"}, tree)["status"] == "unknown"
+
+
+@pytest.mark.parametrize("text,target,rhs", [
+    ("V = -sum(J)", "V", "-sum(J)"),
+    ("V[-1] = sum(J)", "V[-1]", "sum(J)"),
+    ("-sum(J)", None, "-sum(J)"),
+])
+def test_relation_preserves_target_separately(text, target, rhs):
+    assert parse_relation(text) == {"target": target, "expression": parse_expression(rhs), "diagnostics": []}
+    assert parse_expression("V = -sum(J)")["op"] == "unknown"
+
+
+@pytest.mark.parametrize("text", [
+    "a=b=c", "a == b", "a < b", "a=b; c=d", "a[i]=b", "a[:]=b", "a,b=c",
+    "a += b", "a.x=b", "a=(b == c)", "a=(b:=c)", "", "a=", None, "\ud800",
+    "x" * (MAX_EXPRESSION_BYTES + 1),
+])
+def test_ambiguous_or_malformed_relations_are_unknown(text):
+    result = parse_relation(text)
+    assert result["target"] is None
+    assert result["expression"]["op"] == "unknown"
+    assert result["diagnostics"]

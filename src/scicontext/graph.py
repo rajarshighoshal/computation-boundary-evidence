@@ -47,6 +47,7 @@ def graph_schema() -> dict:
         _object({"op": {"type": "string", "enum": ["constant"]}, "value": {"type": "number"}}),
         _object({"op": {"type": "string", "enum": ["add", "sub", "mul", "div", "pow", "neg", "sum", "sqrt", "matmul", "norm"]}, "args": _array(expr_ref, 2)}),
         _object({"op": {"type": "string", "enum": ["unknown"]}, "text": {"type": "string", "maxLength": 16384}}),
+        _object({"op": {"type": "string", "enum": ["unknown"]}, "text": {"type": "string", "maxLength": 16384}, "args": _array(expr_ref, 512)}),
     ]}
     status = {"type": "string", "enum": _STATUSES}
     ids = _array(_ID)
@@ -144,7 +145,7 @@ def _expression_errors(expr: dict, label: str) -> list[str]:
             errors.append(f"{label}: constant must be finite and non-boolean")
         if "args" in node:
             arity = 1 if op in {"neg", "sum", "sqrt", "norm"} else 2
-            if len(node["args"]) != arity:
+            if op != "unknown" and len(node["args"]) != arity:
                 errors.append(f"{label}: {op} requires {arity} arguments")
             stack.extend((a, depth + 1) for a in node["args"])
     return errors

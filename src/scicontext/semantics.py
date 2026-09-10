@@ -318,6 +318,8 @@ def _lift(claim: dict, quantities: list[dict], evidence_ids: set[str]) -> tuple[
     if not anchors:
         return "unknown", "Scientific lifting lacks evidence-backed quantity meanings."
     nodes = _walk(claim.get("relation"))
+    if any(node.get("op") == "unknown" for node in nodes):
+        return "unknown", "Unsupported syntax prevents scientific-operation lifting; retained children do not establish the enclosing operation."
     for node in nodes:
         if not isinstance(node.get("op"), str) or "args" in node and (not isinstance(node["args"], list) or any(not isinstance(a, dict) for a in node["args"])):
             return "unknown", "Malformed expression cannot support scientific-operation lifting."

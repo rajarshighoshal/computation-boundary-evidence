@@ -67,6 +67,16 @@ def test_schema_has_strict_objects_only():
     assert graph_schema()["properties"]["quantities"]["items"]["properties"]["id"]["maxLength"] == 120
 
 
+def test_unknown_call_children_are_validated_recursively(backed_graph):
+    from scicontext.expressions import parse_expression
+
+    graph, root = backed_graph
+    graph["claims"][0]["actual"] = parse_expression("float(sum(density))")
+    assert validate_graph(graph, root)["valid"]
+    graph["claims"][0]["actual"]["args"][0]["args"] = []
+    assert not validate_graph(graph, root)["valid"]
+
+
 @pytest.mark.parametrize("field,value", [("sha256", "0" * 64), ("quote", "Invented assertion."), ("start_line", 3), ("end_line", 50)])
 def test_exact_evidence_required(backed_graph, field, value):
     graph, root = backed_graph

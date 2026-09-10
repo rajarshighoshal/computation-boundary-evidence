@@ -54,6 +54,17 @@ def test_reciprocal_density_volume_scaling_cancels_exactly():
     assert all(f["assumptions"] == data["claims"][0]["assumptions"] for f in result["findings"])
 
 
+def test_unknown_wrapper_does_not_inherit_properties_or_lifting():
+    from scicontext.expressions import parse_expression
+
+    quantities = [quantity("rho", {"M": "1", "L": "-3"}, "Mass density", shape=[3]),
+                  quantity("volume", {"L": "3"}, "Cell volume weights", shape=[3])]
+    relation = parse_expression("float(sum(rho * volume))")
+    result = analyze_graph(graph(quantities, relation, operation="weighted_sum"))
+    assert properties(result) == {"dimensions": None, "scale": None, "shape": None}
+    assert finding(result, "semantic_lifting")["status"] == "unknown"
+
+
 def test_missing_reciprocal_conversion_retains_conflict():
     quantities = [quantity("rho", {"L": "-3"}, "Density", shape=[3]), quantity("volume", {"L": "3"}, "Cell volume", shape=[3])]
     expected = op("sum", op("mul", sym("rho"), sym("volume")))
