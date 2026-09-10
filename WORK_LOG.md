@@ -6,12 +6,16 @@ Canonical live ledger. Approved plan: `RESEARCH_PLAN.md`. Only the primary agent
 | --- | --- | --- |
 | 1. Reconcile approved protocol, establish package and restore pinned release | complete | `eff036b`; pinned source and HF snapshot restored; `data/release-receipt.json`; `uv.lock` |
 | 2. Implement evidence, graph contract, alignment and semantic rules | complete | Integrated commits `11ba626`, `44ea3c1`, `04faa4d`, `39a5f8c`; focused synthetic tests pass |
-| 3. Implement bounded Codex/Pier controller and reproducible analysis | complete | Includes `596b352`, `26cb2bd`; 224 tests passed/5 Linux-only skipped; isolated locked install tested; timeout/provenance/summary and exact-container cleanup audits integrated |
-| 4. Verify container permissions, subscription and scientific-runtime integration | blocked: execution setup decision required | Basic subscription smoke v6 passes (42/READY, 19.05s, cleanup complete). No scientifically usable credential-safe `/proc` policy verified after bounded root/minimal/read/deny/legacy probes; see `docs/RUNTIME_STATUS.md` and `runs/preflight-native/proc-compatibility.receipt.json` |
-| 5. Development pilot: 002 and 077, one attempt per condition | blocked by milestone 4 | `runs/pilot-v1`: 002/baseline interrupted, empty patch retained, other three trials not run. No valid paired result. Restart in a fresh directory only after corrected runtime preflight; preserve old attempt |
-| 6. Verify current implementation and hand off exact remaining work | complete for this blocked handoff | Fresh locked environment: 224 passed/5 skipped; durable Linux supervisor receipt: 17 passed. Independent recomputation verifies smoke-v6 and aborted-pilot summaries. Docker has no running containers. End-to-end scientific evaluation remains explicitly unfinished in milestones 4/5 |
+| 3. Simplify runner to standard Codex-in-Docker plus the research intervention | complete | Reuses upstream Pier Codex.run; removed custom profiles, permission probes and subreaper supervisor; 212 remaining tests pass |
+| 4. Verify standard runner and scientific execution | complete | `runs/standard-smoke-v1`: normal process/PySCF check passes; actual Codex PySCF command returns 42/READY, smoke_success true, 23.68s; verifier finishes on unchanged source |
+| 5. Development pilot: 002 and 077, one attempt per condition | pending, not launched in this simplification step | Old `runs/pilot-v1` remains an interrupted infrastructure attempt; use a fresh directory for the research pilot |
+| 6. Final verification and handoff of simplified implementation | complete | 212 tests pass; independent smoke-summary recomputation passes; no running containers; plan/docs updated. Research pilot remains the explicit next step in milestone 5 |
 
 Full 119-task evaluation follows pilot throughput review and the restricted-license decision. Smoke failures are infrastructure development, not scientific-method outcomes. Initial-session /tmp artifacts are no longer available; current-session native probe files must be copied to durable receipts before handoff.
+
+## User-directed simplification
+
+The user explicitly rejected the extra sandbox layer and requested standard tools with only the scientific-context intervention added. Docker becomes the execution isolation boundary, using the documented Codex container invocation. Do not build another sandbox or credential broker. Keep authentication temporary and out of image builds/Git, but do not claim it is unreadable to commands inside the same container. Use separate extraction/repair task copies and evidence validation for the experimental handoff.
 
 ## Accepted decisions
 
@@ -27,12 +31,12 @@ Full 119-task evaluation follows pilot throughput review and the restricted-lice
 
 Independent modules use separate worktrees from a verified commit; no concurrent writers share a checkout. Preserve user-owned `.serena/` and both PDFs. Primary agent integrates worker commits and updates this ledger.
 
-## Verified environment finding
+## Earlier implementation (superseded)
 
-Codex0.153.4 amd64 fails seccomp installation under this Apple Silicon host's emulation. The official ARM64 Linux binary, with its adjacent runtime resources, passes source/scratch/auth/network permission checks in the same pinned amd64 task image under default Docker security. Use host-native harness architecture for both arms and record it separately from scientific image architecture. No privileged container or security override is required.
+The earlier nested-sandbox implementation encountered seccomp and process-filesystem problems and was removed at the user's direction. Its diagnostic receipts remain preserved, but those checks and architecture workarounds are not requirements of the current standard runner. The current runner uses the normal Linux x64 binary in the amd64 scientific image.
 
-Integration corrections: use custom Pier import without built-in agent name; pre-create upload parent; normalize copied marker/auth ownership to guest uid; pin typing-extensions in the isolated helper closure; forward Pier service-proxy environment only to the client and filter it from tool commands. Native dummy receipts are preserved under `runs/preflight-native`.
+Retained integration details: use the adapter import without a conflicting built-in agent name; pin the Codex binary and isolated helper dependencies; reuse upstream authentication and proxy handling. Old diagnostics are under `runs/preflight-native`.
 
 Docker exposes 4,109,914,112 bytes while the development tasks request 8192 MiB. Do not claim provisioned-resource parity with the benchmark's published runs. This is a development feasibility pilot; retain resource failures, and resolve host allocation before locked evaluation.
 
-Milestone 4 scope explicitly reopened after the first public scientific computation: trivial shell and file-policy smoke is insufficient to establish compatibility with scientific libraries. No method tuning or comparative-outcome selection was performed in response to the aborted trial.
+The standard-runner smoke exercises the exact PySCF operation blocked by the discarded policy. No scientific method tuning or comparative-outcome selection was performed in response to the old infrastructure failure.

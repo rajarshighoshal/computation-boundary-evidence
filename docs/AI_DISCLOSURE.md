@@ -6,6 +6,6 @@ Codex assisted with assignment/paper inspection, literature retrieval and synthe
 
 Parallel implementation used isolated Git worktrees for the source-evidence, semantic-graph, result-analysis and process-supervision modules. The main Codex session reviewed and integrated them and made the runner/integration changes. Web/documentation tools and local Python/Docker tools supported retrieval and verification.
 
-The planned evaluated agent is native Codex CLI 0.153.4 with GPT-6 Astra/high through Rajarshi's ChatGPT subscription, in both conditions. The extraction session uses the same model. Exact run settings, prompts and usage are preserved in artifacts. No separate LLM judge is used as the primary outcome; the official benchmark verifier supplies repair outcomes.
+The evaluated-agent configuration is Codex CLI 0.153.4 with GPT-6 Astra/high through Rajarshi's ChatGPT subscription, in both conditions. Execution reuses upstream Pier Codex.run after Rajarshi explicitly rejected the initial custom sandbox. The extraction session uses the same model. Exact run settings, prompts and usage are preserved in artifacts. No separate LLM judge is used as the primary outcome; the official benchmark verifier supplies repair outcomes.
 
 This file records the division of work, not a claim that any experimental improvement has been established. Pilot and final results must be generated from preserved run artifacts and reviewed by Rajarshi.

@@ -4,7 +4,7 @@ An experimental preparation stage for SWE-bench Science. It combines source-back
 
 The controlled comparison is ordinary Codex versus extraction followed by repair. Both use GPT-6 Astra/high and a 30-minute total agent allowance; extraction consumes at most six minutes of the treatment allowance. This implementation is a research prototype, not a scientific-correctness prover.
 
-Current status: offline helpers and the basic subscription smoke work; the scientific pilot is blocked by a sandbox process-filesystem incompatibility on the tested local setup. No valid paired result exists yet. See [runtime status](docs/RUNTIME_STATUS.md) before launching a live trial. The preflight fails closed on the known-bad setup.
+The runner reuses Pier's standard Codex launch and subscription authentication. Docker provides isolation; there is no extra Codex sandbox policy. The scientific PySCF subscription smoke passes on the local Mac. A paired research pilot has not completed yet; see [runtime status](docs/RUNTIME_STATUS.md).
 
 ## Layout
 
@@ -52,27 +52,27 @@ The graph uses evidence IDs, exact source lines/hashes, quantities, claims, assu
 Inspect the exact schedule without inference:
 
 ```bash
-uv run --no-sync scicontext pilot --output runs/pilot-v1
+uv run --no-sync scicontext pilot --output runs/pilot-v2
 ```
 
 Run a bounded subscription smoke first, then the approved two-task pilot:
 
 ```bash
-uv run --no-sync scicontext pilot --smoke --execute --output runs/subscription-smoke-v1
-uv run --no-sync scicontext pilot --execute --output runs/pilot-v1
+uv run --no-sync scicontext pilot --smoke --execute --output runs/standard-smoke-v2
+uv run --no-sync scicontext pilot --execute --output runs/pilot-v2
 ```
 
 Use a fresh output directory for every attempt. Existing attempts are never overwritten. The pilot runs one attempt per condition on tasks **002 and 077**, with counterbalanced condition order. The CLI deliberately does not launch unrestricted full-suite experiments. Full 119-task evaluation follows pilot review and the benchmark's restricted-license opt-in decision.
 
-Authentication defaults to the saved ChatGPT cache at `~/.codex/auth.json`; `--auth-file` accepts an explicitly supplied private subscription cache. API-key auth is rejected. Runtime copies stay in private temporary/controller locations, outside sources, image build contexts and collected artifacts. The tool sandbox must deny credential reads before any credentials are uploaded.
+Authentication defaults to the saved ChatGPT cache at `~/.codex/auth.json`; `--auth-file` accepts a private subscription cache. API-key auth is rejected. Upstream Pier uploads and removes its temporary authentication files. They stay outside source/Git and image builds, but commands inside the same container can access them. This is the documented standard container mode, not a hostile-code credential-isolation system. Do not mount personal home directories or a Docker socket into task containers, and review raw logs before publishing.
 
-On Apple Silicon, the adapter uses **native ARM64 Linux Codex 0.153.4 inside the pinned amd64 scientific image**. The amd64 Codex binary fails seccomp installation under the tested emulation; native ARM64 passed basic shell/security checks, but subsequent scientific-process checks failed. This is not a verified scientific execution route yet. Scientific Python/libraries remain amd64. Both architectures are recorded. Docker allocation must also accommodate the task's declared resources.
+Codex 0.153.4 uses the normal Linux x64 binary in the pinned amd64 task image, including on Apple Silicon through Docker's existing emulation. The standard Pier command does not create the extra nested sandbox that caused the earlier `/proc` failure. Both conditions use the same execution path. Docker memory allocation still needs to accommodate the task's declared resources before locked evaluation.
 
 ## Recompute results
 
 ```bash
-uv run --no-sync scicontext summarize runs/pilot-v1/jobs --output runs/pilot-v1/summary
-uv run --no-sync python scripts/recompute_results.py runs/pilot-v1/jobs --verify runs/pilot-v1/summary/summary.json
+uv run --no-sync scicontext summarize runs/pilot-v2/jobs --output runs/pilot-v2/summary
+uv run --no-sync python scripts/recompute_results.py runs/pilot-v2/jobs --verify runs/pilot-v2/summary/summary.json
 ```
 
 The independent script does not import the application aggregator. Summaries retain missing pairs, failed attempts, official reward versus exact private success, stage usage, timing, provenance and development exposure. Fail2Pass/Pass2Pass remain unavailable unless original baseline and candidate private test identities can be matched; aggregate pass counts cannot reconstruct them.

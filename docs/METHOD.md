@@ -20,9 +20,11 @@ Source indexing initially supports Python. Scoped import resolution and branch m
 
 The extraction and repair passes use separate fresh Codex sessions and separate task environments. Only the validated graph handoff crosses from extraction to repair. The parent controller owns one monotonic deadline, and all preparation-stage helpers count toward the extraction cap and total allowance.
 
-The Linux supervisor uses child-subreaper adoption to terminate owned descendants, including detached background children. Its cleanup reserve is included in the stage limit. Raw outputs and explicit cleanup results survive timeouts. Collection overhead and any total overrun are recorded rather than hidden.
+GNU `timeout` bounds each ordinary foreground Codex process group, with time reserved for collection. It is not a guarantee against deliberately detached children. The separate extraction container is stopped after collection; Pier runs the original artifact hook and verifier for repair. Raw outputs, timeout exits, collection overhead and any total overrun are retained.
 
-The adapter retains native Codex shell/editing interfaces. Its permission profiles prohibit command networking and protect credential/controller paths. The extraction profile permits scratch/output writes but not candidate-source writes. The repair profile allows the task workspace. Model/authentication service networking remains separately allowlisted by Pier.
+The adapter calls the upstream Pier `Codex.run` implementation for both passes, retaining its launch, subscription authentication, proxy handling, native tools and cleanup. Only output flags and a small GNU-timeout launcher are added. Docker is the isolation boundary, following the [documented Codex container setup](https://learn.chatgpt.com/docs/agent-approvals-security#run-codex-in-dev-containers). Credentials inside the container are not hidden from its commands.
+
+The extractor is instructed not to modify source and operates on a disposable task copy. The handoff is rejected if tracked source changes or unexpected untracked files are detected (task outputs are excluded). The repair candidate is a separate untouched copy. This is an experimental check, not a custom OS sandbox or a security guarantee against a malicious agent.
 
 ## Interpretation
 

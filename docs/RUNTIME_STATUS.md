@@ -1,36 +1,24 @@
-# Runtime status — 10 September 2026
+# Runtime status — standard runner
 
-The offline scientific-context prototype is implemented. A valid paired repair experiment has **not** completed. The development pilot is paused for a reproducible runtime incompatibility, not a scientific-method result.
+The earlier `/proc` blocker is resolved by removing the custom nested sandbox. A different Linux machine was not needed for this check.
 
-## Verified
+The adapter now calls upstream Pier 0.3.0 `Codex.run` for both passes. It reuses the standard Codex command, subscription authentication, proxy handling, session logs and cleanup. The only execution additions are output-file/schema flags and a small GNU-timeout launcher for the experiment's time allowance. The scientific extraction, alignment, semantic lifting and propagation code is unchanged.
 
-- Pinned release, dataset, task002/077 selection, native Codex assets and isolated Python helper dependencies are restored.
-- `runs/subscription-smoke-v6` proves GPT-6 Astra/high through Codex 0.153.4 can execute a shell command and return its result using the subscription route: `42`, then `READY`; 19.05 seconds, successful descendant cleanup, no time overrun.
-- The official verifier ran on that unchanged source. Its failure is expected for an unrepaired task; this smoke does not measure our method.
-- `runs/pilot-v1` began 002/baseline, then was interrupted when the public reproduction hit our `/proc` restriction. The preserved candidate patch is empty; the other three trials were not run. See its `infrastructure-abort.json`.
-- The two owned interrupted containers were stopped. New CLI cleanup verifies exact Compose ownership and records shutdown; it does not stop neighboring jobs by prefix.
+## Verified on the same Mac
 
-## Remaining blocker
+`runs/standard-smoke-v1` records Codex 0.153.4, Linux x64 in the pinned amd64 task002 image, GPT-6 Astra/high:
 
-PySCF reads `/proc/<its-pid>/statm` for memory accounting. The current deny rule blocks it. Removing the rule does not establish a working alternative in this setup:
+- Normal container process-memory access and `pyscf.lib.current_memory()` passed.
+- The actual Codex agent successfully executed that PySCF call, printed `42`, and returned `READY`.
+- The agent phase completed in 23.68 seconds with `smoke_success: true`.
+- 212 remaining tests pass, including tests proving the adapter inherits upstream `Codex.run` and its authentication/launch behavior.
 
-| Profile variant | Observed result |
-| --- | --- |
-| Root read with `/proc` denied | Ordinary Python starts; scientific process-memory access is denied |
-| Root read with `/proc` readable | Native sandboxed process reports PID2, but `/proc` shows outer-container PIDs; own `statm` is absent. Rosetta Python exits133 resolving `/proc/2/exe` |
-| Minimal runtime reads | Python starts, but `/proc` is absent; PySCF fails |
-| Minimal runtime plus explicit `/proc` read | Same process-namespace mismatch and Rosetta startup failure |
+This is an infrastructure smoke, not a repair result. No valid paired research pilot has completed yet. The old `runs/pilot-v1` interrupted attempt and earlier diagnostic receipts remain preserved and are not counted as comparative method results.
 
-Executable-link denial did not solve this; legacy Landlock rejected the required split permissions. No sandbox bypass, scientific-source modification or Docker configuration change was used. Dummy credential-access tests remained denied, but that alone does not establish scientific-runtime usability.
+## Boundaries and next step
 
-Exact observations, image digests and diagnostic scripts are retained in `runs/preflight-native/proc-compatibility.receipt.json` and its referenced files. The native static probe also fails process accounting, so this is **not proven to be exclusively an architecture-emulation problem**. Moving to another machine must be tested, not assumed to fix it.
+Docker supplies isolation, following [OpenAI's documented container approach](https://learn.chatgpt.com/docs/agent-approvals-security#run-codex-in-dev-containers). Temporary authentication stays outside source and image builds, but is accessible to commands inside the same container. No custom credential-isolation claim is made.
 
-The preflight now requires `/proc/self` to resolve to the actual command PID and readable numeric `statm`, before uploading subscription credentials. Known-bad setups fail before a model run.
+The extractor runs on a disposable copy; detected source edits invalidate its graph handoff. Repair starts from a separate unchanged copy. GNU timeout covers normal foreground process groups, not deliberately detached children.
 
-## Next decision
-
-Test a different supported execution setup—preferably an available native Linux x86-64 host—or resolve the pinned Codex sandbox's process-filesystem behavior. First run the no-model scientific/process/credential checks there. Any harness-version change must be recorded and applied equally to both conditions before restarting the pilot in a fresh run directory.
-
-The local Docker VM also exposes only 4,109,914,112 bytes versus each task's 8192 MiB request. Resolve resource allocation before locked evaluation. No full-benchmark launch is authorized by these development checks.
-
-Once preflight passes, four serial trials allow two hours of agent time plus setup and verification. The runtime fix itself does not yet have a reliable ETA.
+Next is the four-trial development pilot in a fresh directory, with the existing model and time allowances. Docker still exposes about 4 GB versus the tasks' requested 8 GiB; increase allocation before locked evaluation. No full-benchmark run is launched by the smoke check.

@@ -93,16 +93,13 @@ def test_usage_missing_is_not_zero(tmp_path):
     assert read_usage(p)["malformed_log_lines"] == 1
 
 
-def test_configuration_is_isolated_and_native():
+def test_configuration_contains_no_custom_sandbox_policy():
     import tomllib
-    c = tomllib.loads(codex_config("/app/task_002", "/opt/scratch", "/opt/control", "extract", "gpt-6-astra", "high"))
+    c = tomllib.loads(codex_config("gpt-6-astra", "high"))
     assert c["forced_login_method"] == "chatgpt"
-    assert c["permissions"]["extract"]["filesystem"]["/opt/control"] == "deny"
-    assert c["permissions"]["extract"]["filesystem"]["/app/task_002"] == "read"
-    assert c["permissions"]["repair"]["filesystem"]["/app/task_002"] == "write"
-    assert not c["permissions"]["repair"]["network"]["enabled"]
-    assert not c["features"]["multi_agent"]
-    assert c["shell_environment_policy"]["filters"]["*PROXY*"] == "exclude"
+    assert "permissions" not in c and "default_permissions" not in c
+    assert "sandbox_mode" not in c
+    assert c["model_reasoning_effort"] == "high"
 
 
 def test_smoke_needs_real_tool_execution_and_completed_turn(tmp_path):

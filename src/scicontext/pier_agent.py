@@ -1,20 +1,18 @@
-"""Native Codex adapter with one total deadline and separated extraction workspace."""
+"""Standard Pier Codex execution plus the bounded scientific-context pass."""
 from __future__ import annotations
 
 import asyncio
 import json
 import math
-import os
-import platform
 import shlex
-import shutil
 import subprocess
 import tempfile
 import time
 from pathlib import Path
 
 from pier.agents.base import BaseAgent
-from pier.environments.base import BaseEnvironment
+from pier.agents.installed.base import NonZeroAgentExitCodeError
+from pier.agents.installed.codex import Codex
 from pier.environments.docker.docker import DockerEnvironment
 from pier.models.agent.context import AgentContext
 from pier.models.agent.network import NetworkAllowlist
@@ -24,24 +22,41 @@ from .assets import prepare_codex, prepare_helpers
 from .configuration import codex_config
 from .controller import TrialConfig, read_usage, run_trial, verify_smoke
 from .graph import graph_schema
-from .io import digest_file, digest_json, read_json, write_json
+from .io import digest_file, read_json, write_json
 
 REMOTE = "/opt/scicontext"
-CONTROL = REMOTE + "/control"
+CONTROL = REMOTE + "/runtime"
 SCRATCH = REMOTE + "/scratch"
 HELPER = f"SCICONTEXT_CONTEXT_ROOT={REMOTE}/context PYTHONPATH={REMOTE}/src:{REMOTE}/deps python -m scicontext.tool_cli"
 
 
-def _quoted(command: list[str]) -> str:
-    return shlex.join(command)
+class OutputCodex(Codex):
+    """Keep upstream launch/auth/cleanup; only add output collection flags."""
+
+    def __init__(self, *args, stage: str, **kwargs):
+        if stage not in {"extract", "repair"}:
+            raise ValueError("Unknown Codex stage")
+        self.stage = stage
+        super().__init__(*args, **kwargs)
+
+    def build_cli_flags(self):
+        flags = super().build_cli_flags() + f" -o /logs/agent/{self.stage}-final.txt"
+        if self.stage == "extract":
+            flags += f" --output-schema {CONTROL}/schema.json"
+        return flags
 
 
-def _runtime_env(home: str) -> dict[str, str]:
-    return {"CODEX_HOME": home, "HOME": REMOTE + "/client-home",
-            "PYTHONDONTWRITEBYTECODE": "1", "TMPDIR": SCRATCH + "/tmp",
-            "TMP": SCRATCH + "/tmp", "TEMP": SCRATCH + "/tmp",
-            "XDG_CACHE_HOME": SCRATCH + "/cache", "MPLCONFIGDIR": SCRATCH + "/cache/matplotlib",
-            "NUMBA_CACHE_DIR": SCRATCH + "/cache/numba"}
+def timeout_launcher(binary: str) -> str:
+    """Use GNU timeout, not a custom process supervisor or nested sandbox."""
+    return f'''#!/bin/sh
+if [ -z "${{SCICONTEXT_STAGE_SECONDS:-}}" ]; then
+  exec {shlex.quote(binary)} "$@"
+fi
+timeout --signal=TERM --kill-after=3s "$SCICONTEXT_STAGE_SECONDS" {shlex.quote(binary)} "$@"
+status=$?
+printf '%s\\n' "$status" > "/logs/agent/$SCICONTEXT_STAGE_NAME-exit.txt"
+exit "$status"
+'''
 
 
 class ScientificCodex(BaseAgent):
@@ -54,35 +69,28 @@ class ScientificCodex(BaseAgent):
         if condition not in {"baseline", "science"}:
             raise ValueError("Unknown experiment condition")
         if codex_version != "0.153.4":
-            raise ValueError("This adapter is verified for Codex 0.153.4 only")
+            raise ValueError("This experiment pins Codex 0.153.4")
         self.condition = condition
         self.config = TrialConfig(self.model_name or "gpt-6-astra", reasoning_effort,
                                   codex_version, float(total_seconds), float(extraction_seconds))
         self.workspace = Path(workspace or Path.cwd()).resolve()
-        self.auth_file = Path(auth_file or os.environ.get("SCICONTEXT_AUTH_FILE", "")).expanduser()
+        self.auth_file = Path(auth_file or "").expanduser()
         if not self.auth_file.is_file():
-            raise ValueError("A private Codex subscription auth-file path is required; no API fallback")
+            raise ValueError("A private subscription auth-file path is required; no API fallback")
         self.smoke = str(smoke).lower() in {"true", "1"}
-        self.extract_environment = None
         self.environment = None
+        self.extract_environment = None
         self._finished_extraction = False
-        self._active_stage = None
-        self._private = tempfile.TemporaryDirectory(prefix="scicontext-client-")
-        os.chmod(self._private.name, 0o700)
-        self._temporary = Path(self._private.name)
-        self._auth_cache = self._temporary / "auth.json"
-        shutil.copyfile(self.auth_file, self._auth_cache)
-        self._auth_cache.chmod(0o600)
+        self._temporary = tempfile.TemporaryDirectory(prefix="scicontext-assets-")
 
     @staticmethod
     def name():
         return "scicontext-codex"
 
     def version(self):
-        return "0.1.0"
+        return "0.2.0"
 
     def network_allowlist(self):
-        # Client service traffic only. Native tool commands have network=false.
         return NetworkAllowlist(domains=["chatgpt.com", "auth.openai.com", "auth0.openai.com", "api.openai.com"])
 
     async def checked(self, environment, command, **kwargs):
@@ -91,180 +99,128 @@ class ScientificCodex(BaseAgent):
             raise RuntimeError(f"Command failed ({result.return_code}): {command[:180]}\n{(result.stderr or result.stdout or '')[-1500:]}")
         return result.stdout or ""
 
-    async def _put(self, environment, name: str, text: str, destination: str):
-        path = self._temporary / name
-        path.parent.mkdir(parents=True, exist_ok=True)
+    async def _put(self, environment, name, text, destination):
+        path = Path(self._temporary.name) / name
         path.write_text(text)
         await environment.upload_file(path, destination)
 
-    async def _setup_environment(self, environment, profile):
-        root = self.root
-        owner = (await self.checked(environment, "python -c 'import os; print(str(os.getuid())+\":\"+str(os.getgid()))'")).strip()
-        self._guest_owners[profile] = owner
-        await self.checked(environment, f"mkdir -p {CONTROL}/{profile}/home {SCRATCH}/checkpoints {SCRATCH}/tmp {SCRATCH}/cache/matplotlib {SCRATCH}/cache/numba {REMOTE}/client-home {REMOTE}/context {REMOTE}/src {root}/outputs")
+    async def _setup_environment(self, environment, stage):
+        await self.checked(environment, f"mkdir -p {CONTROL} {REMOTE}/bin {REMOTE}/src {REMOTE}/context {SCRATCH}/checkpoints {self.root}/outputs")
         await environment.upload_dir(self.codex_package, REMOTE + "/codex")
         await environment.upload_dir(self.helper_deps, REMOTE + "/deps")
         await environment.upload_dir(self.workspace / "src/scicontext", REMOTE + "/src/scicontext")
-        config_text = codex_config(root, SCRATCH, CONTROL, profile, self.config.model, self.config.reasoning_effort)
-        home = f"{CONTROL}/{profile}/home"
-        await self._put(environment, profile + "-config.toml", config_text, home + "/config.toml")
+        await self._put(environment, "codex-launcher", timeout_launcher(self.binary), REMOTE + "/bin/codex")
+        await self.checked(environment, f"chmod 755 {REMOTE}/bin/codex; command -v timeout")
         await self._put(environment, "schema.json", json.dumps(graph_schema()), CONTROL + "/schema.json")
-        task_statement = (environment.environment_dir.parent / "instruction.md").read_text()
-        await self._put(environment, "task_statement.md", task_statement, REMOTE + "/context/task_statement.md")
-        await self._put(environment, "dummy-secret", "dummy", CONTROL + "/dummy-secret")
-        await self._put(environment, "permission-marker", "probe", root + "/.scicontext-permission-probe")
-        # Compose cp retains the host uid. The native sandbox's user namespace
-        # cannot write a host-owned fixture, even when the task root is writable.
-        await self.checked(environment, _quoted(["chown", owner, root + "/.scicontext-permission-probe"]))
-        env = _runtime_env(home)
-        version = await self.checked(environment, _quoted([self.binary, "--version"]), env=env)
+        statement = (environment.environment_dir.parent / "instruction.md").read_text()
+        await self._put(environment, "task_statement.md", statement, REMOTE + "/context/task_statement.md")
+        version = await self.checked(environment, shlex.join([self.binary, "--version"]))
         if version.strip() != "codex-cli " + self.config.codex_version:
             raise RuntimeError("Guest Codex version mismatch")
-        probe = await environment.exec(_quoted([self.binary, "sandbox", "--permission-profile", profile,
-                                      "--cd", root, "--", "python", REMOTE + "/src/scicontext/permission_probe.py",
-                                      profile, root, SCRATCH, CONTROL]), env=env, timeout_sec=30)
-        (self.logs_dir / f"sandbox-{profile}.log").write_text((probe.stdout or "") + (probe.stderr or ""))
-        await self.checked(environment, _quoted(["rm", "-f", root + "/.scicontext-permission-probe"]))
-        if probe.return_code:
-            raise RuntimeError(f"Native {profile} sandbox probe failed; see sandbox-{profile}.log. Credentials were not uploaded.")
-        report = json.loads((probe.stdout or "").strip().splitlines()[-1])
-        if not all(report["checks"].values()):
-            raise RuntimeError("Sandbox checks did not establish the required boundaries")
+        probe = "import os; print(open('/proc/%s/statm' % os.getpid()).read().strip())"
+        if self.task_id == "002":
+            probe += "; from pyscf import lib; print(lib.current_memory())"
+        output = await self.checked(environment, shlex.join(["python", "-c", probe]))
+        (self.logs_dir / f"runtime-{stage}.log").write_text(output)
         await self.checked(environment, f"PYTHONPATH={REMOTE}/src:{REMOTE}/deps python -c 'from scicontext.graph import graph_schema; print(graph_schema()[\"type\"])'")
-        # Only after no-model enforcement has passed do we introduce real auth.
-        await environment.upload_file(self._auth_cache, home + "/auth.json")
-        await self.checked(environment, _quoted(["chown", owner, home + "/auth.json"]))
-        await self.checked(environment, _quoted(["chmod", "600", home + "/auth.json"]))
-        self._homes[profile] = home
 
-    async def setup(self, environment: BaseEnvironment):
+    async def setup(self, environment):
         if not isinstance(environment, DockerEnvironment):
-            raise RuntimeError("Initial adapter supports the documented Docker backend")
+            raise RuntimeError("The development runner uses the standard Docker backend")
         self.environment = environment
         self.root = environment.task_env_config.workdir
         if not self.root or not self.root.startswith("/app/task_"):
-            raise ValueError("Expected an explicit benchmark workdir")
+            raise ValueError("Expected a benchmark workdir")
         self.task_id = self.root.rsplit("_", 1)[-1]
         self.logs_dir.mkdir(parents=True, exist_ok=True)
-        self._homes = {}
-        self._guest_owners = {}
-        daemon_info = subprocess.run(["docker", "info", "--format", "{{.Architecture}} {{.MemTotal}} {{.NCPU}}"], check=True, text=True, capture_output=True).stdout.split()
-        daemon_arch = daemon_info[0]
-        self.harness_arch = "arm64" if daemon_arch in {"arm64", "aarch64"} else "x64"
-        self.codex_package = await asyncio.to_thread(prepare_codex, self.workspace / ".cache", self.harness_arch)
-        triple = "aarch64-unknown-linux-musl" if self.harness_arch == "arm64" else "x86_64-unknown-linux-musl"
-        self.binary = REMOTE + f"/codex/vendor/{triple}/bin/codex"
+        self.codex_package = await asyncio.to_thread(prepare_codex, self.workspace / ".cache", "x64")
+        self.binary = REMOTE + "/codex/vendor/x86_64-unknown-linux-musl/bin/codex"
         pyminor = (await self.checked(environment, "python -c 'import sys; print(str(sys.version_info.major)+str(sys.version_info.minor))'")).strip()
         self.helper_deps = await asyncio.to_thread(prepare_helpers, self.workspace / ".cache", pyminor)
+        self._baseline_tree = (await self.checked(environment, "git rev-parse HEAD", cwd=self.root)).strip()
         await self._setup_environment(environment, "repair")
         if self.condition == "science":
-            extract_paths = TrialPaths(trial_dir=self.logs_dir.parent / "extraction_environment")
             self.extract_environment = DockerEnvironment(
                 environment_dir=environment.environment_dir,
                 environment_name=environment.environment_name + "-extract",
                 session_id=environment.session_id + "-extract",
-                trial_paths=extract_paths,
+                trial_paths=TrialPaths(trial_dir=self.logs_dir.parent / "extraction_environment"),
                 task_env_config=environment.task_env_config.model_copy(deep=True),
                 network_allowlist=self.network_allowlist(), default_user=environment.default_user,
             )
             await self.extract_environment.start(force_build=False)
             await self._setup_environment(self.extract_environment, "extract")
-        self._baseline_tree = (await self.checked(environment, "git rev-parse HEAD", cwd=self.root)).strip()
+        info = subprocess.run(["docker", "info", "--format", "{{.MemTotal}} {{.NCPU}}"], check=True, text=True, capture_output=True).stdout.split()
         write_json(self.logs_dir / "setup.json", {
-            "codex_version": self.config.codex_version, "harness_architecture": self.harness_arch,
+            "codex_version": self.config.codex_version, "harness_architecture": "x64",
             "scientific_image_architecture": "amd64", "environment_image": environment.task_env_config.docker_image,
+            "execution": "upstream_pier_codex_docker_boundary", "timeout": "GNU timeout foreground process group",
             "python_minor": pyminor, "baseline_tree": self._baseline_tree,
-            "docker_memory_bytes": int(daemon_info[1]), "docker_cpus": int(daemon_info[2]),
+            "docker_memory_bytes": int(info[0]), "docker_cpus": int(info[1]),
             "task_requested_memory_mb": environment.task_env_config.memory_mb,
-            "host_memory_below_task_request": int(daemon_info[1]) < environment.task_env_config.memory_mb * 1024 * 1024,
+            "host_memory_below_task_request": int(info[0]) < environment.task_env_config.memory_mb * 1024 * 1024,
             "helper_hashes": {p.name: digest_file(p) for p in sorted((self.workspace / "src/scicontext").glob("*.py"))},
             "codex_receipt": read_json(self.codex_package.parent / "receipt.json"),
         })
 
-    async def run_stage(self, name: str, instruction: str, seconds: float):
-        stage_deadline = time.monotonic() + seconds
+    async def run_stage(self, name, instruction, seconds):
+        started = time.monotonic()
         environment = self.extract_environment if name == "extract" else self.environment
-        profile = "extract" if name == "extract" else "repair"
-        home = self._homes[profile]
-        # Refresh transfer is private, serialized, and never enters the task tree.
-        await environment.upload_file(self._auth_cache, home + "/auth.json")
-        await self.checked(environment, _quoted(["chown", self._guest_owners[profile], home + "/auth.json"]))
         if name == "extract":
             template = (self.workspace / "prompts/extract.md").read_text()
             prompt = template.format(helper=HELPER, root=self.root, scratch=SCRATCH,
                                      seconds=max(1, int(seconds)), instruction=instruction)
         else:
             prompt = instruction + f"\n\nTime allowance remaining: at most {max(1, int(seconds))} seconds."
-        prompt_path = f"{CONTROL}/{profile}/prompt.txt"
-        await self._put(environment, profile + "-prompt.txt", prompt, prompt_path)
-        # Prompt enters via stdin in the supervisor; it is not accessible to task commands.
-        command = [self.binary, "exec", "--model", self.config.model, "--json", "--color", "never",
-                   "--skip-git-repo-check", "-C", self.root, "-o", f"/logs/agent/{name}-final.txt"]
-        if name == "extract":
-            command += ["--output-schema", CONTROL + "/schema.json"]
-        command.append("-")
-        client_env = {**_runtime_env(home),
-                        "PYTHONPATH": self.root + ":" + self.root + "/source",
-                        "SCICONTEXT_PROMPT_FILE": prompt_path}
-        # DockerEnvironment.exec does not inject Pier's service egress proxy.
-        # Native command networking remains separately disabled by the profile.
-        spec = {"command": command, "cwd": self.root,
-                "env": environment.agent_process_env(client_env),
-                "stdin_path": prompt_path,
-                "timeout_seconds": max(0.05, stage_deadline - time.monotonic() - min(10.0, seconds / 5)),
-                "stdout_path": f"/logs/agent/{name}.jsonl", "stderr_path": f"/logs/agent/{name}.stderr",
-                "result_path": f"/logs/agent/{name}-process.json", "pid_path": f"{CONTROL}/{profile}/pid.json",
-                "strict_descendants": True}
-        await self._put(environment, profile + "-spec.json", json.dumps(spec), f"{CONTROL}/{profile}/spec.json")
-        self._active_stage = (environment, profile)
+        path = (await self.checked(environment, "printenv PATH")).strip()
+        duration = max(0.05, seconds - min(10.0, seconds / 5) - 3)
+        stage_agent = OutputCodex(
+            stage=name, logs_dir=self.logs_dir / name, model_name=self.config.model,
+            version=self.config.codex_version, reasoning_effort=self.config.reasoning_effort,
+            config_toml=codex_config(self.config.model, self.config.reasoning_effort),
+            extra_env={"CODEX_AUTH_JSON_PATH": str(self.auth_file), "PATH": REMOTE + "/bin:" + path,
+                       "PYTHONPATH": self.root + ":" + self.root + "/source", "PYTHONDONTWRITEBYTECODE": "1",
+                       "SCICONTEXT_STAGE_SECONDS": str(duration) + "s", "SCICONTEXT_STAGE_NAME": name},
+        )
+        error = None
         try:
-            result = await environment.exec(f"PYTHONPATH={REMOTE}/src python -m scicontext.supervise {CONTROL}/{profile}/spec.json", timeout_sec=max(1, math.ceil(seconds)), cwd=self.root)
-            if result.return_code not in {0, 124, 130, 143}:
-                self.logger.warning("Stage supervisor return code: %s", result.return_code)
+            await stage_agent.run(prompt, environment, AgentContext())
+        except NonZeroAgentExitCodeError as caught:
+            error = caught
         finally:
-            await self._terminate_active()
-            destination = self.logs_dir
-            for filename in (f"{name}.jsonl", f"{name}.stderr", f"{name}-final.txt", f"{name}-process.json"):
+            for remote, local in (("codex.txt", f"{name}.jsonl"), (f"{name}-final.txt", f"{name}-final.txt"),
+                                  (f"{name}-exit.txt", f"{name}-exit.txt")):
                 try:
-                    await environment.download_file("/logs/agent/" + filename, destination / filename)
+                    await environment.download_file("/logs/agent/" + remote, self.logs_dir / local)
                 except Exception:
                     pass
             try:
-                await environment.download_dir(home + "/sessions", self.logs_dir / f"{name}-sessions")
+                await environment.download_dir("/logs/agent/sessions", self.logs_dir / f"{name}-sessions")
             except Exception:
                 pass
-            try:
-                await environment.download_file(home + "/auth.json", self._auth_cache)
-                self._auth_cache.chmod(0o600)
-            except Exception:
-                pass
-        process_path = self.logs_dir / f"{name}-process.json"
-        if not process_path.is_file():
-            raise RuntimeError(f"{name} supervisor did not preserve a completion/cleanup receipt")
-        process = read_json(process_path)
-        if process.get("status") == "timed_out":
-            process["status"] = "timeout"
-        process["usage"] = read_usage(self.logs_dir / f"{name}.jsonl")
-        if process.get("exit_code") not in {0, None} and process.get("status") not in {"timeout", "interrupted"}:
-            raise RuntimeError(f"Codex {name} exited unsuccessfully; inspect its stderr receipt")
-        return process
+        exit_path = self.logs_dir / f"{name}-exit.txt"
+        if not exit_path.is_file():
+            raise RuntimeError(f"No {name} exit receipt from GNU timeout/Pier") from error
+        code = int(exit_path.read_text().strip())
+        if code not in {0, 124, 137}:
+            raise RuntimeError(f"Codex {name} failed with exit {code}; inspect its preserved log") from error
+        result = {"status": "completed" if code == 0 else "timeout", "exit_code": code,
+                  "duration_seconds": time.monotonic() - started, "timeout_seconds": duration,
+                  "cleanup_complete": None,
+                  "cleanup_scope": "GNU timeout foreground process group; no detached-descendant guarantee",
+                  "usage": read_usage(self.logs_dir / f"{name}.jsonl")}
+        write_json(self.logs_dir / f"{name}-process.json", result)
+        return result
 
-    async def _terminate_active(self):
-        if self._active_stage is None:
-            return
-        environment, profile = self._active_stage
-        try:
-            await environment.exec(f"PYTHONPATH={REMOTE}/src python -m scicontext.supervise --terminate {CONTROL}/{profile}/pid.json", timeout_sec=5)
-        finally:
-            self._active_stage = None
-
-    async def collect_graph(self, seconds: float):
+    async def collect_graph(self, seconds):
         environment = self.extract_environment
-        # Also validate the structured final response if no checkpoint call was made.
+        diff = await self.checked(environment, shlex.join(["git", "diff", "--name-only", self._baseline_tree, "--", ".", ":(exclude)outputs/**"]), cwd=self.root)
+        added = await self.checked(environment, "git ls-files --others --exclude-standard -- . ':(exclude)outputs/**'", cwd=self.root)
+        source_changed = bool(diff.strip() or added.strip())
+        write_json(self.logs_dir / "extraction-source-check.json", {"source_changed": source_changed, "changed": diff.splitlines(), "untracked": added.splitlines()})
         command = (f"if test -s /logs/agent/extract-final.txt; then {HELPER} checkpoint --root {shlex.quote(self.root)} "
                    f"--graph /logs/agent/extract-final.txt --output {SCRATCH}/checkpoints; fi")
         await environment.exec(command, timeout_sec=max(1, min(10, math.ceil(seconds))))
-        # Re-run validation and source grounding for every candidate; never trust an LLM-written receipt.
         collector = (
             "import json,pathlib; from scicontext.graph import validate_graph,render_graph; "
             "from scicontext.tool_cli import analyze_grounded; from scicontext.io import digest_json; "
@@ -280,49 +236,40 @@ class ScientificCodex(BaseAgent):
         )
         await self._put(environment, "collect.py", collector, CONTROL + "/collect.py")
         await self.checked(environment, f"PYTHONPATH={REMOTE}/src:{REMOTE}/deps python {CONTROL}/collect.py", timeout_sec=max(1, math.ceil(seconds)))
-        await environment.download_file(CONTROL + "/selected-graph.json", self._temporary / "selected-graph.json")
+        selected = Path(self._temporary.name) / "selected-graph.json"
+        await environment.download_file(CONTROL + "/selected-graph.json", selected)
         await environment.download_dir(SCRATCH, self.logs_dir / "extract-scratch")
         await environment.download_dir(self.root + "/outputs", self.logs_dir / "extract-outputs")
-        graph = json.loads((self._temporary / "selected-graph.json").read_text())
-        return graph
+        return None if source_changed else json.loads(selected.read_text())
 
     async def finish_extraction(self):
         if self.extract_environment and not self._finished_extraction:
-            await self._terminate_active()
             await self.extract_environment.stop(delete=False)
             self._finished_extraction = True
 
     async def cleanup(self):
-        await self._terminate_active()
         await self.finish_extraction()
-        if self.environment:
-            # Remove only our exact private runtime subtree, after all owned children stop.
-            await self.environment.exec(_quoted(["rm", "-rf", CONTROL]), timeout_sec=5)
 
-    async def run(self, instruction: str, environment: BaseEnvironment, context: AgentContext):
+    async def run(self, instruction, environment, context):
         if self.smoke:
-            instruction = "This is an infrastructure smoke. Run python -c 'print(7*6)' using the shell tool, then reply READY. Do not edit task source."
+            instruction = "Infrastructure smoke only. Run python -c 'from pyscf import lib; lib.current_memory(); print(7*6)' using the shell tool, then reply READY. Do not edit task source."
         try:
             record = await run_trial(self, self.config, self.task_id, self.condition, instruction, self.logs_dir.parent)
-            record["harness_architecture"] = self.harness_arch
-            record["environment_image"] = environment.task_env_config.docker_image
-            record["experiment_kind"] = "subscription_smoke" if self.smoke else "development_pilot"
+            record.update({"harness_architecture": "x64", "execution": "upstream_pier_codex_docker_boundary",
+                           "environment_image": environment.task_env_config.docker_image,
+                           "experiment_kind": "subscription_smoke" if self.smoke else "development_pilot"})
             if self.smoke:
-                record["smoke_success"] = record["status"] == "completed" and verify_smoke(
-                    self.logs_dir / "repair.jsonl", self.logs_dir / "repair-final.txt")
+                record["smoke_success"] = record["status"] == "completed" and verify_smoke(self.logs_dir / "repair.jsonl", self.logs_dir / "repair-final.txt")
                 if not record["smoke_success"]:
                     record["status"] = "infrastructure_failure"
-                    record["error"] = "Subscription smoke did not complete the requested shell command and final response"
+                    record["error"] = "Scientific subscription smoke did not complete"
             write_json(self.logs_dir.parent / "run.json", record)
             usages = [s.get("usage", {}) for s in record["stages"]]
             for source, target in (("input_tokens", "n_input_tokens"), ("cached_input_tokens", "n_cache_tokens"), ("output_tokens", "n_output_tokens")):
                 values = [u.get(source) for u in usages]
                 setattr(context, target, sum(values) if values and all(isinstance(v, int) for v in values) else None)
             context.metadata = {"scicontext": record}
-            # Preserve refreshed runner credentials privately for the next serialized trial.
-            shutil.copyfile(self._auth_cache, self.auth_file)
-            self.auth_file.chmod(0o600)
             if self.smoke and not record["smoke_success"]:
                 raise RuntimeError(record["error"])
         finally:
-            self._private.cleanup()
+            self._temporary.cleanup()

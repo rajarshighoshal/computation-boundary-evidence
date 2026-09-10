@@ -30,15 +30,15 @@ Expressions are structured data and are never evaluated as generated Python. Mat
 
 ## Execution
 
-Use a custom Pier adapter for both conditions with native Codex tools. Prepare images/harness before the clock; include every agent stage, helper and probe inside one monotonic deadline. Private verification receives the same separate allowance in both conditions.
+Use upstream Pier Codex execution for both conditions, with a thin adapter for extraction and handoff. Per Rajarshi's explicit simplification request, Docker supplies isolation; no custom nested sandbox or process supervisor is added. Prepare images/harness before the clock; include every agent stage, helper and probe inside one monotonic deadline. Private verification receives the same separate allowance in both conditions.
 
-Extraction may run diagnostics/scratch probes but cannot modify candidate source. Repair starts from the original workspace with only the declared handoff. Graphs, credentials and scratch artifacts remain outside the patch root.
+Extraction may run diagnostics/scratch probes on its disposable copy. It is instructed not to edit source; detected source changes invalidate its handoff. It cannot modify the separate repair candidate. Repair starts from the original workspace with only the declared handoff. Graphs, temporary credentials and scratch artifacts remain outside the patch root. Standard container mode does not hide credentials from commands inside that container.
 
-At extraction timeout, use the latest valid checkpoint; without one, continue ordinary repair using remaining time and record extraction failure. No dropped tasks, silent retries or extra unbudgeted inference. Stop the process tree at the total deadline and evaluate the collected patch through the official verifier.
+At extraction timeout, use the latest valid checkpoint; without one, continue ordinary repair using remaining time and record extraction failure. No dropped tasks, silent retries or extra unbudgeted inference. Use GNU timeout for normal foreground process groups and Pier's container lifecycle; do not claim exhaustive detached-child supervision. Evaluate the collected patch through the official verifier.
 
 ## Verification and evaluation
 
-Test parsing, scope/branch ambiguity, evidence paths/hashes, bindings, unsupported operators/languages, dimension/scale/shape rules, floating-point limitations, invalid checkpoints, timeouts/background processes, fresh context and patch isolation. Verify container permissions and subscription integration before live development runs.
+Test parsing, scope/branch ambiguity, evidence paths/hashes, bindings, unsupported operators/languages, dimension/scale/shape rules, floating-point limitations, invalid checkpoints, time budgets, upstream launch/auth reuse, fresh context and patch isolation. Verify public scientific execution through Codex before live development runs.
 
 Preserve every pilot outcome. Generate official reward, exact private success, paired task outcomes, token usage, durations, extraction coverage/failures and infrastructure summaries programmatically. Compute Fail2Pass/Pass2Pass only with matching per-test baseline and candidate statuses.
 

@@ -1,4 +1,4 @@
-"""Offline helper interface exposed to extraction, executed in its task sandbox."""
+"""Offline helper interface exposed to extraction in its task container."""
 from __future__ import annotations
 
 import argparse
