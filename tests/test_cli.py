@@ -88,6 +88,28 @@ def test_extract_only_has_no_repair_or_private_verifier(workspace, monkeypatch):
     assert [i["condition"] for i in schedule["schedule"]] == ["science", "science"]
 
 
+def test_explicit_receipt_and_condition_order_support_new_cohort(workspace):
+    config = read_json(workspace / "config.json")
+    receipt = read_json(workspace / "data/release-receipt.json")
+    receipt["tasks"].append({"task_id": "091", "environment_image": "env", "verifier_image": "verifier", "restricted_license": "False"})
+    write_json(workspace / "data/other-receipt.json", receipt)
+    config.update(task_ids=["091"], release_receipt="data/other-receipt.json",
+                  study_kind="random_five_comparison", condition_order={"091": ["baseline", "science"]})
+    write_json(workspace / "other-config.json", config)
+    plan = cli.pilot(workspace, workspace / "other-config.json", workspace / "new-output", False, None)
+    assert plan["kind"] == "random_five_comparison"
+    assert [(x["task_id"], x["condition"]) for x in plan["schedule"]] == [("091", "baseline"), ("091", "science")]
+
+
+def test_bounded_cohort_refuses_duplicate_or_unmaterialized_tasks(workspace):
+    config = read_json(workspace / "config.json")
+    for ids in (["002", "002"], ["001", "002", "003", "004", "005", "006"], ["091"]):
+        config["task_ids"] = ids
+        write_json(workspace / "bad-config.json", config)
+        with pytest.raises(ValueError):
+            cli.pilot(workspace, workspace / "bad-config.json", workspace / "new-output", False, None)
+
+
 def test_pull_failure_retains_attempt_and_unstarted_schedule(workspace, monkeypatch):
     calls = []
     def fail(command, **kwargs):

@@ -48,6 +48,12 @@ Task 002 private failures were previously inspected. Disclose development exposu
 
 Full-benchmark launch remains a subsequent scientific/budget checkpoint.
 
+The user subsequently authorized a random-five exploratory comparison of the revised method.
+`configs/random-five-v1.selection.json` freezes the seed, full eligible population, exclusions and
+draw before comparative outcomes. `configs/random-five-v1.json` freezes the paired condition order
+and otherwise unchanged model/total budget. This is separate from the earlier development pilot;
+tasks are not replaced after outcomes or infrastructure failures.
+
 ## Literature basis
 
 AutoMATES/SKEMA motivate text-equation-code alignment; semantic enrichment of dataflow graphs motivates scientific operation mappings; Phys/CamFort motivate semantic anchors plus propagation. SpecRover, DSrepair and SIGA are close precedents. No claim of first-ever scientific-context extraction or guaranteed understanding is made.

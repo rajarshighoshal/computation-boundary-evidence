@@ -34,7 +34,8 @@ def task_rows(snapshot: Path) -> list[dict]:
     return rows
 
 
-def prepare(workspace: Path, task_ids: list[str], *, allow_restricted: bool = False) -> dict:
+def prepare(workspace: Path, task_ids: list[str], *, allow_restricted: bool = False,
+            receipt_path: Path | None = None) -> dict:
     workspace = workspace.resolve()
     vendor = workspace / "vendor/swe-bench-science"
     snapshot = workspace / "data/release"
@@ -56,6 +57,7 @@ def prepare(workspace: Path, task_ids: list[str], *, allow_restricted: bool = Fa
     by_id = {row["task_id"]: row for row in rows}
     if len(set(task_ids)) != len(task_ids) or any(t not in by_id for t in task_ids):
         raise ValueError("Invalid or duplicate task selection")
+    task_ids = sorted(task_ids)
     gated = [t for t in task_ids if by_id[t]["restricted_license"].lower() == "true"]
     if gated and not allow_restricted:
         raise ValueError(f"Explicit restricted-license opt-in required for: {','.join(gated)}")
@@ -82,5 +84,8 @@ def prepare(workspace: Path, task_ids: list[str], *, allow_restricted: bool = Fa
         "missing_base_commit_ids": [r["task_id"] for r in rows if not re.fullmatch(r"[0-9a-f]{40}", r["base_commit"])],
         "file_hashes": {str(p.relative_to(selected)): digest_file(p) for p in sorted(selected.rglob("*")) if p.is_file()},
     }
-    write_json(workspace / "data/release-receipt.json", receipt)
+    target = receipt_path if receipt_path is not None else workspace / "data/release-receipt.json"
+    if not target.is_absolute():
+        target = workspace / target
+    write_json(target, receipt)
     return receipt

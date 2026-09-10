@@ -13,8 +13,8 @@ Canonical live ledger. Approved plan: `RESEARCH_PLAN.md`. Only the primary agent
 | 7. Implement compact annotations and code-owned evidence preparation/assembly | complete | Packet and compiler integrated from isolated worktrees; source references, quotes, hashes and actual expression trees are code-owned; contract in `docs/EXTRACTION_V2.md` |
 | 8. Integrate bounded phases and independent parallel work | complete | Preparation/interpretation overlap; two bounded probes can run concurrently; interpretation stops before code-owned assembly/handoff; standard Pier retained, no duplicate graph final response |
 | 9. Verify revised extractor and document handoff | complete | `runs/extractor-annotations-v1`: both development checks finished cleanly with valid graphs, short acknowledgements and recorded token use; no repairs/private verification. Programmatic report `docs/EXTRACTOR_VERIFICATION.md`; bounded shutdown fix covered by deadline tests. Old pilot independently rechecked unchanged; plan/docs updated; no running containers or full benchmark |
-| 10. Freeze a random five-task comparison cohort | in progress | User authorized five random tasks; select from unrestricted tasks excluding development IDs, validate public runner metadata, save seed/population/draw before outcomes, preserve prior selections |
-| 11. Run the frozen ten-attempt comparison | pending | One baseline and one revised-context attempt per selected task; same model/harness/total budget; retain failed attempts and do not replace tasks based on outcomes |
+| 10. Freeze a random five-task comparison cohort | complete | `8790658` freezes seed/population/draw: 091, 058, 009, 114, 001 from 94 eligible tasks; separate release receipt preserves development selection; public TOML/Dockerfile checks and dry-run schedule verified; 289 tests pass |
+| 11. Run the frozen ten-attempt comparison | in progress | Preflight completed; pinned image download begun; Docker allocation choice pending before inference. One baseline and one revised-context attempt per selected task; same model/harness/total budget; retain failures without replacements |
 | 12. Verify and report five-task comparison | pending | Independent recomputation; exact selected IDs and paired outcomes; time/usage/extraction coverage; source/config/image provenance; ledger/Git reconciliation |
 
 Full 119-task evaluation follows pilot throughput review and the restricted-license decision. Smoke failures are infrastructure development, not scientific-method outcomes. Initial-session /tmp artifacts are no longer available; current-session native probe files must be copied to durable receipts before handoff.
@@ -46,3 +46,14 @@ Retained integration details: use the adapter import without a conflicting built
 Docker exposes 4,109,914,112 bytes while the development tasks request 8192 MiB. Do not claim provisioned-resource parity with the benchmark's published runs. This is a development feasibility pilot; retain resource failures, and resolve host allocation before locked evaluation.
 
 The standard-runner smoke exercises the exact PySCF operation blocked by the discarded policy. No scientific method tuning or comparative-outcome selection was performed in response to the old infrastructure failure.
+
+## Random-five preflight
+
+Frozen cohort/config: `configs/random-five-v1.selection.json` and `configs/random-five-v1.json`.
+Materialized release: `data/random-five-v1-release.json`; original development receipt preserved.
+Public Dockerfiles declare CPython 3.11/3.12, within helper support; actual guest versions remain
+runtime checks. Every selected task requests 2 CPUs, 8192 MiB memory and 20480 MiB storage.
+Task 058 has an empty TOML `base_commit_hash` despite a populated original source hash in public
+metadata and the release receipt; guest Git HEAD will be recorded independently. No image-private
+assertions or comparative outcomes were inspected for selection. Sampling exclusions were only
+restricted licenses and development IDs 002/077, with no domain/language filter or reroll.

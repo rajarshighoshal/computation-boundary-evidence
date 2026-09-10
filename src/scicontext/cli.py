@@ -240,9 +240,22 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
         raise ValueError("Pilot supports exactly one attempt and serial execution")
     if config.get("allow_restricted_licenses"):
         raise ValueError("Development pilot does not opt into restricted licenses")
-    if not set(config["task_ids"]) <= {"002", "077"}:
-        raise ValueError("Pilot is limited to the approved development tasks 002 and 077")
-    receipt = read_json(workspace / "data/release-receipt.json")
+    ids = config["task_ids"]
+    if not isinstance(ids, list) or not 1 <= len(ids) <= 5 or len(set(ids)) != len(ids):
+        raise ValueError("A bounded comparison requires one to five unique task IDs")
+    receipt_path = Path(config.get("release_receipt", "data/release-receipt.json"))
+    receipt = read_json(receipt_path if receipt_path.is_absolute() else workspace / receipt_path)
+    available = {r["task_id"]: r for r in receipt["tasks"]}
+    if any(t not in available for t in ids):
+        raise ValueError("Configured tasks are not in the explicit release receipt")
+    if any(str(available[t].get("restricted_license", "false")).lower() != "false" for t in ids):
+        raise ValueError("Restricted-license tasks are not enabled for this comparison")
+    if config.get("sampling_manifest"):
+        manifest_path = Path(config["sampling_manifest"])
+        manifest_path = manifest_path if manifest_path.is_absolute() else workspace / manifest_path
+        draw = read_json(manifest_path)
+        if digest_file(manifest_path) != config["sampling_manifest_sha256"] or draw["task_ids"] != ids or draw["condition_order"] != config["condition_order"]:
+            raise ValueError("Frozen sampling manifest differs from the comparison config")
     if receipt["release_commit"] != config["release_commit"] or receipt["dataset_revision"] != config["dataset_revision"]:
         raise ValueError("Configuration and restored release revisions differ")
     selected = Path(receipt["selection_path"])
@@ -252,10 +265,12 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
     tasks = ["002"] if smoke else config["task_ids"]
     schedule = []
     for task in tasks:
-        conditions = ["baseline"] if smoke else ["science"] if extraction_only else (["baseline", "science"] if int(task) % 2 == 0 else ["science", "baseline"])
+        conditions = ["baseline"] if smoke else ["science"] if extraction_only else config.get("condition_order", {}).get(task, (["baseline", "science"] if int(task) % 2 == 0 else ["science", "baseline"]))
+        if not smoke and not extraction_only and sorted(conditions) != ["baseline", "science"]:
+            raise ValueError("Each comparison task needs exactly one attempt in each condition")
         for condition in conditions:
             schedule.append({"task_id": task, "condition": condition, "status": "pending", "phase": "not_started"})
-    plan = {"schema_version": "1.0", "kind": "extraction_verification" if extraction_only else "subscription_smoke" if smoke else "development_pilot",
+    plan = {"schema_version": "1.0", "kind": "extraction_verification" if extraction_only else "subscription_smoke" if smoke else config.get("study_kind", "development_pilot"),
             "config": config, "config_sha256": digest_file(config_path),
             "selection_sha256": receipt["selection_sha256"], "schedule": schedule,
             "output": str(output.resolve()), "execute": execute}
@@ -407,6 +422,7 @@ def main(argv: list[str] | None = None) -> int:
     prepare = subs.add_parser("prepare", help="Restore pinned release and development selection")
     prepare.add_argument("--workspace", type=Path, default=_workspace())
     prepare.add_argument("--task-id", default="002,077")
+    prepare.add_argument("--receipt", type=Path, help="Save a separate selection receipt, preserving the development selection")
     analyze = subs.add_parser("analyze", help="Validate and analyze a graph against its public sources")
     analyze.add_argument("--root", type=Path, required=True)
     analyze.add_argument("--graph", type=Path, required=True)
@@ -432,7 +448,7 @@ def main(argv: list[str] | None = None) -> int:
             write_json(args.output, result)
     elif args.command == "prepare":
         from .release import prepare as prepare_release
-        result = prepare_release(args.workspace, args.task_id.split(","))
+        result = prepare_release(args.workspace, args.task_id.split(","), receipt_path=args.receipt)
     elif args.command == "analyze":
         from .tool_cli import checkpoint
         result = checkpoint(args.graph, args.root, args.output)
