@@ -6,6 +6,12 @@ The research comparison is ordinary Codex versus extraction followed by repair u
 
 The runner reuses Pier's Codex launch and subscription authentication. Extraction uses Codex's built-in read-only mode; code saves its returned annotations and probe scripts. Repair retains standard container execution. There is no custom Git source-change guard. See [initial high-effort results](docs/RANDOM_FIVE_HIGH_RESULTS.md), [qualitative notes](docs/RANDOM_FIVE_NOTES.md), and [runtime status](docs/RUNTIME_STATUS.md). Historical development results remain separate.
 
+The original random-five checks are complete: [outcomes and token accounting](docs/INITIAL_FIVE_OVERVIEW.md).
+The task-local redesign is now implemented and has separate [extraction-only results](docs/EXTRACTOR_TASK_LOCAL_CHECK.md).
+It improves source retrieval and binding coverage on the development examples; repair effectiveness
+with this redesign has not yet been measured. Remaining scientific uncertainties are recorded in
+[the notes](docs/RANDOM_FIVE_NOTES.md).
+
 ## Layout
 
 ```text
@@ -52,35 +58,25 @@ The graph uses evidence IDs, exact source lines/hashes, quantities, claims, assu
 
 The current extractor uses code-owned indexing, citations, graph assembly and checks; the LLM returns compact scientific annotations and optional inline probe scripts as JSON. Code saves them. Preparation overlaps interpretation, and independent probes can run concurrently. The shared extraction allowance includes bounded interpretation, probes, collection and shutdown. See [the implemented contract](docs/EXTRACTION_V2.md).
 
-The medium-effort initial configuration is saved below. Its task009 pair completed, then the
-subscription quota blocked task114; see [medium results](docs/RANDOM_FIVE_MEDIUM_RESULTS.md).
-Do not replay the whole configuration as a resume: only task114/task001 pairs remain, and the
-quota-failed receipt must be preserved. Inspecting the saved schedule does not use inference:
+The quota-interrupted initial run was resumed and completed without replacing tasks. Its failed
+launch remains preserved. There is no unfinished initial-task pair to resume. The current
+extraction-only configuration can be inspected without inference:
 
 ```bash
-uv run --no-sync scicontext pilot --config configs/random-five-medium-v1.json --output runs/random-five-medium-v1
+uv run --no-sync scicontext pilot --config configs/extractor-task-local-check.json --extract-only --output runs/extractor-task-local-check-v2
 ```
 
-The configuration preserves the remaining tasks from the original draw; it is not a reroll. Do not pool different effort/method revisions into a purported uniform experiment. The development commands below use the historical development configuration unless an explicit `--config` is supplied.
+Do not pool different effort/method revisions into a purported uniform experiment. Use an explicit
+configuration for new calls; the default development configuration is historical and uses high effort.
 
-Verify only extraction on the development tasks, without repair or private verification:
+With an agreed model-run budget, execute only extraction, without repair or hidden tests:
 
 ```bash
-uv run --no-sync scicontext pilot --extract-only --execute --output runs/extractor-annotations-v2
+uv run --no-sync scicontext pilot --config configs/extractor-task-local-check.json --extract-only --execute --output runs/extractor-task-local-check-v2
 ```
 
-Inspect the exact schedule without inference:
-
-```bash
-uv run --no-sync scicontext pilot --output runs/pilot-v3
-```
-
-Run a bounded subscription smoke first, then the approved two-task pilot:
-
-```bash
-uv run --no-sync scicontext pilot --smoke --execute --output runs/standard-smoke-v2
-uv run --no-sync scicontext pilot --execute --output runs/pilot-v3
-```
+The implemented task-local retrieval, source-reference expansion and binding interfaces are
+documented in [the extraction contract](docs/EXTRACTION_V2.md). No extra model session was added.
 
 Use a fresh output directory for every attempt. Existing attempts are never overwritten. The default development configuration uses tasks **002 and 077**; explicit configurations support bounded selections from a materialized release receipt. Full-benchmark evaluation requires a subsequent protocol/budget decision and restricted-license opt-in where applicable.
 
@@ -93,6 +89,8 @@ Repair uses pinned Codex's Linux x64 binary in the original amd64 task image. On
 ```bash
 uv run --no-sync scicontext summarize runs/pilot-v2/jobs --output runs/pilot-v2/summary
 uv run --no-sync python scripts/recompute_results.py runs/pilot-v2/jobs --verify runs/pilot-v2/summary/summary.json
+uv run --no-sync python scripts/report_initial_five.py
+uv run --no-sync python scripts/report_task_local_extractor.py --run-root runs/extractor-task-local-check-v1 --json-output results/extractor-task-local-check-v1.json --markdown-output docs/EXTRACTOR_TASK_LOCAL_CHECK.md
 ```
 
 The independent script does not import the application aggregator. Summaries retain missing pairs, failed attempts, official reward versus exact private success, stage usage, timing, provenance and development exposure. Fail2Pass/Pass2Pass remain unavailable unless original baseline and candidate private test identities can be matched; aggregate pass counts cannot reconstruct them.

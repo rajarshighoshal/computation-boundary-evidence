@@ -117,3 +117,32 @@ Exact provider error is preserved in
 `schedule.json` and the generated medium report retain the failed launch and unrun work. Resume
 only after model access is available or the user approves another route, using fresh output paths
 and keeping the existing quota-failed receipt. Do not rerun the already-completed task 009 pair.
+
+The user subsequently restored quota and the remaining pairs completed. The
+[consolidated overview](INITIAL_FIVE_OVERVIEW.md) includes every selected task and retains the
+non-completed launch receipts separately. These repair outcomes predate the task-local redesign.
+
+## Task-local extractor: live development checks after redesign
+
+The new checks show better operational traceability: the recovered reader and downstream
+computation are available, and the produced claims match actual source syntax. In the plasma case,
+the interpolation relation also has an ordered mathematical correspondence. These are mechanism
+observations, not evidence that repair success improved.
+
+Important limits remain. Several quantity references point to parameters, expression fragments or
+dynamic subscripts the current static-symbol interface cannot resolve. Imported constants can be
+source-matched but excluded from cross-scope propagation because their import relationship is not
+yet established. Most physical dimensions and scales remain unknown. The volumetric check still
+contains unsupported list-comprehension and constructor structure; source matching alone does not
+provide mathematical equivalence.
+
+The plasma probe reused the public comparison and observed the original projection settings
+collapsing to the same output. Its failed assertion is an observation of the existing bug, not a
+failed extraction pipeline or a proof of the missing projection formula. The final bundle also
+retains annotation-time wording saying the probe was unexecuted alongside the later code-owned
+execution result; readers must distinguish the stages. No probe was proposed in the volumetric check.
+
+Exact counts, timings and input/output/reasoning usage are generated in
+[the extraction report](EXTRACTOR_TASK_LOCAL_CHECK.md). These source-known development examples
+cannot establish general extraction quality or repair improvement. No larger repair sample has
+been launched for the new method.

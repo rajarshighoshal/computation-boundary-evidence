@@ -39,6 +39,12 @@ are code-owned executions after annotation, not model-generated commands inside 
 
 The actual task009 extraction session also records medium effort, read-only sandbox policy and
 approval policy `never`; its delivered graph and completed repair are preserved in the
-[medium initial-check report](RANDOM_FIVE_MEDIUM_RESULTS.md). The continuation is now stopped by
-subscription quota on task114, not by a read-only/runtime compatibility failure. No benchmark
-containers remain active. Unfinished tasks require restored quota or an explicitly approved route.
+[medium initial-check report](RANDOM_FIVE_MEDIUM_RESULTS.md). After the user restored quota, the
+remaining task pairs completed; the failed quota receipt remains preserved. The
+[initial-cohort overview](INITIAL_FIVE_OVERVIEW.md) consolidates the completed outcomes without
+claiming a uniform controlled experiment.
+
+The task-local prototype was implemented in isolated worktrees while those old runs continued,
+then integrated. Its original-source checks and separate [model extraction checks](EXTRACTOR_TASK_LOCAL_CHECK.md)
+completed without repair or hidden-test execution. The integrated source hashes match the tested
+worktree. No benchmark containers remain active; a new repair comparison is a subsequent decision.

@@ -174,7 +174,7 @@ def render(run_root, summary):
                       for item in operator_stop.get("active_at_signal", [])) + ". "
                   "A pre-inference image-pull interruption is not a model repair failure.", ""]
     lines += ["## Outcomes for the full planned selection", ""]
-    table(lines, ["Task", "Arm", "Schedule status", "Run status", "Exact private", "Private passed/collected", "Official reward", "Agent seconds"],
+    table(lines, ["Task", "Arm", "Schedule status", "Run status", "Hidden-test success", "Hidden tests passed/collected", "Official reward", "Agent seconds"],
           [(item["task_id"], item["condition"], item.get("status"),
             rows.get(key, {}).get("status", "no receipt"), outcome(rows.get(key, {})),
             private_counts(rows.get(key, {})), rows.get(key, {}).get("official_reward"),
@@ -200,7 +200,7 @@ def render(run_root, summary):
         pair_counts[label] += 1
     table(lines, ["Paired outcome", "Tasks"], [(name, pair_counts[name]) for name in
           ("both_success", "baseline_only", "science_only", "both_failure", "unknown", "missing_baseline", "missing_science", "neither_arm_recorded")])
-    lines += ["Exact private success and official reward are reported separately. Per-test Fail2Pass/Pass2Pass require matching "
+    lines += ["Exact hidden-test success and official reward are reported separately. Per-test Fail2Pass/Pass2Pass require matching "
               "original-baseline test identities; availability and diagnostics remain in the audited summary.", "",
               "## Time and token accounting", "",
               "Agent time includes extraction and handoff where applicable, but excludes image pulls, environment preparation and official verification. "
@@ -294,7 +294,7 @@ def render(run_root, summary):
           [(row["task_id"], row["condition"], row["trial_path"], row["provenance"].get("environment_image"), row["provenance"].get("verifier_image")) for row in summary["trials"]])
     exposed = [task for task in tasks if task in summary["exposure"]["development_tasks"]]
     prior = [task for task in tasks if task in summary["exposure"]["prior_private_test_exposure"]]
-    lines += [f"Recorded development-task overlap: {', '.join(exposed) or 'none'}; recorded prior private-test exposure: {', '.join(prior) or 'none'}. "
+    lines += [f"Recorded development-task overlap: {', '.join(exposed) or 'none'}; recorded prior hidden-test exposure: {', '.join(prior) or 'none'}. "
               "These markers are not a claim about other possible exposure.", "",
               f"Independent reconstruction verified {len(rows)} recorded trials and {len(summary['pairs'])} recorded task/run pairs. "
               f"Patch hashes checked: {patches['checked']}; patches missing: {patches['missing']}; "

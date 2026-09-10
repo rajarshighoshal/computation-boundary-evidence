@@ -14,4 +14,11 @@ preserved separately. No API-key billing fallback was used. Posthoc AI-assisted 
 is qualitative interpretation, was not fed to evaluated agents, and is not a scientific correctness
 oracle. Rajarshi must review the scientific interpretation and final claims.
 
+At Rajarshi's request, the task-local redesign was implemented in isolated parallel worktrees while
+the old checks continued unchanged. Code review identified dependency/scope mistakes, which were
+corrected before integration. Original public-source fixtures used handcrafted annotations solely
+to test interfaces; separate live checks used newly generated model annotations. These must not be
+conflated. Input/output/reasoning counts refer to benchmark-agent stages, not all development-assistant
+usage, and reasoning/cached tokens are reported as subsets rather than added twice.
+
 This file records the division of work, not a claim that any experimental improvement has been established. Pilot and final results must be generated from preserved run artifacts and reviewed by Rajarshi.

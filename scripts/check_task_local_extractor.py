@@ -5,9 +5,11 @@ from __future__ import annotations
 import argparse
 import ast
 import json
+import subprocess
 import time
 from pathlib import Path
 
+import scicontext
 from scicontext.annotations import assemble_annotations, annotation_references
 from scicontext.io import digest_file, read_json, write_json
 from scicontext.packet import build_packet, expand_packet
@@ -27,7 +29,12 @@ def main():
          "runs/random-five-medium-v1/jobs/task-009-science/task_009__hedEtB2/agent/extract-scratch/packet.json"),
     ]
     args.output.mkdir(parents=True, exist_ok=True)
-    receipt = {"kind": "deterministic_development_check", "model_calls": 0, "cases": []}
+    source_dir = Path(scicontext.__file__).resolve().parent
+    receipt = {"kind": "deterministic_development_check", "model_calls": 0, "cases": [],
+               "implementation_revision": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
+               "source_hashes": {p.name: digest_file(p) for p in sorted(source_dir.glob("*.py"))},
+               "script_sha256": digest_file(Path(__file__)),
+               "original_source_receipt": read_json(workspace / "runs/task-local-development/durable-source-receipt.json")}
     packets = {}
     for task, path, focus, baseline_path in cases:
         root, context = originals / f"task_{task}", originals / f"context_{task}"
@@ -56,6 +63,7 @@ def main():
         write_json(args.output / f"packet-{task}.json", packet)
         receipt["cases"].append({"task_id": task, "focus": focus, "path": path,
             "source_sha256": digest_file(root / path), "start_line": node.lineno, "end_line": node.end_lineno,
+            "context_sha256": digest_file(context / "task_statement.md"),
             "baseline_packet_sha256": digest_file(workspace / baseline_path),
             "baseline_focus_entries": before, "new_focus_entries": after,
             "baseline_entry_count": len(baseline["entries"]), "new_entry_count": len(packet["entries"]),

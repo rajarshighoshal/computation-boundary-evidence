@@ -1,0 +1,279 @@
+{
+  "integrated_source_matches_live_extractor": true,
+  "method": "Completed-turn event totals independently matched to final cumulative session token_count; cached/reasoning subsets not added twice",
+  "records": [
+    {
+      "condition": "baseline",
+      "session_file": "runs/random-five-v1/jobs/task-058-baseline/task_058__XPkaL4J/agent/repair-sessions/2026/09/10/rollout-2026-09-10T08-47-51-01a08a80-7d76-7c90-89d7-0ec4ca5ef430.jsonl",
+      "source_run": "random-five-v1",
+      "stage": "repair",
+      "task_id": "058",
+      "usage": {
+        "cached_input_tokens": 1732480,
+        "input_tokens": 1829450,
+        "nonreasoning_output_tokens": 9766,
+        "output_tokens": 13029,
+        "reasoning_output_tokens": 3263,
+        "total_tokens": 1842479,
+        "uncached_input_tokens": 96970
+      }
+    },
+    {
+      "condition": "science",
+      "session_file": "runs/random-five-v1/jobs/task-091-science/task_091__Pf5SuUn/agent/extract-sessions/2026/09/10/rollout-2026-09-10T08-38-00-01a08a77-7765-7662-b165-bdf2126beb73.jsonl",
+      "source_run": "random-five-v1",
+      "stage": "extract",
+      "task_id": "091",
+      "usage": {
+        "cached_input_tokens": 173184,
+        "input_tokens": 204061,
+        "nonreasoning_output_tokens": 2978,
+        "output_tokens": 3244,
+        "reasoning_output_tokens": 266,
+        "total_tokens": 207305,
+        "uncached_input_tokens": 30877
+      }
+    },
+    {
+      "condition": "science",
+      "session_file": "runs/random-five-v1/jobs/task-091-science/task_091__Pf5SuUn/agent/repair-sessions/2026/09/10/rollout-2026-09-10T08-40-33-01a08a79-cd8c-7382-b5d5-1634d0a6ee4e.jsonl",
+      "source_run": "random-five-v1",
+      "stage": "repair",
+      "task_id": "091",
+      "usage": {
+        "cached_input_tokens": 296832,
+        "input_tokens": 349567,
+        "nonreasoning_output_tokens": 3200,
+        "output_tokens": 3589,
+        "reasoning_output_tokens": 389,
+        "total_tokens": 353156,
+        "uncached_input_tokens": 52735
+      }
+    },
+    {
+      "condition": "baseline",
+      "session_file": "runs/random-five-v1/jobs/task-091-baseline/task_091__LrKVPML/agent/repair-sessions/2026/09/10/rollout-2026-09-10T08-44-07-01a08a7d-1105-79c0-a9fe-70febce41344.jsonl",
+      "source_run": "random-five-v1",
+      "stage": "repair",
+      "task_id": "091",
+      "usage": {
+        "cached_input_tokens": 252416,
+        "input_tokens": 296679,
+        "nonreasoning_output_tokens": 2855,
+        "output_tokens": 3360,
+        "reasoning_output_tokens": 505,
+        "total_tokens": 300039,
+        "uncached_input_tokens": 44263
+      }
+    },
+    {
+      "condition": "science",
+      "session_file": "runs/random-five-v1/jobs/task-058-science/task_058__euvFCm3/agent/extract-sessions/2026/09/10/rollout-2026-09-10T09-01-13-01a08a8c-bb2c-7c63-a636-fe5f3d3bc7f1.jsonl",
+      "source_run": "random-five-v1",
+      "stage": "extract",
+      "task_id": "058",
+      "usage": {
+        "cached_input_tokens": 222208,
+        "input_tokens": 259970,
+        "nonreasoning_output_tokens": 2491,
+        "output_tokens": 3041,
+        "reasoning_output_tokens": 550,
+        "total_tokens": 263011,
+        "uncached_input_tokens": 37762
+      }
+    },
+    {
+      "condition": "science",
+      "session_file": "runs/random-five-v1/jobs/task-058-science/task_058__euvFCm3/agent/repair-sessions/2026/09/10/rollout-2026-09-10T09-03-46-01a08a8f-0ffb-7241-9d3c-1715f31d7498.jsonl",
+      "source_run": "random-five-v1",
+      "stage": "repair",
+      "task_id": "058",
+      "usage": {
+        "cached_input_tokens": 1465088,
+        "input_tokens": 1539783,
+        "nonreasoning_output_tokens": 12924,
+        "output_tokens": 18379,
+        "reasoning_output_tokens": 5455,
+        "total_tokens": 1558162,
+        "uncached_input_tokens": 74695
+      }
+    },
+    {
+      "condition": "science",
+      "session_file": "runs/random-five-medium-v1/jobs/task-009-science/task_009__hedEtB2/agent/extract-sessions/2026/09/10/rollout-2026-09-10T09-32-14-01a08aa9-1eff-7601-9e19-95a2b5dc3b1f.jsonl",
+      "source_run": "random-five-medium-v1",
+      "stage": "extract",
+      "task_id": "009",
+      "usage": {
+        "cached_input_tokens": 137088,
+        "input_tokens": 168989,
+        "nonreasoning_output_tokens": 2215,
+        "output_tokens": 2436,
+        "reasoning_output_tokens": 221,
+        "total_tokens": 171425,
+        "uncached_input_tokens": 31901
+      }
+    },
+    {
+      "condition": "science",
+      "session_file": "runs/random-five-medium-v1/jobs/task-009-science/task_009__hedEtB2/agent/repair-sessions/2026/09/10/rollout-2026-09-10T09-34-12-01a08aaa-ed48-7ba2-834c-1ed27726960b.jsonl",
+      "source_run": "random-five-medium-v1",
+      "stage": "repair",
+      "task_id": "009",
+      "usage": {
+        "cached_input_tokens": 419072,
+        "input_tokens": 459997,
+        "nonreasoning_output_tokens": 8272,
+        "output_tokens": 12623,
+        "reasoning_output_tokens": 4351,
+        "total_tokens": 472620,
+        "uncached_input_tokens": 40925
+      }
+    },
+    {
+      "condition": "baseline",
+      "session_file": "runs/random-five-medium-v1/jobs/task-009-baseline/task_009__NTZLvQJ/agent/repair-sessions/2026/09/10/rollout-2026-09-10T09-42-15-01a08ab2-48c9-73c2-bf7c-87b059431e22.jsonl",
+      "source_run": "random-five-medium-v1",
+      "stage": "repair",
+      "task_id": "009",
+      "usage": {
+        "cached_input_tokens": 474112,
+        "input_tokens": 527301,
+        "nonreasoning_output_tokens": 9093,
+        "output_tokens": 15049,
+        "reasoning_output_tokens": 5956,
+        "total_tokens": 542350,
+        "uncached_input_tokens": 53189
+      }
+    },
+    {
+      "condition": "baseline",
+      "session_file": "runs/random-five-medium-resume-v1/jobs/task-114-baseline/task_114__dyyMFxV/agent/repair-sessions/2026/09/10/rollout-2026-09-10T12-18-25-01a08b41-4448-71c1-9461-4370f3c46a17.jsonl",
+      "source_run": "random-five-medium-resume-v1",
+      "stage": "repair",
+      "task_id": "114",
+      "usage": {
+        "cached_input_tokens": 1967744,
+        "input_tokens": 2061246,
+        "nonreasoning_output_tokens": 8906,
+        "output_tokens": 14672,
+        "reasoning_output_tokens": 5766,
+        "total_tokens": 2075918,
+        "uncached_input_tokens": 93502
+      }
+    },
+    {
+      "condition": "science",
+      "session_file": "runs/random-five-medium-resume-v1/jobs/task-001-science/task_001__FkFvEPb/agent/extract-sessions/2026/09/10/rollout-2026-09-10T12-40-47-01a08b55-bed7-73f1-946b-f67397123b7f.jsonl",
+      "source_run": "random-five-medium-resume-v1",
+      "stage": "extract",
+      "task_id": "001",
+      "usage": {
+        "cached_input_tokens": 138752,
+        "input_tokens": 171515,
+        "nonreasoning_output_tokens": 1763,
+        "output_tokens": 1780,
+        "reasoning_output_tokens": 17,
+        "total_tokens": 173295,
+        "uncached_input_tokens": 32763
+      }
+    },
+    {
+      "condition": "science",
+      "session_file": "runs/random-five-medium-resume-v1/jobs/task-001-science/task_001__FkFvEPb/agent/repair-sessions/2026/09/10/rollout-2026-09-10T12-42-27-01a08b57-45a7-7593-ace5-b16339295d7c.jsonl",
+      "source_run": "random-five-medium-resume-v1",
+      "stage": "repair",
+      "task_id": "001",
+      "usage": {
+        "cached_input_tokens": 1747840,
+        "input_tokens": 1832474,
+        "nonreasoning_output_tokens": 10328,
+        "output_tokens": 20295,
+        "reasoning_output_tokens": 9967,
+        "total_tokens": 1852769,
+        "uncached_input_tokens": 84634
+      }
+    },
+    {
+      "condition": "baseline",
+      "session_file": "runs/random-five-medium-resume-v1/jobs/task-001-baseline/task_001__z479mQA/agent/repair-sessions/2026/09/10/rollout-2026-09-10T12-57-35-01a08b65-20ad-7150-8854-bcf8d77485cf.jsonl",
+      "source_run": "random-five-medium-resume-v1",
+      "stage": "repair",
+      "task_id": "001",
+      "usage": {
+        "cached_input_tokens": 4151040,
+        "input_tokens": 4262490,
+        "nonreasoning_output_tokens": 12916,
+        "output_tokens": 29147,
+        "reasoning_output_tokens": 16231,
+        "total_tokens": 4291637,
+        "uncached_input_tokens": 111450
+      }
+    },
+    {
+      "condition": "science",
+      "session_file": "runs/random-five-medium-resume-v1/jobs/task-114-science/task_114__oUT5HVU/agent/extract-sessions/2026/09/10/rollout-2026-09-10T12-30-15-01a08b4c-19c6-7303-8c5b-f1e51f322a0b.jsonl",
+      "source_run": "random-five-medium-resume-v1",
+      "stage": "extract",
+      "task_id": "114",
+      "usage": {
+        "cached_input_tokens": 106496,
+        "input_tokens": 130887,
+        "nonreasoning_output_tokens": 2161,
+        "output_tokens": 2293,
+        "reasoning_output_tokens": 132,
+        "total_tokens": 133180,
+        "uncached_input_tokens": 24391
+      }
+    },
+    {
+      "condition": "science",
+      "session_file": "runs/random-five-medium-resume-v1/jobs/task-114-science/task_114__oUT5HVU/agent/repair-sessions/2026/09/10/rollout-2026-09-10T12-32-14-01a08b4d-e983-7553-a29a-d1df6279efc9.jsonl",
+      "source_run": "random-five-medium-resume-v1",
+      "stage": "repair",
+      "task_id": "114",
+      "usage": {
+        "cached_input_tokens": 866176,
+        "input_tokens": 933760,
+        "nonreasoning_output_tokens": 7092,
+        "output_tokens": 10000,
+        "reasoning_output_tokens": 2908,
+        "total_tokens": 943760,
+        "uncached_input_tokens": 67584
+      }
+    },
+    {
+      "condition": "science",
+      "session_file": "runs/extractor-task-local-check-v1/jobs/task-009-science/task_009__HhmYZjw/agent/extract-sessions/2026/09/10/rollout-2026-09-10T13-28-07-01a08b81-1513-70e0-b0e7-34f646b72063.jsonl",
+      "source_run": "extractor-task-local-check-v1",
+      "stage": "extract",
+      "task_id": "009",
+      "usage": {
+        "cached_input_tokens": 83328,
+        "input_tokens": 117345,
+        "nonreasoning_output_tokens": 2966,
+        "output_tokens": 2990,
+        "reasoning_output_tokens": 24,
+        "total_tokens": 120335,
+        "uncached_input_tokens": 34017
+      }
+    },
+    {
+      "condition": "science",
+      "session_file": "runs/extractor-task-local-check-v1/jobs/task-091-science/task_091__Zybd3m9/agent/extract-sessions/2026/09/10/rollout-2026-09-10T13-25-00-01a08b7e-37d5-7723-901b-7357339928db.jsonl",
+      "source_run": "extractor-task-local-check-v1",
+      "stage": "extract",
+      "task_id": "091",
+      "usage": {
+        "cached_input_tokens": 106624,
+        "input_tokens": 130704,
+        "nonreasoning_output_tokens": 2740,
+        "output_tokens": 2933,
+        "reasoning_output_tokens": 193,
+        "total_tokens": 133637,
+        "uncached_input_tokens": 24080
+      }
+    }
+  ],
+  "verified_stages": 17
+}

@@ -13,7 +13,7 @@ Active at stop request: 009/science during pulling_images. A pre-inference image
 
 ## Outcomes for the full planned selection
 
-| Task | Arm | Schedule status | Run status | Exact private | Private passed/collected | Official reward | Agent seconds |
+| Task | Arm | Schedule status | Run status | Hidden-test success | Hidden tests passed/collected | Official reward | Agent seconds |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 091 | science | completed | completed | pass | 3/3 | 1 | 315.15 |
 | 091 | baseline | completed | completed | pass | 3/3 | 1 | 143.08 |
@@ -42,7 +42,7 @@ Active at stop request: 009/science during pulling_images. A pre-inference image
 | missing_science | 0 |
 | neither_arm_recorded | 2 |
 
-Exact private success and official reward are reported separately. Per-test Fail2Pass/Pass2Pass require matching original-baseline test identities; availability and diagnostics remain in the audited summary.
+Exact hidden-test success and official reward are reported separately. Per-test Fail2Pass/Pass2Pass require matching original-baseline test identities; availability and diagnostics remain in the audited summary.
 
 ## Time and token accounting
 
@@ -208,7 +208,7 @@ Planned order: 091/science → 091/baseline → 058/baseline → 058/science →
 | 091 | baseline | task-091-baseline/task_091__LrKVPML | docker.io/kevinxulearning/swe-bench-science-environment-python-task-091:v0.1.2@sha256:584de1418e2f75d29b7e9bb725f7effa839f1731fdb450c45476777e4ed328d5 | docker.io/kevinxulearning/swe-bench-science-verifier-python-task-091:v0.1.2@sha256:6de21116ddb0ddafb348136ffa9e07e70c7cb25af6c0d137db73e7ac7673d74f |
 | 091 | science | task-091-science/task_091__Pf5SuUn | docker.io/kevinxulearning/swe-bench-science-environment-python-task-091:v0.1.2@sha256:584de1418e2f75d29b7e9bb725f7effa839f1731fdb450c45476777e4ed328d5 | docker.io/kevinxulearning/swe-bench-science-verifier-python-task-091:v0.1.2@sha256:6de21116ddb0ddafb348136ffa9e07e70c7cb25af6c0d137db73e7ac7673d74f |
 
-Recorded development-task overlap: none; recorded prior private-test exposure: none. These markers are not a claim about other possible exposure.
+Recorded development-task overlap: none; recorded prior hidden-test exposure: none. These markers are not a claim about other possible exposure.
 
 Independent reconstruction verified 5 recorded trials and 3 recorded task/run pairs. Patch hashes checked: 4; patches missing: 1; patches present without a recorded hash: 0.
 

@@ -19,7 +19,14 @@ Collection explicitly leaves a shutdown reserve. Shutdown and final cleanup are 
 
 `build_packet(root: Path, context_root: Path | None = None) -> dict`
 
-Returns `schema_version: packet-1.0`, `entries` (unchanged evidence.extract_evidence entries), `documents` (graph-compatible evidence records with stable IDs, paths, file hashes, exact source lines), and `coverage`. Public task context uses `@context/task_statement.md`. Bounded deterministic ranking/selection, no model call, no imports of target code. Generated outputs, hidden/private/credential paths and symlinks are excluded using existing evidence rules. Preserve skipped/truncated/unsupported coverage.
+Returns `schema_version: packet-1.0`, source entries, graph-compatible document spans, and coverage.
+Task-local selection follows bounded reproducer imports/calls and explicit references before
+background source. Entries add source reads and local dependency records; nested binders, same-line
+rebindings and unsupported relationships can remain unresolved. No target code is imported.
+
+`expand_packet(root, packet, references, keep_ids=())` adds cited source regions after annotation,
+prioritizing requested regions and retained IDs within the existing budget. The assembly command
+performs this expansion once; no second interpretation session is introduced.
 
 `render_catalog(packet: dict) -> str`
 
@@ -33,7 +40,18 @@ Top-level JSON: `schema_version: annotations-1.0`, `quantities`, `claims`, optio
 
 Quantity fields: required `id`, `meaning`; optional `symbol`, `name`, `dimensions` (dimension→integer/rational-string mapping), `scale` (positive rational string), `shape`, `status` (defaults inferred), and `evidence` references.
 
+Optional `code_ref` supplies `{path, start_line, end_line, symbol, scope?}`. Code resolves a unique
+indexed occurrence and canonical static symbol. Source binding does not establish scientific units
+or meaning. Cross-scope uses without an established relationship are excluded from propagation and
+reported as unknown; this also limits currently unsupported imported-constant flows.
+
 Claim fields: required `id`, `description`; optional `formula` (restricted arithmetic string or null), `implementation_id` (packet entry ID or null), `quantities` (quantity IDs), `bindings` (scientific-name→code-name mapping), `operation` (existing graph enum, default other), `status` (default inferred), `assumptions`, and `evidence` references.
+
+Optional `implementation_ref` supplies a source span with optional static symbol/scope rather than
+requiring an initial packet ID. A formula may contain a simple target assignment; `parse_relation`
+separates target and RHS. Unsupported call nodes retain children without becoming mathematically
+equivalent to them. Assembly records target/actual-target relations and bounded selected source
+dependencies in the repair handoff. Legacy IDs and RHS-only formulas remain accepted.
 
 An evidence reference is either a packet entry/document ID or `{path, start_line, end_line}`. Code reads exact quotes and file hashes. Implementation expressions come only from the selected packet entry, never model-written trees. Missing/unsupported implementation correspondence stays unknown.
 
@@ -50,3 +68,7 @@ Probe result fields: `id`, `claim_ids`, `description`, `status`, `exit_code`, `d
 No full-graph output schema on the Codex final response. Codex's `-o` captures the compact annotation JSON; orchestration saves it to the fixed scratch path. Packet preparation and interpretation overlap; dependent assembly waits for them. Initial assembly may save a useful checkpoint before probes. Extraction uses native `--sandbox read-only` with approvals disabled; the custom Git diff/untracked rejection is removed. Repair uses a separate original candidate. Code-owned probes execute on the disposable extraction copy outside the model's read-only command sandbox.
 
 Artifact failures/absent annotations/unsupported meaning produce explicit fallback records, not silent extra model retries. Retain all phase timings, timeout flags, packet coverage, annotations, scripts, execution receipts and graph bundles. New verification must not overwrite old pilot artifacts.
+
+The task-local revision was tested on original-source development fixtures and then in separate
+model extraction checks. See [live results](EXTRACTOR_TASK_LOCAL_CHECK.md) and
+[remaining limitations](RANDOM_FIVE_NOTES.md). Those checks are not repair-effectiveness evidence.

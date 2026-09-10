@@ -97,6 +97,9 @@ def collect(root):
                         "phases": stage.get("phases"), "assembly": assembly or None, "analysis": analysis or None,
                         "annotations_status": annotations_status,
                         "annotation_schema_version": annotations.get("schema_version"),
+                        "declared_probes": len(annotations.get("probes", []))
+                            if annotations.get("schema_version") == "annotations-1.0"
+                            and isinstance(annotations.get("probes", []), list) else None,
                         "probe_receipt_status": probes_status, "probe_results": probes.get("results"),
                         "setup_status": setup_status, "setup": setup or None,
                         "session_metadata": session_metadata(trial) if trial else None,
@@ -128,7 +131,8 @@ def render(result):
               "costs remain unknown. Missing graphs and incomplete stages do not produce zero quality counts.", ""]
     for r in records:
         statuses = counts(r["probe_results"])
-        lines.append(f"Task {r['task_id']} probe results: " + (json.dumps(statuses, sort_keys=True) if statuses is not None else "unknown") + ".")
+        lines.append(f"Task {r['task_id']} probe results: " + (json.dumps(statuses, sort_keys=True)
+                     if statuses is not None else "none declared" if r["declared_probes"] == 0 else "unknown") + ".")
     lines += ["", "Probe outcomes describe execution on the original implementation; they are not scientific proof. "
               "The JSON report preserves phases, assembly relations and dependency links when recorded, analysis coverage, "
               "source selection, setup, available session headers, and protocol provenance.", ""]

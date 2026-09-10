@@ -38,6 +38,13 @@ At extraction timeout, use the latest valid code-assembled checkpoint; without o
 
 The implemented contracts are in `docs/EXTRACTION_V2.md`. Earlier full-graph and annotation-based runs remain versioned separately; current initial-check outcomes and limitations are in generated reports and `docs/RANDOM_FIVE_NOTES.md`.
 
+The subsequently approved task-local redesign is implemented: reproducer/import/call-based source
+selection, one code-owned expansion of annotation references, preserved unknown operation children,
+separate equation targets/RHS, scoped scientific bindings and a compact dependency handoff. It keeps
+the same single interpretation session and budgets. Its deterministic original-source checks and
+live extraction-only checks are separate from the completed old-method repair sample. A new-method
+repair comparison remains a decision for Rajarshi; extraction traceability is not repair effectiveness.
+
 ## Verification and evaluation
 
 Test parsing, scope/branch ambiguity, evidence paths/hashes, bindings, unsupported operators/languages, dimension/scale/shape rules, floating-point limitations, invalid checkpoints, time budgets, upstream launch/auth reuse, fresh context and patch isolation. Verify public scientific execution through Codex before live development runs.
