@@ -14,4 +14,6 @@ If useful extraction still gets cut off, an eight-minute cap could be tested und
 
 ## Completed pilot
 
-Task077 also reached the extraction cutoff with a usable checkpoint and unchanged source. Both context-assisted repairs passed, but both baselines also passed. The context procedure was slower on both tasks. See [the generated results](PILOT_RESULTS.md) for exact timings and counts; the stopping-rule proposal remains unapplied.
+Task077 also reached the extraction cutoff with a usable checkpoint and unchanged source. Both context-assisted repairs passed, but both baselines also passed. The context procedure was slower on both tasks. See [the generated results](PILOT_RESULTS.md) for exact timings and counts.
+
+After this pilot, Rajarshi approved implementation of the bounded hybrid revision. Code-owned assembly and probes, compact annotations, sub-deadlines and early stopping are now implemented and separately checked in [extractor verification](EXTRACTOR_VERIFICATION.md). This does not change the previous pilot or supply a new repair-success comparison.

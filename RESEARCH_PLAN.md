@@ -19,12 +19,12 @@ The comparison evaluates the complete procedure. It does not isolate the causal 
 
 ## Combined algorithm
 
-1. Codex proposes relevant quantities, scientific relationships, assumptions, representation conventions and source locations, each with explicit/inferred/unresolved status.
-2. A deterministic Python AST helper extracts scoped expressions and source evidence. Other languages remain eligible with mechanical coverage limitations recorded.
+1. Code builds a bounded source index and document catalog while Codex reads the task/scientific context. Other languages remain eligible with mechanical coverage limitations recorded.
+2. Codex saves compact annotations: a small set of relevant quantities, scientific relationships, assumptions and source/implementation references, each with explicit/inferred/unresolved status. Code resolves references and supplies actual expressions, source quotes and hashes; the LLM does not assemble the final graph.
 3. Match ordered scientific and implementation expression graphs using proposed quantity bindings. Report structure/correspondences, not mathematical-equivalence proofs.
 4. Lift recognized conversions, weighted reductions, normalizations and linear transformations into candidate scientific operations under stated assumptions.
-5. Propagate supported dimensions, scale factors and explicit shapes. Preserve disagreements between intended requirements and buggy code. Public scratch probes can supply additional observations.
-6. Save a canonical JSON graph, valid partial checkpoints and a deterministic text handoff, capped at 12 scientific claims and 64 total nodes.
+5. Propagate supported dimensions, scale factors and explicit shapes. Preserve disagreements between intended requirements and buggy code. Code runs declared independent Python probes under shared deadlines and adds actual execution/output receipts, without equating exit zero with scientific proof.
+6. Code saves a canonical JSON graph and deterministic handoff. Compact annotations are capped at five claims, twelve quantities and two probes; the existing internal graph bound remains. The LLM returns only the annotation filename, not a duplicate graph. No open-ended refinement loop is added.
 
 Expressions are structured data and are never evaluated as generated Python. Matching citations are not scientific proof. A baseline failure does not automatically invalidate a scientific requirement. Repair may challenge an inferred constraint with evidence.
 
@@ -34,7 +34,9 @@ Use upstream Pier Codex execution for both conditions, with a thin adapter for e
 
 Extraction may run diagnostics/scratch probes on its disposable copy. It is instructed not to edit source; detected source changes invalidate its handoff. It cannot modify the separate repair candidate. Repair starts from the original workspace with only the declared handoff. Graphs, temporary credentials and scratch artifacts remain outside the patch root. Standard container mode does not hide credentials from commands inside that container.
 
-At extraction timeout, use the latest valid checkpoint; without one, continue ordinary repair using remaining time and record extraction failure. No dropped tasks, silent retries or extra unbudgeted inference. Use GNU timeout for normal foreground process groups and Pier's container lifecycle; do not claim exhaustive detached-child supervision. Evaluate the collected patch through the official verifier.
+At extraction timeout, use the latest valid code-assembled checkpoint; without one, continue ordinary repair using remaining time and record extraction failure. The interpretation sub-deadline is before the probe/assembly sub-deadline, leaving an explicit collection/shutdown reserve. Finish early when sufficient annotations are saved. No dropped tasks, silent model retries or extra unbudgeted inference. Use GNU timeout for normal foreground groups and bounded Pier lifecycle calls; do not claim exhaustive detached-child supervision. Evaluate the collected patch through the official verifier.
+
+The implemented phase and annotation contracts are in `docs/EXTRACTION_V2.md`. The previous paired pilot used the earlier full-graph extraction workflow; the new revision has separate extraction-only verification, not new repair-success results.
 
 ## Verification and evaluation
 

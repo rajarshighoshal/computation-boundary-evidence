@@ -87,6 +87,36 @@ def test_extraction_only_never_launches_repair(tmp_path):
     assert d.finished and d.cleaned
 
 
+def test_extraction_shutdown_is_bounded_and_cannot_be_reported_completed(tmp_path):
+    class SlowShutdown(FakeDriver):
+        async def finish_extraction(self):
+            await asyncio.sleep(1)
+        async def cleanup(self):
+            await asyncio.sleep(1)
+    start = time.monotonic()
+    r = asyncio.run(run_trial(SlowShutdown(), TrialConfig(total_seconds=.1, extraction_seconds=.05),
+                              "002", "science", "Inspect", tmp_path, extraction_only=True))
+    assert time.monotonic() - start < .2
+    assert r["extraction_status"] == "shutdown_timeout"
+    assert r["status"] != "completed"
+    assert "cleanup_error" in r
+
+
+def test_collection_leaves_shutdown_time(tmp_path):
+    class SlowCollection(FakeDriver):
+        async def collect_graph(self, seconds):
+            self.collection_allowance = seconds
+            await asyncio.sleep(1)
+        async def finish_extraction(self):
+            await asyncio.sleep(.002)
+            self.finished = True
+    d = SlowCollection()
+    r = asyncio.run(run_trial(d, TrialConfig(total_seconds=.3, extraction_seconds=.1),
+                              "002", "science", "Inspect", tmp_path, extraction_only=True))
+    assert d.collection_allowance < .095
+    assert d.finished and r["extraction_status"] == "timeout"
+
+
 def test_refuse_overwriting_attempt(tmp_path):
     (tmp_path / "run.json").write_text("{}")
     with pytest.raises(FileExistsError):

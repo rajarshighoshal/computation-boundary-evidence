@@ -4,7 +4,7 @@ An experimental preparation stage for SWE-bench Science. It combines source-back
 
 The controlled comparison is ordinary Codex versus extraction followed by repair. Both use GPT-6 Astra/high and a 30-minute total agent allowance; extraction consumes at most six minutes of the treatment allowance. This implementation is a research prototype, not a scientific-correctness prover.
 
-The runner reuses Pier's standard Codex launch and subscription authentication. Docker provides isolation; there is no extra Codex sandbox policy. The completed development pilot passed both tasks in both conditions, with greater elapsed time for context and no observed success gain. See [pilot results](docs/PILOT_RESULTS.md) and [runtime status](docs/RUNTIME_STATUS.md).
+The runner reuses Pier's standard Codex launch and subscription authentication. Docker provides isolation; there is no extra Codex sandbox policy. The earlier development pilot passed both tasks in both conditions, with greater elapsed time for context and no observed success gain. The revised bounded extractor has now passed extraction-only checks without timing out; repair effectiveness has not been re-evaluated for this revision. See [pilot results](docs/PILOT_RESULTS.md), [extractor verification](docs/EXTRACTOR_VERIFICATION.md), and [runtime status](docs/RUNTIME_STATUS.md).
 
 ## Layout
 
@@ -50,17 +50,25 @@ The graph uses evidence IDs, exact source lines/hashes, quantities, claims, assu
 
 ## Run the development pilot
 
+The current extractor uses code-owned indexing, citations, graph assembly and checks; the LLM saves compact scientific annotations and optional probe scripts. Preparation overlaps interpretation, and independent probes can run concurrently. The shared extraction allowance includes bounded interpretation, probes, collection and shutdown. See [the implemented contract](docs/EXTRACTION_V2.md).
+
+Verify only extraction on the development tasks, without repair or private verification:
+
+```bash
+uv run --no-sync scicontext pilot --extract-only --execute --output runs/extractor-annotations-v2
+```
+
 Inspect the exact schedule without inference:
 
 ```bash
-uv run --no-sync scicontext pilot --output runs/pilot-v2
+uv run --no-sync scicontext pilot --output runs/pilot-v3
 ```
 
 Run a bounded subscription smoke first, then the approved two-task pilot:
 
 ```bash
 uv run --no-sync scicontext pilot --smoke --execute --output runs/standard-smoke-v2
-uv run --no-sync scicontext pilot --execute --output runs/pilot-v2
+uv run --no-sync scicontext pilot --execute --output runs/pilot-v3
 ```
 
 Use a fresh output directory for every attempt. Existing attempts are never overwritten. The pilot runs one attempt per condition on tasks **002 and 077**, with counterbalanced condition order. The CLI deliberately does not launch unrestricted full-suite experiments. Full 119-task evaluation follows pilot review and the benchmark's restricted-license opt-in decision.

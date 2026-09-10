@@ -1,0 +1,137 @@
+{
+  "all_verified": true,
+  "config_sha256": "5fe53efca0a45653cfceca23cdd0b61c68ca852faf41f29fd7914c18dd4c177a",
+  "extraction_seconds": 360,
+  "implementation_revision": "004e6f9af7da0b867ccb071cfb460fa8a02464f1",
+  "kind": "extraction_verification",
+  "prompt_sha256": {
+    "prompts/extract.md": "71cf775c976f3144933f25b27b2b858a9c728683f9ffaccd51acbcfb50a33348",
+    "prompts/repair.md": "9b9bd47560b889414d5b5b4fcb05c0dd6ba406856a6ce7fdee9c59102115066b"
+  },
+  "records": [
+    {
+      "claims": 3,
+      "duration_seconds": 153.463918458001,
+      "final_response": "annotations.json",
+      "graph_sha256": "7e00103772ef734102dc8abd7599144f52b4133145b61f03768705fbd551d4e5",
+      "interpretation_seconds": 131.69696674999432,
+      "phase_overlap_seconds": 2.13417383300839,
+      "phases": [
+        {
+          "allowance_seconds": 239.99973716638053,
+          "duration_seconds": 131.69696674999432,
+          "name": "interpret",
+          "started_offset_seconds": 3.520800964906812e-05,
+          "status": "completed"
+        },
+        {
+          "allowance_seconds": 29.999967145797562,
+          "duration_seconds": 2.13417383300839,
+          "name": "prepare",
+          "started_offset_seconds": 0.004231833008816466,
+          "status": "ready"
+        },
+        {
+          "allowance_seconds": 15.0,
+          "duration_seconds": 1.5623145000135992,
+          "name": "assemble_initial",
+          "started_offset_seconds": 131.69702150000376,
+          "status": "usable_graph"
+        },
+        {
+          "allowance_seconds": 151.74032741697738,
+          "duration_seconds": 1.6492158340115566,
+          "name": "probes",
+          "started_offset_seconds": 133.25934541600873,
+          "status": "completed"
+        },
+        {
+          "allowance_seconds": 165.09109783297754,
+          "duration_seconds": 1.7380199159961194,
+          "name": "assemble_final",
+          "started_offset_seconds": 134.90857487500762,
+          "status": "usable_graph"
+        }
+      ],
+      "probe_assertion_failures": 1,
+      "probe_statuses": [
+        "failed"
+      ],
+      "quantities": 9,
+      "source_changed": false,
+      "task_id": "002",
+      "trial_path": "jobs/task-002-science/task_002__wAjtAwX",
+      "usage": {
+        "accounting": "completed_turn_events_only",
+        "cached_input_tokens": 167808,
+        "completed_turns": 1,
+        "input_tokens": 197203,
+        "malformed_log_lines": 2,
+        "output_tokens": 3231
+      },
+      "verified": true
+    },
+    {
+      "claims": 3,
+      "duration_seconds": 132.73971500000334,
+      "final_response": "annotations.json",
+      "graph_sha256": "2ea77af9b7b3b44687b4d1c9e7ec47b9c354f87eae888c618b5b4f9ff35dfe73",
+      "interpretation_seconds": 113.03454070800217,
+      "phase_overlap_seconds": 0.847557458007941,
+      "phases": [
+        {
+          "allowance_seconds": 239.99974216639532,
+          "duration_seconds": 113.03454070800217,
+          "name": "interpret",
+          "started_offset_seconds": 3.5124976420775056e-05,
+          "status": "completed"
+        },
+        {
+          "allowance_seconds": 29.99996777079941,
+          "duration_seconds": 0.847557458007941,
+          "name": "prepare",
+          "started_offset_seconds": 0.004664624982979149,
+          "status": "ready"
+        },
+        {
+          "allowance_seconds": 15.0,
+          "duration_seconds": 0.887466249987483,
+          "name": "assemble_initial",
+          "started_offset_seconds": 113.03459699999075,
+          "status": "usable_graph"
+        },
+        {
+          "allowance_seconds": 171.07761075001326,
+          "duration_seconds": 1.3507872080081142,
+          "name": "probes",
+          "started_offset_seconds": 113.9220677499834,
+          "status": "completed"
+        },
+        {
+          "allowance_seconds": 184.72681341599673,
+          "duration_seconds": 1.171405125001911,
+          "name": "assemble_final",
+          "started_offset_seconds": 115.27286591698066,
+          "status": "usable_graph"
+        }
+      ],
+      "probe_assertion_failures": 1,
+      "probe_statuses": [
+        "failed"
+      ],
+      "quantities": 5,
+      "source_changed": false,
+      "task_id": "077",
+      "trial_path": "jobs/task-077-science/task_077__rkf8F8W",
+      "usage": {
+        "accounting": "completed_turn_events_only",
+        "cached_input_tokens": 104064,
+        "completed_turns": 1,
+        "input_tokens": 128012,
+        "malformed_log_lines": 2,
+        "output_tokens": 2829
+      },
+      "verified": true
+    }
+  ]
+}

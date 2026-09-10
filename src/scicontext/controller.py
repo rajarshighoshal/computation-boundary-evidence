@@ -139,13 +139,21 @@ async def run_trial(driver: Driver, config: TrialConfig, task_id: str, condition
                     record["extraction_status"] = "timeout"
                 # A final answer may be missing while an early checkpoint is
                 # perfectly usable. Validation uses only the reserved time.
-                left = extraction_deadline - time.monotonic()
+                # Artifact transfer must leave time for the ordinary container
+                # shutdown as well; it cannot consume the whole reserve.
+                shutdown_reserve = min(20.0, config.extraction_seconds / 12)
+                left = extraction_deadline - time.monotonic() - shutdown_reserve
                 if left > 0:
                     handoff = await asyncio.wait_for(driver.collect_graph(left), timeout=left)
             except asyncio.TimeoutError:
                 record["extraction_status"] = "timeout"
             finally:
-                await driver.finish_extraction()
+                try:
+                    await asyncio.wait_for(driver.finish_extraction(),
+                                           timeout=max(.001, extraction_deadline - time.monotonic()))
+                except asyncio.TimeoutError:
+                    record["extraction_status"] = "shutdown_timeout"
+                    raise
             if time.monotonic() > extraction_deadline:
                 handoff = None
                 record["extraction_status"] = "budget_exceeded"
@@ -181,7 +189,8 @@ async def run_trial(driver: Driver, config: TrialConfig, task_id: str, condition
         raise
     finally:
         try:
-            await asyncio.shield(driver.cleanup())
+            cleanup_deadline = min(deadline, started + config.extraction_seconds) if extraction_only else deadline
+            await asyncio.wait_for(driver.cleanup(), timeout=min(20.0, max(.001, cleanup_deadline - time.monotonic())))
         except Exception as error:
             record["status"] = "infrastructure_failure"
             record["cleanup_error"] = f"{type(error).__name__}: {error}"

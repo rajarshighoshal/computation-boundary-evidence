@@ -2,7 +2,7 @@
 
 The earlier `/proc` blocker is resolved by removing the custom nested sandbox. A different Linux machine was not needed for this check.
 
-The adapter now calls upstream Pier 0.3.0 `Codex.run` for both passes. It reuses the standard Codex command, subscription authentication, proxy handling, session logs and cleanup. The only execution additions are output-file/schema flags and a small GNU-timeout launcher for the experiment's time allowance. The scientific extraction, alignment, semantic lifting and propagation code is unchanged.
+The adapter calls upstream Pier 0.3.0 `Codex.run` for both passes. It reuses the standard Codex command, subscription authentication, proxy handling, session logs and cleanup. A plain final-message file and a small GNU-timeout launcher are retained. The current extractor adds bounded code-owned preparation, assembly and probes around compact LLM annotations; the existing alignment/lifting/propagation checks are reused.
 
 ## Verified on the same Mac
 
@@ -21,4 +21,4 @@ Docker supplies isolation, following [OpenAI's documented container approach](ht
 
 The extractor runs on a disposable copy; detected source edits invalidate its graph handoff. Repair starts from a separate unchanged copy. GNU timeout covers normal foreground process groups, not deliberately detached children.
 
-Next is review of the pilot's stopping behavior and limited mechanical coverage before a larger evaluation. Docker still exposes about 4 GB versus the tasks' requested 8 GiB; resolve allocation before locked evaluation. No full-benchmark run has been launched.
+The bounded annotation-based extractor is now implemented and has passed separate extraction-only checks; see [the generated verification report](EXTRACTOR_VERIFICATION.md). No new repair comparison has been run for this revision. Mechanical coverage remains limited, and Docker allocation still needs review before locked evaluation. No full-benchmark run has been launched.
