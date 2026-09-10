@@ -222,6 +222,7 @@ def render(run_root, summary):
               "the earlier receipt totals can contain completed turns from an interrupted stage. "
               "Trial totals require every expected stage to be present and measured. CLI diagnostic lines are skipped, as in receipt collection.", ""]
     breakdown_rows = []
+    stage_totals, trial_totals = {}, {}
     for item, key in zip(planned, keys):
         row = rows.get(key, {})
         stages = row.get("stages", [])
@@ -229,16 +230,40 @@ def render(run_root, summary):
         for stage in stages:
             values = stage_token_breakdown(trial_path(run_root, row), stage)
             measured.append(values)
+            stage_totals[(*key, stage.get("name"))] = values["total_tokens"]
             breakdown_rows.append((*key, stage.get("name"), stage.get("status"),
                                    *(number(values[field], 0) for field in BREAKDOWN)))
         expected = {"repair"} if item["condition"] == "baseline" else {"extract", "repair"}
         complete = len(stages) == len(expected) and {s.get("name") for s in stages} == expected
         totals = {field: sum(v[field] for v in measured) if complete and all(
             v[field] is not None for v in measured) else None for field in BREAKDOWN}
+        trial_totals[key] = totals["total_tokens"]
         breakdown_rows.append((*key, "trial total", row.get("status", "no receipt"),
                                *(number(totals[field], 0) for field in BREAKDOWN)))
     table(lines, ["Task", "Arm", "Stage", "Status", "Input", "Cached input", "Uncached input", "Output",
                   "Reasoning output", "Nonreasoning output", "Total"], breakdown_rows)
+    lines += ["### Treatment stages versus baseline total", "",
+              "These are raw input-plus-output token counts, not a monetary bill. The percentage compares "
+              "the full treatment with the full baseline; unknown or incomplete costs remain unknown. "
+              "Code-owned preparation, assembly and probe execution have no separate model calls; their time is "
+              "included in extraction, and material read by the model contributes to that stage's input tokens. "
+              "These tables exclude development-assistant and posthoc-review usage.", ""]
+    cost_rows = []
+    for task in tasks:
+        cost_rows.append((task, trial_totals.get((task, "baseline")),
+            stage_totals.get((task, "science", "extract")),
+            stage_totals.get((task, "science", "repair")),
+            trial_totals.get((task, "science"))))
+    cost_rows.append(("All planned tasks", *(sum(row[column] for row in cost_rows)
+        if all(row[column] is not None for row in cost_rows) else None for column in range(1, 5))))
+    comparison_rows = []
+    for task, baseline_total, extraction_total, repair_total, treatment_total in cost_rows:
+        change = (f"{100 * (treatment_total / baseline_total - 1):+.1f}%"
+                  if baseline_total and treatment_total is not None else "unknown")
+        comparison_rows.append((task, number(baseline_total, 0),
+            number(extraction_total, 0), number(repair_total, 0),
+            number(treatment_total, 0), change))
+    table(lines, ["Task", "Baseline total", "Extraction", "Treatment repair", "Treatment total", "Change vs baseline"], comparison_rows)
     wall = None
     try:
         wall = (dt.datetime.fromisoformat(schedule["finished_at"]) - dt.datetime.fromisoformat(schedule["started_at"])).total_seconds()

@@ -47,7 +47,7 @@ claiming a uniform controlled experiment.
 The task-local prototype was implemented in isolated worktrees while those old runs continued,
 then integrated. Its original-source checks and separate [model extraction checks](EXTRACTOR_TASK_LOCAL_CHECK.md)
 completed without repair or hidden-test execution. The integrated source hashes match the tested
-worktree. No benchmark containers remain active; a new repair comparison is a subsequent decision.
+worktree. Those extraction-only jobs stopped cleanly before the later repair comparison.
 
 The subsequently requested full comparison stopped at the user's instruction after initial graph
 assembly hit a premature internal sub-limit. The fix now uses the remaining shared extraction work
@@ -55,4 +55,16 @@ budget while retaining the outer cleanup reserve. The exact saved failure was re
 without a model call, then a user-approved full extraction-only check completed with a non-empty
 source-backed graph within its cap. See [replay](ASSEMBLY_TIMEOUT_FIX.md) and
 [bounded check](ASSEMBLY_BUDGET_CHECK.md). This does not guarantee scientific usefulness; direct
-expression matching remained unresolved in the smoke. Comparisons have not restarted.
+expression matching remained unresolved in the smoke. The user subsequently authorized the fresh
+`runs/task-local-five-v2` comparison with the frozen original task list and matched medium-effort
+settings. It is complete: [audited outcomes and stage costs](TASK_LOCAL_FIVE_V2_RESULTS.md) and
+[qualitative paired review](TASK_LOCAL_FIVE_V2_NOTES.md). Prior interrupted records remain separate.
+Token reporting compares extraction, treatment repair and combined treatment against baseline totals,
+with cached-input and reasoning subsets retained without double counting. Completed-turn counts
+also match independently saved cumulative session counters.
+
+After the comparison finished and Docker was idle, the user requested a temporary memory increase.
+The terminal route stopped Docker Desktop, changed only `MemoryMiB` in its existing settings file,
+then restarted and verified the engine. [The allocation receipt](../results/docker-memory-change.json)
+records the original value, new value and effective memory. This does not retroactively change the
+comparison's resources. Restore the original allocation when this research work no longer needs it.

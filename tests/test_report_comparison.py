@@ -228,6 +228,19 @@ def test_raw_breakdown_subsets_and_trial_totals_do_not_double_count(tmp_path):
     assert "| 010 | science | extract | completed | 100 | 20 | 80 | 30 | 12 | 18 | 130 |" in content
     assert "| 010 | science | trial total | completed | 200 | 40 | 160 | 60 | 24 | 36 | 260 |" in content
     assert "| 010 | baseline | trial total | no receipt | unknown | unknown | unknown | unknown | unknown | unknown | unknown |" in content
+    assert "| 010 | unknown | 130 | 130 | 260 | unknown |" in content
+
+
+def test_treatment_stage_costs_compare_with_complete_baseline(tmp_path):
+    schedule(tmp_path, tasks=("010",))
+    baseline = trial(tmp_path, "010", "baseline")
+    science = trial(tmp_path, "010", "science", graph=True)
+    raw_usage(baseline)
+    raw_usage(science, "extract")
+    raw_usage(science, "repair")
+    content = generate(tmp_path)
+    assert "| 010 | 130 | 130 | 130 | 260 | +100.0% |" in content
+    assert "| All planned tasks | 130 | 130 | 130 | 260 | +100.0% |" in content
 
 
 def test_multiple_completed_turn_events_are_summed(tmp_path):
@@ -239,6 +252,31 @@ def test_multiple_completed_turn_events_are_summed(tmp_path):
     values = report.stage_token_breakdown(directory, stage)
     assert values["total_tokens"] == 130
     assert values["reasoning_output_tokens"] == 12
+
+
+@pytest.mark.parametrize("baseline_input,extract_status,expected", [
+    (0, "completed", "| 010 | 0 | 130 | 130 | 260 | unknown |"),
+    (520, "completed", "| 010 | 520 | 130 | 130 | 260 | -50.0% |"),
+    (520, "timeout", "| 010 | 520 | unknown | 130 | unknown | unknown |"),
+])
+def test_token_comparison_edge_cases(tmp_path, baseline_input, extract_status, expected):
+    schedule(tmp_path, tasks=("010",))
+    baseline = trial(tmp_path, "010", "baseline")
+    science = trial(tmp_path, "010", "science", graph=True)
+    baseline_record = report.read(baseline / "run.json")
+    usage = {"input_tokens": baseline_input, "cached_input_tokens": 0,
+             "output_tokens": 0, "reasoning_output_tokens": 0}
+    baseline_record["stages"][0]["usage"] = usage
+    dump(baseline / "run.json", baseline_record)
+    raw_usage(baseline, usages=[usage])
+    science_record = report.read(science / "run.json")
+    science_record["stages"][0]["status"] = extract_status
+    dump(science / "run.json", science_record)
+    raw_usage(science, "extract")
+    raw_usage(science, "repair")
+    content = generate(tmp_path)
+    assert expected in content
+    assert expected.replace("| 010 |", "| All planned tasks |") in content
 
 
 def test_missing_reasoning_and_failed_stage_preserve_unknowns(tmp_path):

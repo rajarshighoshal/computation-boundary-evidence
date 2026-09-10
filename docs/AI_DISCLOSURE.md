@@ -21,4 +21,10 @@ to test interfaces; separate live checks used newly generated model annotations.
 conflated. Input/output/reasoning counts refer to benchmark-agent stages, not all development-assistant
 usage, and reasoning/cached tokens are reported as subsets rather than added twice.
 
+The restarted task-local comparison preserves fresh baseline and treatment attempts under a frozen
+method. Saved CLI session contexts corroborate the model alias, effort and execution policies;
+they do not establish an immutable backend model snapshot. Posthoc reviews were kept outside the
+evaluated agents' context. The later user-approved Docker memory change occurred only after this
+comparison finished and does not alter its recorded resources.
+
 This file records the division of work, not a claim that any experimental improvement has been established. Pilot and final results must be generated from preserved run artifacts and reviewed by Rajarshi.

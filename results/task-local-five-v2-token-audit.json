@@ -1,0 +1,291 @@
+{
+  "method": "Completed-turn usage independently matched to final cumulative exec-session counters; subsets are not added twice",
+  "records": [
+    {
+      "cli_log": "runs/task-local-five-v2/jobs/task-001-baseline/task_001__GGfH99H/agent/repair.jsonl",
+      "cli_sha256": "82925ca21fb1f338f3194ccfd292cd81fe733929af5e86a4a1f3c67ef6dd99f5",
+      "condition": "baseline",
+      "session_file": "runs/task-local-five-v2/jobs/task-001-baseline/task_001__GGfH99H/agent/repair-sessions/2026/09/10/rollout-2026-09-10T16-21-11-01a08c1f-8636-78e2-abb7-26b4756b59dc.jsonl",
+      "session_sha256": "e132a9a4f69c88e3364a5fb0f5ce6624cc68b0d967ac26f4c0cda5bb7305046d",
+      "stage": "repair",
+      "status": "verified",
+      "task_id": "001",
+      "usage": {
+        "cached_input_tokens": 2889088,
+        "input_tokens": 3005903,
+        "nonreasoning_output_tokens": 16638,
+        "output_tokens": 34595,
+        "reasoning_output_tokens": 17957,
+        "total_tokens": 3040498,
+        "uncached_input_tokens": 116815
+      }
+    },
+    {
+      "cli_log": "runs/task-local-five-v2/jobs/task-001-science/task_001__nJayhq5/agent/extract.jsonl",
+      "cli_sha256": "6687cea27f7f8b621c032d909737a0793cd773b16004c4f128d5bb50baea4cb3",
+      "condition": "science",
+      "session_file": "runs/task-local-five-v2/jobs/task-001-science/task_001__nJayhq5/agent/extract-sessions/2026/09/10/rollout-2026-09-10T16-00-43-01a08c0c-ca3b-7082-ba92-e1496c0dee31.jsonl",
+      "session_sha256": "f826f308528aea5b9864087b67e92a422f583b7fc2e98d0964cf76a5f02f6a86",
+      "stage": "extract",
+      "status": "verified",
+      "task_id": "001",
+      "usage": {
+        "cached_input_tokens": 153728,
+        "input_tokens": 185101,
+        "nonreasoning_output_tokens": 2446,
+        "output_tokens": 2516,
+        "reasoning_output_tokens": 70,
+        "total_tokens": 187617,
+        "uncached_input_tokens": 31373
+      }
+    },
+    {
+      "cli_log": "runs/task-local-five-v2/jobs/task-001-science/task_001__nJayhq5/agent/repair.jsonl",
+      "cli_sha256": "3f78ab78514d4bca2a7ed5f525bc151375aa05b75b9760ea2692dfd20e3e8aed",
+      "condition": "science",
+      "session_file": "runs/task-local-five-v2/jobs/task-001-science/task_001__nJayhq5/agent/repair-sessions/2026/09/10/rollout-2026-09-10T16-02-51-01a08c0e-bc08-7c90-8013-af6f467506c1.jsonl",
+      "session_sha256": "895d6b2ee1ba7ea29ae8b118fd5504e564f2850b694093465342edfc6a31d31a",
+      "stage": "repair",
+      "status": "verified",
+      "task_id": "001",
+      "usage": {
+        "cached_input_tokens": 2318208,
+        "input_tokens": 2424854,
+        "nonreasoning_output_tokens": 14172,
+        "output_tokens": 27994,
+        "reasoning_output_tokens": 13822,
+        "total_tokens": 2452848,
+        "uncached_input_tokens": 106646
+      }
+    },
+    {
+      "cli_log": "runs/task-local-five-v2/jobs/task-009-baseline/task_009__4LrQgge/agent/repair.jsonl",
+      "cli_sha256": "e7510e43c82be7c096ca6f339f5d7daf548ce0ec252e1f8e6c4d51265a266534",
+      "condition": "baseline",
+      "session_file": "runs/task-local-five-v2/jobs/task-009-baseline/task_009__4LrQgge/agent/repair-sessions/2026/09/10/rollout-2026-09-10T15-34-55-01a08bf5-2c6e-70f0-aebb-379b725c91f8.jsonl",
+      "session_sha256": "1d1f8ea47efc5057f1813d9a4c684d153e99ef01233062790e2bb1c4768eb1d0",
+      "stage": "repair",
+      "status": "verified",
+      "task_id": "009",
+      "usage": {
+        "cached_input_tokens": 316800,
+        "input_tokens": 365490,
+        "nonreasoning_output_tokens": 7273,
+        "output_tokens": 10923,
+        "reasoning_output_tokens": 3650,
+        "total_tokens": 376413,
+        "uncached_input_tokens": 48690
+      }
+    },
+    {
+      "cli_log": "runs/task-local-five-v2/jobs/task-009-science/task_009__FHfaZYz/agent/extract.jsonl",
+      "cli_sha256": "00bd36ac95ea43eef0a073bdcbc7efe3587052c0156420969272195ca163ce64",
+      "condition": "science",
+      "session_file": "runs/task-local-five-v2/jobs/task-009-science/task_009__FHfaZYz/agent/extract-sessions/2026/09/10/rollout-2026-09-10T15-26-49-01a08bed-bf14-7332-976d-6b48dd99fc1a.jsonl",
+      "session_sha256": "bc7e4577e2f2cf0f7e15b8dd28d0df63c26cbc481d15e4cc0b84261ed75d4895",
+      "stage": "extract",
+      "status": "verified",
+      "task_id": "009",
+      "usage": {
+        "cached_input_tokens": 117888,
+        "input_tokens": 149863,
+        "nonreasoning_output_tokens": 3157,
+        "output_tokens": 3190,
+        "reasoning_output_tokens": 33,
+        "total_tokens": 153053,
+        "uncached_input_tokens": 31975
+      }
+    },
+    {
+      "cli_log": "runs/task-local-five-v2/jobs/task-009-science/task_009__FHfaZYz/agent/repair.jsonl",
+      "cli_sha256": "da85b6d8fde73ae4b04070312421af391ef43a3e81b2dfd432b3f8fca851c78c",
+      "condition": "science",
+      "session_file": "runs/task-local-five-v2/jobs/task-009-science/task_009__FHfaZYz/agent/repair-sessions/2026/09/10/rollout-2026-09-10T15-29-14-01a08bef-f651-7782-bc56-645ee1d52a1f.jsonl",
+      "session_sha256": "08fd61079eafa9f49ed7e160a947c7e3dfd3a04ceb02bfc55283ef82de9d921b",
+      "stage": "repair",
+      "status": "verified",
+      "task_id": "009",
+      "usage": {
+        "cached_input_tokens": 269568,
+        "input_tokens": 315649,
+        "nonreasoning_output_tokens": 6385,
+        "output_tokens": 8289,
+        "reasoning_output_tokens": 1904,
+        "total_tokens": 323938,
+        "uncached_input_tokens": 46081
+      }
+    },
+    {
+      "cli_log": "runs/task-local-five-v2/jobs/task-058-baseline/task_058__W3CJj2K/agent/repair.jsonl",
+      "cli_sha256": "9ed00ea5ec50c51b424dc484864bbad204639a17d20fdc52e9ee83e75ca2f239",
+      "condition": "baseline",
+      "session_file": "runs/task-local-five-v2/jobs/task-058-baseline/task_058__W3CJj2K/agent/repair-sessions/2026/09/10/rollout-2026-09-10T14-51-25-01a08bcd-55e9-72e2-9f41-366841b4503d.jsonl",
+      "session_sha256": "670eacc69ab3a8cbcf4bd89e0ff66f7c15d7a5cc6f1afb84cf9020520f5b1fdc",
+      "stage": "repair",
+      "status": "verified",
+      "task_id": "058",
+      "usage": {
+        "cached_input_tokens": 1566464,
+        "input_tokens": 1639839,
+        "nonreasoning_output_tokens": 10907,
+        "output_tokens": 17259,
+        "reasoning_output_tokens": 6352,
+        "total_tokens": 1657098,
+        "uncached_input_tokens": 73375
+      }
+    },
+    {
+      "cli_log": "runs/task-local-five-v2/jobs/task-058-science/task_058__eGAKKPX/agent/extract.jsonl",
+      "cli_sha256": "0f34f47f0cc547618229da0893c0caae7056dda833e9bf37a7ab77a056a80371",
+      "condition": "science",
+      "session_file": "runs/task-local-five-v2/jobs/task-058-science/task_058__eGAKKPX/agent/extract-sessions/2026/09/10/rollout-2026-09-10T15-07-19-01a08bdb-e440-7543-949e-54229a5b5384.jsonl",
+      "session_sha256": "8dd279e8346c610b91de74a5834a095937b72ffd31b13f388236962f844672c3",
+      "stage": "extract",
+      "status": "verified",
+      "task_id": "058",
+      "usage": {
+        "cached_input_tokens": 184576,
+        "input_tokens": 214707,
+        "nonreasoning_output_tokens": 2557,
+        "output_tokens": 2623,
+        "reasoning_output_tokens": 66,
+        "total_tokens": 217330,
+        "uncached_input_tokens": 30131
+      }
+    },
+    {
+      "cli_log": "runs/task-local-five-v2/jobs/task-058-science/task_058__eGAKKPX/agent/repair.jsonl",
+      "cli_sha256": "530253bc504134ff627ac7c6a2f17ddb89df453f7b4113381cf719b899ea13b1",
+      "condition": "science",
+      "session_file": "runs/task-local-five-v2/jobs/task-058-science/task_058__eGAKKPX/agent/repair-sessions/2026/09/10/rollout-2026-09-10T15-09-36-01a08bdd-fd8c-7763-a8bf-71ef76d2c686.jsonl",
+      "session_sha256": "261ae3ebffedef09f92efd282972e7f82e275d4655cb6fff7821f0868b8f8513",
+      "stage": "repair",
+      "status": "verified",
+      "task_id": "058",
+      "usage": {
+        "cached_input_tokens": 1956864,
+        "input_tokens": 2035618,
+        "nonreasoning_output_tokens": 12317,
+        "output_tokens": 19196,
+        "reasoning_output_tokens": 6879,
+        "total_tokens": 2054814,
+        "uncached_input_tokens": 78754
+      }
+    },
+    {
+      "cli_log": "runs/task-local-five-v2/jobs/task-091-baseline/task_091__okeQPcT/agent/repair.jsonl",
+      "cli_sha256": "59ec4f518e8ea1dc4ac4090a6080aef4a4068524577516e92d142fda502b7635",
+      "condition": "baseline",
+      "session_file": "runs/task-local-five-v2/jobs/task-091-baseline/task_091__okeQPcT/agent/repair-sessions/2026/09/10/rollout-2026-09-10T14-48-26-01a08bca-9e28-71a3-86ab-fc59567cef59.jsonl",
+      "session_sha256": "c32dc54d6b3c81e858341e3d1bef7ab28cc3d52b404e09e86cc42510e34d34d1",
+      "stage": "repair",
+      "status": "verified",
+      "task_id": "091",
+      "usage": {
+        "cached_input_tokens": 273024,
+        "input_tokens": 302263,
+        "nonreasoning_output_tokens": 2375,
+        "output_tokens": 2707,
+        "reasoning_output_tokens": 332,
+        "total_tokens": 304970,
+        "uncached_input_tokens": 29239
+      }
+    },
+    {
+      "cli_log": "runs/task-local-five-v2/jobs/task-091-science/task_091__3JmuMCs/agent/extract.jsonl",
+      "cli_sha256": "b103e944bdb7c29c3b7516a2c0e39232f257ca1e0a32fcc68fd7b8727c3d4455",
+      "condition": "science",
+      "session_file": "runs/task-local-five-v2/jobs/task-091-science/task_091__3JmuMCs/agent/extract-sessions/2026/09/10/rollout-2026-09-10T14-43-21-01a08bc5-f3da-7db0-8cda-76e69142f0fa.jsonl",
+      "session_sha256": "88e112a8cd80a182649f9ac94a02765c25949ed02430e8ce1345bccaaefc43c8",
+      "stage": "extract",
+      "status": "verified",
+      "task_id": "091",
+      "usage": {
+        "cached_input_tokens": 91776,
+        "input_tokens": 122545,
+        "nonreasoning_output_tokens": 2604,
+        "output_tokens": 2839,
+        "reasoning_output_tokens": 235,
+        "total_tokens": 125384,
+        "uncached_input_tokens": 30769
+      }
+    },
+    {
+      "cli_log": "runs/task-local-five-v2/jobs/task-091-science/task_091__3JmuMCs/agent/repair.jsonl",
+      "cli_sha256": "18f3e320f37aa0fbd3bd76128c66a887044961801877125991251f509d9cb5fb",
+      "condition": "science",
+      "session_file": "runs/task-local-five-v2/jobs/task-091-science/task_091__3JmuMCs/agent/repair-sessions/2026/09/10/rollout-2026-09-10T14-45-36-01a08bc8-04a6-7da1-bdea-fb0e389a820b.jsonl",
+      "session_sha256": "e854e45343f747372a6c9c7857282dbda6d93d3487f8c4c039cadf60c4c70f77",
+      "stage": "repair",
+      "status": "verified",
+      "task_id": "091",
+      "usage": {
+        "cached_input_tokens": 235904,
+        "input_tokens": 269451,
+        "nonreasoning_output_tokens": 2399,
+        "output_tokens": 2570,
+        "reasoning_output_tokens": 171,
+        "total_tokens": 272021,
+        "uncached_input_tokens": 33547
+      }
+    },
+    {
+      "cli_log": "runs/task-local-five-v2/jobs/task-114-baseline/task_114__rxKXqVv/agent/repair.jsonl",
+      "cli_sha256": "8c98c95e8cf6a4deb8b0a8bab48a6af42edeb4bf375e7caf3dbd2cb7ccb35503",
+      "condition": "baseline",
+      "session_file": "runs/task-local-five-v2/jobs/task-114-baseline/task_114__rxKXqVv/agent/repair-sessions/2026/09/10/rollout-2026-09-10T15-42-18-01a08bfb-ecc5-78c3-9c38-402b8323aa80.jsonl",
+      "session_sha256": "293da1253933b38af217a37c9738cc23e9ea228bfa6e3ff7c6725df2cf5aeb29",
+      "stage": "repair",
+      "status": "verified",
+      "task_id": "114",
+      "usage": {
+        "cached_input_tokens": 721280,
+        "input_tokens": 778299,
+        "nonreasoning_output_tokens": 5767,
+        "output_tokens": 9480,
+        "reasoning_output_tokens": 3713,
+        "total_tokens": 787779,
+        "uncached_input_tokens": 57019
+      }
+    },
+    {
+      "cli_log": "runs/task-local-five-v2/jobs/task-114-science/task_114__X86DdXk/agent/extract.jsonl",
+      "cli_sha256": "6b5dfa4502fa0700ef5a5e83c6b0f5f2028bb0baea2cf3930c21943ef5318c97",
+      "condition": "science",
+      "session_file": "runs/task-local-five-v2/jobs/task-114-science/task_114__X86DdXk/agent/extract-sessions/2026/09/10/rollout-2026-09-10T15-49-49-01a08c02-d0c1-70e2-92d3-d32eb1596bea.jsonl",
+      "session_sha256": "d4cc76f3d45053d1b75e6f2923303aec191a46c50ffb031d6183548d39e621b8",
+      "stage": "extract",
+      "status": "verified",
+      "task_id": "114",
+      "usage": {
+        "cached_input_tokens": 201856,
+        "input_tokens": 231653,
+        "nonreasoning_output_tokens": 2822,
+        "output_tokens": 3020,
+        "reasoning_output_tokens": 198,
+        "total_tokens": 234673,
+        "uncached_input_tokens": 29797
+      }
+    },
+    {
+      "cli_log": "runs/task-local-five-v2/jobs/task-114-science/task_114__X86DdXk/agent/repair.jsonl",
+      "cli_sha256": "90c77b7eb9d2e8f236689ea73e90b18d5895cbd072a9412a41d28c6fff860613",
+      "condition": "science",
+      "session_file": "runs/task-local-five-v2/jobs/task-114-science/task_114__X86DdXk/agent/repair-sessions/2026/09/10/rollout-2026-09-10T15-52-15-01a08c05-0a1d-7b90-bc71-93ec409aedd8.jsonl",
+      "session_sha256": "912c293e1e61772ec601176161f3901431f93e1a58a783093f2e5d63fa105ab2",
+      "stage": "repair",
+      "status": "verified",
+      "task_id": "114",
+      "usage": {
+        "cached_input_tokens": 791296,
+        "input_tokens": 863011,
+        "nonreasoning_output_tokens": 6335,
+        "output_tokens": 10902,
+        "reasoning_output_tokens": 4567,
+        "total_tokens": 873913,
+        "uncached_input_tokens": 71715
+      }
+    }
+  ],
+  "run_root": "runs/task-local-five-v2"
+}

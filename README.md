@@ -8,15 +8,18 @@ The runner reuses Pier's Codex launch and subscription authentication. Extractio
 
 The original random-five checks are complete: [outcomes and token accounting](docs/INITIAL_FIVE_OVERVIEW.md).
 The task-local redesign is now implemented and has separate [extraction-only results](docs/EXTRACTOR_TASK_LOCAL_CHECK.md).
-It improves source retrieval and binding coverage on the development examples; repair effectiveness
-with this redesign has not yet been measured. Remaining scientific uncertainties are recorded in
-[the notes](docs/RANDOM_FIVE_NOTES.md).
+It improves source retrieval and binding coverage on the development examples. The restarted
+[end-to-end comparison and stage-token accounting](docs/TASK_LOCAL_FIVE_V2_RESULTS.md) are complete;
+they do not demonstrate a repair-success improvement. See the [paired qualitative review](docs/TASK_LOCAL_FIVE_V2_NOTES.md)
+for scientific ambiguities and remaining mechanical limitations.
 
 The later end-to-end comparison was stopped by the user after an assembly sub-limit failure;
 [partial records](docs/TASK_LOCAL_FIVE_INTERRUPTED.md) remain separate. That premature cap is now
 [fixed and replay-tested](docs/ASSEMBLY_TIMEOUT_FIX.md), and a
 [single full extraction check](docs/ASSEMBLY_BUDGET_CHECK.md) passed its timing/artifact criteria.
-Comparisons remain stopped; useful scientific content is not guaranteed merely by timely output.
+The user-authorized comparison in `runs/task-local-five-v2` completed with the frozen
+`configs/task-local-five-v1.json`. See `WORK_LOG.md` for verification receipts. These are previously inspected
+development tasks; useful scientific content is not guaranteed merely by timely output.
 
 ## Layout
 
@@ -86,9 +89,21 @@ documented in [the extraction contract](docs/EXTRACTION_V2.md). No extra model s
 
 Use a fresh output directory for every attempt. Existing attempts are never overwritten. The default development configuration uses tasks **002 and 077**; explicit configurations support bounded selections from a materialized release receipt. Full-benchmark evaluation requires a subsequent protocol/budget decision and restricted-license opt-in where applicable.
 
+To inspect a reproduction of the frozen task-local comparison, materialize its existing selection
+without drawing replacement tasks, then create a dry-run schedule:
+
+```bash
+uv run --no-sync scicontext prepare --task-id 091,058,009,114,001 --receipt data/random-five-v1-release.json
+uv run --no-sync scicontext pilot --config configs/task-local-five-v1.json --output runs/task-local-five-reproduction
+```
+
+Actual inference requires a newly agreed budget and `--execute` with a fresh output directory.
+Use the evaluated method revision recorded in the report; these previously inspected tasks do
+not constitute an untouched evaluation set.
+
 Authentication defaults to the saved ChatGPT cache at `~/.codex/auth.json`; `--auth-file` accepts a private subscription cache. API-key auth is rejected. Upstream Pier uploads and removes its temporary authentication files. They stay outside source/Git and image builds, but commands inside the same container can access them. This is the documented standard container mode, not a hostile-code credential-isolation system. Do not mount personal home directories or a Docker socket into task containers, and review raw logs before publishing.
 
-Repair uses pinned Codex's Linux x64 binary in the original amd64 task image. On an ARM Docker host, extraction uses the native ARM Codex build so its built-in read-only mode works; it does not change the scientific image or repair runtime. No bespoke permission profile is added. Setup receipts record both architectures. Docker memory allocation still needs to accommodate the task's declared resources before locked evaluation.
+Repair uses pinned Codex's Linux x64 binary in the original amd64 task image. On an ARM Docker host, extraction uses the native ARM Codex build so its built-in read-only mode works; it does not change the scientific image or repair runtime. No bespoke permission profile is added. Setup receipts record both architectures. The user-approved [temporary Docker memory increase](results/docker-memory-change.json) was applied only after the comparison finished. Historical results retain their original resource limitation; the new allocation applies to subsequent work and must still be checked against each selected task's requirements.
 
 ## Recompute results
 
@@ -97,6 +112,8 @@ uv run --no-sync scicontext summarize runs/pilot-v2/jobs --output runs/pilot-v2/
 uv run --no-sync python scripts/recompute_results.py runs/pilot-v2/jobs --verify runs/pilot-v2/summary/summary.json
 uv run --no-sync python scripts/report_initial_five.py
 uv run --no-sync python scripts/report_task_local_extractor.py --run-root runs/extractor-task-local-check-v1 --json-output results/extractor-task-local-check-v1.json --markdown-output docs/EXTRACTOR_TASK_LOCAL_CHECK.md
+uv run --no-sync python scripts/report_comparison.py --run-root runs/task-local-five-v2 --summary results/task-local-five-v2.json --output docs/TASK_LOCAL_FIVE_V2_RESULTS.md
+uv run --no-sync python scripts/audit_session_tokens.py --run-root runs/task-local-five-v2 --output results/task-local-five-v2-token-audit.json
 ```
 
 The independent script does not import the application aggregator. Summaries retain missing pairs, failed attempts, official reward versus exact private success, stage usage, timing, provenance and development exposure. Fail2Pass/Pass2Pass remain unavailable unless original baseline and candidate private test identities can be matched; aggregate pass counts cannot reconstruct them.

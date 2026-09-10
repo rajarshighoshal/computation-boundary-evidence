@@ -42,8 +42,10 @@ The subsequently approved task-local redesign is implemented: reproducer/import/
 selection, one code-owned expansion of annotation references, preserved unknown operation children,
 separate equation targets/RHS, scoped scientific bindings and a compact dependency handoff. It keeps
 the same single interpretation session and budgets. Its deterministic original-source checks and
-live extraction-only checks are separate from the completed old-method repair sample. A new-method
-repair comparison remains a decision for Rajarshi; extraction traceability is not repair effectiveness.
+live extraction-only checks are separate from the completed old-method repair sample. Rajarshi
+authorized a fresh paired comparison on the original selected tasks after the assembly budget fix
+passed a bounded full extraction check. `configs/task-local-five-v1.json` freezes that comparison;
+`WORK_LOG.md` records execution and verification. Extraction traceability is not repair effectiveness.
 
 ## Verification and evaluation
 

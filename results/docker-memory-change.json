@@ -1,0 +1,17 @@
+{
+  "before_other_settings_sha256": "013a28de7cb6289bebaf78d7c938a791f47de3c7b1b64a9c3c9e2e127339ef0b",
+  "comparison_finished_at": "2026-09-10T16:44:37.115983+00:00",
+  "comparison_run": "runs/task-local-five-v2",
+  "docker_cpus": 4,
+  "docker_memory_bytes": 9365356544,
+  "original_memory_mib": 4096,
+  "recorded_at": "2026-09-10T16:47:02.701741+00:00",
+  "restoration": "Restore only MemoryMiB to the original value when this research allocation is no longer needed.",
+  "saved_memory_mib": 9216,
+  "setting_changed_at": "2026-09-10T16:47:23.567103+00:00",
+  "settings_path": "/Users/rajarshighoshal/Library/Group Containers/group.com.docker/settings-store.json",
+  "status": "verified",
+  "target_memory_mib": 9216,
+  "unrelated_settings_unchanged_before_restart": true,
+  "verified_at": "2026-09-10T16:48:14.119338+00:00"
+}
