@@ -93,7 +93,10 @@ That check motivated the probe-first corrections above. Their local verification
 [probe-first live check](PROBE_FIRST_CHECK_V1.md) produced and executed scoped scientific probes
 on both development tasks. [Its scientific review](PROBE_FIRST_CHECK_V1_NOTES.md) distinguishes
 useful counterexamples from incomplete alignment and optional-correction failures. Repair benefit
-and broader coverage remain untested for this revision.
+and broader coverage were not established by that extraction-only check. The later
+[bounded paired repair comparison](PROBE_FIRST_PAIRS_V1.md) found no improvement on these known
+development tasks. [Its interpretation](PROBE_FIRST_PAIRS_V1_NOTES.md) identifies requirement
+selection and scope transfer as concrete failures despite executed auxiliary probes.
 Task001 is diagnostic-exposed; its hidden assertion and constructed diagnostic case are not included
 in the new prompts or integration examples. No larger experiment is authorized by implementation.
 

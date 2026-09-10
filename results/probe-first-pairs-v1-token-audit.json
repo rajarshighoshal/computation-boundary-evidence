@@ -1,0 +1,145 @@
+{
+  "method": "Completed-turn usage independently matched to final cumulative exec-session counters; subsets are not added twice",
+  "records": [
+    {
+      "cli_log": "runs/probe-first-pairs-v1/jobs/task-091-baseline/task_091__x5zweVn/agent/repair.jsonl",
+      "cli_sha256": "6a873ae7b73eb8ad8131c2a0ad3a9543d1c9abb722a635d4f531ecde9676963a",
+      "condition": "baseline",
+      "session_file": "runs/probe-first-pairs-v1/jobs/task-091-baseline/task_091__x5zweVn/agent/repair-sessions/2026/09/10/rollout-2026-09-10T21-24-11-01a08d34-efee-7c02-9a4d-be038c8df15e.jsonl",
+      "session_sha256": "b7ad87ea59ff934e0a088873f96400cff89ecc30ac7c9eb4168ccca18e4a39d1",
+      "stage": "repair",
+      "status": "verified",
+      "task_id": "091",
+      "usage": {
+        "cached_input_tokens": 255360,
+        "input_tokens": 287573,
+        "nonreasoning_output_tokens": 2257,
+        "output_tokens": 2400,
+        "reasoning_output_tokens": 143,
+        "total_tokens": 289973,
+        "uncached_input_tokens": 32213
+      }
+    },
+    {
+      "condition": "science",
+      "model_calls": [
+        {
+          "cli_log": "runs/probe-first-pairs-v1/jobs/task-091-science/task_091__kHGMADp/agent/extract_draft.jsonl",
+          "cli_sha256": "17ae24987f98323de48b9a1b9f27aff83807d25779fe0365f671f044589adf22",
+          "session_file": "runs/probe-first-pairs-v1/jobs/task-091-science/task_091__kHGMADp/agent/extract_draft-sessions/2026/09/10/rollout-2026-09-10T21-24-20-01a08d35-11e0-7551-8d53-b77addb12c86.jsonl",
+          "session_sha256": "ac172c7635ee6af5a8120f42254326ab3bfb5e6b13fff3a9a9021c8ac6c04353",
+          "stage": "extract_draft",
+          "status": "verified",
+          "usage": {
+            "cached_input_tokens": 141440,
+            "input_tokens": 170294,
+            "nonreasoning_output_tokens": 2581,
+            "output_tokens": 2781,
+            "reasoning_output_tokens": 200,
+            "total_tokens": 173075,
+            "uncached_input_tokens": 28854
+          }
+        },
+        {
+          "stage": "extract_revision",
+          "status": "unknown_incomplete_stage"
+        }
+      ],
+      "stage": "extract",
+      "status": "unknown_incomplete_stage",
+      "task_id": "091"
+    },
+    {
+      "cli_log": "runs/probe-first-pairs-v1/jobs/task-091-science/task_091__kHGMADp/agent/repair.jsonl",
+      "cli_sha256": "0100c1e743b389b0b70f568ff1c194db00247abe05210f526d114762d51f5fbf",
+      "condition": "science",
+      "session_file": "runs/probe-first-pairs-v1/jobs/task-091-science/task_091__kHGMADp/agent/repair-sessions/2026/09/10/rollout-2026-09-10T21-28-11-01a08d38-9671-7741-bba7-04bd471924a8.jsonl",
+      "session_sha256": "38f115530da5526bcb7e299f361b200167a879b064ae646b5f8a3d84cf18ceae",
+      "stage": "repair",
+      "status": "verified",
+      "task_id": "091",
+      "usage": {
+        "cached_input_tokens": 165888,
+        "input_tokens": 192264,
+        "nonreasoning_output_tokens": 2800,
+        "output_tokens": 2949,
+        "reasoning_output_tokens": 149,
+        "total_tokens": 195213,
+        "uncached_input_tokens": 26376
+      }
+    },
+    {
+      "cli_log": "runs/probe-first-pairs-v1/jobs/task-114-baseline/task_114__vpokiQx/agent/repair.jsonl",
+      "cli_sha256": "6629880fa65f5b39ae453947bbde900a26bbb88f0f6535ff4e366d7fd6674ce4",
+      "condition": "baseline",
+      "session_file": "runs/probe-first-pairs-v1/jobs/task-114-baseline/task_114__vpokiQx/agent/repair-sessions/2026/09/10/rollout-2026-09-10T21-31-12-01a08d3b-59b5-7fc3-af91-85f5e72c259c.jsonl",
+      "session_sha256": "10131b4dd162535fd317527e58499aae9d47ec90920a7a384f1c185fd6163422",
+      "stage": "repair",
+      "status": "verified",
+      "task_id": "114",
+      "usage": {
+        "cached_input_tokens": 936576,
+        "input_tokens": 997191,
+        "nonreasoning_output_tokens": 6121,
+        "output_tokens": 7602,
+        "reasoning_output_tokens": 1481,
+        "total_tokens": 1004793,
+        "uncached_input_tokens": 60615
+      }
+    },
+    {
+      "condition": "science",
+      "model_calls": [
+        {
+          "cli_log": "runs/probe-first-pairs-v1/jobs/task-114-science/task_114__Tf6mqHJ/agent/extract_draft.jsonl",
+          "cli_sha256": "968e8f29c7ae4605b3e2246be2ea4e336e6fc86a6909def1d568975f87d5a60c",
+          "session_file": "runs/probe-first-pairs-v1/jobs/task-114-science/task_114__Tf6mqHJ/agent/extract_draft-sessions/2026/09/10/rollout-2026-09-10T21-31-21-01a08d3b-7d05-78b0-87b5-ef40f86fc155.jsonl",
+          "session_sha256": "2e01769e3a96978ada63aac1c02552bf5dd1f8fc9640e957c01249832313d006",
+          "stage": "extract_draft",
+          "status": "verified",
+          "usage": {
+            "cached_input_tokens": 110464,
+            "input_tokens": 135356,
+            "nonreasoning_output_tokens": 2588,
+            "output_tokens": 2902,
+            "reasoning_output_tokens": 314,
+            "total_tokens": 138258,
+            "uncached_input_tokens": 24892
+          }
+        }
+      ],
+      "stage": "extract",
+      "status": "verified",
+      "task_id": "114",
+      "usage": {
+        "cached_input_tokens": 110464,
+        "input_tokens": 135356,
+        "nonreasoning_output_tokens": 2588,
+        "output_tokens": 2902,
+        "reasoning_output_tokens": 314,
+        "total_tokens": 138258,
+        "uncached_input_tokens": 24892
+      }
+    },
+    {
+      "cli_log": "runs/probe-first-pairs-v1/jobs/task-114-science/task_114__Tf6mqHJ/agent/repair.jsonl",
+      "cli_sha256": "0bd8ef8c4be9052b8409d3a405166e46c358139a1748169bb22fb36c8948b4d3",
+      "condition": "science",
+      "session_file": "runs/probe-first-pairs-v1/jobs/task-114-science/task_114__Tf6mqHJ/agent/repair-sessions/2026/09/10/rollout-2026-09-10T21-33-38-01a08d3d-9428-7dc2-aebb-58ae9cad11af.jsonl",
+      "session_sha256": "0fccc658545092ad772b63e6f77a9a2efca73367ab7f51613fcdeef00a6d0098",
+      "stage": "repair",
+      "status": "verified",
+      "task_id": "114",
+      "usage": {
+        "cached_input_tokens": 940288,
+        "input_tokens": 1023914,
+        "nonreasoning_output_tokens": 6772,
+        "output_tokens": 10593,
+        "reasoning_output_tokens": 3821,
+        "total_tokens": 1034507,
+        "uncached_input_tokens": 83626
+      }
+    }
+  ],
+  "run_root": "runs/probe-first-pairs-v1"
+}
