@@ -12,6 +12,12 @@ It improves source retrieval and binding coverage on the development examples; r
 with this redesign has not yet been measured. Remaining scientific uncertainties are recorded in
 [the notes](docs/RANDOM_FIVE_NOTES.md).
 
+The later end-to-end comparison was stopped by the user after an assembly sub-limit failure;
+[partial records](docs/TASK_LOCAL_FIVE_INTERRUPTED.md) remain separate. That premature cap is now
+[fixed and replay-tested](docs/ASSEMBLY_TIMEOUT_FIX.md), and a
+[single full extraction check](docs/ASSEMBLY_BUDGET_CHECK.md) passed its timing/artifact criteria.
+Comparisons remain stopped; useful scientific content is not guaranteed merely by timely output.
+
 ## Layout
 
 ```text

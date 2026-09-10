@@ -48,3 +48,11 @@ The task-local prototype was implemented in isolated worktrees while those old r
 then integrated. Its original-source checks and separate [model extraction checks](EXTRACTOR_TASK_LOCAL_CHECK.md)
 completed without repair or hidden-test execution. The integrated source hashes match the tested
 worktree. No benchmark containers remain active; a new repair comparison is a subsequent decision.
+
+The subsequently requested full comparison stopped at the user's instruction after initial graph
+assembly hit a premature internal sub-limit. The fix now uses the remaining shared extraction work
+budget while retaining the outer cleanup reserve. The exact saved failure was reproduced and fixed
+without a model call, then a user-approved full extraction-only check completed with a non-empty
+source-backed graph within its cap. See [replay](ASSEMBLY_TIMEOUT_FIX.md) and
+[bounded check](ASSEMBLY_BUDGET_CHECK.md). This does not guarantee scientific usefulness; direct
+expression matching remained unresolved in the smoke. Comparisons have not restarted.
