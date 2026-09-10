@@ -27,4 +27,11 @@ they do not establish an immutable backend model snapshot. Posthoc reviews were 
 evaluated agents' context. The later user-approved Docker memory change occurred only after this
 comparison finished and does not alter its recorded resources.
 
+At Rajarshi's subsequent request, Codex investigated task001's treatment failure, including the
+saved hidden assertion output. This diagnostic exposure occurred after the completed comparison;
+the hidden source fixture was not retrieved. AI-assisted review and a scripted public counterexample
+examined the candidate axis-selection mechanism without new benchmark-agent attempts or method fixes.
+Any future task001 attempt must disclose this prior diagnostic exposure; historical pre-run metadata
+must remain unchanged.
+
 This file records the division of work, not a claim that any experimental improvement has been established. Pilot and final results must be generated from preserved run artifacts and reviewed by Rajarshi.

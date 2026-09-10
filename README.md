@@ -12,6 +12,9 @@ It improves source retrieval and binding coverage on the development examples. T
 [end-to-end comparison and stage-token accounting](docs/TASK_LOCAL_FIVE_V2_RESULTS.md) are complete;
 they do not demonstrate a repair-success improvement. See the [paired qualitative review](docs/TASK_LOCAL_FIVE_V2_NOTES.md)
 for scientific ambiguities and remaining mechanical limitations.
+The later [task001 failure diagnosis](docs/TASK001_FAILURE_DIAGNOSIS.md) inspects the saved assertion
+and reproduces a candidate axis-boundary mechanism on a separate public counterexample, without
+new benchmark-agent attempts or method changes.
 
 The later end-to-end comparison was stopped by the user after an assembly sub-limit failure;
 [partial records](docs/TASK_LOCAL_FIVE_INTERRUPTED.md) remain separate. That premature cap is now

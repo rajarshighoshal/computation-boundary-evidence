@@ -4,6 +4,10 @@ Posthoc artifact review only. These notes are not supplied to the evaluated agen
 change the frozen method, prompts or budgets. Quantitative results are generated separately from
 the run records. This is a development comparison on previously inspected tasks.
 
+A later user-requested [task001 diagnosis](TASK001_FAILURE_DIAGNOSIS.md) inspected the saved hidden
+failure and ran a separate public counterexample. That diagnostic extends the review below; it
+does not backdate new knowledge into the evaluated agents' context or establish graph-level causality.
+
 ## Task 091
 
 Both patches express atomic positions relative to the cube grid origin. Treatment subtracts the
