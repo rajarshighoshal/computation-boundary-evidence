@@ -69,6 +69,16 @@ def assert_independent(root):
     return summary
 
 
+def test_explicit_development_exposure_is_not_reported_as_untouched(tmp_path):
+    trial(tmp_path, task="091", development_exposed=True)
+    trial(tmp_path, task="091", condition="science", development_exposed=True)
+    summary = assert_independent(tmp_path)
+    assert all(row["development_exposed"] for row in summary["trials"])
+    assert summary["pairs"][0]["development_exposed"] is True
+    assert "091" in summary["exposure"]["development_tasks"]
+    assert summary["metrics"]["untouched"]["conditions"]["baseline"]["attempts"] == 0
+
+
 def test_official_reward_and_exact_private_success_are_separate(tmp_path):
     trial(tmp_path, success=False, reward_value=1.0)
     trial(tmp_path, condition="science", success=True, reward_value=0.75)

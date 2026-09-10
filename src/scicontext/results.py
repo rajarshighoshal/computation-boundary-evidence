@@ -249,7 +249,7 @@ def _trial_row(root: Path, path: Path) -> dict[str, Any]:
         "private": private,
         "exact_private_success": _private_success(private, candidate, (trial / "verifier/junit.xml").exists(), candidate_error),
         "matched_test_outcomes": matched,
-        "development_exposed": task_id in DEVELOPMENT_TASKS,
+        "development_exposed": task_id in DEVELOPMENT_TASKS or run.get("development_exposed") is True,
         "prior_private_test_exposure": task_id in PRIVATE_EXPOSURE_TASKS,
         "diagnostics": sorted(set(diagnostics)),
         "artifact_sha256": {
@@ -297,7 +297,7 @@ def _pairs(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
             "baseline_trial": baseline["trial_path"] if baseline else None,
             "science_trial": science["trial_path"] if science else None,
             "baseline_success": left, "science_success": right, "outcome": outcome,
-            "development_exposed": task_id in DEVELOPMENT_TASKS,
+            "development_exposed": any(row and row["development_exposed"] for row in (baseline, science)),
         })
     return pairs
 
@@ -369,7 +369,7 @@ def summarize_runs(root: Path) -> dict[str, Any]:
     untouched_pairs = [pair for pair in pairs if not pair["development_exposed"]]
     return {
         "schema_version": "1.0", "task_ids": sorted({row["task_id"] for row in rows}),
-        "exposure": {"development_tasks": sorted(DEVELOPMENT_TASKS), "prior_private_test_exposure": sorted(PRIVATE_EXPOSURE_TASKS)},
+        "exposure": {"development_tasks": sorted(DEVELOPMENT_TASKS | {row["task_id"] for row in rows if row["development_exposed"]}), "prior_private_test_exposure": sorted(PRIVATE_EXPOSURE_TASKS)},
         "trials": rows, "pairs": pairs,
         "metrics": {"all": _metrics(rows, pairs), "untouched": _metrics(untouched_rows, untouched_pairs)},
     }

@@ -217,6 +217,7 @@ def _reconcile_trial(output: Path, item: dict, budget: TrialConfig, task_row: di
                        "dataset_revision": config["dataset_revision"], "runner_version": config["pier_version"],
                        "environment_image": expected_image, "verifier_image": task_row["verifier_image"],
                        "experiment_kind": plan["kind"], "orchestration_status": status,
+                       "development_exposed": item["task_id"] in config.get("development_task_ids", ["002", "077"]),
                        **{key: plan[key] for key in ("implementation_revision", "implementation_dirty", "uv_lock_sha256", "prompt_sha256")}})
         write_json(path, record)
     log = output / f"task-{item['task_id']}-{item['condition']}-runner.log"

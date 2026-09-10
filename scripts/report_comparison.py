@@ -292,7 +292,8 @@ def render(run_root, summary):
     table(lines, ["Record", "Value"], provenance)
     table(lines, ["Task", "Arm", "Trial path", "Environment image", "Verifier image"],
           [(row["task_id"], row["condition"], row["trial_path"], row["provenance"].get("environment_image"), row["provenance"].get("verifier_image")) for row in summary["trials"]])
-    exposed = [task for task in tasks if task in summary["exposure"]["development_tasks"]]
+    declared_development = set(summary["exposure"]["development_tasks"]) | set(config.get("development_task_ids", []))
+    exposed = [task for task in tasks if task in declared_development]
     prior = [task for task in tasks if task in summary["exposure"]["prior_private_test_exposure"]]
     lines += [f"Recorded development-task overlap: {', '.join(exposed) or 'none'}; recorded prior hidden-test exposure: {', '.join(prior) or 'none'}. "
               "These markers are not a claim about other possible exposure.", "",
