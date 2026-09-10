@@ -7,8 +7,10 @@ The research comparison is ordinary Codex versus extraction followed by repair u
 The runner reuses Pier's Codex launch and subscription authentication. Extraction uses Codex's built-in read-only mode; code saves its returned annotations and probe scripts. Repair retains standard container execution. There is no custom Git source-change guard. See [initial high-effort results](docs/RANDOM_FIVE_HIGH_RESULTS.md), [qualitative notes](docs/RANDOM_FIVE_NOTES.md), and [runtime status](docs/RUNTIME_STATUS.md). Historical development results remain separate.
 
 The current approved revision adds [scientific-object bindings and a bounded feedback correction](docs/SEMANTIC_FEEDBACK.md).
-Local tests check the implementation; improved live extraction quality and repair performance have
-not yet been established for this revision. Earlier results below evaluate their recorded versions.
+Local tests check the implementation. The [first live extractor-only check](docs/SEMANTIC_FEEDBACK_CHECK_V1.md)
+produced a revised geometry handoff and a storage draft timeout; [quality notes](docs/SEMANTIC_FEEDBACK_CHECK_V1_NOTES.md)
+explain why it does not establish an overall improvement. Repair performance is unmeasured for this
+revision. Earlier results below evaluate their recorded versions.
 The [local verification](docs/SEMANTIC_FEEDBACK_VERIFICATION.md) is complete, including a preserved-source
 regression and its fix. Parallel mode now supports two simultaneous attempts with separate receipts.
 
@@ -110,8 +112,8 @@ The proposed next extraction-only check can be inspected without model calls:
 uv run --no-sync scicontext pilot --config configs/semantic-feedback-check-v1.json --extract-only --output runs/semantic-feedback-check-v1
 ```
 
-That configuration is prepared, not authorization to execute it. Live execution requires the
-separate task/budget approval requested from Rajarshi.
+That approved check is complete in `runs/semantic-feedback-check-v1`. Repeating it requires a fresh
+output directory and a new budget decision; do not silently rerun or change settings after outcomes.
 
 To inspect a reproduction of the frozen task-local comparison, materialize its existing selection
 without drawing replacement tasks, then create a dry-run schedule:

@@ -68,7 +68,10 @@ rejection, selected handoff content and combined usage. Unit tests cover source 
 contracts, slow assembly, cancellation, fallback, native read-only call routing and log isolation.
 
 This verifies implementation behavior—not whether a live LLM discovers useful scientific rules.
-A separately approved, predeclared extractor-only development check is the next research step.
+A separately approved, predeclared [extractor-only development check](SEMANTIC_FEEDBACK_CHECK_V1.md)
+has now completed with mixed outcomes. [Its quality review](SEMANTIC_FEEDBACK_CHECK_V1_NOTES.md)
+records useful geometry distinctions without probes and a storage draft timeout. It does not
+establish improved repair performance or complete scientific understanding.
 Task001 is diagnostic-exposed; its hidden assertion and constructed diagnostic case are not included
 in the new prompts or integration examples. No larger experiment is authorized by implementation.
 

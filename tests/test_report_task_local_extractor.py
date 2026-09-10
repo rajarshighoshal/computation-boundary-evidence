@@ -82,6 +82,21 @@ def test_unknown_reasoning_is_not_zero(tmp_path):
     assert row["tokens"]["total_tokens"] == 120
 
 
+def test_completed_workflow_does_not_hide_extraction_timeout(tmp_path):
+    trial = fixture(tmp_path, graph=False)
+    run = report.read(trial / "run.json")
+    run["extraction_status"] = "no_valid_graph"
+    run["stages"][0]["status"] = "timeout"
+    run["stages"][0]["phases"] = [{"name": "extract_draft", "status": "timeout",
+                                  "allowance_seconds": 135, "duration_seconds": 125}]
+    dump(trial / "run.json", run)
+    dump(tmp_path / "summary/summary.json", report.recompute(tmp_path / "jobs"))
+    data = report.collect(tmp_path)
+    content = report.render(data)
+    assert "| 009 | completed | timeout | no_valid_graph | False |" in content
+    assert "| extract_draft | timeout | 135.00 | 125.00 |" in content
+
+
 def test_multicall_totals_and_leaf_rows(tmp_path):
     trial = fixture(tmp_path)
     run = report.read(trial / "run.json")

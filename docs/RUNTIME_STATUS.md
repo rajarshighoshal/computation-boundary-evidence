@@ -72,10 +72,14 @@ comparison's resources. Restore the original allocation when this research work 
 The subsequent [scientific feedback revision](SEMANTIC_FEEDBACK.md) is implemented with separate
 draft/revision artifacts and shared deadlines. Local tests cover binding/probe feedback, fallback,
 native read-only routing and accounting; review also corrected bounded upstream cleanup and fatal
-error propagation. Its live extraction quality and repair performance have not yet been measured.
+error propagation. Its [first live extraction check](SEMANTIC_FEEDBACK_CHECK_V1.md) is now complete;
+repair performance remains unmeasured for this revision.
 
 At the user's request, the scheduler now supports two concurrent attempts using separate standard
 Pier processes and a per-task pair barrier. Local concurrency, failure/interrupt and cache-safety
 checks pass; [verification receipts](SEMANTIC_FEEDBACK_VERIFICATION.md) are saved. The proposed next
-extractor-only check is dry-run validated but not launched. Actual parallel memory pressure and
-throughput are still unmeasured under the shared Docker allocation.
+extractor-only check ran concurrently under the shared allocation. [Runtime observations](SEMANTIC_FEEDBACK_CHECK_V1_RUNTIME.md)
+preserve timing, incomplete token accounting and sparse memory samples; these do not establish peak
+memory or a matched speedup. The storage draft hit its internal cutoff with no final annotations;
+the geometry task delivered a revised handoff but no scientific probes. See the
+[quality notes](SEMANTIC_FEEDBACK_CHECK_V1_NOTES.md). No reruns or method changes followed this check.

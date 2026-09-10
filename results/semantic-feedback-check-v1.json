@@ -1,0 +1,2198 @@
+{
+  "kind": "development_extraction_quality",
+  "records": [
+    {
+      "accepted_claims": 2,
+      "analysis": {
+        "alignments": [
+          {
+            "claim_id": "c_site_frame",
+            "reason": "Both a scientific relation and a corroborated implementation expression are required",
+            "status": "unknown"
+          },
+          {
+            "claim_id": "c_grid_order",
+            "reason": "Both a scientific relation and a corroborated implementation expression are required",
+            "status": "unknown"
+          }
+        ],
+        "code_grounding": [
+          {
+            "claim_id": "c_site_frame",
+            "matching_entries": 0,
+            "reason": "Actual expression was not uniquely corroborated by cited indexed source; excluded from code-derived analysis",
+            "status": "unresolved"
+          },
+          {
+            "claim_id": "c_grid_order",
+            "matching_entries": 0,
+            "reason": "Actual expression was not uniquely corroborated by cited indexed source; excluded from code-derived analysis",
+            "status": "unresolved"
+          }
+        ],
+        "coverage": {
+          "claims": 2,
+          "conflicts": 0,
+          "dimension_resolved": 0,
+          "expressions": 0,
+          "lift_supported": 0,
+          "lift_unknown": 2,
+          "scale_resolved": 0,
+          "shape_resolved": 0
+        },
+        "findings": [
+          {
+            "assumptions": [],
+            "claim_id": "c_site_frame",
+            "explanation": "No expression supplied; no computational properties inferred.",
+            "kind": "relation_properties",
+            "status": "unknown"
+          },
+          {
+            "assumptions": [],
+            "claim_id": "c_site_frame",
+            "explanation": "No expression supplied; no computational properties inferred.",
+            "kind": "actual_properties",
+            "status": "unknown"
+          },
+          {
+            "assumptions": [],
+            "claim_id": "c_site_frame",
+            "explanation": "No supported scientific-operation rule was requested.",
+            "kind": "semantic_lifting",
+            "status": "unknown"
+          },
+          {
+            "assumptions": [],
+            "claim_id": "c_grid_order",
+            "explanation": "No expression supplied; no computational properties inferred.",
+            "kind": "relation_properties",
+            "status": "unknown"
+          },
+          {
+            "assumptions": [],
+            "claim_id": "c_grid_order",
+            "explanation": "No expression supplied; no computational properties inferred.",
+            "kind": "actual_properties",
+            "status": "unknown"
+          },
+          {
+            "assumptions": [],
+            "claim_id": "c_grid_order",
+            "explanation": "No supported scientific-operation rule was requested.",
+            "kind": "semantic_lifting",
+            "status": "unknown"
+          }
+        ],
+        "limitations": [
+          "All scientific meanings originate in supplied evidence-backed anchors; inferred anchors remain conditional.",
+          "Scale is a formal multiplicative factor relative to supplied anchors; arbitrary addition values and physical conversion correctness are not proved.",
+          "Shape rules assume ordinary NumPy-style elementwise semantics for supported operators; overloaded operators and batched matrix multiplication require separate evidence.",
+          "Algebraic dimensional/scale consistency is not floating-point, scientific, or behavioural correctness.",
+          "A failing observation never automatically rejects an intended scientific requirement."
+        ],
+        "probe_policy": "Observations summarize supplied runner receipts. Exit zero is execution success, not scientific proof; nonzero exit does not disprove an intended requirement.",
+        "probe_results": [],
+        "source_coverage": {
+          "directories_truncated": false,
+          "entries": 2000,
+          "entries_truncated": true,
+          "expressions": 1188,
+          "files_considered": 2,
+          "files_parsed": 2,
+          "files_truncated": false,
+          "limitations": [
+            "Syntactic index only; references do not establish complete dataflow or scientific meaning.",
+            "Arithmetic operators may be overloaded; operand types and runtime library identity are not proved.",
+            "Import resolution is conservative lexical analysis; runtime monkey-patching and external mutation are not modelled.",
+            "Static subscript and attribute symbols are opaque references, not alias or shape inference.",
+            "Only caller-supplied public task roots are permitted; filename filtering cannot identify every private artifact."
+          ],
+          "skipped": [],
+          "supported_expressions": 224
+        }
+      },
+      "annotation_schema_version": "annotations-1.0",
+      "annotations_status": "available",
+      "assembly": {
+        "abstained": false,
+        "accepted_claim_ids": [
+          "c_site_frame",
+          "c_grid_order"
+        ],
+        "accepted_probe_ids": [],
+        "accepted_quantity_ids": [
+          "q_fractional",
+          "q_serial_samples",
+          "q_grid"
+        ],
+        "code_bindings": [
+          {
+            "binding_kind": "entity",
+            "code_symbol": "frame_coords",
+            "end_line": 10,
+            "entity_role": "assignment",
+            "entry_id": "ev_e975915682062ddd33c32e83",
+            "path": "workflow/__init__.py",
+            "quantity_id": "q_fractional",
+            "scope": "<module>._has_valid_site_frame@8",
+            "start_line": 10,
+            "status": "source_matched"
+          },
+          {
+            "binding_kind": "entity",
+            "code_symbol": "volumetric_data",
+            "end_line": 442,
+            "entity_role": "assignment",
+            "entry_id": "ev_a4821b56e982e8543f7bcc53",
+            "path": "source/src/pymatgen/io/common.py",
+            "quantity_id": "q_serial_samples",
+            "scope": "<module>.VolumetricData@35.from_cube@396",
+            "start_line": 442,
+            "status": "source_matched"
+          },
+          {
+            "binding_kind": "entity",
+            "code_symbol": "data",
+            "end_line": 445,
+            "entity_role": "assignment",
+            "entry_id": "ev_388b71eb194a60b7c56472d8",
+            "path": "source/src/pymatgen/io/common.py",
+            "quantity_id": "q_grid",
+            "scope": "<module>.VolumetricData@35.from_cube@396",
+            "start_line": 445,
+            "status": "source_matched"
+          }
+        ],
+        "packet_coverage": {
+          "directories_scanned": 42,
+          "directories_truncated": false,
+          "documents": 12,
+          "documents_truncated": false,
+          "entries": 512,
+          "entries_truncated": true,
+          "expressions": 222,
+          "files_considered": 8,
+          "files_parsed": 8,
+          "files_scanned": 299,
+          "files_truncated": true,
+          "limitations": [
+            "Syntactic index only; references do not establish complete dataflow or scientific meaning.",
+            "Arithmetic operators may be overloaded; operand types and runtime library identity are not proved.",
+            "Import resolution is conservative lexical analysis; runtime monkey-patching and external mutation are not modelled.",
+            "Static subscript and attribute symbols are opaque references, not alias or shape inference.",
+            "Only caller-supplied public task roots are permitted; filename filtering cannot identify every private artifact.",
+            "Packet ranks literal task/reproducer paths, entry points and shallow files; omission is not evidence of irrelevance. Document excerpts and per-file entries are bounded."
+          ],
+          "limits": {
+            "document_chars": 12000,
+            "document_files": 12,
+            "document_lines": 40,
+            "documents": 48,
+            "documents_per_file": 8,
+            "entries": 512,
+            "entries_per_file": 128,
+            "scan_directories": 256,
+            "scan_files": 2000,
+            "source_files": 24
+          },
+          "scan_files_truncated": false,
+          "selected_document_paths": [
+            "@context/task_statement.md",
+            "reproduction.md",
+            "MATERIALS_LICENSES.md",
+            "paper.md",
+            "problem_desc.txt",
+            "fixtures/README.md",
+            "paper_assets/README.md",
+            "source/README.md",
+            "source/UPSTREAM_NOTICE.md"
+          ],
+          "selected_source_paths": [
+            "workflow/__init__.py",
+            "source/src/pymatgen/io/common.py",
+            "reproduce.py",
+            "source/src/pymatgen/core/__init__.py",
+            "source/src/pymatgen/alchemy/__init__.py",
+            "source/src/pymatgen/alchemy/filters.py",
+            "source/src/pymatgen/alchemy/materials.py",
+            "source/src/pymatgen/alchemy/transmuters.py",
+            "source/src/pymatgen/analysis/chempot_diagram.py",
+            "source/src/pymatgen/analysis/phase_diagram.py",
+            "source/src/pymatgen/analysis/reaction_calculator.py",
+            "source/src/pymatgen/command_line/__init__.py",
+            "source/src/pymatgen/command_line/bader_caller.py",
+            "source/src/pymatgen/command_line/chargemol_caller.py",
+            "source/src/pymatgen/command_line/critic2_caller.py",
+            "source/src/pymatgen/command_line/enumlib_caller.py",
+            "source/src/pymatgen/command_line/gulp_caller.py",
+            "source/src/pymatgen/command_line/mcsqs_caller.py",
+            "source/src/pymatgen/core/adsorption.py",
+            "source/src/pymatgen/core/bond_valence.py",
+            "source/src/pymatgen/core/bonds.py",
+            "source/src/pymatgen/core/composition.py",
+            "source/src/pymatgen/core/constants.py",
+            "source/src/pymatgen/core/energy_models.py"
+          ],
+          "skipped": [
+            {
+              "path": ".git",
+              "reason": "excluded_directory"
+            },
+            {
+              "path": "outputs",
+              "reason": "excluded_directory"
+            },
+            {
+              "path": ".gitignore",
+              "reason": "excluded_path"
+            },
+            {
+              "path": "MATERIALS.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "auxiliary_materials.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "metadata.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "requirements.lock",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "task.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/LICENSE",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/pyproject.toml",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/test-files/LICENSE",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/core/ElementColorSchemes.yaml",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/core/bond_lengths.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/core/bonds_jmol_ob.yaml",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/core/bvparam_1991.yaml",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/core/cn_opt_params.yaml",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/core/func_groups.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/core/icsd_bv.yaml",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/core/ionic_radii.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/core/libxc_docs.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/core/op_params.yaml",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/core/periodic_table.json.gz",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/core/quad_data.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/core/reconstructions_archive.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/core/vesta_cutoffs.yaml",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/optimization/fast_parser.pyi",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/optimization/fast_parser.pyx",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/optimization/ffc.h",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/optimization/neighbors.pyx",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/symmetry/symm_data.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/symmetry/symm_data.yaml",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/symmetry/symm_ops.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/util/coord_cython.pyx",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/util/plotly_chempot_layouts.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/util/plotly_interface_rxn_layouts.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/util/plotly_pd_layouts.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/core/data/g_els.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/core/data/nist_gas_gf.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/core/structure_prediction/DLS_bond_params.yaml",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/io/feff/MPELNESSet.yaml",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/io/feff/MPEXAFSSet.yaml",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/io/feff/MPEXELFSSet.yaml",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/io/feff/MPXANESSet.yaml",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/io/jdftx/BaseJdftxSet.yaml",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/io/lammps/CoeffsDataType.yaml",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/io/vasp/MITRelaxSet.yaml",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/io/vasp/MP24RelaxSet.yaml",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/io/vasp/MPAbsorptionSet.yaml",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/io/vasp/MPHSERelaxSet.yaml",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/io/vasp/MPRelaxSet.yaml",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/io/vasp/MPSCANRelaxSet.yaml",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/io/vasp/MVLGWSet.yaml",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/io/vasp/MVLRelax52Set.yaml",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/io/vasp/MatPESStaticSet.yaml",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/io/vasp/PBE54Base.yaml",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/io/vasp/PBE64Base.yaml",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/io/vasp/VASPIncarBase.yaml",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/io/vasp/incar_parameters.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/io/vasp/potcar-summary-stats.json.bz2",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/io/vasp/vdW_parameters.yaml",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/util/structures/BaNiO3.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/util/structures/CsCl.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/util/structures/Graphite.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/util/structures/He_BCC.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/util/structures/K2O2.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/util/structures/La2CoO4F.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/util/structures/Li10GeP2S12.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/util/structures/Li2O.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/util/structures/Li2O2.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/util/structures/Li3V2(PO4)3.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/util/structures/LiFePO4.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/util/structures/NaFePO4.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/util/structures/Pb2TiZrO6.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/util/structures/Si.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/util/structures/SiO2.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/util/structures/Si_SiO2_Interface.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/util/structures/Sn.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/util/structures/SrTiO3.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/util/structures/TiO2.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/util/structures/TlBiSe2.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/util/structures/VO2.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/test-files/electronic_structure/boltztrap/fermi/boltztrap_BZ.cube",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/core/structure_prediction/data/lambda.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/core/structure_prediction/data/pair_correlation.json",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/io/lammps/templates/md.template",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/io/lammps/templates/minimization.template",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/io/lammps/templates/msd.template",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/io/lammps/templates/thermalization.template",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/io/lobster/lobster_basis/BASIS_PBE_54_max.yaml",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/io/lobster/lobster_basis/BASIS_PBE_54_min.yaml",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/io/lobster/lobster_basis/BASIS_PBE_54_standard.yaml",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/io/lobster/future/lobster_basis/BASIS_PBE_54_max.yaml",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/io/lobster/future/lobster_basis/BASIS_PBE_54_min.yaml",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/io/lobster/future/lobster_basis/BASIS_PBE_54_standard.yaml",
+              "reason": "unsupported_language"
+            },
+            {
+              "path": "source/src/pymatgen/core/entries.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/ewald.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/graphs.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/interface.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/ion.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/lattice.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/libxcfunc.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/local_env.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/molecular_orbitals.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/molecule_matcher.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/molecule_structure_comparator.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/operations.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/periodic_table.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/sites.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/spectrum.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/structure.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/structure_analyzer.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/structure_matcher.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/surface.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/tensors.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/trajectory.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/units.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/xcfunc.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/electronic_structure/__init__.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/electronic_structure/bandstructure.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/electronic_structure/boltztrap.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/electronic_structure/boltztrap2.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/electronic_structure/cohp.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/electronic_structure/core.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/electronic_structure/dos.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/electronic_structure/plotter.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/adf.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/ase.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/atat.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/babel.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/cif.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/core.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/cssr.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/fiesta.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/gaussian.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/icet.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/jarvis.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/lmto.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/multiwfn.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/nwchem.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/openff.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/optimade.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/packmol.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/phonopy.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/prismatic.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/pwscf.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/registry.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/res.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/shengbte.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/template.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/wannier90.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/xcrysden.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/xr.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/xyz.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/zeopp.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/optimization/__init__.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/phonon/__init__.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/phonon/bandstructure.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/phonon/dos.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/phonon/gruneisen.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/phonon/ir_spectra.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/phonon/plotter.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/phonon/thermal_displacements.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/symmetry/__init__.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/symmetry/analyzer.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/symmetry/bandstructure.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/symmetry/groups.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/symmetry/kpath.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/symmetry/maggroups.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/symmetry/settings.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/symmetry/site_symmetries.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/symmetry/structure.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/transformations/__init__.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/transformations/advanced_transformations.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/transformations/site_transformations.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/transformations/standard_transformations.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/transformations/transformation_abc.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/util/__init__.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/util/coord.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/util/coord_cython.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/util/due.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/util/graph_hashing.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/util/io_utils.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/util/joblib.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/util/misc.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/util/num.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/util/numba.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/util/plotting.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/util/provenance.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/util/string.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/util/testing.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/util/typing.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/elasticity/__init__.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/elasticity/elastic.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/elasticity/strain.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/elasticity/stress.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/structure_prediction/__init__.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/structure_prediction/dopant_predictor.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/structure_prediction/substitution_probability.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/structure_prediction/substitutor.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/structure_prediction/volume_predictor.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/abinit/__init__.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/abinit/abiobjects.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/abinit/abitimer.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/abinit/inputs.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/abinit/netcdf.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/abinit/pseudos.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/abinit/variable.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/cp2k/__init__.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/cp2k/inputs.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/cp2k/outputs.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/cp2k/sets.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/cp2k/utils.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/exciting/__init__.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/exciting/inputs.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/feff/__init__.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/feff/inputs.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/feff/outputs.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/feff/sets.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/jdftx/__init__.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/jdftx/_output_utils.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/jdftx/generic_tags.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/jdftx/inputs.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/jdftx/jdftxinfile_default_inputs.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/jdftx/jdftxinfile_master_format.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/jdftx/jdftxinfile_ref_options.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/jdftx/jdftxoutfileslice.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/jdftx/jelstep.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/jdftx/jminsettings.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/jdftx/joutstructure.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/jdftx/joutstructures.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/jdftx/outputs.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/jdftx/sets.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/lammps/__init__.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/lammps/data.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/lammps/generators.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/lammps/inputs.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/lammps/outputs.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/lammps/sets.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/lammps/utils.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/lobster/__init__.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/lobster/inputs.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/lobster/lobsterenv.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/lobster/outputs.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/lobster/sets.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/pwmat/__init__.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/pwmat/inputs.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/pwmat/outputs.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/qchem/__init__.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/qchem/inputs.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/qchem/outputs.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/qchem/sets.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/qchem/utils.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/vasp/__init__.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/vasp/help.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/vasp/inputs.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/vasp/optics.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/vasp/outputs.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/vasp/sets.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/xtb/__init__.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/xtb/inputs.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/xtb/outputs.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/lobster/future/__init__.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/lobster/future/constants.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/lobster/future/core.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/lobster/future/inputs.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/lobster/future/lobsterenv.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/lobster/future/types.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/lobster/future/utils.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/io/lobster/future/versioning.py",
+              "reason": "source_file_limit"
+            },
+            {
+              "path": "source/src/pymatgen/analysis/chempot_diagram.py",
+              "reason": "entry_limit"
+            },
+            {
+              "path": "source/src/pymatgen/analysis/phase_diagram.py",
+              "reason": "entry_limit"
+            },
+            {
+              "path": "source/src/pymatgen/analysis/reaction_calculator.py",
+              "reason": "entry_limit"
+            },
+            {
+              "path": "source/src/pymatgen/command_line/__init__.py",
+              "reason": "entry_limit"
+            },
+            {
+              "path": "source/src/pymatgen/command_line/bader_caller.py",
+              "reason": "entry_limit"
+            },
+            {
+              "path": "source/src/pymatgen/command_line/chargemol_caller.py",
+              "reason": "entry_limit"
+            },
+            {
+              "path": "source/src/pymatgen/command_line/critic2_caller.py",
+              "reason": "entry_limit"
+            },
+            {
+              "path": "source/src/pymatgen/command_line/enumlib_caller.py",
+              "reason": "entry_limit"
+            },
+            {
+              "path": "source/src/pymatgen/command_line/gulp_caller.py",
+              "reason": "entry_limit"
+            },
+            {
+              "path": "source/src/pymatgen/command_line/mcsqs_caller.py",
+              "reason": "entry_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/adsorption.py",
+              "reason": "entry_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/bond_valence.py",
+              "reason": "entry_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/bonds.py",
+              "reason": "entry_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/composition.py",
+              "reason": "entry_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/constants.py",
+              "reason": "entry_limit"
+            },
+            {
+              "path": "source/src/pymatgen/core/energy_models.py",
+              "reason": "entry_limit"
+            }
+          ],
+          "supported_expressions": 40,
+          "task_local_retrieval": {
+            "references": [
+              {
+                "end_line": 30,
+                "path": "workflow/__init__.py",
+                "start_line": 18,
+                "symbol": "run",
+                "via": "import_call:reproduce.py"
+              },
+              {
+                "end_line": 447,
+                "path": "source/src/pymatgen/io/common.py",
+                "start_line": 396,
+                "symbol": "from_cube",
+                "via": "import_member_call:workflow/__init__.py"
+              },
+              {
+                "end_line": 35,
+                "path": "source/src/pymatgen/io/common.py",
+                "start_line": 35,
+                "symbol": "VolumetricData",
+                "via": "import_call:workflow/__init__.py"
+              },
+              {
+                "end_line": 20,
+                "path": "reproduce.py",
+                "start_line": 15,
+                "symbol": "write_report",
+                "via": "local_call:reproduce.py"
+              },
+              {
+                "end_line": 43,
+                "path": "reproduce.py",
+                "start_line": 23,
+                "symbol": "main",
+                "via": "local_call:reproduce.py"
+              },
+              {
+                "end_line": 15,
+                "path": "workflow/__init__.py",
+                "start_line": 8,
+                "symbol": "_has_valid_site_frame",
+                "via": "local_call:workflow/__init__.py"
+              },
+              {
+                "end_line": 413,
+                "path": "source/src/pymatgen/io/common.py",
+                "start_line": 411,
+                "symbol": "parse_voxel",
+                "via": "local_call:source/src/pymatgen/io/common.py"
+              },
+              {
+                "end_line": 80,
+                "path": "source/src/pymatgen/core/__init__.py",
+                "start_line": 40,
+                "symbol": "_load_pmg_settings",
+                "via": "local_call:source/src/pymatgen/core/__init__.py"
+              },
+              {
+                "end_line": 96,
+                "path": "source/src/pymatgen/core/__init__.py",
+                "start_line": 92,
+                "symbol": "_get_settings",
+                "via": "local_call:source/src/pymatgen/core/__init__.py"
+              },
+              {
+                "end_line": 185,
+                "path": "source/src/pymatgen/io/common.py",
+                "start_line": 156,
+                "symbol": "linear_add",
+                "via": "local_call:source/src/pymatgen/io/common.py"
+              },
+              {
+                "end_line": 207,
+                "path": "source/src/pymatgen/io/common.py",
+                "start_line": 192,
+                "symbol": "value_at",
+                "via": "local_call:source/src/pymatgen/io/common.py"
+              }
+            ],
+            "seed_files_parsed": 5,
+            "truncated": false,
+            "unresolved": [
+              {
+                "import": "json",
+                "path": "reproduce.py",
+                "reason": "ambiguous_or_external_import"
+              },
+              {
+                "import": "os",
+                "path": "reproduce.py",
+                "reason": "ambiguous_or_external_import"
+              },
+              {
+                "import": "sys",
+                "path": "reproduce.py",
+                "reason": "ambiguous_or_external_import"
+              },
+              {
+                "import": "pathlib",
+                "path": "reproduce.py",
+                "reason": "ambiguous_or_external_import"
+              },
+              {
+                "import": "numpy",
+                "path": "workflow/__init__.py",
+                "reason": "ambiguous_or_external_import"
+              },
+              {
+                "import": "numpy",
+                "path": "source/src/pymatgen/io/common.py",
+                "reason": "ambiguous_or_external_import"
+              },
+              {
+                "import": "monty.io",
+                "path": "source/src/pymatgen/io/common.py",
+                "reason": "ambiguous_or_external_import"
+              },
+              {
+                "import": "itertools",
+                "path": "source/src/pymatgen/io/common.py",
+                "reason": "ambiguous_or_external_import"
+              },
+              {
+                "import": "warnings",
+                "path": "source/src/pymatgen/io/common.py",
+                "reason": "ambiguous_or_external_import"
+              },
+              {
+                "import": "copy",
+                "path": "source/src/pymatgen/io/common.py",
+                "reason": "ambiguous_or_external_import"
+              },
+              {
+                "import": "numpy",
+                "path": "source/src/pymatgen/io/common.py",
+                "reason": "ambiguous_or_external_import"
+              },
+              {
+                "import": "orjson",
+                "path": "source/src/pymatgen/io/common.py",
+                "reason": "ambiguous_or_external_import"
+              },
+              {
+                "import": "monty.io",
+                "path": "source/src/pymatgen/io/common.py",
+                "reason": "ambiguous_or_external_import"
+              },
+              {
+                "import": "scipy.interpolate",
+                "path": "source/src/pymatgen/io/common.py",
+                "reason": "ambiguous_or_external_import"
+              },
+              {
+                "import": "h5py",
+                "path": "source/src/pymatgen/io/common.py",
+                "reason": "ambiguous_or_external_import"
+              },
+              {
+                "import": "h5py",
+                "path": "source/src/pymatgen/io/common.py",
+                "reason": "ambiguous_or_external_import"
+              },
+              {
+                "import": "json",
+                "path": "reproduce.py",
+                "reason": "ambiguous_or_external_import"
+              },
+              {
+                "import": "os",
+                "path": "reproduce.py",
+                "reason": "ambiguous_or_external_import"
+              },
+              {
+                "import": "sys",
+                "path": "reproduce.py",
+                "reason": "ambiguous_or_external_import"
+              },
+              {
+                "import": "numpy",
+                "path": "workflow/__init__.py",
+                "reason": "ambiguous_or_external_import"
+              },
+              {
+                "import": "numpy",
+                "path": "source/src/pymatgen/io/common.py",
+                "reason": "ambiguous_or_external_import"
+              },
+              {
+                "import": "warnings",
+                "path": "source/src/pymatgen/io/common.py",
+                "reason": "ambiguous_or_external_import"
+              },
+              {
+                "import": "copy",
+                "path": "source/src/pymatgen/io/common.py",
+                "reason": "ambiguous_or_external_import"
+              }
+            ]
+          },
+          "unsupported_expressions": 182
+        },
+        "rejected": [],
+        "relations": [
+          {
+            "actual_targets": [],
+            "claim_id": "c_site_frame",
+            "implementation_entry_id": "ev_a6560d0d9acf7a046c64f815",
+            "target": null
+          },
+          {
+            "actual_targets": [
+              "data"
+            ],
+            "claim_id": "c_grid_order",
+            "implementation_entry_id": "ev_388b71eb194a60b7c56472d8",
+            "target": null
+          }
+        ],
+        "schema_version": "assembly-1.0",
+        "scientific_binding_uses": [],
+        "selected_dependencies": [
+          {
+            "claim_id": "c_site_frame",
+            "read": "bool",
+            "reason": "nonlocal_or_external",
+            "status": "unknown",
+            "use": {
+              "end_line": 15,
+              "path": "workflow/__init__.py",
+              "scope": "<module>._has_valid_site_frame@8",
+              "start_line": 11
+            }
+          },
+          {
+            "claim_id": "c_site_frame",
+            "definition": {
+              "end_line": 10,
+              "path": "workflow/__init__.py",
+              "scope": "<module>._has_valid_site_frame@8",
+              "start_line": 10
+            },
+            "read": "frame_coords",
+            "reason": null,
+            "status": "resolved",
+            "use": {
+              "end_line": 15,
+              "path": "workflow/__init__.py",
+              "scope": "<module>._has_valid_site_frame@8",
+              "start_line": 11
+            }
+          },
+          {
+            "claim_id": "c_site_frame",
+            "read": "np",
+            "reason": "nonlocal_or_external",
+            "status": "unknown",
+            "use": {
+              "end_line": 15,
+              "path": "workflow/__init__.py",
+              "scope": "<module>._has_valid_site_frame@8",
+              "start_line": 11
+            }
+          },
+          {
+            "claim_id": "c_grid_order",
+            "read": "num_x_voxels",
+            "reason": "parameter_alias_or_unindexed_definition",
+            "status": "unknown",
+            "use": {
+              "end_line": 445,
+              "path": "source/src/pymatgen/io/common.py",
+              "scope": "<module>.VolumetricData@35.from_cube@396",
+              "start_line": 445
+            }
+          },
+          {
+            "claim_id": "c_grid_order",
+            "read": "num_y_voxels",
+            "reason": "parameter_alias_or_unindexed_definition",
+            "status": "unknown",
+            "use": {
+              "end_line": 445,
+              "path": "source/src/pymatgen/io/common.py",
+              "scope": "<module>.VolumetricData@35.from_cube@396",
+              "start_line": 445
+            }
+          },
+          {
+            "claim_id": "c_grid_order",
+            "read": "num_z_voxels",
+            "reason": "parameter_alias_or_unindexed_definition",
+            "status": "unknown",
+            "use": {
+              "end_line": 445,
+              "path": "source/src/pymatgen/io/common.py",
+              "scope": "<module>.VolumetricData@35.from_cube@396",
+              "start_line": 445
+            }
+          },
+          {
+            "claim_id": "c_grid_order",
+            "definition": {
+              "end_line": 442,
+              "path": "source/src/pymatgen/io/common.py",
+              "scope": "<module>.VolumetricData@35.from_cube@396",
+              "start_line": 442
+            },
+            "read": "volumetric_data",
+            "reason": null,
+            "status": "resolved",
+            "use": {
+              "end_line": 445,
+              "path": "source/src/pymatgen/io/common.py",
+              "scope": "<module>.VolumetricData@35.from_cube@396",
+              "start_line": 445
+            }
+          }
+        ],
+        "status": "assembled",
+        "unresolved": [
+          "c_site_frame: implementation correspondence contains unsupported or unresolved syntax",
+          "c_grid_order: implementation correspondence contains unsupported or unresolved syntax",
+          "The directly inspected fixture header has a nonzero origin, while from_cube reads only the atom count from that header line. The available evidence does not resolve whether intended site handling requires origin subtraction, periodic wrapping, or both. The public bounds predicate cannot choose among transformations that satisfy it.",
+          "The fixture header was directly readable, but assembly reported that citations to the fixture exceed its source byte limit. The grid-order claim therefore cites the matching writer and reader source and retains inferred status.",
+          "The packet identifies the actual predicate and reshape occurrences, but its expression model reports unsupported or unresolved calls and incomplete dependency resolution. These references ground source correspondence; they do not constitute mathematical verification.",
+          "The payload's physical observable, units and normalization remain unspecified. The workflow's data_total is a rounded, unweighted sample sum; no interpretation as an integrated physical quantity is established.",
+          "paper.md provides a bibliographic reference rather than a cube-format specification or scientific derivation. No public-probe receipts were supplied, and no reproduction or probe was executed during this correction pass."
+        ],
+        "usable": true
+      },
+      "completed": true,
+      "declared_probes": 0,
+      "extraction_status": "usable_graph",
+      "graph_sha256": "92744a8b5b92b6dd4d7de711db2998f41a9dd989e06d5a365984120a36cedbb3",
+      "graph_status": "verified",
+      "matched_quantity_bindings": 3,
+      "model_calls": [
+        {
+          "duration_seconds": 92.94427516599535,
+          "name": "extract_draft",
+          "status": "completed",
+          "timeout_seconds": 120.6866697940568,
+          "tokens": {
+            "cached_input_tokens": 111872,
+            "input_tokens": 142186,
+            "nonreasoning_output_tokens": 2097,
+            "output_tokens": 2158,
+            "reasoning_output_tokens": 61,
+            "total_tokens": 144344,
+            "uncached_input_tokens": 30314
+          }
+        },
+        {
+          "duration_seconds": 89.21026708401041,
+          "name": "extract_revision",
+          "status": "completed",
+          "timeout_seconds": 150.6461127551156,
+          "tokens": {
+            "cached_input_tokens": 138624,
+            "input_tokens": 179013,
+            "nonreasoning_output_tokens": 1992,
+            "output_tokens": 2061,
+            "reasoning_output_tokens": 69,
+            "total_tokens": 181074,
+            "uncached_input_tokens": 40389
+          }
+        }
+      ],
+      "phases": [
+        {
+          "allowance_seconds": 134.999808169053,
+          "duration_seconds": 92.94427516599535,
+          "name": "extract_draft",
+          "started_offset_seconds": 2.933401265181601e-05,
+          "status": "completed"
+        },
+        {
+          "allowance_seconds": 29.999957370900667,
+          "duration_seconds": 1.1694809579930734,
+          "name": "prepare",
+          "started_offset_seconds": 0.00027470901841297746,
+          "status": "ready"
+        },
+        {
+          "allowance_seconds": 72.0554132899604,
+          "duration_seconds": 12.056159708998166,
+          "name": "assemble_initial",
+          "started_offset_seconds": 92.94435875001363,
+          "status": "usable_graph"
+        },
+        {
+          "allowance_seconds": 164.99902129608964,
+          "duration_seconds": 89.21026708401041,
+          "name": "extract_revision",
+          "started_offset_seconds": 105.00059974999749,
+          "status": "completed"
+        },
+        {
+          "allowance_seconds": 105.78869604200008,
+          "duration_seconds": 12.379021459026262,
+          "name": "assemble_final",
+          "started_offset_seconds": 194.21088687499287,
+          "status": "usable_graph"
+        }
+      ],
+      "probe_receipt_status": "missing",
+      "probe_results": null,
+      "provenance": {
+        "benchmark_revision": "42e7e97915ff7d73436a5d37b5cbe6b77e9c2a00",
+        "codex_version": "0.153.4",
+        "config": {
+          "codex_version": "0.153.4",
+          "extraction_seconds": 360.0,
+          "model": "gpt-6-astra",
+          "reasoning_effort": "medium",
+          "total_seconds": 1800.0
+        },
+        "dataset_revision": "d8bdbcb4ecb2b565686382459c815d2b6291fd31",
+        "environment_image": "docker.io/kevinxulearning/swe-bench-science-environment-python-task-091:v0.1.2@sha256:584de1418e2f75d29b7e9bb725f7effa839f1731fdb450c45476777e4ed328d5",
+        "implementation_revision": "c9746597a09987e9773e2db57ef382d48dad1832",
+        "model": "gpt-6-astra",
+        "prompt_sha256": {
+          "prompts/extract.md": "092d0e884e21e3257967e9cdd199f827567ee1cb1e0ebd226beb419878d16c43",
+          "prompts/extract_revision.md": "1e94956320d7912143b1f3a69d7ba51e724c1f3af47af7468f61f1af2ce8b03c",
+          "prompts/repair.md": "9b9bd47560b889414d5b5b4fcb05c0dd6ba406856a6ce7fdee9c59102115066b"
+        },
+        "reasoning_effort": "medium",
+        "selection_sha256": "409c853fcf71217e5a229024c02c1075f01c7a329361eb2b7e42b5e80578e620"
+      },
+      "schedule_status": "completed",
+      "seconds": 222.1685653749737,
+      "selected_model_call": "extract_revision",
+      "session_metadata": [
+        {
+          "cli_version": "0.153.4",
+          "cwd": "/app/task_091",
+          "id": "01a08cce-994f-7e61-be2d-38e70a5f7ecd",
+          "model_provider": "openai",
+          "path": "agent/extract_draft-sessions/2026/09/10/rollout-2026-09-10T19-32-25-01a08cce-994f-7e61-be2d-38e70a5f7ecd.jsonl",
+          "source": "exec"
+        },
+        {
+          "cli_version": "0.153.4",
+          "cwd": "/app/task_091",
+          "id": "01a08cd0-33d0-7821-866a-14fd9a68606d",
+          "model_provider": "openai",
+          "path": "agent/extract_revision-sessions/2026/09/10/rollout-2026-09-10T19-34-10-01a08cd0-33d0-7821-866a-14fd9a68606d.jsonl",
+          "source": "exec"
+        }
+      ],
+      "setup": {
+        "baseline_tree": "898aa82fa6ff6a82c44b4b30f218e5b835b94ebc",
+        "claim_cap": 5,
+        "codex_receipt": {
+          "architecture": "x64",
+          "files": {
+            "package/README.md": "ba4e1f69ff48386e72a9c5e1edaf76aad64a475c2d51af79ccba6d1128261ba7",
+            "package/package.json": "7faa8bf27c4647662dae29b7e429b3dc394d718d273af0045e1aa99d2fb1bb37",
+            "package/vendor/x86_64-unknown-linux-musl/bin/codex": "56ef98ab4032d317ab26e9b5e5a175650717351edb16ed9cde0cb6d1734d62da",
+            "package/vendor/x86_64-unknown-linux-musl/bin/codex-code-mode-host": "3e85d67471825f73d02ff5f7e047ca1f6ca8caa3f59e4c6e8d9ca6ca7302cb45",
+            "package/vendor/x86_64-unknown-linux-musl/codex-package.json": "43f8735a93a7947c6dc082c550d2ff2d795fccfd1c7eb27c93aa91cbead1e3f4",
+            "package/vendor/x86_64-unknown-linux-musl/codex-path/rg": "e62198eb19b136b88c330af83647b5a962cb99b6b1f066758568f12de1974849",
+            "package/vendor/x86_64-unknown-linux-musl/codex-resources/bwrap": "77360cb751ccedc5971391444ac86a8a33c15b04d6b4a6fe45f5d25496e62c4c",
+            "package/vendor/x86_64-unknown-linux-musl/codex-resources/zsh/bin/zsh": "67faaaa89242c4a332e16e508a1977cffc24bf7fca31d4411cdfd101f3831ef3"
+          },
+          "integrity": "sha512-x1EcwBlY3AObM1VTUHNM2AzAJQsyreGdagpF+qFiYi/Oa30VBktvvG0C6tLtCzqW6hjZNWkGZQWmeVk7MuJKWg==",
+          "url": "https://registry.npmjs.org/@openai/codex/-/codex-0.153.4-linux-x64.tgz",
+          "version": "0.153.4"
+        },
+        "codex_version": "0.153.4",
+        "docker_cpus": 4,
+        "docker_memory_bytes": 9365356544,
+        "environment_image": "docker.io/kevinxulearning/swe-bench-science-environment-python-task-091:v0.1.2@sha256:584de1418e2f75d29b7e9bb725f7effa839f1731fdb450c45476777e4ed328d5",
+        "execution": "upstream_pier_codex_docker_boundary",
+        "extraction_access_mode": "read-only",
+        "extraction_codex_receipt": {
+          "architecture": "arm64",
+          "files": {
+            "package/README.md": "ba4e1f69ff48386e72a9c5e1edaf76aad64a475c2d51af79ccba6d1128261ba7",
+            "package/package.json": "5f21885cb53e91738ad62d47401934bac0cde912f4dbb9ea939a79ec64355e45",
+            "package/vendor/aarch64-unknown-linux-musl/bin/codex": "4d76e542c222ea8c75861d8c4ade60a1a332a63255ce1c60bdaebf7c2a2869e6",
+            "package/vendor/aarch64-unknown-linux-musl/bin/codex-code-mode-host": "d677dedf8179ca28ceb869a2e0b60d3ffad3d26f6e7738f7617d34500128a369",
+            "package/vendor/aarch64-unknown-linux-musl/codex-package.json": "a3c985c334a13f6168900d9aa900d875797e4c7a8a6432768bd1d64740f53f54",
+            "package/vendor/aarch64-unknown-linux-musl/codex-path/rg": "e36d0eb52e70696bdf1781392722e05a21bb91d3b7b762ef5ec20e5df2ec687b",
+            "package/vendor/aarch64-unknown-linux-musl/codex-resources/bwrap": "c547cbdc762a70ed216789ffaa4c6c0e7d2beabe32245a498f8e365a9fc8dab4",
+            "package/vendor/aarch64-unknown-linux-musl/codex-resources/zsh/bin/zsh": "7feeacd883e1dc749847936948c378653c80a69ec4a9542f0f126b411882c179"
+          },
+          "integrity": "sha512-QKdjYLYV4hXIuUQDP3P6F4NXuWFoKo9WUoV4nAREIx55kiUyi8UsYdsVobkeXir5n/maEQgYMCKLHVma4rNPiw==",
+          "url": "https://registry.npmjs.org/@openai/codex/-/codex-0.153.4-linux-arm64.tgz",
+          "version": "0.153.4"
+        },
+        "extraction_harness_architecture": "arm64",
+        "extraction_model_call_cap": 2,
+        "extractor": "scientific_entities_feedback_v1",
+        "harness_architecture": "x64",
+        "helper_hashes": {
+          "__init__.py": "0aba189477c461f271a3c65dec90fc54ff805cfac439bee79d9974423da193ae",
+          "annotations.py": "556aea2ebc8b0267d139ac75667c4e94af1f42f750ab5f3bb62213743d56dbde",
+          "assets.py": "53c58bd68fde4dc8a89ae7f608971c9362fad370a742c4cb9e325305d017a541",
+          "cli.py": "1bbeeca4f7982042b07a87a8b265125d3a5d768f8dff61df6d90fe75cd5477d4",
+          "configuration.py": "42aec6f7932572a2cfaeebe07b8f8438bc583450cc6fc1225d059bde4a6d6848",
+          "controller.py": "881f720e3db8f4ae83754a74528e38a6a413d79e6282bae35c27dc7cfd42a83f",
+          "evidence.py": "7499bd0efc3c3b438b98f486433671bf8b654427fe661dc7d87d469a82614106",
+          "expressions.py": "954d51c6f0c11cb0a37ce92d51e9e670721c300a34af6a98b9de3ab90faecf8c",
+          "extraction.py": "40a63c217a53a1546c509b117f668ba13f8a481418e361e24945dfaf752ba8a5",
+          "graph.py": "7e2d806215fd9b091f52eef66555542ab31be7a0a85e6e0460ea796cf10ca26f",
+          "io.py": "db29f23b97b8efd5a4fdaaa082b90dc494a6e99e18d61df58b14094ace36e29a",
+          "packet.py": "dff715ba1a34ebedc64ac9fa38cb22ab59e64487af98ed49164bf22818e0c250",
+          "pier_agent.py": "7767146f39de4099e6b76a9937c9c27ce42921b8e5b9f17ed7761f8dcdaed4ae",
+          "probes.py": "dee139e4bb91b3c74da037300e19908dafca9eacc6d584747b874254fe925bf2",
+          "release.py": "36b3a348069bdfb26e25dd420a73a371a0ac31dfaac3a2f245f7cbec673b19a8",
+          "results.py": "4ce5780de79b43318793da8bf715ca79ce473d2149205c9054dd7e403d53a051",
+          "sampling.py": "99ba9291592876d73e2311873a109b64559e7fd62a9bdbe645fbe1a1c242507d",
+          "semantics.py": "d8586c2af98c9cadbd6825f92e1b251f2ace0d1609286084f649cbc8876cd9cc",
+          "task_slice.py": "be37448aa472c9fe4133e151d1f28110740316ee587b8e1e2b04b603c6d10afc",
+          "tool_cli.py": "3c25353e487e4b744003c26fb1a0231861739f1287e5f329ca9d72cfaf3ad11a"
+        },
+        "host_memory_below_task_request": false,
+        "interpretation_cap_seconds": 135.0,
+        "probe_cap": 2,
+        "python_minor": "312",
+        "scientific_image_architecture": "amd64",
+        "task_requested_memory_mb": 8192,
+        "timeout": "GNU timeout foreground process group"
+      },
+      "setup_status": "available",
+      "source_matched_implementations": 0,
+      "stage_status": "completed",
+      "status": "completed",
+      "task_id": "091",
+      "tokens": {
+        "cached_input_tokens": 250496,
+        "input_tokens": 321199,
+        "nonreasoning_output_tokens": 4089,
+        "output_tokens": 4219,
+        "reasoning_output_tokens": 130,
+        "total_tokens": 325418,
+        "uncached_input_tokens": 70703
+      },
+      "trial_path": "jobs/task-091-science/task_091__bb46xvq",
+      "unknown_alignments": 2,
+      "usable_graph": true
+    },
+    {
+      "accepted_claims": null,
+      "analysis": null,
+      "annotation_schema_version": null,
+      "annotations_status": "missing",
+      "assembly": null,
+      "completed": false,
+      "declared_probes": null,
+      "extraction_status": "no_valid_graph",
+      "graph_sha256": null,
+      "graph_status": "missing",
+      "matched_quantity_bindings": null,
+      "model_calls": [
+        {
+          "duration_seconds": 124.73086629100726,
+          "name": "extract_draft",
+          "status": "timeout",
+          "timeout_seconds": 120.68344854807947,
+          "tokens": {
+            "cached_input_tokens": null,
+            "input_tokens": null,
+            "nonreasoning_output_tokens": null,
+            "output_tokens": null,
+            "reasoning_output_tokens": null,
+            "total_tokens": null,
+            "uncached_input_tokens": null
+          }
+        }
+      ],
+      "phases": [
+        {
+          "allowance_seconds": 134.9997758810976,
+          "duration_seconds": 124.73086629100726,
+          "name": "extract_draft",
+          "started_offset_seconds": 1.462499494664371e-05,
+          "status": "timeout"
+        },
+        {
+          "allowance_seconds": 29.999950195799464,
+          "duration_seconds": 1.9504833340179175,
+          "name": "prepare",
+          "started_offset_seconds": 0.00036641600308939815,
+          "status": "ready"
+        },
+        {
+          "allowance_seconds": 40.26881478589638,
+          "duration_seconds": 0.7735062499996275,
+          "name": "assemble_initial",
+          "started_offset_seconds": 124.73091229100828,
+          "status": "invalid_or_missing_annotations"
+        }
+      ],
+      "probe_receipt_status": "missing",
+      "probe_results": null,
+      "provenance": {
+        "benchmark_revision": "42e7e97915ff7d73436a5d37b5cbe6b77e9c2a00",
+        "codex_version": "0.153.4",
+        "config": {
+          "codex_version": "0.153.4",
+          "extraction_seconds": 360.0,
+          "model": "gpt-6-astra",
+          "reasoning_effort": "medium",
+          "total_seconds": 1800.0
+        },
+        "dataset_revision": "d8bdbcb4ecb2b565686382459c815d2b6291fd31",
+        "environment_image": "docker.io/kevinxulearning/swe-bench-science-environment-python-task-114:v0.1.2@sha256:68c032f628b1aad6432f5bc030537d016dc697778ac57ebfd54595df6b23ab3c",
+        "implementation_revision": "c9746597a09987e9773e2db57ef382d48dad1832",
+        "model": "gpt-6-astra",
+        "prompt_sha256": {
+          "prompts/extract.md": "092d0e884e21e3257967e9cdd199f827567ee1cb1e0ebd226beb419878d16c43",
+          "prompts/extract_revision.md": "1e94956320d7912143b1f3a69d7ba51e724c1f3af47af7468f61f1af2ce8b03c",
+          "prompts/repair.md": "9b9bd47560b889414d5b5b4fcb05c0dd6ba406856a6ce7fdee9c59102115066b"
+        },
+        "reasoning_effort": "medium",
+        "selection_sha256": "409c853fcf71217e5a229024c02c1075f01c7a329361eb2b7e42b5e80578e620"
+      },
+      "schedule_status": "completed",
+      "seconds": 140.89844245900167,
+      "selected_model_call": null,
+      "session_metadata": [
+        {
+          "cli_version": "0.153.4",
+          "cwd": "/app/task_114",
+          "id": "01a08cce-9944-77d1-a95c-f6f709d26f08",
+          "model_provider": "openai",
+          "path": "agent/extract_draft-sessions/2026/09/10/rollout-2026-09-10T19-32-25-01a08cce-9944-77d1-a95c-f6f709d26f08.jsonl",
+          "source": "exec"
+        }
+      ],
+      "setup": {
+        "baseline_tree": "d00be18fe5dbc57212caf59b0ec53c432937b156",
+        "claim_cap": 5,
+        "codex_receipt": {
+          "architecture": "x64",
+          "files": {
+            "package/README.md": "ba4e1f69ff48386e72a9c5e1edaf76aad64a475c2d51af79ccba6d1128261ba7",
+            "package/package.json": "7faa8bf27c4647662dae29b7e429b3dc394d718d273af0045e1aa99d2fb1bb37",
+            "package/vendor/x86_64-unknown-linux-musl/bin/codex": "56ef98ab4032d317ab26e9b5e5a175650717351edb16ed9cde0cb6d1734d62da",
+            "package/vendor/x86_64-unknown-linux-musl/bin/codex-code-mode-host": "3e85d67471825f73d02ff5f7e047ca1f6ca8caa3f59e4c6e8d9ca6ca7302cb45",
+            "package/vendor/x86_64-unknown-linux-musl/codex-package.json": "43f8735a93a7947c6dc082c550d2ff2d795fccfd1c7eb27c93aa91cbead1e3f4",
+            "package/vendor/x86_64-unknown-linux-musl/codex-path/rg": "e62198eb19b136b88c330af83647b5a962cb99b6b1f066758568f12de1974849",
+            "package/vendor/x86_64-unknown-linux-musl/codex-resources/bwrap": "77360cb751ccedc5971391444ac86a8a33c15b04d6b4a6fe45f5d25496e62c4c",
+            "package/vendor/x86_64-unknown-linux-musl/codex-resources/zsh/bin/zsh": "67faaaa89242c4a332e16e508a1977cffc24bf7fca31d4411cdfd101f3831ef3"
+          },
+          "integrity": "sha512-x1EcwBlY3AObM1VTUHNM2AzAJQsyreGdagpF+qFiYi/Oa30VBktvvG0C6tLtCzqW6hjZNWkGZQWmeVk7MuJKWg==",
+          "url": "https://registry.npmjs.org/@openai/codex/-/codex-0.153.4-linux-x64.tgz",
+          "version": "0.153.4"
+        },
+        "codex_version": "0.153.4",
+        "docker_cpus": 4,
+        "docker_memory_bytes": 9365356544,
+        "environment_image": "docker.io/kevinxulearning/swe-bench-science-environment-python-task-114:v0.1.2@sha256:68c032f628b1aad6432f5bc030537d016dc697778ac57ebfd54595df6b23ab3c",
+        "execution": "upstream_pier_codex_docker_boundary",
+        "extraction_access_mode": "read-only",
+        "extraction_codex_receipt": {
+          "architecture": "arm64",
+          "files": {
+            "package/README.md": "ba4e1f69ff48386e72a9c5e1edaf76aad64a475c2d51af79ccba6d1128261ba7",
+            "package/package.json": "5f21885cb53e91738ad62d47401934bac0cde912f4dbb9ea939a79ec64355e45",
+            "package/vendor/aarch64-unknown-linux-musl/bin/codex": "4d76e542c222ea8c75861d8c4ade60a1a332a63255ce1c60bdaebf7c2a2869e6",
+            "package/vendor/aarch64-unknown-linux-musl/bin/codex-code-mode-host": "d677dedf8179ca28ceb869a2e0b60d3ffad3d26f6e7738f7617d34500128a369",
+            "package/vendor/aarch64-unknown-linux-musl/codex-package.json": "a3c985c334a13f6168900d9aa900d875797e4c7a8a6432768bd1d64740f53f54",
+            "package/vendor/aarch64-unknown-linux-musl/codex-path/rg": "e36d0eb52e70696bdf1781392722e05a21bb91d3b7b762ef5ec20e5df2ec687b",
+            "package/vendor/aarch64-unknown-linux-musl/codex-resources/bwrap": "c547cbdc762a70ed216789ffaa4c6c0e7d2beabe32245a498f8e365a9fc8dab4",
+            "package/vendor/aarch64-unknown-linux-musl/codex-resources/zsh/bin/zsh": "7feeacd883e1dc749847936948c378653c80a69ec4a9542f0f126b411882c179"
+          },
+          "integrity": "sha512-QKdjYLYV4hXIuUQDP3P6F4NXuWFoKo9WUoV4nAREIx55kiUyi8UsYdsVobkeXir5n/maEQgYMCKLHVma4rNPiw==",
+          "url": "https://registry.npmjs.org/@openai/codex/-/codex-0.153.4-linux-arm64.tgz",
+          "version": "0.153.4"
+        },
+        "extraction_harness_architecture": "arm64",
+        "extraction_model_call_cap": 2,
+        "extractor": "scientific_entities_feedback_v1",
+        "harness_architecture": "x64",
+        "helper_hashes": {
+          "__init__.py": "0aba189477c461f271a3c65dec90fc54ff805cfac439bee79d9974423da193ae",
+          "annotations.py": "556aea2ebc8b0267d139ac75667c4e94af1f42f750ab5f3bb62213743d56dbde",
+          "assets.py": "53c58bd68fde4dc8a89ae7f608971c9362fad370a742c4cb9e325305d017a541",
+          "cli.py": "1bbeeca4f7982042b07a87a8b265125d3a5d768f8dff61df6d90fe75cd5477d4",
+          "configuration.py": "42aec6f7932572a2cfaeebe07b8f8438bc583450cc6fc1225d059bde4a6d6848",
+          "controller.py": "881f720e3db8f4ae83754a74528e38a6a413d79e6282bae35c27dc7cfd42a83f",
+          "evidence.py": "7499bd0efc3c3b438b98f486433671bf8b654427fe661dc7d87d469a82614106",
+          "expressions.py": "954d51c6f0c11cb0a37ce92d51e9e670721c300a34af6a98b9de3ab90faecf8c",
+          "extraction.py": "40a63c217a53a1546c509b117f668ba13f8a481418e361e24945dfaf752ba8a5",
+          "graph.py": "7e2d806215fd9b091f52eef66555542ab31be7a0a85e6e0460ea796cf10ca26f",
+          "io.py": "db29f23b97b8efd5a4fdaaa082b90dc494a6e99e18d61df58b14094ace36e29a",
+          "packet.py": "dff715ba1a34ebedc64ac9fa38cb22ab59e64487af98ed49164bf22818e0c250",
+          "pier_agent.py": "7767146f39de4099e6b76a9937c9c27ce42921b8e5b9f17ed7761f8dcdaed4ae",
+          "probes.py": "dee139e4bb91b3c74da037300e19908dafca9eacc6d584747b874254fe925bf2",
+          "release.py": "36b3a348069bdfb26e25dd420a73a371a0ac31dfaac3a2f245f7cbec673b19a8",
+          "results.py": "4ce5780de79b43318793da8bf715ca79ce473d2149205c9054dd7e403d53a051",
+          "sampling.py": "99ba9291592876d73e2311873a109b64559e7fd62a9bdbe645fbe1a1c242507d",
+          "semantics.py": "d8586c2af98c9cadbd6825f92e1b251f2ace0d1609286084f649cbc8876cd9cc",
+          "task_slice.py": "be37448aa472c9fe4133e151d1f28110740316ee587b8e1e2b04b603c6d10afc",
+          "tool_cli.py": "3c25353e487e4b744003c26fb1a0231861739f1287e5f329ca9d72cfaf3ad11a"
+        },
+        "host_memory_below_task_request": false,
+        "interpretation_cap_seconds": 135.0,
+        "probe_cap": 2,
+        "python_minor": "312",
+        "scientific_image_architecture": "amd64",
+        "task_requested_memory_mb": 8192,
+        "timeout": "GNU timeout foreground process group"
+      },
+      "setup_status": "available",
+      "source_matched_implementations": null,
+      "stage_status": "timeout",
+      "status": "completed",
+      "task_id": "114",
+      "tokens": {
+        "cached_input_tokens": null,
+        "input_tokens": null,
+        "nonreasoning_output_tokens": null,
+        "output_tokens": null,
+        "reasoning_output_tokens": null,
+        "total_tokens": null,
+        "uncached_input_tokens": null
+      },
+      "trial_path": "jobs/task-114-science/task_114__iyVX54c",
+      "unknown_alignments": null,
+      "usable_graph": null
+    }
+  ],
+  "schedule": {
+    "config": {
+      "allow_restricted_licenses": false,
+      "attempts": 1,
+      "codex_version": "0.153.4",
+      "concurrency": 2,
+      "condition_order": {
+        "091": [
+          "science"
+        ],
+        "114": [
+          "science"
+        ]
+      },
+      "conditions": [
+        "science"
+      ],
+      "dataset_revision": "d8bdbcb4ecb2b565686382459c815d2b6291fd31",
+      "development_task_ids": [
+        "001",
+        "002",
+        "009",
+        "058",
+        "077",
+        "091",
+        "114"
+      ],
+      "extraction_seconds": 360,
+      "model": "gpt-6-astra",
+      "pier_version": "0.3.0",
+      "purpose": "User-approved extraction-only quality check of scientific-object bindings and bounded feedback. Previously inspected development tasks; no repair or hidden tests. Use --extract-only.",
+      "reasoning_effort": "medium",
+      "release_commit": "42e7e97915ff7d73436a5d37b5cbe6b77e9c2a00",
+      "release_receipt": "data/random-five-v1-release.json",
+      "schema_version": "1.0",
+      "study_kind": "semantic_feedback_extraction_development_check",
+      "task_ids": [
+        "091",
+        "114"
+      ],
+      "total_seconds": 1800,
+      "verifier_seconds": 1800
+    },
+    "config_sha256": "f6cb7d7ab5c8eae02858760f3b87363b00f41ac08f59fbe0eaf6bd251e8e3311",
+    "execute": true,
+    "execution_policy": {
+      "admission": "two_task_extraction_groups",
+      "concurrency": 2,
+      "pier_concurrency_per_process": 1,
+      "shared_resources": true
+    },
+    "finished_at": "2026-09-10T19:36:20.302018+00:00",
+    "implementation_dirty": false,
+    "implementation_revision": "c9746597a09987e9773e2db57ef382d48dad1832",
+    "kind": "extraction_verification",
+    "output": "/Users/rajarshighoshal/Projects/TUg_research_task/runs/semantic-feedback-check-v1",
+    "prompt_sha256": {
+      "prompts/extract.md": "092d0e884e21e3257967e9cdd199f827567ee1cb1e0ebd226beb419878d16c43",
+      "prompts/extract_revision.md": "1e94956320d7912143b1f3a69d7ba51e724c1f3af47af7468f61f1af2ce8b03c",
+      "prompts/repair.md": "9b9bd47560b889414d5b5b4fcb05c0dd6ba406856a6ce7fdee9c59102115066b"
+    },
+    "schedule": [
+      {
+        "condition": "science",
+        "finished_at": "2026-09-10T19:36:20.301565+00:00",
+        "phase": "finished",
+        "started_at": "2026-09-10T19:31:49.783155+00:00",
+        "status": "completed",
+        "task_id": "091"
+      },
+      {
+        "condition": "science",
+        "finished_at": "2026-09-10T19:34:59.019471+00:00",
+        "phase": "finished",
+        "started_at": "2026-09-10T19:31:53.097284+00:00",
+        "status": "completed",
+        "task_id": "114"
+      }
+    ],
+    "schema_version": "1.0",
+    "selection_sha256": "409c853fcf71217e5a229024c02c1075f01c7a329361eb2b7e42b5e80578e620",
+    "started_at": "2026-09-10T19:31:49.781905+00:00",
+    "status": "completed",
+    "uv_lock_sha256": "c61a78a1c9ba91fe4ebf14ec3f35fd65e9d4e99a567afe06fed77cdac3bc38f4"
+  },
+  "source_run_root": "runs/semantic-feedback-check-v1",
+  "summary_audit": "verified",
+  "task_ids": [
+    "091",
+    "114"
+  ]
+}

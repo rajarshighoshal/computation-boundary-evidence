@@ -96,6 +96,7 @@ def collect(root):
         probes, probes_status = optional_object(trial / "agent/extract-scratch/probe-results.json") if trial else ({}, "missing")
         setup, setup_status = optional_object(trial / "agent/setup.json") if trial else ({}, "missing")
         records.append({"task_id": task, "schedule_status": item.get("status"), "status": run.get("status", "no receipt"),
+                        "extraction_status": run.get("extraction_status", "unknown"),
                         "completed": completed, "usable_graph": usable, "graph_status": graph_status, "graph_sha256": digest,
                         "seconds": run.get("duration_seconds"), "stage_status": stage.get("status"),
                         "accepted_claims": len(accepted) if measured and isinstance(accepted, list) else None,
@@ -119,6 +120,8 @@ def collect(root):
         if calls is not None:
             records[-1]["selected_model_call"] = selected
             records[-1]["model_calls"] = [{"name": call["name"], "status": call.get("status"),
+                                          "duration_seconds": call.get("duration_seconds"),
+                                          "timeout_seconds": call.get("timeout_seconds"),
                                           "tokens": leaf_token_breakdown(trial, call)} for call in calls]
     return {"kind": "development_extraction_quality", "source_run_root": str(root), "task_ids": task_ids,
             "summary_audit": "verified" if summary_paths else "independently reconstructed; stored summary missing",
@@ -132,9 +135,9 @@ def render(result):
              "not scientific correctness. Unknown alignments remain unresolved.", "",
              f"Schedule: {result['schedule'].get('status', 'unknown')}. Summary audit: {result['summary_audit']}.", ""]
     records = result["records"]
-    table(lines, ["Task", "Status", "Completed", "Usable graph", "Graph receipt", "Seconds", "Accepted claims",
+    table(lines, ["Task", "Run status", "Extraction stage", "Handoff status", "Completed", "Usable graph", "Graph receipt", "Seconds", "Accepted claims",
                   "Source-matched implementations", "Matched quantity bindings", "Unknown alignments"],
-          [(r["task_id"], r["status"], r["completed"], r["usable_graph"], r["graph_status"], number(r["seconds"]),
+          [(r["task_id"], r["status"], r["stage_status"], r["extraction_status"], r["completed"], r["usable_graph"], r["graph_status"], number(r["seconds"]),
             r["accepted_claims"], r["source_matched_implementations"], r["matched_quantity_bindings"], r["unknown_alignments"])
            for r in records])
     table(lines, ["Task", "Input", "Cached input (subset)", "Output", "Reasoning (output subset)", "Total"],
@@ -153,6 +156,18 @@ def render(result):
         statuses = counts(r["probe_results"])
         lines.append(f"Task {r['task_id']} probe results: " + (json.dumps(statuses, sort_keys=True)
                      if statuses is not None else "none declared" if r["declared_probes"] == 0 else "unknown") + ".")
+    lines += ["", "A completed run means the scheduled workflow returned; its extraction stage can still time out "
+              "without delivering a handoff. The stage and handoff columns above distinguish these outcomes.", ""]
+    for r in records:
+        if r.get("phases"):
+            lines += [f"## Task {r['task_id']} phase timing", ""]
+            table(lines, ["Phase", "Status", "Allowance seconds", "Elapsed seconds"],
+                  [(p.get("name"), p.get("status"), number(p.get("allowance_seconds")), number(p.get("duration_seconds")))
+                   for p in r["phases"]])
+            if r.get("model_calls"):
+                table(lines, ["Call", "GNU command allowance seconds", "Interpretation elapsed seconds"],
+                      [(c["name"], number(c.get("timeout_seconds")), number(c.get("duration_seconds")))
+                       for c in r["model_calls"]])
     lines += ["", "Probe outcomes describe execution on the original implementation; they are not scientific proof. "
               "The JSON report preserves phases, assembly relations and dependency links when recorded, analysis coverage, "
               "source selection, setup, available session headers, and protocol provenance.", ""]
