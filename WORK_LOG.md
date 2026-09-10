@@ -12,22 +12,20 @@ Language-specific structure extraction must feed the shared representation. No b
 
 - Core merged as `ef3e62c`; all extra worktrees removed, commits retained. Unique old source checks
   preserved in `runs/archived-semantic-bindings-source-checks`. Root is the only writer.
-- Anchored enrichment, source/interface context and the one-call scientific-reading path are
-  implemented; local/full tests and offline fixtures pass. Custom code remains annotatable even
-  without recognised APIs. Pint replaces the unit table; PyCG fit check did not produce a graph.
-- Finish the clean review checkpoint, then other-language structure frontends and a separately
-  approved live scientific-quality check. Public plasma-source extraction runs without model calls;
-  its API recognition is absent but source-only objects remain available for interpretation.
-  No API-rule expansion or new benchmark calls yet.
+- Next: other-language structure frontends for the shared representation and a separately approved
+  live scientific-quality check after review. No API-rule expansion or benchmark calls yet.
+- Review target: scientific meanings must connect to code objects/interfaces, not merely rename
+  APIs. Current offline annotations are fixtures, not demonstrated LLM scientific understanding.
 - Final check: inspect generated representations, run local tests, and state unsupported cases.
   This does not establish repair improvement or authorize another experiment.
 
 ## Latest checkpoint
 
-`ef3e62c`: code-first core integrated and focused tests passed. Prior comparison at `82e2a35`
-is complete and negative; results and limitations in
-`docs/PROBE_FIRST_PAIRS_V1.md` and `_NOTES.md`. Historical attempts remain unchanged.
-Project rules/log have now been compacted; archive links below preserve older context.
+`27705a3`: anchored scientific reading is integrated with the existing runner; Pint and custom-code
+anchors included. Full tests passed from this commit (`runs/scientific-object-checkpoint-v1/pytest.xml`).
+Offline examples: `runs/scientific-object-demo-v2`; real public-source extraction:
+`runs/scientific-object-public-source-v1`. PyCG fit failures: `runs/tool-fit-pycg/RECEIPT.md`.
+Prior negative comparison remains unchanged in `docs/PROBE_FIRST_PAIRS_V1.md` and `_NOTES.md`.
 
 ## Carry forward
 
