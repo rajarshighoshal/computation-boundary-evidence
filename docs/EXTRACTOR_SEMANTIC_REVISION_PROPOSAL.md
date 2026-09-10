@@ -1,7 +1,7 @@
 # Proposed revision: scientific meaning with grounded, testable conditions
 
-Status: proposal only, following the task001 diagnosis. Not approved or implemented.
-`WORK_LOG.md` is the canonical status ledger; the currently approved method remains unchanged.
+Status: approved for implementation following the task001 diagnosis; implementation/verification
+is tracked in `WORK_LOG.md`. This approval does not launch new benchmark-agent experiments.
 
 ## Target
 
@@ -96,4 +96,25 @@ and all extraction/revision costs included. No expanded experiment is authorized
 This tests the whole extraction-and-repair procedure, not a causal contribution of the graph alone.
 Task001 is diagnostic-exposed and cannot serve as an untouched evaluation case. The benchmark runner,
 Docker isolation and standard repair execution need no redesign for this revision. Implementation
-and any live model checks require Rajarshi's subsequent approval.
+is now approved; any live model checks require a subsequent budget decision.
+
+## Implementation interfaces
+
+- Preserve top-level trial stages `extract` and `repair` for compatibility. New extraction records
+  contain `model_calls`, a list of per-call receipts with distinct `name` values `extract_draft`
+  and `extract_revision`, status, usage and runtime. Store each call at its matching
+  `agent/{name}.jsonl`, final/process files and `{name}-sessions` directory. Stage usage sums all
+  attempted calls and remains unknown when any attempted call lacks measurements. Legacy records
+  without `model_calls` retain their existing interpretation.
+- Keep `driver.interpret(instruction, seconds)` as draft and add
+  `driver.revise(instruction, feedback, seconds)`. Assembly summaries already expose rejected
+  bindings/unresolved entries and probe specs. The runtime can accept additional semantic fields
+  without a separate scientific-analysis backend.
+- Entity bindings and semantic claim fields are owned by the binding implementation. It must keep
+  old annotation/graph payloads readable, report entity resolution separately from expression
+  alignment, and include accepted public probe source in the handoff with evidence/uncertainty.
+- Reuse probe results only when the corresponding script and claim interpretation are unchanged.
+  Changed or new final probes may be provided as unexecuted, never inherit a previous success.
+- Root-owned prompts describe scientific objects, applicability, alternative interpretations and
+  evidence-based discriminating observations. No task001 hidden assertion, diagnostic fixture or
+  hand-crafted domain answer is supplied to evaluated agents.
