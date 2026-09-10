@@ -241,6 +241,8 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
     if smoke and extraction_only:
         raise ValueError("Choose subscription smoke or extraction-only verification, not both")
     config = read_json(config_path)
+    if config.get("extractor", "annotations") not in {"annotations", "scientific_objects"}:
+        raise ValueError("Unknown extraction method")
     budget = TrialConfig(config["model"], config["reasoning_effort"], config["codex_version"],
                          config["total_seconds"], config["extraction_seconds"])
     concurrency = config.get("concurrency")
@@ -357,7 +359,8 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
             for key, value in {"condition": condition, "total_seconds": total, "extraction_seconds": extract,
                                "reasoning_effort": budget.reasoning_effort, "codex_version": budget.codex_version,
                                "workspace": str(workspace), "auth_file": str(private_auth), "smoke": smoke,
-                               "extraction_only": extraction_only}.items():
+                               "extraction_only": extraction_only,
+                               "extractor": config.get("extractor", "annotations")}.items():
                 command += ["--agent-kwarg", f"{key}={str(value).lower() if isinstance(value, bool) else value}"]
             log = output / f"task-{task}-{condition}-runner.log"
             write_json(output / f"task-{task}-{condition}-launch.json", {
@@ -513,7 +516,7 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
 
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
-    if argv and argv[0] in {"index", "cite", "expression", "checkpoint", "packet", "assemble", "run-probes"}:
+    if argv and argv[0] in {"index", "cite", "expression", "checkpoint", "packet", "assemble", "assemble-objects", "run-probes"}:
         from .tool_cli import main as helper_main
         return helper_main(argv)
     parser = argparse.ArgumentParser(description=__doc__)
@@ -531,6 +534,14 @@ def main(argv: list[str] | None = None) -> int:
     summaries = subs.add_parser("summarize", help="Generate paired results from raw artifacts")
     summaries.add_argument("root", type=Path)
     summaries.add_argument("--output", type=Path, required=True)
+    objects = subs.add_parser("scientific-objects", help="Extract a code-owned scientific object graph without model calls")
+    objects.add_argument("--root", type=Path, required=True)
+    objects.add_argument("paths", nargs="*", help="Optional public source paths; otherwise use task-local packet selection")
+    objects.add_argument("--interpretations", type=Path, help="Contextual annotations referencing extracted object IDs")
+    objects.add_argument("--context-root", type=Path)
+    objects.add_argument("--output", type=Path, required=True)
+    objects.add_argument("--markdown", type=Path)
+    objects.add_argument("--llm-input", type=Path, help="Save the scientific context payload for interpretation")
     run = subs.add_parser("pilot", help="Print schedule; --execute runs the approved development pilot")
     run.add_argument("--workspace", type=Path, default=_workspace())
     run.add_argument("--config", type=Path, default=_workspace() / "configs/pilot.json")
@@ -539,7 +550,7 @@ def main(argv: list[str] | None = None) -> int:
     run.add_argument("--execute", action="store_true")
     run.add_argument("--smoke", action="store_true")
     run.add_argument("--extract-only", action="store_true", help="Verify only extraction on configured development tasks; no repair or private verifier")
-    for name in ("index", "cite", "expression", "checkpoint", "packet", "assemble", "run-probes"):
+    for name in ("index", "cite", "expression", "checkpoint", "packet", "assemble", "assemble-objects", "run-probes"):
         subs.add_parser(name, help="Offline extraction helper; use command --help")
     args = parser.parse_args(argv)
     if args.command == "schema":
@@ -556,6 +567,22 @@ def main(argv: list[str] | None = None) -> int:
     elif args.command == "summarize":
         from .results import write_summary
         result = write_summary(args.root, args.output)
+    elif args.command == "scientific-objects":
+        from .scientific_objects import extract_objects
+        from .object_context import enrich_objects, enrichment_input, render_objects
+        from .packet import build_packet
+        from .evidence import extract_evidence
+        packet = (extract_evidence(args.root, args.paths) if args.paths
+                  else build_packet(args.root, args.context_root))
+        result = extract_objects(args.root, packet)
+        if args.llm_input:
+            write_json(args.llm_input, enrichment_input(result, packet))
+        if args.interpretations:
+            result = enrich_objects(result, read_json(args.interpretations))
+        write_json(args.output, result)
+        if args.markdown:
+            args.markdown.parent.mkdir(parents=True, exist_ok=True)
+            args.markdown.write_text(render_objects(result))
     else:
         result = pilot(args.workspace.resolve(), args.config, args.output, args.execute, args.auth_file, args.smoke, args.extract_only)
     print(json.dumps(result, indent=2, sort_keys=True, allow_nan=False))

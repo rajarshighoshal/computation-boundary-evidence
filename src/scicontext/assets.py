@@ -15,7 +15,8 @@ from pathlib import Path
 from .io import digest_file, digest_json, read_json, write_json
 
 CODEX_VERSION = "0.153.4"
-HELPER_PACKAGES = ["jsonschema==4.26.0", "attrs==26.1.0", "jsonschema-specifications==2025.9.1", "referencing==0.37.0", "rpds-py==2026.6.3", "typing-extensions==4.16.0"]
+HELPER_PACKAGES = ["jsonschema==4.26.0", "attrs==26.1.0", "jsonschema-specifications==2025.9.1", "referencing==0.37.0", "rpds-py==2026.6.3", "typing-extensions==4.16.0",
+                   "pint==0.24.4", "flexcache==0.3", "flexparser==0.4", "platformdirs==4.11.8"]
 
 
 def _locked_asset(builder):

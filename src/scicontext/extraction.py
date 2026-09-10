@@ -111,6 +111,10 @@ async def run_extraction(driver, instruction: str, seconds: float) -> dict:
 
     preparation = asyncio.create_task(phase("prepare", driver.prepare, min(30.0, seconds / 10)))
     try:
+        object_mode = getattr(driver, "extraction_mode", "annotations") == "scientific_objects"
+        # The scientific reader needs the actual derived object graph in its
+        # input. Legacy interpretation/preparation overlap remains reproducible.
+        prepared = await preparation if object_mode else None
         draft = await phase("extract_draft", lambda s: driver.interpret(instruction, s),
                             allowance(reserve), model=True)
         prepared = await preparation
@@ -136,13 +140,13 @@ async def run_extraction(driver, instruction: str, seconds: float) -> dict:
                 if observed and observed.get("usable"):
                     final = observed
 
-        if initial and initial.get("usable") and initial.get("probes"):
+        if not object_mode and initial and initial.get("usable") and initial.get("probes"):
             await execute_probes(initial, "probes", "assemble_observed")
         reasons = revision_reasons(final, observations)
         revision_budget = allowance(reserve)
         revision = {"status": "not_run", "reasons": reasons, "allowance_seconds": revision_budget}
         # This is a planned correction, never a provider/execution retry.
-        if (draft and draft.get("status") == "completed" and not draft.get("fatal_model_error")
+        if (not object_mode and draft and draft.get("status") == "completed" and not draft.get("fatal_model_error")
                 and not getattr(driver, "_fatal_model_error", False) and hasattr(driver, "revise")
                 and reasons and revision_budget >= min(60.0, seconds / 5)):
             feedback = {"draft_assembly": initial, "observed_assembly": final,
@@ -158,6 +162,8 @@ async def run_extraction(driver, instruction: str, seconds: float) -> dict:
                     final = assembled
                     selected_call = "extract_revision"
                     await execute_probes(assembled, "revision_probes", "assemble_revision_observed")
+        elif object_mode:
+            revision["reason"] = "not_part_of_scientific_object_enrichment"
         elif not reasons:
             revision["reason"] = "no_correction_needed"
         elif revision_budget < min(60.0, seconds / 5):

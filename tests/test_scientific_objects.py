@@ -75,7 +75,11 @@ def test_scoped_parameters_and_alias_composition(tmp_path):
 def test_names_shadowing_and_unknown_api_do_not_create_science(tmp_path, source):
     result = graph(tmp_path, source)
     assert result["coverage"]["recognized_scientific_operations"] == 0
-    assert result["objects"] == []
+    # Unknown code remains annotatable; a familiar name must not confer API semantics.
+    assert result["objects"]
+    assert all(o["properties"]["dimensions"] is None for o in result["objects"])
+    assert not any(o["kind"] in {"linear_solve", "sampled_integration", "quantity_construction"}
+                   for o in result["operations"])
     assert any(u["reason"] in {"unrecognized_or_shadowed_call", "uninterpreted_wrapper_call"} for u in result["unsupported"])
 
 
@@ -340,3 +344,29 @@ def test_quantity_reciprocal_and_division_invert_dimensions_and_unit_scale(tmp_p
     assert binding(result, "frequency")["properties"]["scale_to_si"] == "1000"
     assert binding(result, "ratio")["properties"]["dimensions"] == {}
     assert binding(result, "ratio")["properties"]["scale_to_si"] == "100"
+
+
+@pytest.mark.parametrize("unit,dimensions,scale", [
+    ("kg * m / s**2", {"mass": 1, "length": 1, "time": -2}, "1"),
+    ("mV", {"mass": 1, "length": 2, "time": -3, "electric_current": -1}, "1/1000"),
+    ("cm**0.5", {"length": "1/2"}, "1/10"),
+])
+def test_pint_parses_compounds_prefixes_and_fractional_dimensions(tmp_path, unit, dimensions, scale):
+    result = graph(tmp_path, f"from astropy.units import Quantity\nx = Quantity(1, {unit!r})\n")
+    x = binding(result, "x")
+    assert x["properties"]["dimensions"] == dimensions
+    assert x["properties"]["scale_to_si"] == scale
+    assert x["properties"]["unit_basis_source"] == "pint_registry_multiplicative_scale"
+
+
+@pytest.mark.parametrize("unit", ["degC", "dB", "made_up_unit"])
+def test_nonmultiplicative_and_unknown_units_are_not_forced_to_a_scale(tmp_path, unit):
+    result = graph(tmp_path, f"from astropy.units import Quantity\nx = Quantity(1, {unit!r})\n")
+    assert binding(result, "x")["properties"]["scale_to_si"] is None
+    assert any(u["reason"] == "unsupported_or_implicit_quantity_unit" for u in result["unsupported"])
+
+
+def test_fractional_dimension_propagation_keeps_division_sign(tmp_path):
+    result = graph(tmp_path, "from astropy.units import Quantity\n"
+        "a = Quantity(1, 'm**0.5')\nb = Quantity(2, 's**0.5')\nr = a / b\n")
+    assert binding(result, "r")["properties"]["dimensions"] == {"length": "1/2", "time": "-1/2"}

@@ -11,7 +11,7 @@ pytest.importorskip("pier")
 
 from scicontext.annotations import assemble_annotations
 from scicontext.extraction import run_extraction
-from scicontext.pier_agent import SCRATCH, ScientificCodex, revision_feedback
+from scicontext.pier_agent import REMOTE, SCRATCH, ScientificCodex, revision_feedback
 
 
 class Environment:
@@ -103,6 +103,38 @@ def test_adapter_keeps_separate_draft_and_revision_probe_receipts(driver):
         assert json.loads((driver.logs_dir / "probe-round-1-results.json").read_text())["results"][0]["status"] == "failed"
         assert json.loads((driver.logs_dir / "probe-round-2-results.json").read_text())["results"][0]["status"] == "completed"
     asyncio.run(check())
+
+
+def test_object_mode_uses_scientific_reader_and_object_assembly(driver):
+    async def check():
+        driver.extraction_mode = "scientific_objects"
+        driver.prepare = ScientificCodex.prepare.__get__(driver)
+        driver._helper = AsyncMock(return_value={"status": "ready"})
+        await driver.prepare(30)
+        command = driver._helper.await_args.args[0]
+        assert "--objects-output" in command and "--enrichment-input" in command
+        async def model(name, prompt, seconds):
+            assert "scientific working model" in prompt
+            assert "scientific-context-input.json" in prompt
+            assert "object-enrichment.schema.json" in prompt
+            assert "Do not repair code or design tests" in prompt
+            (driver.logs_dir / "extract_draft-final.txt").write_text(json.dumps({
+                "schema_version": "object-enrichment-1.0", "annotations": []}))
+            return {"status": "completed", "usage": {"input_tokens": 1}}
+        driver._run_codex = AsyncMock(side_effect=model)
+        await driver.interpret("Scientific task", 120)
+        driver._helper = AsyncMock(return_value={"usable": True})
+        await driver.assemble(None, 50)
+        assert "assemble-objects" in driver._helper.await_args.args[0]
+        assert "scientific-context-input.json" in driver._helper.await_args.args[0]
+    asyncio.run(check())
+
+
+def test_analysis_helper_does_not_use_candidate_directory_for_dependency_imports(driver):
+    driver.checked = AsyncMock(return_value='{"status":"ready"}')
+    result = asyncio.run(ScientificCodex._helper(driver, "python -m scicontext.tool_cli packet", 30))
+    assert result["status"] == "ready"
+    assert driver.checked.await_args.kwargs["cwd"] == REMOTE
 
 
 @pytest.mark.parametrize("output", [None, "not JSON", "[]"])

@@ -181,11 +181,17 @@ async def run_trial(driver: Driver, config: TrialConfig, task_id: str, condition
             prompt = instruction
             if handoff is not None:
                 prompt += "\n\nSCIENTIFIC_CONTEXT_HANDOFF\n" + handoff["handoff"]
-                prompt += ("\nUse this fallible context when useful. Entity/source links identify code, not scientific proof. "
-                           "Rerun applicable supplied public probes after changes within the remaining repair allowance; "
-                           "treat unexecuted or stale probes as unverified, and preserve the task's fixtures. "
-                           "Challenge inferred constraints with public evidence when needed; do not silently weaken "
-                           "a supported requirement merely to make the current implementation pass.")
+                if handoff.get("graph", {}).get("schema_version") == "scientific-objects-1.0":
+                    prompt += ("\nUse this scientific working model to connect the reported issue to the code's objects "
+                               "and interfaces. Contextual meanings and assumptions are not mandatory repair rules; "
+                               "reconcile them with the task and scientific sources. Preserve applicability limits "
+                               "and distinguish documented intent from possibly buggy implementation behavior.")
+                else:
+                    prompt += ("\nUse this fallible context when useful. Entity/source links identify code, not scientific proof. "
+                               "Rerun applicable supplied public probes after changes within the remaining repair allowance; "
+                               "treat unexecuted or stale probes as unverified, and preserve the task's fixtures. "
+                               "Challenge inferred constraints with public evidence when needed; do not silently weaken "
+                               "a supported requirement merely to make the current implementation pass.")
             result = await stage("repair", prompt, remaining)
             if result.get("fatal_model_error") or getattr(driver, "_fatal_model_error", False):
                 raise RuntimeError("Repair model execution failed; inspect its receipt. The schedule must stop.")

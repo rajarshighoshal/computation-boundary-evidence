@@ -13,6 +13,8 @@ import copy
 import hashlib
 import json
 from fractions import Fraction
+from decimal import Decimal
+from functools import lru_cache
 from pathlib import Path
 
 from . import evidence
@@ -34,21 +36,39 @@ _ALIASES = {
     "networkx.algorithms.components.connected.connected_components": "networkx.connected_components",
     "astropy.units.quantity.Quantity": "astropy.units.Quantity",
 }
-# A deliberately finite linear SI unit vocabulary. Offset/logarithmic units,
-# equivalencies, custom units and parsing arbitrary unit syntax are unsupported.
-_UNITS = {
-    "1": ({}, "1"), "": ({}, "1"),
-    "m": ({"length": 1}, "1"), "cm": ({"length": 1}, "1/100"),
-    "mm": ({"length": 1}, "1/1000"), "km": ({"length": 1}, "1000"),
-    "s": ({"time": 1}, "1"), "ms": ({"time": 1}, "1/1000"),
-    "kg": ({"mass": 1}, "1"), "g": ({"mass": 1}, "1/1000"),
-    "A": ({"electric_current": 1}, "1"), "K": ({"temperature": 1}, "1"),
-    "mol": ({"amount": 1}, "1"), "cd": ({"luminous_intensity": 1}, "1"),
-    "Hz": ({"time": -1}, "1"),
-    "N": ({"mass": 1, "length": 1, "time": -2}, "1"),
-    "J": ({"mass": 1, "length": 2, "time": -2}, "1"),
-    "W": ({"mass": 1, "length": 2, "time": -3}, "1"),
-}
+@lru_cache(maxsize=1)
+def _unit_registry():
+    from pint import UnitRegistry
+    return UnitRegistry(non_int_type=Decimal)
+
+
+def _serial_dimension(value):
+    rational = Fraction(value)
+    return rational.numerator if rational.denominator == 1 else str(rational)
+
+
+@lru_cache(maxsize=256)
+def _unit_basis(text):
+    """Read Pint's offline registry; only propagate multiplicative unit scales.
+
+    Registry-defined constants are not mathematical exactness guarantees. Offset,
+    logarithmic, custom or unrecognised units remain explicit unsupported cases.
+    """
+    from pint.errors import PintError
+    try:
+        registry = _unit_registry()
+        unit = registry.parse_units(text)
+        zero = registry.Quantity(Decimal(0), unit).to_base_units().magnitude
+        one = registry.Quantity(Decimal(1), unit).to_base_units().magnitude
+        two = registry.Quantity(Decimal(2), unit).to_base_units().magnitude
+        if zero != 0 or one <= 0 or two != 2 * one:
+            return None
+        aliases = {"current": "electric_current", "substance": "amount", "luminosity": "luminous_intensity"}
+        dims = {aliases.get(str(key).strip("[]"), str(key).strip("[]")): _serial_dimension(value)
+                for key, value in unit.dimensionality.items() if value}
+        return dims, str(Fraction(one))
+    except (PintError, ValueError, TypeError, ArithmeticError):
+        return None
 
 
 def _id(prefix, *parts):
@@ -136,6 +156,7 @@ class _Extractor:
         if key not in self.objects:
             self.objects[key] = {"id": key, "kind": kind, "symbol": symbol,
                 "scope": entry["scope"], "path": entry["path"], "source_entry_ids": [entry["id"]],
+                "source_span": {k: entry[k] for k in ("start_line", "end_line")},
                 "properties": {"dimensions": None, "scale_to_si": None, "shape": None,
                                "source_branch": entry.get("branch", []),
                                **(properties or {})}, "roles": []}
@@ -154,6 +175,7 @@ class _Extractor:
         key = _id("sop_", entry["id"], ast.dump(node, include_attributes=True), kind)
         self.operations[key] = {"id": key, "kind": kind, "api": api,
             "source_entry_id": entry["id"], "inputs": [{"role": r, "object_id": o} for r, o in inputs],
+            "source": {k: entry[k] for k in ("path", "scope", "start_line", "end_line")},
             "output_ids": [output] if output else [], "properties": {"source_branch": entry.get("branch", []), **(properties or {})},
             "assumptions": ["Standard documented library/operator behaviour; runtime overrides are not checked.", *(assumptions or [])],
             "documentation_url": _DOCS.get(api)}
@@ -317,10 +339,10 @@ class _Extractor:
             return props
         if isinstance(node.op, (ast.Mult, ast.Div)):
             sign = -1 if isinstance(node.op, ast.Div) else 1
-            dims = dict(da)
+            dims = {k: Fraction(v) for k, v in da.items()}
             for k, v in db.items():
-                dims[k] = dims.get(k, 0) + sign * v
-            props.update(dimensions={k: v for k, v in dims.items() if v},
+                dims[k] = dims.get(k, 0) + sign * Fraction(v)
+            props.update(dimensions={k: _serial_dimension(v) for k, v in dims.items() if v},
                          scale_to_si=str(Fraction(sa) * Fraction(sb) ** sign))
         elif isinstance(node.op, (ast.Add, ast.Sub)):
             if a["kind"] != "quantity" or b["kind"] != "quantity":
@@ -441,11 +463,11 @@ class _Extractor:
             canonical = self.canonical(entry, unitnode) if unitnode is not None else None
             if canonical and canonical.startswith("astropy.units."):
                 unit = canonical.removeprefix("astropy.units.")
-            basis = _UNITS.get(unit) if isinstance(unit, str) else None
+            basis = _unit_basis(unit) if isinstance(unit, str) else None
             props = {"unit_expression": ast.unparse(unitnode) if unitnode is not None else None,
                      "unit_literal": unit if isinstance(unit, str) else None,
                      "dimensions": dict(basis[0]) if basis else None, "scale_to_si": basis[1] if basis else None,
-                     "unit_basis_source": "explicit_supported_SI_unit" if basis else "unknown",
+                     "unit_basis_source": "pint_registry_multiplicative_scale" if basis else "unknown",
                      "shape": self.objects[value]["properties"].get("shape") if value and "ndmin" not in args and "dtype" not in args else None}
             if not basis:
                 self.problem(entry, "unsupported_or_implicit_quantity_unit", unit_expression=props["unit_expression"])
@@ -489,7 +511,9 @@ class _Extractor:
             wrapper["indexed_body_operation_ids"] = body
             for oid in body:
                 self.link(operation["id"], oid, "may_invoke_body")
-        # Keep connected producers AND consumers, rather than isolated API cards.
+        # API-connected structure is a coverage category, not an admission gate.
+        # Custom scientific computation must still expose source-backed objects
+        # for contextual interpretation even when none of our API rules apply.
         connected = set(self.scientific)
         while True:
             before = len(connected)
@@ -498,9 +522,11 @@ class _Extractor:
                     connected.update((link["source"], link["target"]))
             if len(connected) == before:
                 break
-        objects = [o for key, o in self.objects.items() if key in connected]
-        operations = [o for key, o in self.operations.items() if key in connected]
+        objects = list(self.objects.values())
+        operations = list(self.operations.values())
         self.coverage.update(objects=len(objects), operations=len(operations),
+            api_connected_objects=sum(o["id"] in connected for o in objects),
+            code_only_objects=sum(o["id"] not in connected for o in objects),
             unsupported_cases=len(self.unsupported),
             unresolved_inputs=sum(i["object_id"] is None for o in operations for i in o["inputs"]))
         per_file = []
@@ -521,7 +547,7 @@ class _Extractor:
         self.coverage.update(per_file=per_file, totals=totals,
             fraction_definition="scientific_api_calls / inspected_calls; includes array/support and rejected calls in denominator, excludes arithmetic from numerator; packet-local, not scientific completeness")
         return {"schema_version": SCHEMA_VERSION, "objects": objects, "operations": operations,
-                "links": [l for l in self.links if l["source"] in connected and l["target"] in connected],
+                "links": list(self.links),
                 "unsupported": self.unsupported, "coverage": self.coverage}
 
 

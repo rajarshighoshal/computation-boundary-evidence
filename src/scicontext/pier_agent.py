@@ -116,13 +116,17 @@ class ScientificCodex(BaseAgent):
 
     def __init__(self, *args, condition="baseline", total_seconds=1800,
                  extraction_seconds=360, reasoning_effort="high", codex_version="0.153.4",
-                 workspace=None, auth_file=None, smoke=False, extraction_only=False, **kwargs):
+                 workspace=None, auth_file=None, smoke=False, extraction_only=False,
+                 extractor="annotations", **kwargs):
         super().__init__(*args, **kwargs)
         if condition not in {"baseline", "science"}:
             raise ValueError("Unknown experiment condition")
         if codex_version != "0.153.4":
             raise ValueError("This experiment pins Codex 0.153.4")
         self.condition = condition
+        if extractor not in {"annotations", "scientific_objects"}:
+            raise ValueError("Unknown extraction method")
+        self.extraction_mode = extractor
         self.config = TrialConfig(self.model_name or "gpt-6-astra", reasoning_effort,
                                   codex_version, float(total_seconds), float(extraction_seconds))
         self.workspace = Path(workspace or Path.cwd()).resolve()
@@ -169,6 +173,10 @@ class ScientificCodex(BaseAgent):
         await self._put(environment, "codex-launcher", timeout_launcher(binary), REMOTE + "/bin/codex")
         await self.checked(environment, f"chmod 755 {REMOTE}/bin/codex; command -v timeout")
         await self._put(environment, "annotation-schema.json", json.dumps(annotation_schema()), CONTROL + "/annotation-schema.json")
+        if getattr(self, "extraction_mode", "annotations") == "scientific_objects":
+            from .object_context import enrichment_schema
+            await self._put(environment, "object-enrichment.schema.json", json.dumps(enrichment_schema()),
+                            CONTROL + "/object-enrichment.schema.json")
         statement = (environment.environment_dir.parent / "instruction.md").read_text()
         await self._put(environment, "task_statement.md", statement, REMOTE + "/context/task_statement.md")
         version = await self.checked(environment, shlex.join([binary, "--version"]))
@@ -218,14 +226,20 @@ class ScientificCodex(BaseAgent):
             "codex_version": self.config.codex_version, "harness_architecture": "x64",
             "scientific_image_architecture": "amd64", "environment_image": environment.task_env_config.docker_image,
             "execution": "upstream_pier_codex_docker_boundary", "timeout": "GNU timeout foreground process group",
-            "extractor": "scientific_probe_first_v1", "claim_cap": 5, "probe_cap": 2,
-            "extraction_model_call_cap": 2 if self.condition == "science" else 0,
+            "extractor": ("scientific_objects_v1" if getattr(self, "extraction_mode", "annotations") == "scientific_objects"
+                          else "scientific_probe_first_v1"),
+            "claim_cap": None if getattr(self, "extraction_mode", "annotations") == "scientific_objects" else 5,
+            "probe_cap": 0 if getattr(self, "extraction_mode", "annotations") == "scientific_objects" else 2,
+            "extraction_model_call_cap": (1 if getattr(self, "extraction_mode", "annotations") == "scientific_objects" else 2)
+                if self.condition == "science" else 0,
             "extraction_harness_architecture": self.extraction_architecture,
             "extraction_access_mode": "read-only" if self.condition == "science" else None,
             "extraction_codex_receipt": read_json(self.extract_codex_package.parent / "receipt.json") if self.extract_codex_package else None,
             "interpretation_cap_seconds": (self.config.extraction_seconds - min(60, self.config.extraction_seconds / 6)
                 - extraction_reserve(self.config.extraction_seconds - min(60, self.config.extraction_seconds / 6))),
-            "revision_policy": "optional_on_diagnostics_and_remaining_time; no reserved second model call",
+            "revision_policy": ("one_scientific_interpretation_call; no probe/refinement loop"
+                if getattr(self, "extraction_mode", "annotations") == "scientific_objects" else
+                "optional_on_diagnostics_and_remaining_time; no reserved second model call"),
             "python_minor": pyminor, "baseline_tree": self._baseline_tree,
             "docker_memory_bytes": int(info[0]), "docker_cpus": int(info[1]),
             "task_requested_memory_mb": environment.task_env_config.memory_mb,
@@ -251,13 +265,16 @@ class ScientificCodex(BaseAgent):
 
     async def _helper(self, command, seconds):
         bounded = f"timeout --signal=TERM --kill-after=2s {max(.05, seconds - 3)}s bash -c {shlex.quote(command)}"
-        output = await self.checked(self.extract_environment, bounded, timeout_sec=max(1, math.ceil(seconds)))
+        output = await self.checked(self.extract_environment, bounded, cwd=REMOTE,
+                                    timeout_sec=max(1, math.ceil(seconds)))
         return json.loads(output)
 
     async def prepare(self, seconds):
+        extra = (f" --objects-output {SCRATCH}/scientific-objects.json --enrichment-input {SCRATCH}/scientific-context-input.json"
+                 if getattr(self, "extraction_mode", "annotations") == "scientific_objects" else "")
         return await self._helper(
             f"{HELPER} packet --root {self.root} --context-root {REMOTE}/context --task-id {self.task_id} "
-            f"--output {SCRATCH}/packet.json --catalog {SCRATCH}/catalog.md", seconds)
+            f"--output {SCRATCH}/packet.json --catalog {SCRATCH}/catalog.md{extra}", seconds)
 
     async def interpret(self, instruction, seconds):
         return await self._interpret_call("extract_draft", instruction, seconds)
@@ -276,7 +293,9 @@ class ScientificCodex(BaseAgent):
     async def _interpret_call(self, name, instruction, seconds, feedback=None):
         now = datetime.now(timezone.utc)
         clock = lambda duration: (now + timedelta(seconds=max(0, duration))).strftime("%H:%M:%S UTC")
-        template = (self.workspace / ("prompts/extract.md" if name == "extract_draft" else "prompts/extract_revision.md")).read_text()
+        prompt_file = ("prompts/enrich_objects.md" if getattr(self, "extraction_mode", "annotations") == "scientific_objects"
+                       else "prompts/extract.md" if name == "extract_draft" else "prompts/extract_revision.md")
+        template = (self.workspace / prompt_file).read_text()
         # Prompt milestones are earlier soft targets, not extra process cutoffs.
         # Allow for the existing CLI collection/termination work when reporting
         # the actual time available to the model, including small test budgets.
@@ -317,9 +336,14 @@ class ScientificCodex(BaseAgent):
             await self._put(self.extract_environment, f"assembly-{sequence}-probe-results.json", json.dumps({"results": outcomes}), receipts)
             extra = f" --probe-results {receipts}"
         annotations = getattr(self, "_annotations_remote", SCRATCH + "/extract_draft-annotations.json")
-        result = await self._helper(
-            f"{HELPER} assemble --root {self.root} --context-root {REMOTE}/context --packet {SCRATCH}/packet.json "
-            f"--annotations {annotations} --output {target}{extra}", seconds)
+        if getattr(self, "extraction_mode", "annotations") == "scientific_objects":
+            result = await self._helper(
+                f"{HELPER} assemble-objects --graph {SCRATCH}/scientific-objects.json "
+                f"--annotations {annotations} --context-input {SCRATCH}/scientific-context-input.json --output {target}", seconds)
+        else:
+            result = await self._helper(
+                f"{HELPER} assemble --root {self.root} --context-root {REMOTE}/context --packet {SCRATCH}/packet.json "
+                f"--annotations {annotations} --output {target}{extra}", seconds)
         if result.get("usable"):
             self._selected_remote = target
         result["artifact"] = target
