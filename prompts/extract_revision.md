@@ -6,6 +6,15 @@ The schema is {runtime}/annotation-schema.json. The current source packet is {sc
 the catalog is {scratch}/catalog.md. Use these and the original public task materials as needed.
 Your response replaces the draft annotations; return the complete small set you want retained,
 not a diff or an acknowledgement. Keep at most five claims, twelve quantities/objects and two probes.
+Prioritize a useful executable scientific probe over adding claims or polishing citations. If the draft
+has no probe, try to recover one from the already inspected evidence and actual repository code path.
+Use a small valid input, an evidence-backed expected relationship, explicit applicability and a
+discriminating control when appropriate. Do not merely assert a reimplemented equation, generic
+mathematical tautology, AST pattern or import success. If only a diagnostic comparison is supported,
+label it diagnostic in its description and keep the expected scientific choice unresolved. If no
+meaningful executable probe is supportable, keep probes: [] and state the inspected evidence and
+specific missing definition, entry point, input convention or dependency in unresolved. Do not invent
+an oracle or silently replace executable evidence with citation-only claims.
 
 Use the feedback to improve meaning and grounding:
 - Correct rejected or ambiguous references by selecting actual packet entity IDs or precise
@@ -26,8 +35,11 @@ Use the feedback to improve meaning and grounding:
 
 Probe source and referenced claim meanings identify the experiment that actually ran. If you change
 a script, its claim meaning, assumptions or bindings, its old outcome cannot verify the changed probe.
-Keep a correct probe unchanged when appropriate. You may supply a changed/new public probe as a
-clearly unexecuted diagnostic for repair, but do not claim it has run or will run in this phase.
+Keep a correct probe unchanged when appropriate. Return inline source for every retained probe.
+You may supply a changed/new public probe: code will attempt accepted new/changed probes after your
+final JSON if execution time remains, and record whether they ran. Do NOT execute probes yourself
+or claim an outcome before a code-owned receipt exists. Old results remain observations of the old
+probe only; an unexecuted revised probe is not validated by them.
 No hidden tests, external repair answers or outcomes from previous benchmark attempts may serve as
 evidence. The current draft's public probe receipts below are allowed observations, not an oracle.
 
@@ -41,6 +53,7 @@ END FEEDBACK
 Time allowance: at most {seconds} seconds including tools.
 Stop further inspection by {explore_until}, draft the corrected JSON by {save_by},
 and return it by {finish_by}. Preserve remaining unknowns rather than prolonging investigation.
+Return the minimum useful corrected JSON early; do not fill the allowance or read the complete index.
 
 Task root: {root}
 Original task:

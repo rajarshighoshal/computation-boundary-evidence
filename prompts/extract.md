@@ -1,15 +1,23 @@
-Draft a scientific interpretation of this task for a separate coding-agent repair session.
-Your job is a small amount of useful scientific meaning, not bug repair or comprehensive reconstruction.
-Code will check your draft's bindings and run accepted public probes; a short revision may then
-use those diagnostics before the final handoff. Do not claim that those future checks have run.
+Extract a small, testable scientific interpretation for a separate coding-agent repair session.
+Your first deliverable is one supported scientific claim linked to an executable public probe,
+not a comprehensive reconstruction or a collection of citations. The probe should exercise the
+task's actual computation and expose an observation that matters for repair. If the public evidence
+cannot support a scientific expectation, use the diagnostic/no-probe alternatives below; do not
+invent an oracle to satisfy this objective. Do not repair the code.
+Code will check your bindings and run accepted probes after your final JSON. A short revision is
+optional when useful and time remains. Do not defer the useful deliverable to that possible pass
+or claim that future checks have already run.
 
 Code is preparing a source index and document catalog concurrently with this session:
 - {scratch}/catalog.md: compact reference IDs, source locations and previews.
 - {scratch}/packet.json: complete indexed expressions and source references.
-Start with the task statement and scientific material. If the catalog is not ready,
-read the paper/source first and check again once. Do not rebuild the index yourself.
+Start with the task statement, locate the relevant scientific definition and actual code entry point,
+then inspect only the source and input conventions needed for a small probe. Search the catalog
+for relevant entries; do not dump the complete packet or read the entire repository/paper first.
+If the catalog is not ready, read relevant paper/source passages and check again once.
+Do not rebuild the index yourself.
 
-Deliver at most five relevant claims (prefer two or three), with at most twelve
+Deliver at most five relevant claims (one is enough), with at most twelve
 quantities or scientific objects. Include scientific meaning, conventions, applicability assumptions,
 intended input/output relationships and correspondence to actual code operands
 and outputs. Distinguish intended
@@ -76,11 +84,19 @@ Annotation fields:
   or unresolved and defaults to inferred;
   explicit claims need actual source evidence. Every retained claim needs evidence.
 
-You may also INCLUDE at most two independent, self-contained Python probe scripts
-as inline source in the JSON, preferably short and focused on one mathematical/scientific
-property each. Derive the property from scientific evidence and explicit assumptions;
-do not manufacture a missing geometric definition to make a probe possible. State
-what observation could falsify the proposed correspondence. Do NOT execute probes in
+Prioritize one independent, self-contained Python probe script as inline source in the JSON;
+include at most two. For each probe, use the existing claim fields and probe description/source
+to identify:
+- the scientific object, expected relationship and public evidence supporting that expectation;
+- applicability/preconditions, including any boundary or convention the relationship depends on;
+- the actual repository function or computation being exercised, concrete inputs and observed outputs;
+- what observation would falsify the relationship, and a discriminating control when appropriate.
+Call the inspected repository code; do not merely assert a reimplemented equation, generic mathematical
+tautology, AST pattern or import success. Construct a small valid case from the inspected API and
+public input conventions. Check that chosen options affect the code path being tested. A large
+simulation, broad parameter sweep or full test suite is not needed.
+Derive the property from scientific evidence and explicit assumptions; do not manufacture a missing
+definition to make a probe possible. Do NOT execute probes in
 this phase. Code will run the selected scripts concurrently with per-probe and
 shared deadlines after you finish. Each script runs with imports from {root} and
 {root}/source available, in its own output directory; use absolute task paths for
@@ -93,7 +109,12 @@ under presentation changes alone cannot establish that the computed scientific o
 Explain where the expected relationship comes from: public documentation, an explicit requirement,
 or a justified reference/limiting case. Do not infer the expected answer just by copying the
 current implementation. If a probe only compares hypotheses without deciding which is correct,
-report it as diagnostic and leave that scientific choice unresolved. A successful execution is
+label it diagnostic in its description and leave that scientific choice unresolved; do not assert
+an unsupported expected answer. If no meaningful executable probe is supportable, return probes: []
+and a specific no-probe reason in unresolved: identify the inspected public evidence and the missing
+definition, executable entry point, input convention or dependency that prevents a useful check.
+"More context needed" alone is not a reason. Do not silently substitute citation-only claims.
+A successful execution is
 not proof that the proposed meaning is true. Include inline source so repair can rerun the check.
 Declare probes as:
 {{"id": "p1", "claim_ids": ["c1"], "script": "probe_property.py",
@@ -109,9 +130,11 @@ Stopping rules (UTC; use date -u if needed):
 - Draft the best supported annotations by {save_by}.
 - Return the final JSON by {finish_by}.
 The interpretation allowance is at most {seconds} seconds including your tools.
-Finish EARLIER once a small supported set is ready. Do not fill the caps or chase
-every unresolved issue. If nothing is supportable, return empty quantities/claims
-and an explicit unresolved reason. There is no open-ended refinement loop.
+Return the minimum useful JSON EARLY once one supported claim and runnable probe are ready.
+Do not spend the remaining allowance adding claims, reading the complete index or polishing citations.
+The times are latest stopping points, not a schedule to fill. Preserve other unknowns in unresolved.
+If nothing is supportable, return empty quantities/claims/probes and the specific evidence-backed
+unresolved reason. There is no open-ended refinement loop.
 
 Your final response must be ONLY the compact annotation JSON object, without
 Markdown fences or extra prose. Do not return the full graph or a file-name acknowledgement.
