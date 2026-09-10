@@ -241,6 +241,7 @@ class _ScopeIndex(ast.NodeVisitor):
         args.extend(arg for arg in [node.args.vararg, node.args.kwarg] if arg is not None)
         for arg in args:
             self.scope.bind(arg.arg, node.lineno, ())
+            self.visit(arg)
         for statement in node.body:
             self.visit(statement)
         self.scope, self.branch = parent, saved_branch
@@ -423,6 +424,12 @@ def _file_entries(path: str, raw: bytes, source: str, tree: ast.AST, limit: int,
             expression_node = node.value
         elif isinstance(node, ast.Return):
             kind, expression_node = "return", node.value
+        elif isinstance(node, ast.arg):
+            kind = "parameter"
+        elif (isinstance(node, ast.Expr) and isinstance(node.value, ast.Call)
+              and isinstance(node.value.func, ast.Attribute)
+              and node.value.func.attr in {"append", "extend", "insert", "update", "add", "discard", "remove", "pop", "clear", "setdefault"}):
+            kind = "container_mutation"
         elif isinstance(node, ast.Assert):
             kind, expression_node = "assertion", node.test
         elif isinstance(node, ast.Compare):
@@ -521,6 +528,22 @@ def _file_entries(path: str, raw: bytes, source: str, tree: ast.AST, limit: int,
             entry["targets"] = [_span_text(source, target) for target in node.targets]
         elif isinstance(node, (ast.AnnAssign, ast.AugAssign)):
             entry["targets"] = [_span_text(source, node.target)]
+        entity_symbols = []
+        if kind == "parameter":
+            entity_symbols = [node.arg]
+        elif kind in {"assignment", "augmented_assignment"}:
+            entity_symbols = [symbol_name(part) for target in
+                              (node.targets if isinstance(node, ast.Assign) else [node.target])
+                              for part in ast.walk(target) if isinstance(part, (ast.Name, ast.Attribute, ast.Subscript))
+                              and isinstance(part.ctx, ast.Store)]
+        elif kind == "return" and node.value is not None:
+            entity_symbols = [symbol_name(node.value)]
+        elif kind == "container_mutation":
+            entity_symbols = [symbol_name(node.value.func.value)]
+            entry["limitations"].append("Method name suggests a container update; runtime mutation and receiver type are not proved.")
+        if kind in {"parameter", "assignment", "augmented_assignment", "return", "container_mutation"}:
+            entry["entity_role"] = kind
+            entry["entity_symbols"] = list(dict.fromkeys(s for s in entity_symbols if s))
         if isinstance(node, ast.AugAssign):
             entry["limitations"].append("In-place operator semantics are not expanded; expression is RHS only.")
         if isinstance(node, ast.Compare):

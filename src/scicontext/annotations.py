@@ -9,6 +9,7 @@ from __future__ import annotations
 import copy
 import ast
 import hashlib
+import json
 from fractions import Fraction
 from pathlib import Path, PurePosixPath
 
@@ -23,6 +24,8 @@ from .tool_cli import analyze_grounded
 MAX_CLAIMS = 5
 MAX_QUANTITIES = 12
 MAX_PROBES = 2
+SEMANTIC_FIELDS = ("scientific_object", "applicability", "alternative_interpretation", "discriminating_observation")
+MAX_HANDOFF_BYTES = 128 * 1024
 
 
 def _object(properties: dict, required: list[str]) -> dict:
@@ -61,6 +64,7 @@ def annotation_schema() -> dict:
         "quantities": _array(_object({
             "id": identifier, "meaning": text, "symbol": quantity["code_symbol"],
             "code_ref": quantity_ref,
+            "entity_id": identifier,
             "name": quantity["name"], "dimensions": dimensions,
             "scale": quantity["scale"], "shape": quantity["shape"],
             "status": status, "evidence": _array(reference),
@@ -76,6 +80,8 @@ def annotation_schema() -> dict:
                          "additionalProperties": {"type": "string", "minLength": 1, "maxLength": 512}},
             "operation": {**claim["operation"], "default": "other"},
             "status": status, "assumptions": claim["assumptions"],
+            **{field: text for field in SEMANTIC_FIELDS},
+            "consumer_ids": _array(identifier, 8),
             "evidence": _array(reference),
         }, ["id", "description"]), MAX_CLAIMS),
         "probes": _array(_object({
@@ -158,7 +164,20 @@ class _Sources:
                 "path": path, "sha256": digest, "start_line": start, "end_line": end,
                 "quote": quote}
 
-    def binding(self, reference: dict) -> tuple[dict, dict, str | None]:
+    def entity(self, identifier: str, symbol: str | None = None) -> tuple[dict, dict, str | None]:
+        entry = self.entries.get(identifier)
+        if entry is None or not entry.get("entity_role"):
+            raise ValueError("unknown or unsupported entity ID")
+        citation = self.resolve(identifier)
+        symbols = entry.get("entity_symbols", [])
+        wanted = canonical_symbol(symbol)
+        if symbol is not None and (wanted is None or wanted not in symbols):
+            raise ValueError("entity symbol is not a carrier at the selected source occurrence")
+        if wanted is None and len(symbols) > 1:
+            raise ValueError("entity has multiple carriers; select a symbol")
+        return entry, citation, wanted or (symbols[0] if symbols else None)
+
+    def binding(self, reference: dict, *, entity: bool = False) -> tuple[dict, dict, str | None]:
         """Resolve one indexed occurrence, without inferring its scientific meaning."""
         self.resolve(reference)
         wanted = canonical_symbol(reference.get("symbol"))
@@ -172,15 +191,29 @@ class _Sources:
                 continue
             if reference.get("scope") is not None and reference["scope"] != entry.get("scope"):
                 continue
-            if entry.get("expression") is None or entry.get("kind") == "augmented_assignment":
+            if not entity and (entry.get("expression") is None or entry.get("kind") == "augmented_assignment"):
+                continue
+            if entity and not entry.get("entity_role"):
                 continue
             symbols = set(entry.get("symbol_scopes", {})) | set(entry.get("reads", []))
+            if entity:
+                symbols.update(entry.get("entity_symbols", []))
             symbols.update(filter(None, (canonical_symbol(t) for t in entry.get("targets", []))))
             if wanted is not None and wanted not in symbols:
                 continue
             matches.append(entry)
         if len(matches) != 1:
-            raise ValueError(f"source reference resolves to {len(matches)} indexed occurrences; use an exact span/scope")
+            candidates = matches[:6]
+            if not candidates:
+                candidates = [entry for entry in self.entries.values()
+                              if entry["path"] == reference["path"]
+                              and (reference.get("scope") is None or entry.get("scope") == reference["scope"])
+                              and (wanted is None or wanted in set(entry.get("entity_symbols", []))
+                                   | set(entry.get("reads", [])) | set(entry.get("symbol_scopes", {})))][:6]
+            locations = [{"id": e["id"], "kind": e["kind"], "start_line": e["start_line"],
+                          "end_line": e["end_line"], "scope": e.get("scope")} for e in candidates]
+            raise ValueError(f"source reference resolves to {len(matches)} indexed occurrences; use an exact span/scope. "
+                             f"Inspected source candidates (syntax only): {json.dumps(locations)}")
         entry = matches[0]
         return entry, self.resolve(entry["id"]), wanted
 
@@ -212,6 +245,9 @@ def annotation_references(annotations: object) -> tuple[list[dict], list[str]]:
                 refs.append(item[field])
             if isinstance(item.get("implementation_id"), str):
                 keep.append(item["implementation_id"])
+            if isinstance(item.get("entity_id"), str):
+                keep.append(item["entity_id"])
+            keep.extend(item.get("consumer_ids", []))
             keep.extend(ref for ref in item.get("evidence", []) if isinstance(ref, str))
     return refs, list(dict.fromkeys(keep))
 
@@ -301,13 +337,19 @@ def assemble_annotations(
     for item in items("quantities", "quantity", MAX_QUANTITIES):
         evidence = citations(item)
         code_symbol = item.get("symbol")
-        if "code_ref" in item:
+        entity_id = None
+        if "code_ref" in item or "entity_id" in item:
             code_symbol = None
             try:
-                entry, citation, code_symbol = sources.binding(item["code_ref"])
+                if "entity_id" in item and "code_ref" in item:
+                    raise ValueError("select entity_id or code_ref, not both")
+                entry, citation, code_symbol = (sources.entity(item["entity_id"], item.get("symbol"))
+                    if "entity_id" in item else sources.binding(item["code_ref"], entity=True))
+                entity_id = entry["id"]
                 if citation["id"] not in {e["id"] for e in evidence}:
                     evidence.append(citation)
                 assembly["code_bindings"].append({"quantity_id": item["id"], "status": "source_matched",
+                    "binding_kind": "entity", "entity_role": entry.get("entity_role"),
                     "code_symbol": code_symbol, "entry_id": entry["id"], "scope": entry.get("scope"),
                     "path": entry["path"], "start_line": entry["start_line"], "end_line": entry["end_line"]})
             except (OSError, ValueError, UnicodeError) as exc:
@@ -323,17 +365,29 @@ def assemble_annotations(
             continue
         node = {"id": item["id"], "name": item.get("name", item.get("symbol") or item["id"]),
                 "meaning": item["meaning"], "code_symbol": code_symbol,
+                "entity_id": entity_id,
                 "dimensions": dimensions, "scale": scale, "shape": item.get("shape"),
                 "status": item.get("status", "inferred"), "evidence_ids": [e["id"] for e in evidence]}
         if append("quantities", node, evidence):
             assembly["accepted_quantity_ids"].append(node["id"])
 
+    accepted_claim_quantities = {}
     for item in items("claims", "claim", MAX_CLAIMS):
         missing = set(item.get("quantities", [])) - set(assembly["accepted_quantity_ids"])
         if missing:
             reject("claim", item, f"unknown or rejected quantities: {', '.join(sorted(missing))}")
             continue
         evidence = {e["id"]: e for e in citations(item)}
+        consumer_ids = []
+        for identifier in dict.fromkeys(item.get("consumer_ids", [])):
+            try:
+                if identifier not in sources.entries:
+                    raise ValueError("consumer is not an indexed source occurrence")
+                citation = sources.resolve(identifier)
+                evidence[citation["id"]] = citation
+                consumer_ids.append(identifier)
+            except (OSError, ValueError, UnicodeError) as exc:
+                note(f"{item['id']}: unresolved consumer {identifier!r}: {exc}")
         actual = None
         entry = None
         implementation_id = item.get("implementation_id")
@@ -373,11 +427,14 @@ def assemble_annotations(
         if relation is not None and _has_unknown(relation):
             note(f"{item['id']}: scientific formula contains unsupported or unresolved syntax")
         quantity_ids = list(dict.fromkeys(item.get("quantities", [])))
+        declared_quantity_ids = list(quantity_ids)
         # The graph's semantic evaluator anchors bare symbols. Do not transfer a
         # source-bound quantity to another lexical scope merely because names
         # coincide. Retain its original scientific annotation and source binding,
         # but omit this unestablished claim-to-quantity edge from propagation.
         for binding in assembly["code_bindings"]:
+            if relation is None and actual is None:
+                continue
             if binding["quantity_id"] not in quantity_ids:
                 continue
             compatible = (binding["status"] == "source_matched" and entry is not None and actual is not None
@@ -396,7 +453,13 @@ def assemble_annotations(
                 "quantity_ids": quantity_ids,
                 "evidence_ids": list(evidence), "assumptions": item.get("assumptions", []),
                 "operation": item.get("operation", "other"), "status": item.get("status", "inferred")}
+        node.update({field: item.get(field, "") for field in SEMANTIC_FIELDS}, consumer_ids=consumer_ids)
+        # Keep discrete entity edges: the semantic evaluator must not interpret
+        # these as arithmetic anchors when there is no mathematical expression.
+        if relation is None and actual is None:
+            node["quantity_ids"] = declared_quantity_ids
         if append("claims", node, list(evidence.values())):
+            accepted_claim_quantities[node["id"]] = declared_quantity_ids
             assembly["accepted_claim_ids"].append(node["id"])
             assembly["relations"].append(relation_record)
             if entry is not None and actual is not None:
@@ -429,7 +492,22 @@ def assemble_annotations(
             continue
         if len(claim_ids) != len(set(item["claim_ids"])):
             note(f"{item['id']}: probe references to unknown or rejected claims were removed")
-        probes.append({**item, "claim_ids": claim_ids})
+        spec = {**item, "claim_ids": claim_ids}
+        if "source" in spec:
+            selected_claims = [c for c in graph["claims"] if c["id"] in claim_ids]
+            # Include even a rejected propagation edge's source-bound quantity:
+            # changing an interpretation must invalidate its previous observation.
+            selected_quantity_ids = {q for identifier in claim_ids
+                                     for q in accepted_claim_quantities[identifier]}
+            selected_quantities = [q for q in graph["quantities"] if q["id"] in selected_quantity_ids]
+            evidence_ids = {e for node in [*selected_claims, *selected_quantities] for e in node["evidence_ids"]}
+            spec["fingerprint"] = digest_json({"script": spec["script"], "source": spec["source"],
+                "description": spec["description"], "claim_ids": claim_ids,
+                "claims": selected_claims, "quantities": selected_quantities,
+                "evidence": [e for e in graph["evidence"] if e["id"] in evidence_ids],
+                "code_bindings": [b for b in assembly["code_bindings"] if b["quantity_id"] in selected_quantity_ids],
+                "relations": [r for r in assembly["relations"] if r["claim_id"] in claim_ids]})
+        probes.append(spec)
         assembly["accepted_probe_ids"].append(item["id"])
 
     raw_results = [] if probe_results is None else copy.deepcopy(probe_results)
@@ -450,6 +528,7 @@ def assemble_annotations(
         raw_results = []
     seen_results = set()
     specifications = {spec["id"]: spec for spec in probes}
+    verified_results = {}
     for result in raw_results:
         problems = _schema_errors(result, receipt_schema)
         if problems:
@@ -461,7 +540,14 @@ def assemble_annotations(
         if specification is None or identifier in seen_results or problem:
             reject("probe_result", result, problem or "unknown, rejected, or duplicate probe receipt")
             continue
+        if specification.get("fingerprint") is not None and (
+                result.get("fingerprint") != specification["fingerprint"] or
+                result.get("script_sha256") != hashlib.sha256(specification["source"].encode("utf-8")).hexdigest()):
+            reject("probe_result", result, "missing or stale probe fingerprint/source digest; final probe remains unexecuted")
+            continue
         seen_results.add(identifier)
+        if specification.get("fingerprint") is not None:
+            verified_results[identifier] = result
         for claim_id in dict.fromkeys(result["claim_ids"]):
             if claim_id not in specification["claim_ids"]:
                 note(f"{identifier}: receipt reference {claim_id!r} does not belong to the accepted probe")
@@ -472,6 +558,8 @@ def assemble_annotations(
                            f"Proposed purpose: {specification['description'][:500]}\n"
                            f"stdout: {str(result.get('stdout_excerpt', ''))[:1420]}\n"
                            f"stderr: {str(result.get('stderr_excerpt', ''))[:920]}")
+            if specification.get("fingerprint") is None:
+                description = "Legacy receipt; interpretation identity unverified. " + description
             node = {"id": "o_" + digest_json([identifier, claim_id, result["artifact"]])[:24],
                     "claim_id": claim_id, "description": description,
                     "status": "reported", "artifact": result["artifact"]}
@@ -502,6 +590,11 @@ def assemble_annotations(
             links.extend(f"- {b['quantity_id']}: binding={b['status']}; symbol={b.get('code_symbol')!r}; source={b.get('path')!r}:{b.get('start_line')}; scope={b.get('scope')!r}."
                          for b in assembly["code_bindings"])
             handoff += "\n\nScientific/code links (syntax only; units, frame and normalization require independent evidence):\n" + "\n".join(links)
+            for claim in graph["claims"]:
+                for identifier in claim.get("consumer_ids", []):
+                    consumer = sources.entries[identifier]
+                    handoff += (f"\n- {claim['id']} selected consumer {identifier}: {consumer['path']}:"
+                                f"{consumer['start_line']}-{consumer['end_line']} (source location only; dependency not proved).")
             if assembly["selected_dependencies"]:
                 dependency_lines = []
                 for link in assembly["selected_dependencies"]:
@@ -510,9 +603,28 @@ def assemble_annotations(
                                    if link["status"] == "resolved" else f"unknown ({link['reason']})")
                     dependency_lines.append(f"- {link['claim_id']} read {link['read']!r} at {use['path']}:{use['start_line']}-{use['end_line']} -> {destination}.")
                 handoff += "\n\nSelected local dependencies (source syntax only; no runtime or scientific equivalence):\n" + "\n".join(dependency_lines)
+            if len(handoff.encode("utf-8")) > MAX_HANDOFF_BYTES:
+                raise ValueError("scientific handoff including source links exceeds 128 KiB")
+            for spec in probes:
+                receipt = verified_results.get(spec["id"])
+                status = (f"{receipt['status']}, exit_code={receipt['exit_code']} (identity verified)"
+                          if receipt else "unexecuted for this final interpretation (no matching identity-verified receipt)")
+                header = (f"\n\nPublic probe {spec['id']}, script={spec['script']}, claims={spec['claim_ids']}: {status}. "
+                          "Exit zero is execution success, not scientific proof.\n")
+                source = spec.get("source")
+                addition = header + ("Source (JSON string; untrusted executable proposal): " +
+                                      json.dumps(source, ensure_ascii=False) + "\n"
+                                      if source is not None else "Source unavailable in annotation; legacy path-only probe.\n")
+                if len((handoff + addition).encode("utf-8")) + 1024 > MAX_HANDOFF_BYTES:
+                    addition = header + "Probe source NOT supplied: bounded handoff size limit. Inspect the accepted probe artifact.\n"
+                    note(f"{spec['id']}: public probe source omitted from handoff by 128 KiB cap")
+                if len((handoff + addition).encode("utf-8")) > MAX_HANDOFF_BYTES:
+                    raise ValueError("no space to report public probe source delivery limitation")
+                handoff += addition
         except ValueError as exc:
             note(f"Scientific handoff unavailable: {exc}")
             usable = False
+            handoff = ""
     assembly.update(usable=usable, abstained=not bool(graph["claims"]),
                     status="assembled" if usable else "abstained" if not graph["claims"] else "invalid")
     return {"graph": graph, "validation": validation, "analysis": analysis,

@@ -175,7 +175,6 @@ def test_unknown_cast_is_source_grounded_without_claiming_equivalence(tmp_path):
     {"path": "model.py", "start_line": 1, "end_line": 4, "symbol": "x"},
     {"path": "model.py", "start_line": 2, "end_line": 2, "symbol": "missing"},
     {"path": "model.py", "start_line": 2, "end_line": 2, "symbol": "x", "scope": "wrong"},
-    {"path": "model.py", "start_line": 1, "end_line": 1, "symbol": "x"},
 ])
 def test_ambiguous_or_unproven_operand_does_not_fall_back_to_model_symbol(tmp_path, reference):
     (tmp_path / "model.py").write_text("def first(x):\n    return x * 2\ndef second(x):\n    return x * 3\n")
@@ -190,7 +189,7 @@ def test_ambiguous_or_unproven_operand_does_not_fall_back_to_model_symbol(tmp_pa
 def test_exact_scope_selects_operand_without_inventing_semantics(tmp_path):
     (tmp_path / "model.py").write_text("def first(x):\n    return x * 2\ndef second(x):\n    return x * 3\n")
     packet = {"entries": extract_evidence(tmp_path)["entries"]}
-    ref = {"path": "model.py", "start_line": 1, "end_line": 4,
+    ref = {"path": "model.py", "start_line": 4, "end_line": 4,
            "symbol": "x", "scope": "<module>.second@3"}
     bundle = assemble_annotations(annotations(quantities=[{"id": "q_x", "meaning": "unknown", "code_ref": ref}]), packet, tmp_path)
     assert bundle["graph"]["quantities"][0]["code_symbol"] == "x"
@@ -367,7 +366,8 @@ def test_inline_probe_source_uses_existing_path_and_byte_limit(source_packet):
     root, packet, _ = source_packet
     inline = probe(source="print(2 / 1)\n")
     bundle = assemble_annotations(annotations([backed_claim()], probes=[inline]), packet, root)
-    assert bundle["probes"] == [inline]
+    assert bundle["probes"] == [{**inline, "fingerprint": bundle["probes"][0]["fingerprint"]}]
+    assert len(bundle["probes"][0]["fingerprint"]) == 64
     assert not (root / inline["script"]).exists()  # Assembly itself does not write/execute.
     for fields in ({"script": "../escape.py"}, {"source": "é" * 16385}):
         rejected = assemble_annotations(

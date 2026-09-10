@@ -55,6 +55,7 @@ def graph_schema() -> dict:
     quantity = _object({
         "id": _ID, "name": _TEXT, "meaning": _TEXT,
         "code_symbol": {"type": ["string", "null"], "maxLength": 512},
+        "entity_id": {"anyOf": [_ID, {"type": "null"}]},
         "dimensions": {"anyOf": [_array(_object({"dimension": {"type": "string", "minLength": 1, "maxLength": 40}, "exponent": _RATIONAL}), 16), {"type": "null"}]},
         "scale": {"anyOf": [_RATIONAL, {"type": "null"}]},
         "shape": {"anyOf": [_array({"anyOf": [{"type": "integer", "minimum": 1}, {"type": "string", "minLength": 1, "maxLength": 120}]}, 16), {"type": "null"}]},
@@ -66,6 +67,9 @@ def graph_schema() -> dict:
         "quantity_ids": ids, "evidence_ids": ids, "assumptions": _array(_TEXT, 16),
         "operation": {"type": "string", "enum": ["unit_conversion", "weighted_sum", "normalization", "linear_transform", "other"]},
         "status": status,
+        "scientific_object": _TEXT, "applicability": _TEXT,
+        "alternative_interpretation": _TEXT, "discriminating_observation": _TEXT,
+        "consumer_ids": ids,
     })
     evidence = _object({
         "id": _ID, "path": {"type": "string", "minLength": 1, "maxLength": 1024},
@@ -189,6 +193,18 @@ def validate_graph(graph: dict, root: Path, *, max_claims: int = 12, max_nodes: 
     unsafe = _check_json(graph)
     if unsafe:
         return {"valid": False, "errors": [unsafe], "warnings": warnings}
+    # Upgrade absent optional semantic extensions in legacy 1.0 payloads.
+    # The public output schema stays strict for structured-output consumers.
+    graph = copy.deepcopy(graph)
+    if isinstance(graph, dict):
+        for quantity in graph.get("quantities", []) if isinstance(graph.get("quantities"), list) else []:
+            if isinstance(quantity, dict):
+                quantity.setdefault("entity_id", None)
+        for claim in graph.get("claims", []) if isinstance(graph.get("claims"), list) else []:
+            if isinstance(claim, dict):
+                for field in ("scientific_object", "applicability", "alternative_interpretation", "discriminating_observation"):
+                    claim.setdefault(field, "")
+                claim.setdefault("consumer_ids", [])
     validator = Draft202012Validator(graph_schema())
     schema_errors = sorted(validator.iter_errors(graph), key=lambda e: "/".join(map(str, e.path)))
     if schema_errors:
@@ -317,13 +333,16 @@ def render_graph(graph: dict, analysis: dict | None = None) -> str:
         dims = q.get("dimensions")
         if isinstance(dims, list):
             dims = {d["dimension"]: d["exponent"] for d in dims}
-        detail = json.dumps({"meaning": q["meaning"], "symbol": q["code_symbol"], "dimensions": dims,
+        detail = json.dumps({"meaning": q["meaning"], "symbol": q["code_symbol"], "entity_id": q.get("entity_id"), "dimensions": dims,
                              "scale": q["scale"], "shape": q["shape"], "evidence": q["evidence_ids"]}, sort_keys=True, ensure_ascii=True)
         lines.append(f"Quantity {q['id']} [{q['status']}]: {detail}")
     for claim in sorted(graph.get("claims", []), key=lambda x: x["id"]):
         lines.append(f"Claim {claim['id']} [{claim['status']}; {claim['operation']}]: {json.dumps(claim['description'], ensure_ascii=True)}")
         for field in ("assumptions", "relation", "actual", "bindings", "quantity_ids", "evidence_ids"):
             lines.append(f"  {field}: {json.dumps(claim[field], sort_keys=True, ensure_ascii=True, separators=(',', ':'))}")
+        for field in ("scientific_object", "applicability", "alternative_interpretation", "discriminating_observation", "consumer_ids"):
+            if claim.get(field):
+                lines.append(f"  {field}: {json.dumps(claim[field], ensure_ascii=True)}")
     for ev in sorted(graph.get("evidence", []), key=lambda x: x["id"]):
         # Full quotes are in canonical JSON. A handoff needs the immutable location.
         lines.append(f"Evidence {ev['id']}: {json.dumps(ev['path'])}:{ev['start_line']}-{ev['end_line']} sha256={ev['sha256']}")

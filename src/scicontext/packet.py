@@ -322,6 +322,8 @@ def render_catalog(packet: dict) -> str:
         row = (f"- {record['id']} {preview(record['path'], 180)}:{record['start_line']}-{record['end_line']} "
                f"{'document' if document else record.get('kind', 'source')} "
                f"scope={preview(record.get('scope', 'document'), 100)} {preview(text, 180)}")
+        if record.get("entity_role"):
+            row += f" entity_id={record['id']} carriers={preview(record.get('entity_symbols'), 120)}"
         if rows >= MAX_CATALOG_ROWS or size + len(row) + 100 > MAX_CATALOG_CHARS:
             break
         lines.append(row)
