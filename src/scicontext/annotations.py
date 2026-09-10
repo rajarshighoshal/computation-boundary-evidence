@@ -15,7 +15,7 @@ from pathlib import Path, PurePosixPath
 
 from jsonschema import Draft202012Validator
 
-from .evidence import _has_unknown, _read_regular, _safe_file
+from .evidence import _expression_symbols, _has_unknown, _read_regular, _safe_file
 from .expressions import parse_relation, symbol_name
 from .graph import _check_json, _safe_relative, graph_schema, render_graph, validate_graph
 from .io import digest_json
@@ -177,7 +177,7 @@ class _Sources:
             raise ValueError("entity has multiple carriers; select a symbol")
         return entry, citation, wanted or (symbols[0] if symbols else None)
 
-    def binding(self, reference: dict, *, entity: bool = False) -> tuple[dict, dict, str | None]:
+    def binding(self, reference: dict, *, allow_entities: bool = False) -> tuple[dict, dict, str | None]:
         """Resolve one indexed occurrence, without inferring its scientific meaning."""
         self.resolve(reference)
         wanted = canonical_symbol(reference.get("symbol"))
@@ -191,12 +191,13 @@ class _Sources:
                 continue
             if reference.get("scope") is not None and reference["scope"] != entry.get("scope"):
                 continue
-            if not entity and (entry.get("expression") is None or entry.get("kind") == "augmented_assignment"):
-                continue
-            if entity and not entry.get("entity_role"):
+            expression_occurrence = entry.get("expression") is not None and entry.get("kind") != "augmented_assignment"
+            if not expression_occurrence and not (allow_entities and entry.get("entity_role")):
                 continue
             symbols = set(entry.get("symbol_scopes", {})) | set(entry.get("reads", []))
-            if entity:
+            for operand in entry.get("comparison_operands", []):
+                symbols.update(_expression_symbols(operand))
+            if allow_entities:
                 symbols.update(entry.get("entity_symbols", []))
             symbols.update(filter(None, (canonical_symbol(t) for t in entry.get("targets", []))))
             if wanted is not None and wanted not in symbols:
@@ -344,12 +345,15 @@ def assemble_annotations(
                 if "entity_id" in item and "code_ref" in item:
                     raise ValueError("select entity_id or code_ref, not both")
                 entry, citation, code_symbol = (sources.entity(item["entity_id"], item.get("symbol"))
-                    if "entity_id" in item else sources.binding(item["code_ref"], entity=True))
-                entity_id = entry["id"]
+                    if "entity_id" in item else sources.binding(item["code_ref"], allow_entities=True))
+                is_carrier = "entity_id" in item or code_symbol in entry.get("entity_symbols", [])
+                binding_kind = ("entity" if is_carrier else "expression_operand"
+                                if entry.get("expression") is not None else "source_occurrence")
+                entity_id = entry["id"] if is_carrier else None
                 if citation["id"] not in {e["id"] for e in evidence}:
                     evidence.append(citation)
                 assembly["code_bindings"].append({"quantity_id": item["id"], "status": "source_matched",
-                    "binding_kind": "entity", "entity_role": entry.get("entity_role"),
+                    "binding_kind": binding_kind, "entity_role": entry.get("entity_role") if is_carrier else None,
                     "code_symbol": code_symbol, "entry_id": entry["id"], "scope": entry.get("scope"),
                     "path": entry["path"], "start_line": entry["start_line"], "end_line": entry["end_line"]})
             except (OSError, ValueError, UnicodeError) as exc:
@@ -587,7 +591,7 @@ def assemble_annotations(
             handoff = render_graph(graph, analysis)
             links = [f"- {r['claim_id']}: scientific target={r['target']!r}; actual targets={r['actual_targets']!r}; source entry={r['implementation_entry_id']!r}."
                      for r in assembly["relations"]]
-            links.extend(f"- {b['quantity_id']}: binding={b['status']}; symbol={b.get('code_symbol')!r}; source={b.get('path')!r}:{b.get('start_line')}; scope={b.get('scope')!r}."
+            links.extend(f"- {b['quantity_id']}: binding={b['status']}; kind={b.get('binding_kind', 'unknown')}; symbol={b.get('code_symbol')!r}; source={b.get('path')!r}:{b.get('start_line')}; scope={b.get('scope')!r}."
                          for b in assembly["code_bindings"])
             handoff += "\n\nScientific/code links (syntax only; units, frame and normalization require independent evidence):\n" + "\n".join(links)
             for claim in graph["claims"]:

@@ -592,7 +592,7 @@ def _file_entries(path: str, raw: bytes, source: str, tree: ast.AST, limit: int,
         scope = index.scopes[id(node)]
         # AST reads preserve operands even when the expression parser cannot
         # represent an operation. Names are exact, never similarity matches.
-        value = getattr(node, "value", None)
+        value = node if isinstance(node, ast.Compare) else node.test if isinstance(node, ast.Assert) else getattr(node, "value", None)
         nested_binding = isinstance(value, ast.AST) and any(
             isinstance(part, (ast.Lambda, ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp))
             for part in ast.walk(value)

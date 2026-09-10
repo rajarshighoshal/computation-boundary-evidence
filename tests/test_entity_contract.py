@@ -141,3 +141,60 @@ def test_ambiguous_binding_diagnostic_supplies_inspected_candidates(example):
     reason = result["assembly"]["code_bindings"][0]["reason"]
     assert entries["container_mutation"]["id"] in reason
     assert "Inspected source candidates (syntax only)" in reason
+
+
+@pytest.mark.parametrize("source", ["if measurement > 0:\n    pass\n", "assert measurement\n"])
+def test_legacy_comparison_operand_reference_is_not_entity_carrier(tmp_path, source):
+    (tmp_path / "science.py").write_text(source)
+    packet = {"entries": extract_evidence(tmp_path)["entries"]}
+    draft = {"schema_version": "annotations-1.0", "claims": [], "quantities": [{
+        "id": "q", "meaning": "Measured value", "code_ref": {
+            "path": "science.py", "start_line": 1, "end_line": 1, "symbol": "measurement"}}]}
+    result = assemble_annotations(draft, packet, tmp_path)
+    assert result["validation"]["valid"]
+    assert result["assembly"]["code_bindings"][0]["status"] == "source_matched"
+    assert result["assembly"]["code_bindings"][0]["binding_kind"] == "expression_operand"
+    assert result["graph"]["quantities"][0]["entity_id"] is None
+    assert result["graph"]["quantities"][0]["code_symbol"] == "measurement"
+
+
+def test_rhs_operand_and_assignment_carrier_have_distinct_binding_kinds(tmp_path):
+    (tmp_path / "science.py").write_text("result = measurement * 2\n")
+    packet = {"entries": extract_evidence(tmp_path)["entries"]}
+    entity_id = packet["entries"][0]["id"]
+    draft = {"schema_version": "annotations-1.0", "claims": [], "quantities": [
+        {"id": "q_operand", "meaning": "Measured input", "code_ref": {
+            "path": "science.py", "start_line": 1, "end_line": 1, "symbol": "measurement"}},
+        {"id": "q_carrier", "meaning": "Computed output", "code_ref": {
+            "path": "science.py", "start_line": 1, "end_line": 1, "symbol": "result"}},
+        {"id": "q_wrong_entity", "meaning": "Input is not this assignment's carrier",
+         "entity_id": entity_id, "symbol": "measurement"}]}
+    result = assemble_annotations(draft, packet, tmp_path)
+    bindings = result["assembly"]["code_bindings"]
+    assert bindings[0]["binding_kind"] == "expression_operand" and bindings[0]["entity_role"] is None
+    assert bindings[1]["binding_kind"] == "entity" and bindings[1]["entity_role"] == "assignment"
+    assert bindings[2]["status"] == "unknown"
+    assert [q["entity_id"] for q in result["graph"]["quantities"]] == [None, entity_id, None]
+
+
+def test_legacy_assertion_comparison_overlap_remains_ambiguous(tmp_path):
+    (tmp_path / "science.py").write_text("assert measurement > 0\n")
+    packet = {"entries": extract_evidence(tmp_path)["entries"]}
+    draft = {"schema_version": "annotations-1.0", "claims": [], "quantities": [{
+        "id": "q", "meaning": "Measured input", "code_ref": {
+            "path": "science.py", "start_line": 1, "end_line": 1, "symbol": "measurement"}}]}
+    result = assemble_annotations(draft, packet, tmp_path)
+    assert result["assembly"]["code_bindings"][0]["status"] == "unknown"
+    assert result["graph"]["quantities"][0]["entity_id"] is None
+
+
+def test_mutation_argument_is_source_occurrence_not_receiver_entity(tmp_path):
+    (tmp_path / "science.py").write_text("collection.append(measurement)\n")
+    packet = {"entries": extract_evidence(tmp_path)["entries"]}
+    draft = {"schema_version": "annotations-1.0", "claims": [], "quantities": [{
+        "id": "q", "meaning": "Measured input", "code_ref": {
+            "path": "science.py", "start_line": 1, "end_line": 1, "symbol": "measurement"}}]}
+    result = assemble_annotations(draft, packet, tmp_path)
+    assert result["assembly"]["code_bindings"][0]["status"] == "source_matched"
+    assert result["assembly"]["code_bindings"][0]["binding_kind"] == "source_occurrence"
+    assert result["graph"]["quantities"][0]["entity_id"] is None
