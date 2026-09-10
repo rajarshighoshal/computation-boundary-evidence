@@ -1,0 +1,685 @@
+{
+  "exposure": {
+    "development_tasks": [
+      "002",
+      "077"
+    ],
+    "prior_private_test_exposure": [
+      "002"
+    ]
+  },
+  "metrics": {
+    "all": {
+      "conditions": {
+        "baseline": {
+          "attempts": 2,
+          "exact_private_failures": 0,
+          "exact_private_successes": 2,
+          "exact_private_unknown": 0,
+          "extraction_status_counts": {
+            "not_applicable": 2
+          },
+          "mean_official_reward_observed": 1.0,
+          "observed_exact_private_success_rate": 1.0,
+          "official_reward_missing": 0,
+          "official_reward_observations": 2,
+          "resources": {
+            "cached_input_tokens": {
+              "missing_trials": 0,
+              "observed_mean": 898240.0,
+              "observed_total": 1796480,
+              "observed_trials": 2
+            },
+            "duration_seconds": {
+              "missing_trials": 0,
+              "observed_mean": 532.5400986249952,
+              "observed_total": 1065.0801972499903,
+              "observed_trials": 2
+            },
+            "input_tokens": {
+              "missing_trials": 0,
+              "observed_mean": 945582.0,
+              "observed_total": 1891164,
+              "observed_trials": 2
+            },
+            "output_tokens": {
+              "missing_trials": 0,
+              "observed_mean": 12686.0,
+              "observed_total": 25372,
+              "observed_trials": 2
+            },
+            "over_budget_seconds": {
+              "missing_trials": 0,
+              "observed_mean": 0.0,
+              "observed_total": 0.0,
+              "observed_trials": 2
+            }
+          },
+          "run_status_counts": {
+            "completed": 2
+          },
+          "stage_status_counts": {
+            "repair": {
+              "completed": 2
+            }
+          },
+          "success_fraction_all_attempts": 1.0,
+          "unique_tasks": 2
+        },
+        "science": {
+          "attempts": 2,
+          "exact_private_failures": 0,
+          "exact_private_successes": 2,
+          "exact_private_unknown": 0,
+          "extraction_status_counts": {
+            "usable_graph": 2
+          },
+          "mean_official_reward_observed": 1.0,
+          "observed_exact_private_success_rate": 1.0,
+          "official_reward_missing": 0,
+          "official_reward_observations": 2,
+          "resources": {
+            "cached_input_tokens": {
+              "missing_trials": 2,
+              "observed_mean": null,
+              "observed_total": null,
+              "observed_trials": 0
+            },
+            "duration_seconds": {
+              "missing_trials": 0,
+              "observed_mean": 940.6782692294946,
+              "observed_total": 1881.3565384589892,
+              "observed_trials": 2
+            },
+            "input_tokens": {
+              "missing_trials": 2,
+              "observed_mean": null,
+              "observed_total": null,
+              "observed_trials": 0
+            },
+            "output_tokens": {
+              "missing_trials": 2,
+              "observed_mean": null,
+              "observed_total": null,
+              "observed_trials": 0
+            },
+            "over_budget_seconds": {
+              "missing_trials": 0,
+              "observed_mean": 0.0,
+              "observed_total": 0.0,
+              "observed_trials": 2
+            }
+          },
+          "run_status_counts": {
+            "completed": 2
+          },
+          "stage_status_counts": {
+            "extract": {
+              "timeout": 2
+            },
+            "repair": {
+              "completed": 2
+            }
+          },
+          "success_fraction_all_attempts": 1.0,
+          "unique_tasks": 2
+        }
+      },
+      "observed_paired_success_delta_percentage_points": 0.0,
+      "observed_pairs": 2,
+      "pair_outcome_counts": {
+        "baseline_only": 0,
+        "both_failure": 0,
+        "both_success": 2,
+        "missing_baseline": 0,
+        "missing_science": 0,
+        "science_only": 0,
+        "unknown": 0
+      }
+    },
+    "untouched": {
+      "conditions": {
+        "baseline": {
+          "attempts": 0,
+          "exact_private_failures": 0,
+          "exact_private_successes": 0,
+          "exact_private_unknown": 0,
+          "extraction_status_counts": {},
+          "mean_official_reward_observed": null,
+          "observed_exact_private_success_rate": null,
+          "official_reward_missing": 0,
+          "official_reward_observations": 0,
+          "resources": {
+            "cached_input_tokens": {
+              "missing_trials": 0,
+              "observed_mean": null,
+              "observed_total": null,
+              "observed_trials": 0
+            },
+            "duration_seconds": {
+              "missing_trials": 0,
+              "observed_mean": null,
+              "observed_total": null,
+              "observed_trials": 0
+            },
+            "input_tokens": {
+              "missing_trials": 0,
+              "observed_mean": null,
+              "observed_total": null,
+              "observed_trials": 0
+            },
+            "output_tokens": {
+              "missing_trials": 0,
+              "observed_mean": null,
+              "observed_total": null,
+              "observed_trials": 0
+            },
+            "over_budget_seconds": {
+              "missing_trials": 0,
+              "observed_mean": null,
+              "observed_total": null,
+              "observed_trials": 0
+            }
+          },
+          "run_status_counts": {},
+          "stage_status_counts": {},
+          "success_fraction_all_attempts": null,
+          "unique_tasks": 0
+        },
+        "science": {
+          "attempts": 0,
+          "exact_private_failures": 0,
+          "exact_private_successes": 0,
+          "exact_private_unknown": 0,
+          "extraction_status_counts": {},
+          "mean_official_reward_observed": null,
+          "observed_exact_private_success_rate": null,
+          "official_reward_missing": 0,
+          "official_reward_observations": 0,
+          "resources": {
+            "cached_input_tokens": {
+              "missing_trials": 0,
+              "observed_mean": null,
+              "observed_total": null,
+              "observed_trials": 0
+            },
+            "duration_seconds": {
+              "missing_trials": 0,
+              "observed_mean": null,
+              "observed_total": null,
+              "observed_trials": 0
+            },
+            "input_tokens": {
+              "missing_trials": 0,
+              "observed_mean": null,
+              "observed_total": null,
+              "observed_trials": 0
+            },
+            "output_tokens": {
+              "missing_trials": 0,
+              "observed_mean": null,
+              "observed_total": null,
+              "observed_trials": 0
+            },
+            "over_budget_seconds": {
+              "missing_trials": 0,
+              "observed_mean": null,
+              "observed_total": null,
+              "observed_trials": 0
+            }
+          },
+          "run_status_counts": {},
+          "stage_status_counts": {},
+          "success_fraction_all_attempts": null,
+          "unique_tasks": 0
+        }
+      },
+      "observed_paired_success_delta_percentage_points": null,
+      "observed_pairs": 0,
+      "pair_outcome_counts": {
+        "baseline_only": 0,
+        "both_failure": 0,
+        "both_success": 0,
+        "missing_baseline": 0,
+        "missing_science": 0,
+        "science_only": 0,
+        "unknown": 0
+      }
+    }
+  },
+  "pairs": [
+    {
+      "baseline_success": true,
+      "baseline_trial": "task-002-baseline/task_002__BoiWuCa",
+      "development_exposed": true,
+      "outcome": "both_success",
+      "run_id": null,
+      "science_success": true,
+      "science_trial": "task-002-science/task_002__Xp3maD6",
+      "task_id": "002"
+    },
+    {
+      "baseline_success": true,
+      "baseline_trial": "task-077-baseline/task_077__cnCnbuQ",
+      "development_exposed": true,
+      "outcome": "both_success",
+      "run_id": null,
+      "science_success": true,
+      "science_trial": "task-077-science/task_077__VCziC2k",
+      "task_id": "077"
+    }
+  ],
+  "schema_version": "1.0",
+  "task_ids": [
+    "002",
+    "077"
+  ],
+  "trials": [
+    {
+      "artifact_sha256": {
+        "baseline-tests.json": null,
+        "run.json": "eff2c6bfa3579734833c55db3bf4eb79b21bf012a404156d3cf32e6adde47bed",
+        "verifier/junit.xml": "a6837b0f48b7fc60dd9d25406e704d41c64b8c9aec67a2aa2d5fd6b0bc820020",
+        "verifier/reward.json": "afa1be83008f2170e39816f43887bce745d4395fbb89d44be054300ee3f51a72"
+      },
+      "codex_version": "0.153.4",
+      "condition": "baseline",
+      "config": {
+        "codex_version": "0.153.4",
+        "extraction_seconds": 360.0,
+        "model": "gpt-6-astra",
+        "reasoning_effort": "high",
+        "total_seconds": 1800.0
+      },
+      "development_exposed": true,
+      "diagnostics": [
+        "missing_baseline_test_data"
+      ],
+      "duration_seconds": 708.3289772079879,
+      "exact_private_success": true,
+      "extraction_status": "not_applicable",
+      "finished_at": "2026-09-10T05:50:23.930577+00:00",
+      "graph_coverage": null,
+      "graph_sha256": null,
+      "matched_test_outcomes": null,
+      "model": "gpt-6-astra",
+      "official_reward": 1,
+      "over_budget_seconds": 0.0,
+      "patch_sha256": "866ab98342af2a827f6055cc9a08daf3d090eef6faaded04e0dd96906dc4c6b8",
+      "prior_private_test_exposure": true,
+      "private": {
+        "collected": 8,
+        "failed": 0,
+        "passed": 8,
+        "return_code": 0
+      },
+      "provenance": {
+        "benchmark_revision": "42e7e97915ff7d73436a5d37b5cbe6b77e9c2a00",
+        "dataset_revision": "d8bdbcb4ecb2b565686382459c815d2b6291fd31",
+        "environment_image": "docker.io/kevinxulearning/swe-bench-science-environment-python-task-002:v0.1.0@sha256:13e8c428f486c685ec92b031e46f3520bac3d4e26b6bdd83fde9826a488b7761",
+        "implementation_revision": "62e4583a32d15ddd8382be2f262fedcfbd8d3498",
+        "prompt_sha256": {
+          "prompts/extract.md": "d91e2184d5a278b10b84547bcd0e73178ff0fea325c123a848a2ca0d3398c4a1",
+          "prompts/repair.md": "9b9bd47560b889414d5b5b4fcb05c0dd6ba406856a6ce7fdee9c59102115066b"
+        },
+        "runner_version": "0.3.0",
+        "selection_sha256": "33e29d1c51d829cbab90db77266eae4d726fbc11d9700fb7d424ce653267d85c",
+        "uv_lock_sha256": "c61a78a1c9ba91fe4ebf14ec3f35fd65e9d4e99a567afe06fed77cdac3bc38f4",
+        "verifier_image": "docker.io/kevinxulearning/swe-bench-science-verifier-python-task-002:v0.1.0@sha256:a863b98f920e1e9b1aede8bd0460d039628aab19a413cce3dad7417028e1bd1a"
+      },
+      "public": {
+        "collected": 1,
+        "passed": 1,
+        "return_code": 0
+      },
+      "reasoning_effort": "high",
+      "run_id": null,
+      "stages": [
+        {
+          "cleanup_complete": null,
+          "cleanup_scope": "GNU timeout foreground process group; no detached-descendant guarantee",
+          "duration_seconds": 708.3274602909951,
+          "exit_code": 0,
+          "name": "repair",
+          "status": "completed",
+          "timeout_seconds": 1786.9994679590018,
+          "usage": {
+            "accounting": "completed_turn_events_only",
+            "cached_input_tokens": 1630208,
+            "completed_turns": 1,
+            "input_tokens": 1701225,
+            "malformed_log_lines": 2,
+            "output_tokens": 15173
+          }
+        }
+      ],
+      "started_at": "2026-09-10T05:38:35.605329+00:00",
+      "status": "completed",
+      "task_id": "002",
+      "trial_path": "task-002-baseline/task_002__BoiWuCa",
+      "usage": {
+        "cached_input_tokens": 1630208,
+        "input_tokens": 1701225,
+        "output_tokens": 15173
+      }
+    },
+    {
+      "artifact_sha256": {
+        "baseline-tests.json": null,
+        "run.json": "c6fc0e8c6c50ee0da4cad7c8c47558db1dbe263068359ecb58db4c4bbb5641d8",
+        "verifier/junit.xml": "6c177571a55b042c00056b0ff77932751dd6ade75439b7749a980373f5eb3f1e",
+        "verifier/reward.json": "afa1be83008f2170e39816f43887bce745d4395fbb89d44be054300ee3f51a72"
+      },
+      "codex_version": "0.153.4",
+      "condition": "science",
+      "config": {
+        "codex_version": "0.153.4",
+        "extraction_seconds": 360.0,
+        "model": "gpt-6-astra",
+        "reasoning_effort": "high",
+        "total_seconds": 1800.0
+      },
+      "development_exposed": true,
+      "diagnostics": [
+        "incomplete_token_usage",
+        "missing_baseline_test_data"
+      ],
+      "duration_seconds": 1025.9591408339911,
+      "exact_private_success": true,
+      "extraction_status": "usable_graph",
+      "finished_at": "2026-09-10T06:12:36.125285+00:00",
+      "graph_coverage": {
+        "claims": 11,
+        "conflicts": 1,
+        "dimension_resolved": 9,
+        "expressions": 9,
+        "lift_supported": 1,
+        "lift_unknown": 10,
+        "scale_resolved": 4,
+        "shape_resolved": 9
+      },
+      "graph_sha256": "df38a8d5b18b9aeba8d6e8f9cd486e09cb4d80011288b034f06fb6e79d1145a9",
+      "matched_test_outcomes": null,
+      "model": "gpt-6-astra",
+      "official_reward": 1,
+      "over_budget_seconds": 0.0,
+      "patch_sha256": "bdeb8de6d47ffb049a1ebdab48550f2ccc7b0d2ef9968891fa32202ede9cd4de",
+      "prior_private_test_exposure": true,
+      "private": {
+        "collected": 8,
+        "failed": 0,
+        "passed": 8,
+        "return_code": 0
+      },
+      "provenance": {
+        "benchmark_revision": "42e7e97915ff7d73436a5d37b5cbe6b77e9c2a00",
+        "dataset_revision": "d8bdbcb4ecb2b565686382459c815d2b6291fd31",
+        "environment_image": "docker.io/kevinxulearning/swe-bench-science-environment-python-task-002:v0.1.0@sha256:13e8c428f486c685ec92b031e46f3520bac3d4e26b6bdd83fde9826a488b7761",
+        "implementation_revision": "62e4583a32d15ddd8382be2f262fedcfbd8d3498",
+        "prompt_sha256": {
+          "prompts/extract.md": "d91e2184d5a278b10b84547bcd0e73178ff0fea325c123a848a2ca0d3398c4a1",
+          "prompts/repair.md": "9b9bd47560b889414d5b5b4fcb05c0dd6ba406856a6ce7fdee9c59102115066b"
+        },
+        "runner_version": "0.3.0",
+        "selection_sha256": "33e29d1c51d829cbab90db77266eae4d726fbc11d9700fb7d424ce653267d85c",
+        "uv_lock_sha256": "c61a78a1c9ba91fe4ebf14ec3f35fd65e9d4e99a567afe06fed77cdac3bc38f4",
+        "verifier_image": "docker.io/kevinxulearning/swe-bench-science-verifier-python-task-002:v0.1.0@sha256:a863b98f920e1e9b1aede8bd0460d039628aab19a413cce3dad7417028e1bd1a"
+      },
+      "public": {
+        "collected": 1,
+        "passed": 1,
+        "return_code": 0
+      },
+      "reasoning_effort": "high",
+      "run_id": null,
+      "stages": [
+        {
+          "cleanup_complete": null,
+          "cleanup_scope": "GNU timeout foreground process group; no detached-descendant guarantee",
+          "duration_seconds": 337.24645474998397,
+          "exit_code": 124,
+          "name": "extract",
+          "status": "timeout",
+          "timeout_seconds": 331.99955304100877,
+          "usage": {
+            "accounting": "completed_turn_events_only",
+            "cached_input_tokens": null,
+            "completed_turns": 0,
+            "input_tokens": null,
+            "malformed_log_lines": 2,
+            "output_tokens": null
+          }
+        },
+        {
+          "cleanup_complete": null,
+          "cleanup_scope": "GNU timeout foreground process group; no detached-descendant guarantee",
+          "duration_seconds": 670.0155226250063,
+          "exit_code": 0,
+          "name": "repair",
+          "status": "completed",
+          "timeout_seconds": 1431.0570491660037,
+          "usage": {
+            "accounting": "completed_turn_events_only",
+            "cached_input_tokens": 1973376,
+            "completed_turns": 1,
+            "input_tokens": 2048161,
+            "malformed_log_lines": 2,
+            "output_tokens": 11931
+          }
+        }
+      ],
+      "started_at": "2026-09-10T05:55:30.110867+00:00",
+      "status": "completed",
+      "task_id": "002",
+      "trial_path": "task-002-science/task_002__Xp3maD6",
+      "usage": {
+        "cached_input_tokens": null,
+        "input_tokens": null,
+        "output_tokens": null
+      }
+    },
+    {
+      "artifact_sha256": {
+        "baseline-tests.json": null,
+        "run.json": "3a8fa6258af2bc7ce96a99e127f769338bd5e09e9d540692ed41f8336fd0df2e",
+        "verifier/junit.xml": "474e7825750fb7f46c7f66d2fdb95c9ac55ba8c1f1a384def5c8bdbe9f7ea547",
+        "verifier/reward.json": "7b38e6460a42bf80e1bbac5e931b86ffabedcbc38d177d52179d67db0be8a0fb"
+      },
+      "codex_version": "0.153.4",
+      "condition": "baseline",
+      "config": {
+        "codex_version": "0.153.4",
+        "extraction_seconds": 360.0,
+        "model": "gpt-6-astra",
+        "reasoning_effort": "high",
+        "total_seconds": 1800.0
+      },
+      "development_exposed": true,
+      "diagnostics": [
+        "missing_baseline_test_data"
+      ],
+      "duration_seconds": 356.7512200420024,
+      "exact_private_success": true,
+      "extraction_status": "not_applicable",
+      "finished_at": "2026-09-10T06:38:56.028241+00:00",
+      "graph_coverage": null,
+      "graph_sha256": null,
+      "matched_test_outcomes": null,
+      "model": "gpt-6-astra",
+      "official_reward": 1,
+      "over_budget_seconds": 0.0,
+      "patch_sha256": "ae1acef13dd81771c91b9da1337daa1cc25978c152a1dd37029c04ad49f5c5a3",
+      "prior_private_test_exposure": false,
+      "private": {
+        "collected": 13,
+        "failed": 0,
+        "passed": 13,
+        "return_code": 0
+      },
+      "provenance": {
+        "benchmark_revision": "42e7e97915ff7d73436a5d37b5cbe6b77e9c2a00",
+        "dataset_revision": "d8bdbcb4ecb2b565686382459c815d2b6291fd31",
+        "environment_image": "docker.io/kevinxulearning/swe-bench-science-environment-python-task-077:v0.1.2@sha256:878defd99b8a2f3b15b126482ad4a824bc2d7b6cbfad0dd770428c32288d12f5",
+        "implementation_revision": "62e4583a32d15ddd8382be2f262fedcfbd8d3498",
+        "prompt_sha256": {
+          "prompts/extract.md": "d91e2184d5a278b10b84547bcd0e73178ff0fea325c123a848a2ca0d3398c4a1",
+          "prompts/repair.md": "9b9bd47560b889414d5b5b4fcb05c0dd6ba406856a6ce7fdee9c59102115066b"
+        },
+        "runner_version": "0.3.0",
+        "selection_sha256": "33e29d1c51d829cbab90db77266eae4d726fbc11d9700fb7d424ce653267d85c",
+        "uv_lock_sha256": "c61a78a1c9ba91fe4ebf14ec3f35fd65e9d4e99a567afe06fed77cdac3bc38f4",
+        "verifier_image": "docker.io/kevinxulearning/swe-bench-science-verifier-python-task-077:v0.1.2@sha256:56e993f233a4c6f49dee57c5c0f45ee315e4b707cf0761f6d0b36abd010f425f"
+      },
+      "public": {
+        "collected": 1,
+        "passed": 1,
+        "return_code": 0
+      },
+      "reasoning_effort": "high",
+      "run_id": null,
+      "stages": [
+        {
+          "cleanup_complete": null,
+          "cleanup_scope": "GNU timeout foreground process group; no detached-descendant guarantee",
+          "duration_seconds": 356.74947962499573,
+          "exit_code": 0,
+          "name": "repair",
+          "status": "completed",
+          "timeout_seconds": 1786.999493542011,
+          "usage": {
+            "accounting": "completed_turn_events_only",
+            "cached_input_tokens": 166272,
+            "completed_turns": 1,
+            "input_tokens": 189939,
+            "malformed_log_lines": 2,
+            "output_tokens": 10199
+          }
+        }
+      ],
+      "started_at": "2026-09-10T06:32:59.305501+00:00",
+      "status": "completed",
+      "task_id": "077",
+      "trial_path": "task-077-baseline/task_077__cnCnbuQ",
+      "usage": {
+        "cached_input_tokens": 166272,
+        "input_tokens": 189939,
+        "output_tokens": 10199
+      }
+    },
+    {
+      "artifact_sha256": {
+        "baseline-tests.json": null,
+        "run.json": "f9e24fce3cfc7b277fa157aad817de2de8efa21b097fa224cf12429a023b4036",
+        "verifier/junit.xml": "4e60653ace875d1d162771abef7eecc05f798ce0f500b7ad4954bc70c5c1c61f",
+        "verifier/reward.json": "7b38e6460a42bf80e1bbac5e931b86ffabedcbc38d177d52179d67db0be8a0fb"
+      },
+      "codex_version": "0.153.4",
+      "condition": "science",
+      "config": {
+        "codex_version": "0.153.4",
+        "extraction_seconds": 360.0,
+        "model": "gpt-6-astra",
+        "reasoning_effort": "high",
+        "total_seconds": 1800.0
+      },
+      "development_exposed": true,
+      "diagnostics": [
+        "incomplete_token_usage",
+        "missing_baseline_test_data"
+      ],
+      "duration_seconds": 855.3973976249981,
+      "exact_private_success": true,
+      "extraction_status": "usable_graph",
+      "finished_at": "2026-09-10T06:32:09.059909+00:00",
+      "graph_coverage": {
+        "claims": 10,
+        "conflicts": 0,
+        "dimension_resolved": 0,
+        "expressions": 9,
+        "lift_supported": 0,
+        "lift_unknown": 10,
+        "scale_resolved": 0,
+        "shape_resolved": 2
+      },
+      "graph_sha256": "9622166c2a2782c47f210529156600cb7d18fb4e66563e2042f04339cf93ce80",
+      "matched_test_outcomes": null,
+      "model": "gpt-6-astra",
+      "official_reward": 1,
+      "over_budget_seconds": 0.0,
+      "patch_sha256": "351f930b5c9ee9f670a7d26850f665e8d5b374ecf6069539c8ce2a56cf4f07af",
+      "prior_private_test_exposure": false,
+      "private": {
+        "collected": 13,
+        "failed": 0,
+        "passed": 13,
+        "return_code": 0
+      },
+      "provenance": {
+        "benchmark_revision": "42e7e97915ff7d73436a5d37b5cbe6b77e9c2a00",
+        "dataset_revision": "d8bdbcb4ecb2b565686382459c815d2b6291fd31",
+        "environment_image": "docker.io/kevinxulearning/swe-bench-science-environment-python-task-077:v0.1.2@sha256:878defd99b8a2f3b15b126482ad4a824bc2d7b6cbfad0dd770428c32288d12f5",
+        "implementation_revision": "62e4583a32d15ddd8382be2f262fedcfbd8d3498",
+        "prompt_sha256": {
+          "prompts/extract.md": "d91e2184d5a278b10b84547bcd0e73178ff0fea325c123a848a2ca0d3398c4a1",
+          "prompts/repair.md": "9b9bd47560b889414d5b5b4fcb05c0dd6ba406856a6ce7fdee9c59102115066b"
+        },
+        "runner_version": "0.3.0",
+        "selection_sha256": "33e29d1c51d829cbab90db77266eae4d726fbc11d9700fb7d424ce653267d85c",
+        "uv_lock_sha256": "c61a78a1c9ba91fe4ebf14ec3f35fd65e9d4e99a567afe06fed77cdac3bc38f4",
+        "verifier_image": "docker.io/kevinxulearning/swe-bench-science-verifier-python-task-077:v0.1.2@sha256:56e993f233a4c6f49dee57c5c0f45ee315e4b707cf0761f6d0b36abd010f425f"
+      },
+      "public": {
+        "collected": 1,
+        "passed": 1,
+        "return_code": 0
+      },
+      "reasoning_effort": "high",
+      "run_id": null,
+      "stages": [
+        {
+          "cleanup_complete": null,
+          "cleanup_scope": "GNU timeout foreground process group; no detached-descendant guarantee",
+          "duration_seconds": 336.8792220419855,
+          "exit_code": 124,
+          "name": "extract",
+          "status": "timeout",
+          "timeout_seconds": 331.99963108298834,
+          "usage": {
+            "accounting": "completed_turn_events_only",
+            "cached_input_tokens": null,
+            "completed_turns": 0,
+            "input_tokens": null,
+            "malformed_log_lines": 2,
+            "output_tokens": null
+          }
+        },
+        {
+          "cleanup_complete": null,
+          "cleanup_scope": "GNU timeout foreground process group; no detached-descendant guarantee",
+          "duration_seconds": 500.44795424997574,
+          "exit_code": 0,
+          "name": "repair",
+          "status": "completed",
+          "timeout_seconds": 1432.0519867499825,
+          "usage": {
+            "accounting": "completed_turn_events_only",
+            "cached_input_tokens": 444672,
+            "completed_turns": 1,
+            "input_tokens": 496872,
+            "malformed_log_lines": 2,
+            "output_tokens": 14583
+          }
+        }
+      ],
+      "started_at": "2026-09-10T06:17:53.644353+00:00",
+      "status": "completed",
+      "task_id": "077",
+      "trial_path": "task-077-science/task_077__VCziC2k",
+      "usage": {
+        "cached_input_tokens": null,
+        "input_tokens": null,
+        "output_tokens": null
+      }
+    }
+  ]
+}

@@ -13,7 +13,7 @@ The adapter now calls upstream Pier 0.3.0 `Codex.run` for both passes. It reuses
 - The agent phase completed in 23.68 seconds with `smoke_success: true`.
 - 212 remaining tests pass, including tests proving the adapter inherits upstream `Codex.run` and its authentication/launch behavior.
 
-This is an infrastructure smoke, not a repair result. No valid paired research pilot has completed yet. The old `runs/pilot-v1` interrupted attempt and earlier diagnostic receipts remain preserved and are not counted as comparative method results.
+The smoke itself is not a repair result. The subsequent four-trial `runs/pilot-v2` is now complete: both conditions passed tasks002/077, with no observed success gain and higher elapsed time for context. See [pilot results](PILOT_RESULTS.md). The old `runs/pilot-v1` interrupted attempt and earlier diagnostic receipts remain preserved separately.
 
 ## Boundaries and next step
 
@@ -21,4 +21,4 @@ Docker supplies isolation, following [OpenAI's documented container approach](ht
 
 The extractor runs on a disposable copy; detected source edits invalidate its graph handoff. Repair starts from a separate unchanged copy. GNU timeout covers normal foreground process groups, not deliberately detached children.
 
-Next is the four-trial development pilot in a fresh directory, with the existing model and time allowances. Docker still exposes about 4 GB versus the tasks' requested 8 GiB; increase allocation before locked evaluation. No full-benchmark run is launched by the smoke check.
+Next is review of the pilot's stopping behavior and limited mechanical coverage before a larger evaluation. Docker still exposes about 4 GB versus the tasks' requested 8 GiB; resolve allocation before locked evaluation. No full-benchmark run has been launched.

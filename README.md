@@ -4,7 +4,7 @@ An experimental preparation stage for SWE-bench Science. It combines source-back
 
 The controlled comparison is ordinary Codex versus extraction followed by repair. Both use GPT-6 Astra/high and a 30-minute total agent allowance; extraction consumes at most six minutes of the treatment allowance. This implementation is a research prototype, not a scientific-correctness prover.
 
-The runner reuses Pier's standard Codex launch and subscription authentication. Docker provides isolation; there is no extra Codex sandbox policy. The scientific PySCF subscription smoke passes on the local Mac. A paired research pilot has not completed yet; see [runtime status](docs/RUNTIME_STATUS.md).
+The runner reuses Pier's standard Codex launch and subscription authentication. Docker provides isolation; there is no extra Codex sandbox policy. The completed development pilot passed both tasks in both conditions, with greater elapsed time for context and no observed success gain. See [pilot results](docs/PILOT_RESULTS.md) and [runtime status](docs/RUNTIME_STATUS.md).
 
 ## Layout
 
@@ -15,6 +15,7 @@ prompts/             Versioned extractor and repair guidance
 configs/             Explicit experiment configuration
 scripts/             Release restoration and independent result audit
 docs/                Interfaces, method details, and disclosures
+results/             Compact committed experimental summaries
 RESEARCH_PLAN.md     Approved research/implementation plan
 WORK_LOG.md          Canonical milestone status and verification receipts
 vendor/              Pinned upstream source (ignored)

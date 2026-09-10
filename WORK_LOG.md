@@ -8,8 +8,8 @@ Canonical live ledger. Approved plan: `RESEARCH_PLAN.md`. Only the primary agent
 | 2. Implement evidence, graph contract, alignment and semantic rules | complete | Integrated commits `11ba626`, `44ea3c1`, `04faa4d`, `39a5f8c`; focused synthetic tests pass |
 | 3. Simplify runner to standard Codex-in-Docker plus the research intervention | complete | Reuses upstream Pier Codex.run; removed custom profiles, permission probes and subreaper supervisor; 212 remaining tests pass |
 | 4. Verify standard runner and scientific execution | complete | `runs/standard-smoke-v1`: normal process/PySCF check passes; actual Codex PySCF command returns 42/READY, smoke_success true, 23.68s; verifier finishes on unchanged source |
-| 5. Development pilot: 002 and 077, one attempt per condition | in progress; explicitly authorized | Launch `runs/pilot-v2` with the verified standard runner; preserve the old interrupted pilot-v1 separately |
-| 6. Verify and report pilot outcomes | pending | Independent summary recomputation; paired verifier outcomes; extraction/handoff coverage; timing/usage; ledger/Git reconciliation. No full-benchmark launch |
+| 5. Development pilot: 002 and 077, one attempt per condition | complete | `runs/pilot-v2`: both arms passed all verifiers. Exact outcomes and times in `results/pilot-v2.json`; frozen implementation `62e4583`; old interrupted pilot-v1 preserved separately |
+| 6. Verify and report pilot outcomes | complete | Independent summary reconstruction and patch hashes verified; `scripts/report_pilot.py` generates quantitative report from receipts; tests pass; no running containers. Stopping-rule proposal recorded but not implemented. No full-benchmark launch |
 
 Full 119-task evaluation follows pilot throughput review and the restricted-license decision. Smoke failures are infrastructure development, not scientific-method outcomes. Initial-session /tmp artifacts are no longer available; current-session native probe files must be copied to durable receipts before handoff.
 
