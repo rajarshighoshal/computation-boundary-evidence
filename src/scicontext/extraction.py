@@ -42,8 +42,10 @@ async def run_extraction(driver, instruction: str, seconds: float) -> dict:
         model = await phase("interpret", lambda remaining: driver.interpret(instruction, remaining),
                             min(240.0, seconds * .8))
         prepared = await preparation
+        # Use the shared work deadline; the outer controller has already kept
+        # its collection/shutdown reserve outside this allowance.
         initial = await phase("assemble_initial", lambda remaining: driver.assemble(None, remaining),
-                              min(15.0, deadline - time.monotonic()))
+                              deadline - time.monotonic())
         final = initial
         if initial and initial.get("usable") and initial.get("probes"):
             reserve = min(15.0, seconds / 10)

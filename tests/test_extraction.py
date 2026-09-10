@@ -1,6 +1,8 @@
 import asyncio
 import time
+from types import SimpleNamespace
 
+import scicontext.extraction as extraction
 from scicontext.extraction import run_extraction
 
 
@@ -91,4 +93,64 @@ def test_probe_timeout_does_not_lose_initial_checkpoint():
         assert time.monotonic() - start < .5
         assert r["usable_checkpoint"]
         assert next(p for p in r["phases"] if p["name"] == "probes")["status"] == "timeout"
+    asyncio.run(check())
+
+
+def test_initial_assembly_uses_remaining_work_budget_not_fifteen_seconds(monkeypatch):
+    clock = [0.0]
+    monkeypatch.setattr(extraction, "time", SimpleNamespace(monotonic=lambda: clock[0]))
+
+    async def check():
+        d = Driver(delay=0)
+        original = d.interpret
+        async def interpret(instruction, seconds):
+            result = await original(instruction, seconds)
+            clock[0] += 112
+            return result
+        async def assemble(outcomes, seconds):
+            assert seconds == 188
+            clock[0] += 20  # Slow enough to exceed the retired assembly cap.
+            return {"status": "usable_graph", "usable": True, "probes": []}
+        d.interpret, d.assemble = interpret, assemble
+        result = await run_extraction(d, "task", 300)
+        phase = next(p for p in result["phases"] if p["name"] == "assemble_initial")
+        assert phase["allowance_seconds"] == 188
+        assert phase["duration_seconds"] == 20
+        assert result["usable_checkpoint"] and result["duration_seconds"] == 132
+    asyncio.run(check())
+
+
+def test_initial_assembly_is_cancelled_at_shared_work_deadline():
+    async def check():
+        d = Driver(delay=0)
+        cancelled = []
+        async def assemble(outcomes, seconds):
+            try:
+                await asyncio.sleep(10)
+            finally:
+                cancelled.append(True)
+        d.assemble = assemble
+        started = time.monotonic()
+        result = await run_extraction(d, "task", .08)
+        phase = next(p for p in result["phases"] if p["name"] == "assemble_initial")
+        assert phase["status"] == "timeout" and cancelled
+        assert not result["usable_checkpoint"] and "probe" not in d.calls
+        assert time.monotonic() - started < .5
+    asyncio.run(check())
+
+
+def test_no_assembly_starts_after_work_budget_exhaustion(monkeypatch):
+    clock = [0.0]
+    monkeypatch.setattr(extraction, "time", SimpleNamespace(monotonic=lambda: clock[0]))
+    async def check():
+        d = Driver(delay=0)
+        original = d.interpret
+        async def interpret(instruction, seconds):
+            result = await original(instruction, seconds)
+            clock[0] = 300
+            return result
+        d.interpret = interpret
+        result = await run_extraction(d, "task", 300)
+        assert not any(isinstance(call, tuple) for call in d.calls)
+        assert next(p for p in result["phases"] if p["name"] == "assemble_initial")["status"] == "not_run"
     asyncio.run(check())

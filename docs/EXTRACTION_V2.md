@@ -13,6 +13,11 @@ Approved after the first development pilot, then simplified at the user's reques
 
 For a 360-second extraction allowance, interpretation stops by 240 seconds, code-owned probes/assembly finish by 300 seconds, and the final 60 seconds are reserved for validation, artifact collection and stopping the disposable extraction container. Finish earlier whenever possible. Each probe is bounded by both a 45-second cap and the remaining phase allowance. These are shared deadlines, not additional budgets.
 
+Initial graph assembly receives the remaining shared work allowance, not a separate short cap.
+This leaves the outer collection/shutdown reserve unchanged. Slow assembly can leave less time for
+optional probes; it cannot extend the overall extraction budget. The saved timeout regression and
+no-model replay are documented in [the timeout fix](ASSEMBLY_TIMEOUT_FIX.md).
+
 Collection explicitly leaves a shutdown reserve. Shutdown and final cleanup are bounded; a shutdown deadline failure is not reported as a completed extraction and does not proceed into repair. Normal and exception paths are tested without adding a process-supervision framework.
 
 ## Packet interface (packet.py)

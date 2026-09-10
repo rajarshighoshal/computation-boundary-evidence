@@ -1,0 +1,144 @@
+{
+  "annotations_sha256": "ae2ee4952a7cd9dcf4e245b7fe474d7538d5a4b42d15f5ebb1cd39ac5f11047f",
+  "collection_shutdown_reserve_seconds": 60.0,
+  "extraction_cap_seconds": 360.0,
+  "input_metadata": {
+    "created_at": "2026-09-10T14:12:42.092718+00:00",
+    "environment_image": "docker.io/kevinxulearning/swe-bench-science-environment-python-task-091:v0.1.2@sha256:584de1418e2f75d29b7e9bb725f7effa839f1731fdb450c45476777e4ed328d5",
+    "extraction_seconds": 360.0,
+    "failed_phases": {
+      "cleanup_complete": null,
+      "duration_seconds": 123.94591533299536,
+      "packet_status": "ready",
+      "phases": [
+        {
+          "allowance_seconds": 239.9996984663885,
+          "duration_seconds": 111.58811224999954,
+          "name": "interpret",
+          "started_offset_seconds": 1.3165990822017193e-05,
+          "status": "completed"
+        },
+        {
+          "allowance_seconds": 29.999962308298564,
+          "duration_seconds": 1.2351568750164006,
+          "name": "prepare",
+          "started_offset_seconds": 0.0035441249783616513,
+          "status": "ready"
+        },
+        {
+          "allowance_seconds": 15.0,
+          "duration_seconds": 12.357760125014465,
+          "error": "RuntimeError: Command failed (124): timeout --signal=TERM --kill-after=2s 12.0s bash -c 'SCICONTEXT_CONTEXT_ROOT=/opt/scicontext/context PYTHONPATH=/opt/scicontext/src:/opt/scicontext/deps python -m scicontext.tool_c\n",
+          "name": "assemble_initial",
+          "started_offset_seconds": 111.58814033298404,
+          "status": "failed"
+        }
+      ],
+      "pipeline_status": "no_valid_annotations",
+      "status": "completed",
+      "usable_checkpoint": false,
+      "usage": {
+        "accounting": "completed_turn_events_only",
+        "cached_input_tokens": 100992,
+        "completed_turns": 1,
+        "input_tokens": 128606,
+        "malformed_log_lines": 2,
+        "output_tokens": 2735
+      }
+    },
+    "original_annotation_sha256": "ae2ee4952a7cd9dcf4e245b7fe474d7538d5a4b42d15f5ebb1cd39ac5f11047f",
+    "source_hashes": {
+      "__init__.py": "0aba189477c461f271a3c65dec90fc54ff805cfac439bee79d9974423da193ae",
+      "annotations.py": "dfe247a9948d0ebda5c1ab05ee390b49869be0f05668448066c3bde92a43a051",
+      "assets.py": "976f47bc6852da00d45a9b648a9f84c684f75dbfe8959a83a27012fbd17d1dfe",
+      "cli.py": "10de304b2e94185345a210489d390436c89921def15e63acf48105a8fdb12128",
+      "configuration.py": "42aec6f7932572a2cfaeebe07b8f8438bc583450cc6fc1225d059bde4a6d6848",
+      "controller.py": "f5f82fda63d093118f0cb924430e0c67135bec38ab0987c60e76d89b92f223c2",
+      "evidence.py": "3101e970a09ec0b67269bfa1f1941d8488557336207e705fc0884d448cfb1ec3",
+      "expressions.py": "954d51c6f0c11cb0a37ce92d51e9e670721c300a34af6a98b9de3ab90faecf8c",
+      "extraction.py": "f2c94d0199329b3ff18cb6e7f24103107ed45dfd9a22ff191810bc2dfe7407f2",
+      "graph.py": "bcec0df4c571f1cb403c2937a3b9acd763c872c48a749267e1a920e31215d88a",
+      "io.py": "db29f23b97b8efd5a4fdaaa082b90dc494a6e99e18d61df58b14094ace36e29a",
+      "packet.py": "ad85a37742ee622d5bc54c334cba8ae542451609b9c0f5936ab45ef4fb1e4fbe",
+      "pier_agent.py": "40d5f565a27c851a77e0b438a5558e38e946008f50f52d06b52e9178a1df00fb",
+      "probes.py": "dca3b8efd84090186457d55dff30509fa491c078f84ecffe697bd2f76981f1fb",
+      "release.py": "36b3a348069bdfb26e25dd420a73a371a0ac31dfaac3a2f245f7cbec673b19a8",
+      "results.py": "4ce5780de79b43318793da8bf715ca79ce473d2149205c9054dd7e403d53a051",
+      "sampling.py": "99ba9291592876d73e2311873a109b64559e7fd62a9bdbe645fbe1a1c242507d",
+      "semantics.py": "d8586c2af98c9cadbd6825f92e1b251f2ace0d1609286084f649cbc8876cd9cc",
+      "task_slice.py": "be37448aa472c9fe4133e151d1f28110740316ee587b8e1e2b04b603c6d10afc",
+      "tool_cli.py": "3c25353e487e4b744003c26fb1a0231861739f1287e5f329ca9d72cfaf3ad11a"
+    },
+    "source_trial": "runs/task-local-five-v1/jobs/task-091-science/task_091__RZKBABL",
+    "task_id": "091"
+  },
+  "kind": "assembly_budget_replay",
+  "machine": "x86_64",
+  "model_calls": 0,
+  "projected_work_seconds": 127.05627479898403,
+  "python": "3.12.14",
+  "results": [
+    {
+      "allowance_seconds": 15.0,
+      "bundle": "/replay/output/old_limit-bundle.json",
+      "command": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=2s",
+        "12.0s",
+        "/usr/local/bin/python",
+        "-m",
+        "scicontext.tool_cli",
+        "assemble",
+        "--root",
+        "/app/task_091",
+        "--context-root",
+        "/replay/input/context",
+        "--packet",
+        "/replay/output/old_limit-packet.json",
+        "--annotations",
+        "/replay/input/annotations.json",
+        "--output",
+        "/replay/output/old_limit-bundle.json"
+      ],
+      "elapsed_seconds": 12.015875172,
+      "graph_sha256": null,
+      "label": "old_limit",
+      "return_code": 124,
+      "status": null,
+      "usable": false
+    },
+    {
+      "allowance_seconds": 188.41185966701596,
+      "bundle": "/replay/output/remaining_budget-bundle.json",
+      "command": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=2s",
+        "185.41185966701596s",
+        "/usr/local/bin/python",
+        "-m",
+        "scicontext.tool_cli",
+        "assemble",
+        "--root",
+        "/app/task_091",
+        "--context-root",
+        "/replay/input/context",
+        "--packet",
+        "/replay/output/remaining_budget-packet.json",
+        "--annotations",
+        "/replay/input/annotations.json",
+        "--output",
+        "/replay/output/remaining_budget-bundle.json"
+      ],
+      "elapsed_seconds": 15.468134465999999,
+      "graph_sha256": "c154fdbed1b4176e3ac231d9fafc6c9e91a7bbbed728ef25eb8f6dc5684e592c",
+      "label": "remaining_budget",
+      "return_code": 0,
+      "status": "usable_graph",
+      "usable": true
+    }
+  ],
+  "verified": true,
+  "work_budget_seconds": 300.0
+}
