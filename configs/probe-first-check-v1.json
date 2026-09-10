@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "study_kind": "probe_first_extraction_development_check",
+  "purpose": "User-approved live check of probe-first extraction on the previously inspected geometry-reader and storage tasks. Check evidence-backed scientific expectations, actual repository execution, revision probe identity and full stage costs. Extraction only; no repair, hidden tests or retries. Use --extract-only.",
+  "model": "gpt-6-astra",
+  "reasoning_effort": "medium",
+  "codex_version": "0.153.4",
+  "pier_version": "0.3.0",
+  "release_commit": "42e7e97915ff7d73436a5d37b5cbe6b77e9c2a00",
+  "dataset_revision": "d8bdbcb4ecb2b565686382459c815d2b6291fd31",
+  "release_receipt": "data/random-five-v1-release.json",
+  "task_ids": ["091", "114"],
+  "development_task_ids": ["001", "002", "009", "058", "077", "091", "114"],
+  "conditions": ["science"],
+  "condition_order": {"091": ["science"], "114": ["science"]},
+  "total_seconds": 1800,
+  "extraction_seconds": 360,
+  "verifier_seconds": 1800,
+  "attempts": 1,
+  "concurrency": 2,
+  "allow_restricted_licenses": false
+}
