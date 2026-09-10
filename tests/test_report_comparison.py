@@ -129,6 +129,18 @@ def test_empty_schedule_has_no_fake_zero_measurements(tmp_path):
     assert "| baseline | input_tokens | unknown | 0 | 0 |" in content
 
 
+def test_operator_stop_explains_preinference_interruption(tmp_path):
+    schedule(tmp_path, tasks=("010",), status="interrupted")
+    dump(tmp_path / "operator-stop-request.json", {
+        "reason": "User requested medium effort for later initial checks",
+        "active_at_signal": [{"task_id": "010", "condition": "science", "phase": "pulling_images"}],
+    })
+    content = generate(tmp_path)
+    assert "Operator-requested stop: User requested medium effort" in content
+    assert "010/science during pulling_images" in content
+    assert "not a model repair failure" in content
+
+
 def test_missing_graph_and_setup_are_explicit_not_fatal(tmp_path):
     schedule(tmp_path, tasks=("010",))
     trial(tmp_path, "010", "baseline")

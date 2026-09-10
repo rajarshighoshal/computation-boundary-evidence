@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.0",
+  "study_kind": "initial_feasibility_checks",
+  "model": "gpt-6-astra",
+  "reasoning_effort": "medium",
+  "codex_version": "0.153.4",
+  "pier_version": "0.3.0",
+  "release_commit": "42e7e97915ff7d73436a5d37b5cbe6b77e9c2a00",
+  "dataset_revision": "d8bdbcb4ecb2b565686382459c815d2b6291fd31",
+  "release_receipt": "data/random-five-v1-release.json",
+  "parent_sampling_manifest": "configs/random-five-v1.selection.json",
+  "parent_sampling_manifest_sha256": "8318fa6f565300af5673360b179706c00ce69d0291b8788d23aa4f2478a3080e",
+  "continuation_of": "runs/random-five-v1",
+  "change_reason": "User requested medium effort to reduce token consumption and clarified these are initial research feasibility checks, not a locked experiment.",
+  "task_ids": ["009", "114", "001"],
+  "development_task_ids": ["002", "077"],
+  "condition_order": {
+    "009": ["science", "baseline"],
+    "114": ["baseline", "science"],
+    "001": ["science", "baseline"]
+  },
+  "conditions": ["baseline", "science"],
+  "total_seconds": 1800,
+  "extraction_seconds": 360,
+  "verifier_seconds": 1800,
+  "attempts": 1,
+  "concurrency": 1,
+  "allow_restricted_licenses": false
+}

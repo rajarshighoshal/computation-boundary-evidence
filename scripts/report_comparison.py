@@ -119,6 +119,13 @@ def render(run_root, summary):
                   "unrun arms are not silently dropped or included as failures in an observed success rate.", ""]
     if schedule.get("error"):
         lines += ["Schedule error: " + text(schedule["error"]), ""]
+    operator_stop, _ = optional_object(run_root / "operator-stop-request.json")
+    if operator_stop:
+        lines += ["Operator-requested stop: " + text(operator_stop.get("reason")) + ".",
+                  "Active at stop request: " + ", ".join(
+                      f"{item.get('task_id')}/{item.get('condition')} during {item.get('phase')}"
+                      for item in operator_stop.get("active_at_signal", [])) + ". "
+                  "A pre-inference image-pull interruption is not a model repair failure.", ""]
     lines += ["## Outcomes for the full planned selection", ""]
     table(lines, ["Task", "Arm", "Schedule status", "Run status", "Exact private", "Private passed/collected", "Official reward", "Agent seconds"],
           [(item["task_id"], item["condition"], item.get("status"),
