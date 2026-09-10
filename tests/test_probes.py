@@ -20,11 +20,13 @@ def test_independent_probes_run_concurrently_and_record_failures(tmp_path, monke
         kwargs["stdout"].write("observed\n")
         return SimpleNamespace(returncode=1 if "p2" in str(command) else 0)
     monkeypatch.setattr(probes.subprocess, "run", execute)
-    specs = [{"id": "p1", "claim_ids": ["c1"], "script": "a.py", "description": "first"},
+    specs = [{"id": "p1", "claim_ids": ["c1"], "script": "a.py", "description": "first", "fingerprint": "a" * 64},
              {"id": "p2", "claim_ids": ["c2"], "script": "b.py", "description": "second"}]
     results = probes.run_probes(specs, tmp_path, tmp_path, 10)
     assert [r["status"] for r in results] == ["completed", "failed"]
     assert len(calls) == 2
+    assert results[0]["fingerprint"] == specs[0]["fingerprint"]
+    assert results[1]["fingerprint"] is None
     for result in results:
         assert len(result["script_sha256"]) == 64
         assert result["stdout_excerpt"] == "observed\n"

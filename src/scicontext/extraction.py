@@ -1,72 +1,89 @@
-"""Bounded extraction phases using ordinary asyncio tasks and shared deadlines."""
+"""One bounded public-feedback revision inside the shared extraction deadline."""
 from __future__ import annotations
 
 import asyncio
 import time
 
 
-async def run_extraction(driver, instruction: str, seconds: float) -> dict:
-    """Overlap preparation/interpretation, then assemble and execute probes.
+def aggregate_usage(calls):
+    keys = {"input_tokens", "cached_input_tokens", "output_tokens"}
+    keys.update(k for c in calls for k in c.get("usage", {}) if k.endswith("_tokens"))
+    complete = bool(calls) and all(c.get("status") == "completed" for c in calls)
+    return {**{k: sum(c["usage"][k] for c in calls)
+               if complete and all(type(c.get("usage", {}).get(k)) is int for c in calls)
+               else None for k in keys},
+            "accounting": "all_attempted_calls" if complete else "incomplete_attempted_call"}
 
-    ``seconds`` excludes the outer controller's collection/cleanup reserve.
-    Driver methods return compact receipts, not model-generated full graphs.
-    """
+
+async def run_extraction(driver, instruction: str, seconds: float) -> dict:
+    """Reserve revision and final assembly before allowing draft work to start."""
     started = time.monotonic()
     deadline = started + seconds
-    phases = []
+    phases, calls = [], []
 
-    async def phase(name, operation, allowance):
+    def allowance(reserve=0):
+        return max(0.0, deadline - time.monotonic() - seconds * reserve)
+
+    async def phase(name, operation, budget, model=False):
         beginning = time.monotonic()
         record = {"name": name, "started_offset_seconds": beginning - started,
-                  "allowance_seconds": max(0.0, allowance)}
+                  "allowance_seconds": max(0.0, budget)}
         phases.append(record)
-        if allowance <= 0:
+        if budget <= 0:
             record.update(status="not_run", duration_seconds=0.0)
             return None
+        receipt = {"name": name}
+        if model:
+            calls.append(receipt)
         try:
-            value = await asyncio.wait_for(operation(allowance), timeout=allowance)
+            value = await asyncio.wait_for(operation(budget), timeout=budget)
             record["status"] = value.get("status", "completed") if isinstance(value, dict) else "completed"
+            if model and isinstance(value, dict):
+                receipt.update(value)
             return value
         except asyncio.TimeoutError:
             record["status"] = "timeout"
-            return None
         except Exception as error:
             record.update(status="failed", error=f"{type(error).__name__}: {error}")
-            return None
         finally:
             record["duration_seconds"] = time.monotonic() - beginning
+            if model:
+                receipt.update(name=name, status=record["status"], duration_seconds=record["duration_seconds"])
+                receipt.setdefault("usage", {})
+                if "error" in record:
+                    receipt["error"] = record["error"]
 
-    preparation = asyncio.create_task(phase("prepare", driver.prepare,
-                                            min(30.0, seconds / 10)))
+    preparation = asyncio.create_task(phase("prepare", driver.prepare, min(30.0, seconds / 10)))
     try:
-        model = await phase("interpret", lambda remaining: driver.interpret(instruction, remaining),
-                            min(240.0, seconds * .8))
+        draft = await phase("extract_draft", lambda s: driver.interpret(instruction, s),
+                            min(240.0, seconds * .45), model=True)
         prepared = await preparation
-        # Use the shared work deadline; the outer controller has already kept
-        # its collection/shutdown reserve outside this allowance.
-        initial = await phase("assemble_initial", lambda remaining: driver.assemble(None, remaining),
-                              deadline - time.monotonic())
-        final = initial
+        initial = await phase("assemble_initial", lambda s: driver.assemble(None, s), allowance(.45))
+        final, observations = initial, []
+        selected_call = "extract_draft" if initial and initial.get("usable") else None
         if initial and initial.get("usable") and initial.get("probes"):
-            reserve = min(15.0, seconds / 10)
-            results = await phase("probes", lambda remaining: driver.probe(initial["probes"], remaining),
-                                  max(0.0, deadline - time.monotonic() - reserve))
-            # The initial checkpoint survives if the probe/final phase is cut off.
-            revised = await phase("assemble_final", lambda remaining: driver.assemble(results or [], remaining),
-                                  deadline - time.monotonic())
-            if revised and revised.get("usable"):
-                final = revised
-        unknown_usage = {"input_tokens": None, "cached_input_tokens": None, "output_tokens": None,
-                         "accounting": "unavailable_after_interpretation_timeout"}
-        interpretation_status = next(p["status"] for p in phases if p["name"] == "interpret")
-        return {"status": (model or {}).get("status", interpretation_status),
-                "usage": (model or {}).get("usage", unknown_usage),
-                "cleanup_complete": None,
-                "duration_seconds": time.monotonic() - started,
+            observations = await phase("probes", lambda s: driver.probe(initial["probes"], s), allowance(.35)) or []
+            observed = await phase("assemble_observed", lambda s: driver.assemble(observations, s), allowance(.25))
+            if observed and observed.get("usable"):
+                final = observed
+        # This is a planned correction, never a provider/execution retry.
+        if draft and draft.get("status") == "completed" and hasattr(driver, "revise"):
+            feedback = {"draft_assembly": initial, "observed_assembly": final,
+                        "public_probe_results": observations,
+                        "probe_phase": next((p for p in phases if p["name"] == "probes"), None)}
+            revised = await phase("extract_revision", lambda s: driver.revise(instruction, feedback, s),
+                                  allowance(.10), model=True)
+            if revised and revised.get("status") == "completed" and revised.get("annotations_status") != "no_valid_annotations":
+                assembled = await phase("assemble_final", lambda s: driver.assemble(observations, s), allowance())
+                if assembled and assembled.get("usable"):
+                    final = assembled
+                    selected_call = "extract_revision"
+        return {"status": (draft or {}).get("status", calls[0]["status"] if calls else "not_run"),
+                "usage": aggregate_usage(calls), "model_calls": calls, "selected_model_call": selected_call,
+                "cleanup_complete": None, "duration_seconds": time.monotonic() - started,
                 "pipeline_status": (final or {}).get("status", "no_valid_annotations"),
                 "usable_checkpoint": bool(final and final.get("usable")),
-                "packet_status": (prepared or {}).get("status", "unavailable"),
-                "phases": phases}
+                "packet_status": (prepared or {}).get("status", "unavailable"), "phases": phases}
     finally:
         if not preparation.done():
             preparation.cancel()

@@ -49,7 +49,8 @@ def run_probes(specs: list[dict], root: Path, scratch: Path, seconds: float,
         receipt = {"id": spec["id"], "claim_ids": spec["claim_ids"], "description": spec["description"],
                    "status": "not_run", "exit_code": None, "duration_seconds": 0.0,
                    "started_offset_seconds": start - phase_started,
-                   "script_sha256": None, "artifact": artifact}
+                   "script_sha256": None, "artifact": artifact,
+                   "fingerprint": spec.get("fingerprint")}
         try:
             relative = Path(spec["script"])
             if (relative.is_absolute() or relative.suffix != ".py" or "\\" in spec["script"]

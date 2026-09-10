@@ -44,7 +44,7 @@ def test_preparation_overlaps_interpretation_and_stops_early():
         assert d.calls.count("interpret") == 1
         assert r["status"] == "completed" and r["usable_checkpoint"]
         assert r["duration_seconds"] < .5
-        assert set(p["name"] for p in r["phases"]) == {"prepare", "interpret", "assemble_initial", "probes", "assemble_final"}
+        assert set(p["name"] for p in r["phases"]) == {"prepare", "extract_draft", "assemble_initial", "probes", "assemble_observed"}
         assert d.calls[-1][1] == [{"id": "p1", "status": "failed"}, {"id": "p2", "status": "failed"}]
     asyncio.run(check())
 
@@ -108,16 +108,150 @@ def test_initial_assembly_uses_remaining_work_budget_not_fifteen_seconds(monkeyp
             clock[0] += 112
             return result
         async def assemble(outcomes, seconds):
-            assert seconds == 188
+            assert seconds == 53  # Preserve revision/probe/final work up front.
             clock[0] += 20  # Slow enough to exceed the retired assembly cap.
             return {"status": "usable_graph", "usable": True, "probes": []}
         d.interpret, d.assemble = interpret, assemble
         result = await run_extraction(d, "task", 300)
         phase = next(p for p in result["phases"] if p["name"] == "assemble_initial")
-        assert phase["allowance_seconds"] == 188
+        assert phase["allowance_seconds"] == 53
         assert phase["duration_seconds"] == 20
         assert result["usable_checkpoint"] and result["duration_seconds"] == 132
     asyncio.run(check())
+
+
+def test_one_revision_receives_failed_observation_and_aggregates_all_calls():
+    async def check():
+        d = Driver(delay=0)
+        async def revise(instruction, feedback, seconds):
+            d.calls.append("revise")
+            assert instruction == "task"
+            assert feedback["public_probe_results"][0]["status"] == "failed"
+            assert feedback["draft_assembly"]["usable"]
+            return {"status": "completed", "usage": {"input_tokens": 7}}
+        d.revise = revise
+        result = await run_extraction(d, "task", 1)
+        assert d.calls.count("revise") == 1
+        assert [c["name"] for c in result["model_calls"]] == ["extract_draft", "extract_revision"]
+        assert result["usage"]["input_tokens"] == 19
+        assert result["usage"]["output_tokens"] is None
+        assert result["selected_model_call"] == "extract_revision"
+    asyncio.run(check())
+
+
+def test_invalid_or_timed_out_revision_keeps_observed_draft():
+    async def check(kind):
+        d = Driver(delay=0)
+        async def revise(instruction, feedback, seconds):
+            if kind == "timeout":
+                await asyncio.sleep(10)
+            if kind == "malformed":
+                return {"status": "completed", "annotations_status": "no_valid_annotations", "usage": {"input_tokens": 5}}
+            d.usable = False
+            return {"status": "completed", "usage": {"input_tokens": 5}}
+        d.revise = revise
+        result = await run_extraction(d, "task", .1)
+        assert result["usable_checkpoint"]
+        assert result["selected_model_call"] == "extract_draft"
+        assert len(result["model_calls"]) == 2
+        assert any(c == ("assemble", [{"id": "p1", "status": "failed"}, {"id": "p2", "status": "failed"}]) for c in d.calls)
+        assert result["usage"]["input_tokens"] == (None if kind == "timeout" else 17)
+    for kind in ("timeout", "malformed", "unusable"):
+        asyncio.run(check(kind))
+
+
+def test_failed_provider_does_not_trigger_revision():
+    async def check(raises):
+        d = Driver(delay=0)
+        async def interpret(instruction, seconds):
+            d.interpreting.set()
+            if raises:
+                raise RuntimeError("provider unavailable")
+            return {"status": "failed", "exit_code": 1, "usage": {"input_tokens": 4}}
+        async def revise(*args):
+            raise AssertionError("Provider errors must not trigger correction")
+        d.interpret, d.revise = interpret, revise
+        result = await run_extraction(d, "task", .2)
+        assert result["status"] == "failed"
+        assert len(result["model_calls"]) == 1
+        assert result["usage"]["input_tokens"] is None
+    asyncio.run(check(False))
+    asyncio.run(check(True))
+
+
+def test_completed_invalid_draft_can_receive_planned_correction():
+    async def check():
+        d = Driver(delay=0, usable=False)
+        async def revise(instruction, feedback, seconds):
+            assert not feedback["draft_assembly"]["usable"]
+            d.usable = True
+            return {"status": "completed", "usage": {"input_tokens": 3}}
+        d.revise = revise
+        result = await run_extraction(d, "task", 1)
+        assert result["usable_checkpoint"] and result["selected_model_call"] == "extract_revision"
+        assert "probe" not in d.calls  # New final probes are supplied unexecuted.
+    asyncio.run(check())
+
+
+def test_slow_assemblies_leave_revision_and_final_reserves(monkeypatch):
+    clock = [0.0]
+    monkeypatch.setattr(extraction, "time", SimpleNamespace(monotonic=lambda: clock[0]))
+    async def check():
+        d = Driver(delay=0)
+        original = d.interpret
+        async def interpret(instruction, seconds):
+            result = await original(instruction, seconds)
+            assert seconds == 135
+            clock[0] += 135
+            return result
+        count = [0]
+        async def assemble(outcomes, seconds):
+            count[0] += 1
+            assert seconds >= 20
+            clock[0] += 20
+            return {"status": "usable_graph", "usable": True, "probes": [{"id": "p1"}]}
+        async def probe(specs, seconds):
+            clock[0] += seconds
+            return [{"id": "p1", "status": "failed"}]
+        async def revise(instruction, feedback, seconds):
+            assert seconds >= 45
+            clock[0] += seconds
+            return {"status": "completed", "usage": {"input_tokens": 1}}
+        d.interpret, d.assemble, d.probe, d.revise = interpret, assemble, probe, revise
+        result = await run_extraction(d, "task", 300)
+        assert count[0] == 3
+        assert result["selected_model_call"] == "extract_revision"
+        assert result["duration_seconds"] <= 300
+    asyncio.run(check())
+
+
+def test_initial_timeout_cannot_spend_reserved_revision_allowance():
+    async def check():
+        d = Driver(delay=0)
+        allowances = []
+        async def assemble(outcomes, seconds):
+            await asyncio.sleep(10)
+        async def revise(instruction, feedback, seconds):
+            allowances.append(seconds)
+            assert feedback["draft_assembly"] is None
+            return {"status": "completed", "annotations_status": "no_valid_annotations", "usage": {}}
+        d.assemble, d.revise = assemble, revise
+        result = await run_extraction(d, "task", .2)
+        assert len(allowances) == 1 and allowances[0] > .04
+        assert next(p for p in result["phases"] if p["name"] == "assemble_initial")["status"] == "timeout"
+        assert len(result["model_calls"]) == 2
+        assert result["duration_seconds"] < .3
+    asyncio.run(check())
+
+
+def test_reasoning_is_aggregated_separately_and_missing_is_unknown():
+    calls = [{"status": "completed", "usage": {"input_tokens": 2, "output_tokens": 5,
+              "cached_input_tokens": 0, "reasoning_output_tokens": 3}} for _ in range(2)]
+    assert extraction.aggregate_usage(calls)["reasoning_output_tokens"] == 6
+    assert extraction.aggregate_usage(calls)["output_tokens"] == 10
+    calls[1]["usage"]["reasoning_output_tokens"] = None
+    assert extraction.aggregate_usage(calls)["reasoning_output_tokens"] is None
+    assert extraction.aggregate_usage(calls)["output_tokens"] == 10
 
 
 def test_initial_assembly_is_cancelled_at_shared_work_deadline():

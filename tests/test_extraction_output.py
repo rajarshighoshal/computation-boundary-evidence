@@ -42,7 +42,7 @@ def driver(tmp_path):
     d = SimpleNamespace(workspace=Path(__file__).resolve().parents[1], root=str(tmp_path),
                         logs_dir=logs, task_id="058", extract_environment=Environment(),
                         _temporary=SimpleNamespace(name=str(temporary)), _selected_remote=None)
-    for name in ("_put", "checked", "interpret", "probe", "collect_graph"):
+    for name in ("_put", "checked", "interpret", "_interpret_call", "probe", "collect_graph", "assemble"):
         setattr(d, name, getattr(ScientificCodex, name).__get__(d))
     return d
 
@@ -62,16 +62,16 @@ def test_final_json_is_saved_by_code_and_inline_probe_is_saved_after_assembly(dr
              "source": "print(2 / 1)\n", "description": "Check a simple speed ratio."}]}
 
         async def model(stage, prompt, seconds):
-            assert stage == "extract"
+            assert stage == "extract_draft"
             assert "do not edit task source or write annotation/probe files" in prompt
             assert "ONLY the compact annotation JSON object" in prompt
-            (driver.logs_dir / "extract-final.txt").write_text(json.dumps(annotations))
+            (driver.logs_dir / "extract_draft-final.txt").write_text(json.dumps(annotations))
             return {"status": "completed", "usage": {"input_tokens": 12}}
 
         driver._run_codex = AsyncMock(side_effect=model)
         result = await driver.interpret("Inspect the speed task", 120)
         assert result["status"] == "completed"
-        saved = json.loads(driver.extract_environment.files[SCRATCH + "/annotations.json"])
+        saved = json.loads(driver.extract_environment.files[SCRATCH + "/extract_draft-annotations.json"])
         assert saved == annotations
         bundle = assemble_annotations(saved, packet, root)
         assert bundle["assembly"]["usable"]
@@ -93,7 +93,7 @@ def test_missing_or_malformed_final_output_falls_back_without_retry(driver, outp
     async def check():
         async def model(*args):
             if output is not None:
-                (driver.logs_dir / "extract-final.txt").write_text(output)
+                (driver.logs_dir / "extract_draft-final.txt").write_text(output)
             return {"status": "completed", "usage": {"input_tokens": 12}}
         driver._run_codex = AsyncMock(side_effect=model)
         driver.prepare = AsyncMock(return_value={"status": "ready"})
@@ -103,9 +103,9 @@ def test_missing_or_malformed_final_output_falls_back_without_retry(driver, outp
         assert not result["usable_checkpoint"]
         assert result["pipeline_status"] == "no_valid_annotations"
         assert result["usage"]["input_tokens"] == 12
-        receipt = json.loads((driver.logs_dir / "extract-process.json").read_text())
+        receipt = json.loads((driver.logs_dir / "extract_draft-process.json").read_text())
         assert receipt["annotations_status"] == "no_valid_annotations"
-        assert SCRATCH + "/annotations.json" not in driver.extract_environment.files
+        assert SCRATCH + "/extract_draft-annotations.json" not in driver.extract_environment.files
         driver._run_codex.assert_awaited_once()
         driver.probe.assert_not_awaited()
     asyncio.run(check())
@@ -120,3 +120,48 @@ def test_collect_graph_keeps_task_and_usable_checks_without_git_guard(driver, ta
     assert (result is not None) is accepted
     assert driver.extract_environment.commands == []
     assert not (driver.logs_dir / "extraction-source-check.json").exists()
+
+
+def test_assembly_paths_are_unique_and_invalid_revision_keeps_observed_bundle(driver):
+    async def check():
+        driver._annotations_remote = SCRATCH + "/extract_draft-annotations.json"
+        driver._helper = AsyncMock(side_effect=[{"usable": True}, {"usable": True}, {"usable": False}])
+        await driver.assemble(None, 50)
+        initial = driver._selected_remote
+        observations = [{"id": "p1", "status": "failed", "fingerprint": "a" * 64}]
+        await driver.assemble(observations, 50)
+        observed = driver._selected_remote
+        driver._annotations_remote = SCRATCH + "/extract_revision-annotations.json"
+        await driver.assemble(observations, 50)
+        assert initial != observed == driver._selected_remote
+        assert len(list(driver.logs_dir.glob("assembly-*.json"))) == 3
+        commands = [c.args[0] for c in driver._helper.await_args_list]
+        assert "assembly-1.json" in commands[0] and "assembly-2.json" in commands[1]
+        assert "extract_revision-annotations.json" in commands[2] and "assembly-3.json" in commands[2]
+        assert json.loads(driver.extract_environment.files[SCRATCH + "/assembly-2-probe-results.json"])["results"] == observations
+    asyncio.run(check())
+
+
+def test_revision_uses_exact_draft_feedback_and_does_not_replace_annotations_on_timeout(driver, tmp_path):
+    async def check():
+        (tmp_path / "prompts").mkdir()
+        (tmp_path / "prompts/extract_revision.md").write_text("{instruction}\n{feedback}\n{seconds}")
+        driver.workspace = tmp_path
+        driver.revise = ScientificCodex.revise.__get__(driver)
+        draft_text = '{"claims": [], "unresolved": ["unknown meaning"]}'
+        (driver.logs_dir / "extract_draft-final.txt").write_text(draft_text)
+        driver._annotations_remote = SCRATCH + "/extract_draft-annotations.json"
+        async def model(stage, prompt, seconds):
+            assert stage == "extract_revision"
+            feedback = json.loads(prompt.splitlines()[1])
+            assert feedback["draft_annotations_text"] == draft_text
+            assert feedback["public_probe_results"] == [{"status": "failed"}]
+            (driver.logs_dir / "extract_revision-final.txt").write_text('{"claims": []}')
+            return {"status": "timeout", "usage": {"input_tokens": 9}}
+        driver._run_codex = AsyncMock(side_effect=model)
+        result = await driver.revise("task", {"public_probe_results": [{"status": "failed"}]}, 30)
+        assert result["status"] == "timeout"
+        assert driver._annotations_remote.endswith("extract_draft-annotations.json")
+        assert (driver.logs_dir / "extract_draft-final.txt").read_text() == draft_text
+        assert (driver.logs_dir / "revision-feedback.json").is_file()
+    asyncio.run(check())

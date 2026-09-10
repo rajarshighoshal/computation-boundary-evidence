@@ -46,7 +46,7 @@ def test_reuses_upstream_run_without_reimplementing_authentication(tmp_path):
     assert all("--permission-profile" not in command for command in environment.commands)
 
 
-@pytest.mark.parametrize("stage", ["extract", "repair"])
+@pytest.mark.parametrize("stage", ["extract", "extract_draft", "extract_revision", "repair"])
 def test_both_stages_use_plain_final_files(tmp_path, stage):
     agent = OutputCodex(stage=stage, logs_dir=tmp_path, model_name="gpt-6-astra")
     assert "--output-schema" not in agent.build_cli_flags()
@@ -61,7 +61,7 @@ def test_deadline_uses_standard_timeout_not_custom_supervisor():
     assert "scicontext.supervise" not in script and "/proc" not in script
 
 
-@pytest.mark.parametrize("stage", ["extract", "repair"])
+@pytest.mark.parametrize("stage", ["extract", "extract_draft", "extract_revision", "repair"])
 def test_launcher_replaces_pier_bypass_only_for_extraction(tmp_path, stage):
     binary = tmp_path / "codex"
     binary.write_text('#!/bin/sh\nprintf "%s\\n" "$@"\n')
@@ -72,7 +72,7 @@ def test_launcher_replaces_pier_bypass_only_for_extraction(tmp_path, stage):
                             text=True, capture_output=True, check=True)
     actual = result.stdout.splitlines()
     expected = (["exec", "--sandbox", "read-only", "-c", 'approval_policy="never"', *original[2:]]
-                if stage == "extract" else original)
+                if stage.startswith("extract") else original)
     assert actual == expected
     assert not ("--sandbox" in actual and "--dangerously-bypass-approvals-and-sandbox" in actual)
 
@@ -122,3 +122,40 @@ def test_setup_uses_native_extractor_asset_and_keeps_x64_repair(tmp_path, monkey
     assert receipt["extraction_harness_architecture"] == expected
     assert receipt["extraction_access_mode"] == "read-only"
     assert receipt["extraction_codex_receipt"]["architecture"] == expected
+
+
+def test_each_call_uses_extraction_environment_distinct_logs_and_sessions(tmp_path, monkeypatch):
+    import scicontext.pier_agent as module
+    launched = []
+    class Environment:
+        def __init__(self):
+            self.files = {}
+            self.dirs = []
+        async def download_file(self, remote, local):
+            local.write_text(self.files[remote])
+        async def download_dir(self, remote, local):
+            self.dirs.append(remote)
+    environment = Environment()
+    async def run(agent, instruction, env, context):
+        assert env is environment
+        launched.append((agent.stage, str(agent._REMOTE_CODEX_HOME), agent._OUTPUT_FILENAME))
+        env.files[f"/logs/agent/{agent.stage}.jsonl"] = json.dumps({"type": "turn.completed", "usage": {
+            "input_tokens": 3, "cached_input_tokens": 1, "output_tokens": 2}}) + "\n"
+        env.files[f"/logs/agent/{agent.stage}-exit.txt"] = "1" if agent.stage == "extract_revision" else "0"
+        env.files[f"/logs/agent/{agent.stage}-final.txt"] = "{}"
+    monkeypatch.setattr(Codex, "run", run)
+    d = SimpleNamespace(extract_environment=environment, environment=object(), root="/app/task_058",
+                        config=SimpleNamespace(model="gpt-6-astra", reasoning_effort="high", codex_version="0.153.4"),
+                        logs_dir=tmp_path, auth_file=tmp_path / "dummy-auth.json")
+    d.checked = AsyncMock(return_value="/usr/bin")
+    async def check():
+        first = await ScientificCodex._run_codex(d, "extract_draft", "draft", 30)
+        second = await ScientificCodex._run_codex(d, "extract_revision", "revision", 30)
+        assert first["status"] == "completed" and second["status"] == "failed"
+        assert first["usage"]["input_tokens"] == second["usage"]["input_tokens"] == 3
+    asyncio.run(check())
+    assert len({home for _, home, _ in launched}) == 2
+    assert [filename for _, _, filename in launched] == ["extract_draft.jsonl", "extract_revision.jsonl"]
+    assert environment.dirs == ["/logs/agent/extract_draft-sessions", "/logs/agent/extract_revision-sessions"]
+    assert all((tmp_path / f"{name}-process.json").is_file() for name, _, _ in launched)
+    assert all("rm -rf /logs/agent" not in c.args[1] for c in d.checked.await_args_list)

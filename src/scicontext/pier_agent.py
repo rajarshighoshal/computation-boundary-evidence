@@ -12,7 +12,6 @@ import time
 from pathlib import Path
 
 from pier.agents.base import BaseAgent
-from pier.agents.installed.base import NonZeroAgentExitCodeError
 from pier.agents.installed.codex import Codex
 from pier.environments.docker.docker import DockerEnvironment
 from pier.models.agent.context import AgentContext
@@ -36,10 +35,14 @@ class OutputCodex(Codex):
     """Keep upstream launch/auth/cleanup; only add output collection flags."""
 
     def __init__(self, *args, stage: str, **kwargs):
-        if stage not in {"extract", "repair"}:
+        if stage not in {"extract", "extract_draft", "extract_revision", "repair"}:
             raise ValueError("Unknown Codex stage")
         self.stage = stage
         super().__init__(*args, **kwargs)
+        # Upstream copies sessions out and removes this home after each run.
+        # Separate homes also prevent leakage after interrupted cleanup.
+        self._REMOTE_CODEX_HOME = Path("/tmp") / ("scicontext-codex-" + stage)
+        self._OUTPUT_FILENAME = stage + ".jsonl"
 
     def build_cli_flags(self):
         return super().build_cli_flags() + f" -o /logs/agent/{self.stage}-final.txt"
@@ -48,7 +51,8 @@ class OutputCodex(Codex):
 def timeout_launcher(binary: str) -> str:
     """Use native read-only Codex for extraction and GNU timeout for both stages."""
     return f'''#!/bin/sh
-if [ "${{SCICONTEXT_STAGE_NAME:-}}" = extract ] && [ "${{1:-}}" = exec ] && [ "${{2:-}}" = --dangerously-bypass-approvals-and-sandbox ]; then
+case "${{SCICONTEXT_STAGE_NAME:-}}" in extract|extract_draft|extract_revision) readonly_extract=1 ;; *) readonly_extract=0 ;; esac
+if [ "$readonly_extract" = 1 ] && [ "${{1:-}}" = exec ] && [ "${{2:-}}" = --dangerously-bypass-approvals-and-sandbox ]; then
   shift 2
   set -- exec --sandbox read-only -c 'approval_policy="never"' "$@"
 fi
@@ -173,7 +177,7 @@ class ScientificCodex(BaseAgent):
             "extraction_harness_architecture": self.extraction_architecture,
             "extraction_access_mode": "read-only" if self.condition == "science" else None,
             "extraction_codex_receipt": read_json(self.extract_codex_package.parent / "receipt.json") if self.extract_codex_package else None,
-            "interpretation_cap_seconds": min(240, self.config.extraction_seconds * 2 / 3),
+            "interpretation_cap_seconds": min(240, (self.config.extraction_seconds - min(60, self.config.extraction_seconds / 6)) * .45),
             "python_minor": pyminor, "baseline_tree": self._baseline_tree,
             "docker_memory_bytes": int(info[0]), "docker_cpus": int(info[1]),
             "task_requested_memory_mb": environment.task_env_config.memory_mb,
@@ -202,37 +206,59 @@ class ScientificCodex(BaseAgent):
             f"--output {SCRATCH}/packet.json --catalog {SCRATCH}/catalog.md", seconds)
 
     async def interpret(self, instruction, seconds):
+        return await self._interpret_call("extract_draft", instruction, seconds)
+
+    async def revise(self, instruction, feedback, seconds):
+        feedback = dict(feedback)
+        draft = self.logs_dir / "extract_draft-final.txt"
+        feedback["draft_annotations_text"] = draft.read_text()[:65536] if draft.is_file() else None
+        write_json(self.logs_dir / "revision-feedback.json", feedback)
+        return await self._interpret_call("extract_revision", instruction, seconds, feedback)
+
+    async def _interpret_call(self, name, instruction, seconds, feedback=None):
         now = datetime.now(timezone.utc)
         clock = lambda duration: (now + timedelta(seconds=max(0, duration))).strftime("%H:%M:%S UTC")
-        template = (self.workspace / "prompts/extract.md").read_text()
+        template = (self.workspace / ("prompts/extract.md" if name == "extract_draft" else "prompts/extract_revision.md")).read_text()
         prompt = template.format(root=self.root, scratch=SCRATCH, runtime=CONTROL,
                                  seconds=max(1, int(seconds)), explore_until=clock(seconds * .75),
                                  save_by=clock(seconds * .90), finish_by=clock(seconds - 15),
-                                 instruction=instruction)
-        result = await self._run_codex("extract", prompt, seconds)
+                                 instruction=instruction, feedback=json.dumps(feedback, sort_keys=True))
+        result = await self._run_codex(name, prompt, seconds)
         # Codex returns one compact JSON response; orchestration owns file writes.
         try:
-            annotations = read_json(self.logs_dir / "extract-final.txt")
+            final_path = self.logs_dir / f"{name}-final.txt"
+            if final_path.stat().st_size > 65536:
+                raise ValueError("Compact annotations exceed 64 KiB")
+            annotations = read_json(final_path)
         except (OSError, ValueError) as error:
             result.update(annotations_status="no_valid_annotations", annotations_error=str(error))
-            write_json(self.logs_dir / "extract-process.json", result)
+            write_json(self.logs_dir / f"{name}-process.json", result)
             return result
-        await self._put(self.extract_environment, "annotations.json", json.dumps(annotations),
-                        SCRATCH + "/annotations.json")
+        # A timed-out revision must not replace the selected usable draft.
+        if name == "extract_draft" or result.get("status") == "completed":
+            self._annotations_remote = SCRATCH + f"/{name}-annotations.json"
+            await self._put(self.extract_environment, f"{name}-annotations.json", json.dumps(annotations),
+                            self._annotations_remote)
+        result["annotations_status"] = "received"
         return result
 
     async def assemble(self, outcomes, seconds):
-        target = CONTROL + ("/initial-bundle.json" if outcomes is None else "/bounded-graph.json")
+        sequence = getattr(self, "_assembly_sequence", 0) + 1
+        self._assembly_sequence = sequence
+        target = CONTROL + f"/assembly-{sequence}.json"
         extra = ""
         if outcomes is not None:
-            await self._put(self.extract_environment, "probe-results.json", json.dumps({"results": outcomes}), SCRATCH + "/probe-results.json")
-            extra = f" --probe-results {SCRATCH}/probe-results.json"
+            receipts = SCRATCH + f"/assembly-{sequence}-probe-results.json"
+            await self._put(self.extract_environment, f"assembly-{sequence}-probe-results.json", json.dumps({"results": outcomes}), receipts)
+            extra = f" --probe-results {receipts}"
+        annotations = getattr(self, "_annotations_remote", SCRATCH + "/extract_draft-annotations.json")
         result = await self._helper(
             f"{HELPER} assemble --root {self.root} --context-root {REMOTE}/context --packet {SCRATCH}/packet.json "
-            f"--annotations {SCRATCH}/annotations.json --output {target}{extra}", seconds)
+            f"--annotations {annotations} --output {target}{extra}", seconds)
         if result.get("usable"):
             self._selected_remote = target
-        write_json(self.logs_dir / ("assembly-initial.json" if outcomes is None else "assembly-final.json"), result)
+        result["artifact"] = target
+        write_json(self.logs_dir / f"assembly-{sequence}.json", result)
         return result
 
     async def probe(self, specs, seconds):
@@ -252,7 +278,7 @@ class ScientificCodex(BaseAgent):
 
     async def _run_codex(self, name, prompt, seconds):
         started = time.monotonic()
-        environment = self.extract_environment if name == "extract" else self.environment
+        environment = self.extract_environment if name in {"extract", "extract_draft", "extract_revision"} else self.environment
         path = (await self.checked(environment, "printenv PATH")).strip()
         duration = max(0.05, seconds - min(10.0, seconds / 5) - 3)
         stage_agent = OutputCodex(
@@ -264,32 +290,36 @@ class ScientificCodex(BaseAgent):
                        "SCICONTEXT_STAGE_SECONDS": str(duration) + "s", "SCICONTEXT_STAGE_NAME": name},
         )
         error = None
+        cancelled = False
         try:
             await stage_agent.run(prompt, environment, AgentContext())
-        except NonZeroAgentExitCodeError as caught:
+        except asyncio.CancelledError:
+            cancelled = True
+        except Exception as caught:
             error = caught
         finally:
-            for remote, local in (("codex.txt", f"{name}.jsonl"), (f"{name}-final.txt", f"{name}-final.txt"),
+            for remote, local in ((f"{name}.jsonl", f"{name}.jsonl"), (f"{name}-final.txt", f"{name}-final.txt"),
                                   (f"{name}-exit.txt", f"{name}-exit.txt")):
                 try:
                     await environment.download_file("/logs/agent/" + remote, self.logs_dir / local)
                 except Exception:
                     pass
             try:
-                await environment.download_dir("/logs/agent/sessions", self.logs_dir / f"{name}-sessions")
+                # Upstream uses a shared copy destination; archive it before the
+                # next call can replace it. Each call's source home is distinct.
+                await self.checked(environment, f"if [ -d /logs/agent/sessions ]; then mv /logs/agent/sessions /logs/agent/{name}-sessions; fi")
+                await environment.download_dir(f"/logs/agent/{name}-sessions", self.logs_dir / f"{name}-sessions")
             except Exception:
                 pass
         exit_path = self.logs_dir / f"{name}-exit.txt"
-        if not exit_path.is_file():
-            raise RuntimeError(f"No {name} exit receipt from GNU timeout/Pier") from error
-        code = int(exit_path.read_text().strip())
-        if code not in {0, 124, 137}:
-            raise RuntimeError(f"Codex {name} failed with exit {code}; inspect its preserved log") from error
-        result = {"status": "completed" if code == 0 else "timeout", "exit_code": code,
+        code = int(exit_path.read_text().strip()) if exit_path.is_file() else None
+        result = {"status": "timeout" if cancelled or code in {124, 137} else "completed" if code == 0 and error is None else "failed", "exit_code": code,
                   "duration_seconds": time.monotonic() - started, "timeout_seconds": duration,
                   "cleanup_complete": None,
                   "cleanup_scope": "GNU timeout foreground process group; no detached-descendant guarantee",
                   "usage": read_usage(self.logs_dir / f"{name}.jsonl")}
+        if error is not None or code is None:
+            result["error"] = str(error) if error else "Missing GNU timeout/Pier exit receipt"
         write_json(self.logs_dir / f"{name}-process.json", result)
         return result
 
