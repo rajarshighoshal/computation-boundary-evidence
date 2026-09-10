@@ -547,6 +547,10 @@ def _file_entries(path: str, raw: bytes, source: str, tree: ast.AST, limit: int,
         # AST reads preserve operands even when the expression parser cannot
         # represent an operation. Names are exact, never similarity matches.
         value = getattr(node, "value", None)
+        nested_binding = isinstance(value, ast.AST) and any(
+            isinstance(part, (ast.Lambda, ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp))
+            for part in ast.walk(value)
+        )
         reads = sorted({part.id for part in ast.walk(value) if isinstance(part, ast.Name)
                         and isinstance(part.ctx, ast.Load)}) if isinstance(value, ast.AST) else []
         if isinstance(node, ast.AugAssign) and isinstance(node.target, ast.Name):
@@ -559,7 +563,17 @@ def _file_entries(path: str, raw: bytes, source: str, tree: ast.AST, limit: int,
             latest = max(prior, key=lambda binding: binding.line) if prior else None
             reason = "no_local_definition"
             definition = None
-            if owner is not scope:
+            if nested_binding:
+                # Reads below these constructs do not all belong to the
+                # statement's scope. This local index deliberately declines
+                # to resolve them rather than borrowing an outer namesake.
+                reason = "nested_binding_construct"
+            elif any(binding.line == node.lineno for binding in bindings):
+                # Bindings currently retain lines, not execution positions.
+                # A same-line assignment can precede this read (including
+                # one omitted by entry budgeting); do not select an older one.
+                reason = "same_line_binding_ambiguity"
+            elif owner is not scope:
                 reason = "nonlocal_or_external"
             elif latest is not None:
                 definition = definitions.get((scope.name, name, latest.line))

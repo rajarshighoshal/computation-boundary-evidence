@@ -87,3 +87,27 @@ def test_downstream_dependencies_do_not_displace_reproducer_reader(tmp_path, mon
     result = build_packet(tmp_path)
     assert len(result['entries']) <= 8
     assert any(e['path'] == 'reader.py' and e['text'] == 'return dependency()' for e in result['entries'])
+
+
+def test_nested_binding_reads_never_link_outer_namesake(tmp_path):
+    expressions = ['[x * 2 for x in xs]', '{x * 2 for x in xs}',
+                   '{x: x * 2 for x in xs}', '(x * 2 for x in xs)', 'lambda x: x * 2']
+    for expression in expressions:
+        write(tmp_path, 'model.py', f'x = 42\nxs = [1, 2]\ny = {expression}\n')
+        entries = extract_evidence(tmp_path, ['model.py'])['entries']
+        result = next(e for e in entries if e.get('targets') == ['y'])
+        x_read = next(link for link in result['local_dependencies'] if link['name'] == 'x')
+        assert x_read['status'] == 'unresolved'
+        assert x_read['definition_id'] is None
+        assert x_read['reason'] == 'nested_binding_construct'
+
+
+def test_same_line_rebinding_does_not_link_stale_definition(tmp_path):
+    write(tmp_path, 'model.py', 'x = 1\nx = 2; y = x\n')
+    entries = extract_evidence(tmp_path, ['model.py'])['entries']
+    result = next(e for e in entries if e.get('targets') == ['y'])
+    link = result['local_dependencies'][0]
+    assert link['name'] == 'x'
+    assert link['status'] == 'unresolved'
+    assert link['definition_id'] is None
+    assert link['reason'] == 'same_line_binding_ambiguity'
