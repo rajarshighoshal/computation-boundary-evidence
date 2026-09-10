@@ -20,6 +20,8 @@ async def run_extraction(driver, instruction: str, seconds: float) -> dict:
     started = time.monotonic()
     deadline = started + seconds
     phases, calls = [], []
+    driver.extraction_model_calls = calls
+    driver.extraction_phases = phases
 
     def allowance(reserve=0):
         return max(0.0, deadline - time.monotonic() - seconds * reserve)
@@ -40,9 +42,14 @@ async def run_extraction(driver, instruction: str, seconds: float) -> dict:
             record["status"] = value.get("status", "completed") if isinstance(value, dict) else "completed"
             if model and isinstance(value, dict):
                 receipt.update(value)
+                if value.get("model_attempted") is False:
+                    calls.remove(receipt)
             return value
         except asyncio.TimeoutError:
             record["status"] = "timeout"
+        except asyncio.CancelledError:
+            record["status"] = "interrupted"
+            raise
         except Exception as error:
             record.update(status="failed", error=f"{type(error).__name__}: {error}")
         finally:
@@ -67,18 +74,20 @@ async def run_extraction(driver, instruction: str, seconds: float) -> dict:
             if observed and observed.get("usable"):
                 final = observed
         # This is a planned correction, never a provider/execution retry.
-        if draft and draft.get("status") == "completed" and hasattr(driver, "revise"):
+        if draft and draft.get("status") == "completed" and not draft.get("fatal_model_error") and hasattr(driver, "revise"):
             feedback = {"draft_assembly": initial, "observed_assembly": final,
                         "public_probe_results": observations,
                         "probe_phase": next((p for p in phases if p["name"] == "probes"), None)}
             revised = await phase("extract_revision", lambda s: driver.revise(instruction, feedback, s),
                                   allowance(.10), model=True)
-            if revised and revised.get("status") == "completed" and revised.get("annotations_status") != "no_valid_annotations":
+            if revised and revised.get("status") == "completed" and not revised.get("fatal_model_error") and revised.get("annotations_status") != "no_valid_annotations":
                 assembled = await phase("assemble_final", lambda s: driver.assemble(observations, s), allowance())
                 if assembled and assembled.get("usable"):
                     final = assembled
                     selected_call = "extract_revision"
-        return {"status": (draft or {}).get("status", calls[0]["status"] if calls else "not_run"),
+        fatal = any(c.get("fatal_model_error") or c.get("status") == "failed" for c in calls)
+        return {"status": "failed" if fatal else (draft or {}).get("status", calls[0]["status"] if calls else "not_run"),
+                "fatal_model_error": fatal,
                 "usage": aggregate_usage(calls), "model_calls": calls, "selected_model_call": selected_call,
                 "cleanup_complete": None, "duration_seconds": time.monotonic() - started,
                 "pipeline_status": (final or {}).get("status", "no_valid_annotations"),

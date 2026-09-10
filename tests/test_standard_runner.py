@@ -2,6 +2,7 @@ import asyncio
 import json
 import os
 import subprocess
+import time
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -159,3 +160,85 @@ def test_each_call_uses_extraction_environment_distinct_logs_and_sessions(tmp_pa
     assert environment.dirs == ["/logs/agent/extract_draft-sessions", "/logs/agent/extract_revision-sessions"]
     assert all((tmp_path / f"{name}-process.json").is_file() for name, _, _ in launched)
     assert all("rm -rf /logs/agent" not in c.args[1] for c in d.checked.await_args_list)
+
+
+@pytest.mark.parametrize("outer_cancel", [False, True])
+def test_upstream_finally_cannot_hold_call_past_deadline(tmp_path, monkeypatch, outer_cancel):
+    async def check():
+        release = asyncio.Event()
+        entered = asyncio.Event()
+        async def run(*args):
+            try:
+                entered.set()
+                await asyncio.sleep(10)
+            finally:
+                # Simulate an upstream artifact/auth cleanup awaiting remote I/O.
+                await release.wait()
+        monkeypatch.setattr(Codex, "run", run)
+        env = SimpleNamespace(download_file=AsyncMock(side_effect=OSError("unavailable")),
+                              download_dir=AsyncMock())
+        d = SimpleNamespace(extract_environment=env, environment=env, root="/app/task_058",
+                            config=SimpleNamespace(model="gpt-6-astra", reasoning_effort="high", codex_version="0.153.4"),
+                            logs_dir=tmp_path, auth_file=tmp_path / "dummy", checked=AsyncMock(return_value="/usr/bin"))
+        started = time.monotonic()
+        task = asyncio.create_task(ScientificCodex._run_codex(d, "extract_draft", "task", .12))
+        await entered.wait()
+        try:
+            if outer_cancel:
+                task.cancel()
+                with pytest.raises(asyncio.CancelledError):
+                    await task
+                result = json.loads((tmp_path / "extract_draft-process.json").read_text())
+                assert result["status"] == "interrupted"
+            else:
+                result = await task
+                assert result["status"] == "timeout"
+            assert time.monotonic() - started < .3
+            assert result["fatal_model_error"] and result["upstream_cleanup_pending"]
+            assert result["usage"]["input_tokens"] is None
+        finally:
+            release.set()
+            await asyncio.gather(*d._pending_codex_io, return_exceptions=True)
+    asyncio.run(check())
+
+
+def test_artifact_downloads_cannot_hold_call_past_deadline(tmp_path, monkeypatch):
+    async def check():
+        monkeypatch.setattr(Codex, "run", AsyncMock())
+        async def stalled(*args):
+            await asyncio.sleep(10)
+        env = SimpleNamespace(download_file=stalled, download_dir=stalled)
+        d = SimpleNamespace(extract_environment=env, environment=env, root="/app/task_058",
+                            config=SimpleNamespace(model="gpt-6-astra", reasoning_effort="high", codex_version="0.153.4"),
+                            logs_dir=tmp_path, auth_file=tmp_path / "dummy", checked=AsyncMock(return_value="/usr/bin"))
+        started = time.monotonic()
+        result = await ScientificCodex._run_codex(d, "extract_revision", "task", .1)
+        assert time.monotonic() - started < .3
+        assert "collection deadline exceeded" in result["artifact_collection_errors"]
+        assert result["fatal_model_error"] and result["usage"]["input_tokens"] is None
+    asyncio.run(check())
+
+
+@pytest.mark.parametrize("stage", ["extract_draft", "extract_revision", "repair"])
+def test_provider_failure_receipt_is_fatal_for_every_call(tmp_path, monkeypatch, stage):
+    async def check():
+        async def run(*args):
+            raise RuntimeError("provider quota exceeded")
+        monkeypatch.setattr(Codex, "run", run)
+        async def download(remote, local):
+            if remote.endswith("-exit.txt"):
+                local.write_text("1")
+            elif remote.endswith(".jsonl"):
+                local.write_text('{"type":"error","message":"quota exceeded"}\n')
+            else:
+                raise OSError("missing")
+        env = SimpleNamespace(download_file=download, download_dir=AsyncMock())
+        d = SimpleNamespace(extract_environment=env, environment=env, root="/app/task_058",
+                            config=SimpleNamespace(model="gpt-6-astra", reasoning_effort="high", codex_version="0.153.4"),
+                            logs_dir=tmp_path, auth_file=tmp_path / "dummy", checked=AsyncMock(return_value="/usr/bin"))
+        result = await ScientificCodex._run_codex(d, stage, "task", 1)
+        assert result["status"] == "failed" and result["fatal_model_error"]
+        assert "quota exceeded" in result["error"]
+        assert json.loads((tmp_path / f"{stage}-process.json").read_text()) == result
+        assert "quota exceeded" in (tmp_path / f"{stage}.jsonl").read_text()
+    asyncio.run(check())

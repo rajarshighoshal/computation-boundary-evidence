@@ -31,6 +31,51 @@ SCRATCH = REMOTE + "/scratch"
 HELPER = f"SCICONTEXT_CONTEXT_ROOT={REMOTE}/context PYTHONPATH={REMOTE}/src:{REMOTE}/deps python -m scicontext.tool_cli"
 
 
+async def bounded_call(operation, seconds, pending):
+    """Bound even cancellation-resistant I/O without waiting on its finally forever."""
+    if seconds <= 0:
+        operation.close()
+        raise asyncio.TimeoutError
+    task = asyncio.create_task(operation)
+    pending.add(task)
+    def finished(value):
+        pending.discard(value)
+        if not value.cancelled():
+            value.exception()  # Retrieve late failures from bounded-out operations.
+    task.add_done_callback(finished)
+    grace = min(1.0, max(0.0, seconds) / 10)
+    try:
+        done, _ = await asyncio.wait({task}, timeout=max(0.0, seconds - grace))
+        if done:
+            return task.result()
+        task.cancel()
+        await asyncio.wait({task}, timeout=grace)
+        raise asyncio.TimeoutError
+    except asyncio.CancelledError:
+        task.cancel()
+        raise
+
+
+def revision_feedback(feedback, draft):
+    """Remove duplicated source; refuse oversized feedback with an explicit receipt."""
+    value = dict(feedback)
+    for key in ("draft_assembly", "observed_assembly"):
+        summary = value.get(key)
+        if isinstance(summary, dict):
+            value[key] = {**summary, "probes": [
+                {k: v for k, v in probe.items() if k != "source"}
+                for probe in summary.get("probes", [])]}
+    value["feedback_omissions"] = ["Duplicate probe source omitted from assembly summaries; see draft_annotations_text."]
+    if draft.is_file() and draft.stat().st_size <= 65536:
+        value["draft_annotations_text"] = draft.read_text()
+    else:
+        value["draft_annotations_text"] = None
+        value["feedback_omissions"].append("Draft final text unavailable or exceeds the 64 KiB annotation limit; raw artifact retained.")
+    if len(json.dumps(value, ensure_ascii=False).encode()) > 131072:
+        raise ValueError("Revision feedback exceeds 128 KiB; correction skipped rather than omitting binding diagnostics")
+    return value
+
+
 class OutputCodex(Codex):
     """Keep upstream launch/auth/cleanup; only add output collection flags."""
 
@@ -189,7 +234,13 @@ class ScientificCodex(BaseAgent):
     async def run_stage(self, name, instruction, seconds):
         if name == "extract":
             self._selected_remote = None
-            result = await run_extraction(self, instruction, seconds)
+            try:
+                result = await run_extraction(self, instruction, seconds)
+            except asyncio.CancelledError:
+                write_json(self.logs_dir / "extraction-phases.json", {
+                    "status": "interrupted", "model_calls": getattr(self, "extraction_model_calls", []),
+                    "phases": getattr(self, "extraction_phases", [])})
+                raise
             write_json(self.logs_dir / "extraction-phases.json", result)
             return result
         prompt = instruction + f"\n\nTime allowance remaining: at most {max(1, int(seconds))} seconds."
@@ -209,9 +260,13 @@ class ScientificCodex(BaseAgent):
         return await self._interpret_call("extract_draft", instruction, seconds)
 
     async def revise(self, instruction, feedback, seconds):
-        feedback = dict(feedback)
         draft = self.logs_dir / "extract_draft-final.txt"
-        feedback["draft_annotations_text"] = draft.read_text()[:65536] if draft.is_file() else None
+        try:
+            feedback = revision_feedback(feedback, draft)
+        except ValueError as error:
+            receipt = {"status": "not_run", "model_attempted": False, "reason": str(error)}
+            write_json(self.logs_dir / "revision-feedback.json", receipt)
+            return receipt
         write_json(self.logs_dir / "revision-feedback.json", feedback)
         return await self._interpret_call("extract_revision", instruction, seconds, feedback)
 
@@ -222,8 +277,10 @@ class ScientificCodex(BaseAgent):
         prompt = template.format(root=self.root, scratch=SCRATCH, runtime=CONTROL,
                                  seconds=max(1, int(seconds)), explore_until=clock(seconds * .75),
                                  save_by=clock(seconds * .90), finish_by=clock(seconds - 15),
-                                 instruction=instruction, feedback=json.dumps(feedback, sort_keys=True))
+                                 instruction=instruction, feedback=json.dumps(feedback, sort_keys=True, ensure_ascii=False))
         result = await self._run_codex(name, prompt, seconds)
+        if result.get("fatal_model_error"):
+            return result
         # Codex returns one compact JSON response; orchestration owns file writes.
         try:
             final_path = self.logs_dir / f"{name}-final.txt"
@@ -278,49 +335,82 @@ class ScientificCodex(BaseAgent):
 
     async def _run_codex(self, name, prompt, seconds):
         started = time.monotonic()
+        deadline = started + seconds
+        self._pending_codex_io = getattr(self, "_pending_codex_io", set())
+        pending = self._pending_codex_io
         environment = self.extract_environment if name in {"extract", "extract_draft", "extract_revision"} else self.environment
-        path = (await self.checked(environment, "printenv PATH")).strip()
-        duration = max(0.05, seconds - min(10.0, seconds / 5) - 3)
-        stage_agent = OutputCodex(
-            stage=name, logs_dir=self.logs_dir / name, model_name=self.config.model,
-            version=self.config.codex_version, reasoning_effort=self.config.reasoning_effort,
-            config_toml=codex_config(self.config.model, self.config.reasoning_effort),
-            extra_env={"CODEX_AUTH_JSON_PATH": str(self.auth_file), "PATH": REMOTE + "/bin:" + path,
-                       "PYTHONPATH": self.root + ":" + self.root + "/source", "PYTHONDONTWRITEBYTECODE": "1",
-                       "SCICONTEXT_STAGE_SECONDS": str(duration) + "s", "SCICONTEXT_STAGE_NAME": name},
-        )
+        collection_reserve = min(10.0, seconds / 5)
+        duration = max(0.05, seconds - collection_reserve - min(3.0, seconds / 10) - min(1.0, seconds / 10))
         error = None
         cancelled = False
+        timed_out = False
+        upstream_pending = False
+        collection_errors = []
         try:
-            await stage_agent.run(prompt, environment, AgentContext())
+            path = (await bounded_call(self.checked(environment, "printenv PATH"),
+                                      max(0, deadline - time.monotonic() - collection_reserve), pending)).strip()
+            duration = max(0.05, deadline - time.monotonic() - collection_reserve - min(3.0, seconds / 10) - min(1.0, seconds / 10))
+            stage_agent = OutputCodex(
+                stage=name, logs_dir=self.logs_dir / name, model_name=self.config.model,
+                version=self.config.codex_version, reasoning_effort=self.config.reasoning_effort,
+                config_toml=codex_config(self.config.model, self.config.reasoning_effort),
+                extra_env={"CODEX_AUTH_JSON_PATH": str(self.auth_file), "PATH": REMOTE + "/bin:" + path,
+                           "PYTHONPATH": self.root + ":" + self.root + "/source", "PYTHONDONTWRITEBYTECODE": "1",
+                           "SCICONTEXT_STAGE_SECONDS": str(duration) + "s", "SCICONTEXT_STAGE_NAME": name},
+            )
+            await bounded_call(stage_agent.run(prompt, environment, AgentContext()),
+                               max(0, deadline - time.monotonic() - collection_reserve), pending)
+        except asyncio.TimeoutError:
+            timed_out = True
         except asyncio.CancelledError:
             cancelled = True
         except Exception as caught:
             error = caught
         finally:
-            for remote, local in ((f"{name}.jsonl", f"{name}.jsonl"), (f"{name}-final.txt", f"{name}-final.txt"),
-                                  (f"{name}-exit.txt", f"{name}-exit.txt")):
+            upstream_pending = any(not task.done() for task in pending)
+            async def collect_file(remote):
                 try:
-                    await environment.download_file("/logs/agent/" + remote, self.logs_dir / local)
-                except Exception:
-                    pass
-            try:
-                # Upstream uses a shared copy destination; archive it before the
-                # next call can replace it. Each call's source home is distinct.
-                await self.checked(environment, f"if [ -d /logs/agent/sessions ]; then mv /logs/agent/sessions /logs/agent/{name}-sessions; fi")
-                await environment.download_dir(f"/logs/agent/{name}-sessions", self.logs_dir / f"{name}-sessions")
-            except Exception:
-                pass
+                    await environment.download_file("/logs/agent/" + remote, self.logs_dir / remote)
+                except Exception as caught:
+                    collection_errors.append(f"{remote}: {type(caught).__name__}")
+            async def collect():
+                await asyncio.gather(*(collect_file(remote) for remote in
+                    (f"{name}.jsonl", f"{name}-final.txt", f"{name}-exit.txt")))
+                # Do not race upstream's shared session copy if cleanup is still pending.
+                if not upstream_pending:
+                    try:
+                        await self.checked(environment, f"if [ -d /logs/agent/sessions ]; then mv /logs/agent/sessions /logs/agent/{name}-sessions; fi")
+                        await environment.download_dir(f"/logs/agent/{name}-sessions", self.logs_dir / f"{name}-sessions")
+                    except Exception as caught:
+                        collection_errors.append(f"sessions: {type(caught).__name__}")
+            if not cancelled:
+                try:
+                    await bounded_call(collect(), max(0, deadline - time.monotonic()), pending)
+                except asyncio.TimeoutError:
+                    collection_errors.append("collection deadline exceeded")
+                except asyncio.CancelledError:
+                    cancelled = True
         exit_path = self.logs_dir / f"{name}-exit.txt"
-        code = int(exit_path.read_text().strip()) if exit_path.is_file() else None
-        result = {"status": "timeout" if cancelled or code in {124, 137} else "completed" if code == 0 and error is None else "failed", "exit_code": code,
+        try:
+            code = int(exit_path.read_text().strip()) if exit_path.is_file() else None
+        except ValueError:
+            code = None
+        status = "interrupted" if cancelled else "timeout" if timed_out or code in {124, 137} else "completed" if code == 0 and error is None else "failed"
+        io_pending = any(not task.done() for task in pending)
+        result = {"status": status, "exit_code": code,
                   "duration_seconds": time.monotonic() - started, "timeout_seconds": duration,
                   "cleanup_complete": None,
+                  "upstream_cleanup_pending": upstream_pending,
+                  "artifact_io_pending": io_pending,
+                  "artifact_collection_errors": collection_errors,
+                  "fatal_model_error": status == "failed" or upstream_pending or io_pending,
                   "cleanup_scope": "GNU timeout foreground process group; no detached-descendant guarantee",
                   "usage": read_usage(self.logs_dir / f"{name}.jsonl")}
         if error is not None or code is None:
             result["error"] = str(error) if error else "Missing GNU timeout/Pier exit receipt"
         write_json(self.logs_dir / f"{name}-process.json", result)
+        if cancelled:
+            raise asyncio.CancelledError
         return result
 
     async def collect_graph(self, seconds):

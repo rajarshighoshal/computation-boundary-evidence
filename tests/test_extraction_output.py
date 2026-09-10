@@ -11,7 +11,7 @@ pytest.importorskip("pier")
 
 from scicontext.annotations import assemble_annotations
 from scicontext.extraction import run_extraction
-from scicontext.pier_agent import SCRATCH, ScientificCodex
+from scicontext.pier_agent import SCRATCH, ScientificCodex, revision_feedback
 
 
 class Environment:
@@ -165,3 +165,18 @@ def test_revision_uses_exact_draft_feedback_and_does_not_replace_annotations_on_
         assert (driver.logs_dir / "extract_draft-final.txt").read_text() == draft_text
         assert (driver.logs_dir / "revision-feedback.json").is_file()
     asyncio.run(check())
+
+
+def test_feedback_removes_duplicate_source_but_keeps_binding_diagnostics(tmp_path):
+    draft = tmp_path / "draft.txt"
+    draft.write_text('{"probes": [{"source": "print(42)"}]}')
+    summary = {"probes": [{"id": "p1", "source": "print(42)", "fingerprint": "a" * 64}],
+               "assembly": {"rejected_bindings": [{"id": "q1", "reason": "ambiguous"}]}}
+    result = revision_feedback({"draft_assembly": summary, "observed_assembly": summary}, draft)
+    assert "source" not in result["draft_assembly"]["probes"][0]
+    assert result["draft_assembly"]["assembly"] == summary["assembly"]
+    assert result["draft_annotations_text"] == draft.read_text()
+    assert result["feedback_omissions"]
+    assert "source" in summary["probes"][0]  # Raw summary is untouched.
+    with pytest.raises(ValueError, match="correction skipped"):
+        revision_feedback({"draft_assembly": {"error": "x" * 140000}}, draft)

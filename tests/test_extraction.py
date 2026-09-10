@@ -173,6 +173,7 @@ def test_failed_provider_does_not_trigger_revision():
         d.interpret, d.revise = interpret, revise
         result = await run_extraction(d, "task", .2)
         assert result["status"] == "failed"
+        assert result["fatal_model_error"]
         assert len(result["model_calls"]) == 1
         assert result["usage"]["input_tokens"] is None
     asyncio.run(check(False))
@@ -252,6 +253,52 @@ def test_reasoning_is_aggregated_separately_and_missing_is_unknown():
     calls[1]["usage"]["reasoning_output_tokens"] = None
     assert extraction.aggregate_usage(calls)["reasoning_output_tokens"] is None
     assert extraction.aggregate_usage(calls)["output_tokens"] == 10
+
+
+def test_revision_provider_failure_retains_draft_but_marks_trial_fatal():
+    async def check():
+        d = Driver(delay=0)
+        async def revise(*args):
+            return {"status": "failed", "fatal_model_error": True, "error": "provider quota exceeded"}
+        d.revise = revise
+        result = await run_extraction(d, "task", 1)
+        assert result["status"] == "failed" and result["fatal_model_error"]
+        assert result["usable_checkpoint"] and result["selected_model_call"] == "extract_draft"
+        assert len(result["model_calls"]) == 2
+        assert not any(p["name"] == "assemble_final" for p in result["phases"])
+    asyncio.run(check())
+
+
+def test_outer_cancellation_preserves_interrupted_call_without_keyerror():
+    async def check():
+        d = Driver(delay=10)
+        task = asyncio.create_task(run_extraction(d, "task", 30))
+        await d.interpreting.wait()
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+        else:
+            raise AssertionError("Outer cancellation must propagate")
+        assert d.extraction_model_calls[0]["status"] == "interrupted"
+        assert d.extraction_model_calls[0]["usage"] == {}
+        assert next(p for p in d.extraction_phases if p["name"] == "extract_draft")["status"] == "interrupted"
+    asyncio.run(check())
+
+
+def test_unattempted_revision_is_not_a_model_call():
+    async def check():
+        d = Driver(delay=0)
+        async def revise(*args):
+            return {"status": "not_run", "model_attempted": False, "reason": "feedback too large"}
+        d.revise = revise
+        result = await run_extraction(d, "task", 1)
+        assert len(result["model_calls"]) == 1
+        assert not result["fatal_model_error"]
+        assert result["usable_checkpoint"]
+        assert next(p for p in result["phases"] if p["name"] == "extract_revision")["status"] == "not_run"
+    asyncio.run(check())
 
 
 def test_initial_assembly_is_cancelled_at_shared_work_deadline():
