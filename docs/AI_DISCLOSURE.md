@@ -34,4 +34,10 @@ examined the candidate axis-selection mechanism without new benchmark-agent atte
 Any future task001 attempt must disclose this prior diagnostic exposure; historical pre-run metadata
 must remain unchanged.
 
+Rajarshi then approved the scientific-object/feedback revision. AI-assisted implementation used
+isolated worktrees for bindings, bounded feedback execution and accounting, followed by root
+integration and independent review. Local integration tests use deterministic model test doubles
+and actual toy public probes; these are software checks, not live-model scientific-quality results.
+No benchmark-agent attempts were launched as part of this implementation approval.
+
 This file records the division of work, not a claim that any experimental improvement has been established. Pilot and final results must be generated from preserved run artifacts and reviewed by Rajarshi.

@@ -1,5 +1,7 @@
-Interpret the scientific task for a separate coding-agent repair session.
-Your job is compact semantic annotation, not bug repair or comprehensive reconstruction.
+Draft a scientific interpretation of this task for a separate coding-agent repair session.
+Your job is a small amount of useful scientific meaning, not bug repair or comprehensive reconstruction.
+Code will check your draft's bindings and run accepted public probes; a short revision may then
+use those diagnostics before the final handoff. Do not claim that those future checks have run.
 
 Code is preparing a source index and document catalog concurrently with this session:
 - {scratch}/catalog.md: compact reference IDs, source locations and previews.
@@ -8,10 +10,17 @@ Start with the task statement and scientific material. If the catalog is not rea
 read the paper/source first and check again once. Do not rebuild the index yourself.
 
 Deliver at most five relevant claims (prefer two or three), with at most twelve
-quantities. Include scientific meaning, conventions, applicability assumptions,
+quantities or scientific objects. Include scientific meaning, conventions, applicability assumptions,
 intended input/output relationships and correspondence to actual code operands
 and outputs. Distinguish intended
 requirements from observations of the possibly buggy implementation.
+
+For each useful claim, identify what the data/computation represents scientifically, not merely
+its Python type or implementation name. State when the interpretation applies and a plausible
+different interpretation that the public evidence can distinguish. A graph, sequence, set or
+state need not have a scalar equation. Do not invent dimensions, geometry or a missing definition
+to force a mathematical match. Generic advice such as "preserve behavior" or "make tests pass"
+is not scientific content.
 
 Return compact annotations ONCE as the JSON object in your final response as soon
 as useful evidence is available. The schema is {runtime}/annotation-schema.json.
@@ -25,10 +34,14 @@ Annotation fields:
 - schema_version: "annotations-1.0"; quantities and claims are arrays.
   The only other top-level fields are probes and unresolved; do not add task_id
   or graph metadata. Code supplies those.
-- Quantity: id, meaning; optionally symbol, code_ref, name, dimensions, scale, shape,
+- Quantity/object: id, meaning; optionally entity_id, symbol, code_ref, name, dimensions, scale, shape,
   status and evidence. Dimensions are a mapping such as {{"length": -3}}.
   Null/omitted means unknown. Physical dimensions/scale need scientific support.
-  For an operand or output, prefer code_ref with path, exact start_line/end_line,
+  Prefer entity_id for a scientific object's actual code carrier: copy an exact source entry ID
+  from the packet for a parameter, output, assignment or container update. Inspect its entity_role
+  and source scope. This grounds the code entity only, not an equation or a scientific property.
+  Do not guess IDs or silently equate the same spelling in different scopes.
+  For a mathematical operand occurrence, use code_ref with path, exact start_line/end_line,
   symbol, and optional scope (copy the index scope verbatim when available):
   {{"path": "source/model.py", "start_line": 20, "end_line": 20, "symbol": "arrays['rpvi']"}}.
   Use inspected source locations. A source binding does not establish scientific
@@ -43,6 +56,13 @@ Annotation fields:
   references after you finish. Prefer the exact assignment/return span rather
   than an entire function. Reference actual operands separately instead of one
   broad label for unrelated coordinates, derivatives and outputs.
+  Also use these optional text fields when supported:
+  scientific_object (the scientific thing being represented),
+  applicability (conditions and boundaries under which this interpretation holds),
+  alternative_interpretation (a plausible competing meaning, not an invented strawman),
+  discriminating_observation (what public observation would separate the meanings).
+  consumer_ids is an optional array of actual packet entity IDs for affected consumers;
+  a source reference alone does not prove runtime dataflow or scientific equivalence.
 - Evidence: a packet document/entry ID, or a relative path and exact line span:
   {{"path": "paper.md", "start_line": 10, "end_line": 12}}.
   Use real relevant spans, not this illustrative span. The task statement's
@@ -68,6 +88,13 @@ input files. Do not depend on another probe's output or change task source.
 Print a short result summary (preferably JSON), keep library logging quiet, and
 make any asserted property explicit. The repair session receives bounded output
 excerpts and exit status; full logs are retained separately.
+Prefer a discriminating case and a relevant control when the evidence supports them; invariance
+under presentation changes alone cannot establish that the computed scientific object is right.
+Explain where the expected relationship comes from: public documentation, an explicit requirement,
+or a justified reference/limiting case. Do not infer the expected answer just by copying the
+current implementation. If a probe only compares hypotheses without deciding which is correct,
+report it as diagnostic and leave that scientific choice unresolved. A successful execution is
+not proof that the proposed meaning is true. Include inline source so repair can rerun the check.
 Declare probes as:
 {{"id": "p1", "claim_ids": ["c1"], "script": "probe_property.py",
   "source": "print('replace with a focused scientific probe')\n",

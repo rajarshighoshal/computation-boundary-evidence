@@ -74,7 +74,8 @@ async def run_extraction(driver, instruction: str, seconds: float) -> dict:
             if observed and observed.get("usable"):
                 final = observed
         # This is a planned correction, never a provider/execution retry.
-        if draft and draft.get("status") == "completed" and not draft.get("fatal_model_error") and hasattr(driver, "revise"):
+        if (draft and draft.get("status") == "completed" and not draft.get("fatal_model_error")
+                and not getattr(driver, "_fatal_model_error", False) and hasattr(driver, "revise")):
             feedback = {"draft_assembly": initial, "observed_assembly": final,
                         "public_probe_results": observations,
                         "probe_phase": next((p for p in phases if p["name"] == "probes"), None)}
@@ -85,7 +86,8 @@ async def run_extraction(driver, instruction: str, seconds: float) -> dict:
                 if assembled and assembled.get("usable"):
                     final = assembled
                     selected_call = "extract_revision"
-        fatal = any(c.get("fatal_model_error") or c.get("status") == "failed" for c in calls)
+        fatal = (getattr(driver, "_fatal_model_error", False)
+                 or any(c.get("fatal_model_error") or c.get("status") == "failed" for c in calls))
         return {"status": "failed" if fatal else (draft or {}).get("status", calls[0]["status"] if calls else "not_run"),
                 "fatal_model_error": fatal,
                 "usage": aggregate_usage(calls), "model_calls": calls, "selected_model_call": selected_call,

@@ -40,6 +40,7 @@ def read_usage(path: Path) -> dict:
     totals = {"input_tokens": 0, "cached_input_tokens": 0, "output_tokens": 0}
     seen = 0
     malformed = 0
+    reasoning = []
     if path.is_file():
         with path.open(errors="replace") as stream:
             for line in stream:
@@ -53,8 +54,11 @@ def read_usage(path: Path) -> dict:
                     if all(type(usage.get(k)) is int and usage[k] >= 0 for k in totals):
                         for key in totals:
                             totals[key] += usage[key]
+                        value = usage.get("reasoning_output_tokens")
+                        reasoning.append(value if type(value) is int and 0 <= value <= usage["output_tokens"] else None)
                         seen += 1
     return {**(totals if seen else {k: None for k in totals}), "completed_turns": seen,
+            "reasoning_output_tokens": sum(reasoning) if reasoning and all(v is not None for v in reasoning) else None,
             "malformed_log_lines": malformed, "accounting": "completed_turn_events_only"}
 
 
@@ -130,11 +134,12 @@ async def run_trial(driver: Driver, config: TrialConfig, task_id: str, condition
     try:
         if condition == "science":
             extraction_deadline = min(deadline, started + config.extraction_seconds)
+            extraction_result = None
             # Reserve a bounded portion for deterministic validation/copy/cleanup.
             reserve = min(60.0, config.extraction_seconds / 6)
             try:
                 try:
-                    await stage("extract", instruction, max(0.001, extraction_deadline - time.monotonic() - reserve))
+                    extraction_result = await stage("extract", instruction, max(0.001, extraction_deadline - time.monotonic() - reserve))
                 except asyncio.TimeoutError:
                     record["extraction_status"] = "timeout"
                 # A final answer may be missing while an early checkpoint is
@@ -165,6 +170,9 @@ async def run_trial(driver: Driver, config: TrialConfig, task_id: str, condition
             else:
                 record.setdefault("extraction_status", "no_valid_graph")
             save()
+            if (getattr(driver, "_fatal_model_error", False)
+                    or extraction_result and extraction_result.get("fatal_model_error")):
+                raise RuntimeError("Extraction model execution failed; inspect per-call receipts. No further model call was started.")
         remaining = deadline - time.monotonic()
         if extraction_only:
             record["status"] = "completed"
@@ -173,8 +181,14 @@ async def run_trial(driver: Driver, config: TrialConfig, task_id: str, condition
             prompt = instruction
             if handoff is not None:
                 prompt += "\n\nSCIENTIFIC_CONTEXT_HANDOFF\n" + handoff["handoff"]
-                prompt += "\nUse this fallible context when useful. Challenge inferred constraints with an evidence-based explanation."
+                prompt += ("\nUse this fallible context when useful. Entity/source links identify code, not scientific proof. "
+                           "Rerun applicable supplied public probes after changes within the remaining repair allowance; "
+                           "treat unexecuted or stale probes as unverified, and preserve the task's fixtures. "
+                           "Challenge inferred constraints with public evidence when needed; do not silently weaken "
+                           "a supported requirement merely to make the current implementation pass.")
             result = await stage("repair", prompt, remaining)
+            if result.get("fatal_model_error") or getattr(driver, "_fatal_model_error", False):
+                raise RuntimeError("Repair model execution failed; inspect its receipt. The schedule must stop.")
             record["status"] = result.get("status", "completed")
         else:
             record["status"] = "timeout"

@@ -1,7 +1,8 @@
 # Proposed revision: scientific meaning with grounded, testable conditions
 
-Status: approved for implementation following the task001 diagnosis; implementation/verification
-is tracked in `WORK_LOG.md`. This approval does not launch new benchmark-agent experiments.
+Status: approved and implemented following the task001 diagnosis; final no-model verification
+is tracked in `WORK_LOG.md`. The implemented contract is `docs/SEMANTIC_FEEDBACK.md`.
+This approval does not launch new benchmark-agent experiments or establish scientific quality.
 
 ## Target
 

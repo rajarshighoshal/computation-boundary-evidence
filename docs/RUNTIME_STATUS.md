@@ -68,3 +68,8 @@ The terminal route stopped Docker Desktop, changed only `MemoryMiB` in its exist
 then restarted and verified the engine. [The allocation receipt](../results/docker-memory-change.json)
 records the original value, new value and effective memory. This does not retroactively change the
 comparison's resources. Restore the original allocation when this research work no longer needs it.
+
+The subsequent [scientific feedback revision](SEMANTIC_FEEDBACK.md) is implemented with separate
+draft/revision artifacts and shared deadlines. Local tests cover binding/probe feedback, fallback,
+native read-only routing and accounting; review also corrected bounded upstream cleanup and fatal
+error propagation. Its live extraction quality and repair performance have not yet been measured.

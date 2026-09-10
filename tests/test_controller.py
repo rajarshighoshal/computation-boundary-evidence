@@ -8,6 +8,22 @@ from scicontext.controller import TrialConfig, read_usage, run_trial, verify_smo
 from scicontext.configuration import codex_config
 
 
+def test_usage_preserves_optional_reasoning_without_double_counting(tmp_path):
+    import json
+    path = tmp_path / "usage.jsonl"
+    usages = [{"input_tokens": 30, "cached_input_tokens": 20, "output_tokens": 10,
+               "reasoning_output_tokens": 4},
+              {"input_tokens": 40, "cached_input_tokens": 30, "output_tokens": 12,
+               "reasoning_output_tokens": 5}]
+    path.write_text("\n".join(json.dumps({"type": "turn.completed", "usage": u}) for u in usages))
+    result = read_usage(path)
+    assert result["input_tokens"] == 70 and result["output_tokens"] == 22
+    assert result["reasoning_output_tokens"] == 9
+    del usages[0]["reasoning_output_tokens"]
+    path.write_text("\n".join(json.dumps({"type": "turn.completed", "usage": u}) for u in usages))
+    assert read_usage(path)["reasoning_output_tokens"] is None
+
+
 class FakeDriver:
     def __init__(self, graph=None, delay=0):
         self.graph = graph
@@ -49,6 +65,54 @@ def test_science_handoff_and_remaining_time(tmp_path):
     assert "scientific detail" in d.calls[1][1]
     assert d.calls[1][2] < 2 and d.finished and d.cleaned
     assert r["extraction_status"] == "usable_graph"
+
+
+@pytest.mark.parametrize("extraction_only", [False, True])
+def test_fatal_extraction_model_failure_does_not_launch_repair(tmp_path, extraction_only):
+    d = FakeDriver()
+    original = d.run_stage
+    async def failed(name, instruction, seconds):
+        result = await original(name, instruction, seconds)
+        return {**result, "fatal_model_error": True, "model_calls": [
+            {"name": "extract_draft", "status": "completed", "usage": result["usage"]},
+            {"name": "extract_revision", "status": "failed", "usage": {}, "error": "provider unavailable"}]}
+    d.run_stage = failed
+    with pytest.raises(RuntimeError, match="No further model call"):
+        asyncio.run(run_trial(d, TrialConfig(total_seconds=2, extraction_seconds=.5),
+                             "synthetic", "science", "Inspect", tmp_path, extraction_only=extraction_only))
+    assert [c[0] for c in d.calls] == ["extract"]
+    assert d.finished and d.cleaned
+    assert json.loads((tmp_path / "run.json").read_text())["status"] == "infrastructure_failure"
+
+
+def test_fatal_repair_provider_failure_is_infrastructure_failure(tmp_path):
+    d = FakeDriver()
+    original = d.run_stage
+    async def failed(name, instruction, seconds):
+        result = await original(name, instruction, seconds)
+        return {**result, "status": "failed", "fatal_model_error": True}
+    d.run_stage = failed
+    with pytest.raises(RuntimeError, match="schedule must stop"):
+        asyncio.run(run_trial(d, TrialConfig(total_seconds=2, extraction_seconds=.5),
+                             "synthetic", "baseline", "Inspect", tmp_path))
+    assert len(d.calls) == 1
+    assert json.loads((tmp_path / "run.json").read_text())["status"] == "infrastructure_failure"
+
+
+def test_stage_timeout_preserves_driver_fatal_state_before_repair(tmp_path):
+    d = FakeDriver()
+    async def cancelled(name, instruction, seconds):
+        d.calls.append((name, instruction, seconds))
+        try:
+            await asyncio.sleep(10)
+        finally:
+            d._fatal_model_error = True
+    d.run_stage = cancelled
+    with pytest.raises(RuntimeError, match="No further model call"):
+        asyncio.run(run_trial(d, TrialConfig(total_seconds=1, extraction_seconds=.12),
+                             "synthetic", "science", "Inspect", tmp_path))
+    assert [c[0] for c in d.calls] == ["extract"]
+    assert d.finished and d.cleaned
 
 
 def test_failed_extraction_falls_back_without_extra_time(tmp_path):

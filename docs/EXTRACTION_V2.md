@@ -1,5 +1,9 @@
 # Bounded hybrid extractor — implementation contract
 
+Historical single-interpretation contract for the earlier evaluated method. The current
+approved implementation adds [scientific entity bindings and one feedback revision](SEMANTIC_FEEDBACK.md).
+The timings and single-call sequence below describe the older revision, not the new pipeline.
+
 Approved after the first development pilot, then simplified at the user's request during initial feasibility checks. Current continuation uses medium effort, native read-only extraction and code-owned final-output saving. Total/extraction allowances remain unchanged. Earlier runs are evidence for their recorded versions, not a locked experiment with this revision.
 
 ## Responsibility and stopping

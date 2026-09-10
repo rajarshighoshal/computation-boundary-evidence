@@ -218,7 +218,8 @@ class ScientificCodex(BaseAgent):
             "codex_version": self.config.codex_version, "harness_architecture": "x64",
             "scientific_image_architecture": "amd64", "environment_image": environment.task_env_config.docker_image,
             "execution": "upstream_pier_codex_docker_boundary", "timeout": "GNU timeout foreground process group",
-            "extractor": "task_local_annotations_v2", "claim_cap": 5, "probe_cap": 2,
+            "extractor": "scientific_entities_feedback_v1", "claim_cap": 5, "probe_cap": 2,
+            "extraction_model_call_cap": 2 if self.condition == "science" else 0,
             "extraction_harness_architecture": self.extraction_architecture,
             "extraction_access_mode": "read-only" if self.condition == "science" else None,
             "extraction_codex_receipt": read_json(self.extract_codex_package.parent / "receipt.json") if self.extract_codex_package else None,
@@ -406,6 +407,8 @@ class ScientificCodex(BaseAgent):
                   "fatal_model_error": status == "failed" or upstream_pending or io_pending,
                   "cleanup_scope": "GNU timeout foreground process group; no detached-descendant guarantee",
                   "usage": read_usage(self.logs_dir / f"{name}.jsonl")}
+        # This survives an outer phase/stage timeout that prevents returning the receipt.
+        self._fatal_model_error = getattr(self, "_fatal_model_error", False) or result["fatal_model_error"]
         if error is not None or code is None:
             result["error"] = str(error) if error else "Missing GNU timeout/Pier exit receipt"
         write_json(self.logs_dir / f"{name}-process.json", result)

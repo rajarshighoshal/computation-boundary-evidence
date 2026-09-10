@@ -195,6 +195,7 @@ def test_upstream_finally_cannot_hold_call_past_deadline(tmp_path, monkeypatch, 
                 assert result["status"] == "timeout"
             assert time.monotonic() - started < .3
             assert result["fatal_model_error"] and result["upstream_cleanup_pending"]
+            assert d._fatal_model_error  # survives cancellation before a receipt can be returned
             assert result["usage"]["input_tokens"] is None
         finally:
             release.set()

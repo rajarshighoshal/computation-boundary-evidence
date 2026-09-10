@@ -6,6 +6,10 @@ The research comparison is ordinary Codex versus extraction followed by repair u
 
 The runner reuses Pier's Codex launch and subscription authentication. Extraction uses Codex's built-in read-only mode; code saves its returned annotations and probe scripts. Repair retains standard container execution. There is no custom Git source-change guard. See [initial high-effort results](docs/RANDOM_FIVE_HIGH_RESULTS.md), [qualitative notes](docs/RANDOM_FIVE_NOTES.md), and [runtime status](docs/RUNTIME_STATUS.md). Historical development results remain separate.
 
+The current approved revision adds [scientific-object bindings and a bounded feedback correction](docs/SEMANTIC_FEEDBACK.md).
+Local tests check the implementation; improved live extraction quality and repair performance have
+not yet been established for this revision. Earlier results below evaluate their recorded versions.
+
 The original random-five checks are complete: [outcomes and token accounting](docs/INITIAL_FIVE_OVERVIEW.md).
 The task-local redesign is now implemented and has separate [extraction-only results](docs/EXTRACTOR_TASK_LOCAL_CHECK.md).
 It improves source retrieval and binding coverage on the development examples. The restarted
@@ -68,7 +72,7 @@ The graph uses evidence IDs, exact source lines/hashes, quantities, claims, assu
 
 ## Run the development pilot
 
-The current extractor uses code-owned indexing, citations, graph assembly and checks; the LLM returns compact scientific annotations and optional inline probe scripts as JSON. Code saves them. Preparation overlaps interpretation, and independent probes can run concurrently. The shared extraction allowance includes bounded interpretation, probes, collection and shutdown. See [the implemented contract](docs/EXTRACTION_V2.md).
+The current extractor uses code-owned indexing, citations, entity bindings, graph assembly and checks. A read-only draft is followed by public-probe feedback and at most one bounded correction. Code saves outputs and keeps call artifacts separate. Preparation overlaps interpretation, and independent probes can run concurrently. The shared extraction allowance includes both model calls, probes, assembly, collection and shutdown. See [the implemented contract](docs/SEMANTIC_FEEDBACK.md).
 
 The quota-interrupted initial run was resumed and completed without replacing tasks. Its failed
 launch remains preserved. There is no unfinished initial-task pair to resume. The current
@@ -88,7 +92,8 @@ uv run --no-sync scicontext pilot --config configs/extractor-task-local-check.js
 ```
 
 The implemented task-local retrieval, source-reference expansion and binding interfaces are
-documented in [the extraction contract](docs/EXTRACTION_V2.md). No extra model session was added.
+documented in [the historical extraction contract](docs/EXTRACTION_V2.md). The later semantic-feedback
+revision adds one planned correction call inside the same budget; no larger model allowance is implied.
 
 Use a fresh output directory for every attempt. Existing attempts are never overwritten. The default development configuration uses tasks **002 and 077**; explicit configurations support bounded selections from a materialized release receipt. Full-benchmark evaluation requires a subsequent protocol/budget decision and restricted-license opt-in where applicable.
 
