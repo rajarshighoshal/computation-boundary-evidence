@@ -36,6 +36,38 @@ def session_metadata(trial, stage=None):
     return result or None
 
 
+def round_probe_report(stage, bundle):
+    """Keep attempted history separate from receipts matching the final interpretation."""
+    rounds = stage["probe_rounds"]
+    if not isinstance(rounds, list) or any(not isinstance(r, dict) for r in rounds):
+        raise ValueError("Malformed probe round history")
+    specs = bundle.get("probes")
+    supplied = (bundle.get("analysis") or {}).get("probe_results")
+    selected = None
+    unmatched = None
+    if isinstance(specs, list) and isinstance(supplied, list):
+        selected, unmatched = [], []
+        identifiers = [spec.get("id") for spec in specs]
+        if len(identifiers) != len(set(identifiers)):
+            raise ValueError("Duplicate final probe IDs")
+        for receipt in supplied:
+            matching = [spec for spec in specs if spec.get("id") == receipt.get("id")
+                        and spec.get("fingerprint") and spec.get("fingerprint") == receipt.get("fingerprint")
+                        and isinstance(spec.get("source"), str)
+                        and hashlib.sha256(spec["source"].encode()).hexdigest() == receipt.get("script_sha256")]
+            if matching:
+                if any(r["id"] == receipt["id"] for r in selected):
+                    raise ValueError("Duplicate final probe receipts")
+                selected.append(receipt)
+            else:
+                unmatched.append(receipt)
+    return {"probe_rounds": rounds, "probe_delivery": stage.get("probe_delivery"),
+            "selected_probe_specs": specs if isinstance(specs, list) else None,
+            "selected_probe_results": selected, "unmatched_supplied_probe_results": unmatched,
+            "probe_results": selected,
+            "probe_receipt_status": "available" if selected is not None else "missing"}
+
+
 def collect(root):
     schedule = read(root / "schedule.json")
     planned = schedule["schedule"]
@@ -117,6 +149,8 @@ def collect(root):
                             "model", "reasoning_effort", "codex_version", "implementation_revision", "dataset_revision",
                             "benchmark_revision", "environment_image", "prompt_sha256", "selection_sha256", "config")},
                         "trial_path": trial.relative_to(root).as_posix() if trial else None})
+        if "probe_rounds" in stage:
+            records[-1].update(round_probe_report(stage, bundle))
         if calls is not None:
             records[-1]["selected_model_call"] = selected
             records[-1]["model_calls"] = [{"name": call["name"], "status": call.get("status"),
@@ -153,6 +187,24 @@ def render(result):
                   "input_tokens", "cached_input_tokens", "output_tokens", "reasoning_output_tokens", "total_tokens")))
                for r in records for call in r.get("model_calls", [])])
     for r in records:
+        if "probe_rounds" in r:
+            specs, selected = r["selected_probe_specs"], r["selected_probe_results"]
+            statuses = counts(selected)
+            description = ("unknown" if statuses is None else "none accepted" if specs == []
+                           else json.dumps(statuses, sort_keys=True) if selected else "no matching execution receipts")
+            lines.append(f"Task {r['task_id']} final-selected probe results: {description}.")
+            if specs:
+                executed = {p["id"] for p in selected or [] if p.get("exit_code") is not None}
+                lines.append("Final probes without a completed execution receipt: " +
+                             (", ".join(p["id"] for p in specs if p["id"] not in executed) or "none") + ".")
+            lines.append(f"Task {r['task_id']} attempted probe round history (may include superseded interpretations):")
+            table(lines, ["Round", "Phase", "Declared IDs", "Recorded result statuses"],
+                  [(i, round.get("phase"), ", ".join(p["id"] for p in round["specs"])
+                    if isinstance(round.get("specs"), list) else None,
+                    json.dumps(counts(round["results"]), sort_keys=True)
+                    if isinstance(round.get("results"), list) else None)
+                   for i, round in enumerate(r["probe_rounds"], 1)])
+            continue
         statuses = counts(r["probe_results"])
         lines.append(f"Task {r['task_id']} probe results: " + (json.dumps(statuses, sort_keys=True)
                      if statuses is not None else "none declared" if r["declared_probes"] == 0 else "unknown") + ".")

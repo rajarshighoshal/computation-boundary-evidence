@@ -14,13 +14,20 @@ def read(path):
     return json.loads(path.read_text())
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-root", type=Path, default=Path("runs/extractor-annotations-v1"))
     parser.add_argument("--json-output", type=Path, default=Path("results/extractor-annotations-v1.json"))
     parser.add_argument("--markdown-output", type=Path, default=Path("docs/EXTRACTOR_VERIFICATION.md"))
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     root = args.run_root
+    # Round-aware runs use the current report contract; retain this script's
+    # historical verification output for old single-round artifacts.
+    if any("probe_rounds" in stage for path in (root / "jobs").glob("*/*/run.json")
+           for stage in read(path).get("stages", [])):
+        from report_task_local_extractor import main as report_current
+        return report_current(["--run-root", str(root), "--json-output", str(args.json_output),
+                               "--markdown-output", str(args.markdown_output)])
     subprocess.run([sys.executable, str(Path(__file__).with_name("recompute_results.py")),
                     str(root / "jobs"), "--verify", str(root / "summary/summary.json")], check=True)
     schedule = read(root / "schedule.json")
