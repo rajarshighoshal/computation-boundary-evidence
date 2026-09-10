@@ -209,3 +209,75 @@ def test_schedule_budget_cannot_misdescribe_run(tmp_path):
     trial(tmp_path, "010", "baseline")
     with pytest.raises(ValueError, match="Run budget differs"):
         generate(tmp_path)
+
+
+def raw_usage(directory, name="repair", usages=None):
+    usages = usages if usages is not None else [{"input_tokens": 100, "cached_input_tokens": 20,
+                                               "output_tokens": 30, "reasoning_output_tokens": 12}]
+    (directory / "agent").mkdir(exist_ok=True)
+    (directory / "agent" / f"{name}.jsonl").write_text(
+        "CLI diagnostic\n" + "\n".join(json.dumps({"type": "turn.completed", "usage": u}) for u in usages))
+
+
+def test_raw_breakdown_subsets_and_trial_totals_do_not_double_count(tmp_path):
+    schedule(tmp_path, tasks=("010",))
+    directory = trial(tmp_path, "010", "science", graph=True)
+    raw_usage(directory, "extract")
+    raw_usage(directory)
+    content = generate(tmp_path)
+    assert "| 010 | science | extract | completed | 100 | 20 | 80 | 30 | 12 | 18 | 130 |" in content
+    assert "| 010 | science | trial total | completed | 200 | 40 | 160 | 60 | 24 | 36 | 260 |" in content
+    assert "| 010 | baseline | trial total | no receipt | unknown | unknown | unknown | unknown | unknown | unknown | unknown |" in content
+
+
+def test_multiple_completed_turn_events_are_summed(tmp_path):
+    directory = trial(tmp_path, "010", "baseline")
+    raw_usage(directory, usages=[{"input_tokens": 50, "cached_input_tokens": 10,
+                                 "output_tokens": 15, "reasoning_output_tokens": 6}] * 2)
+    stage = report.read(directory / "run.json")["stages"][0]
+    stage["usage"]["completed_turns"] = 2
+    values = report.stage_token_breakdown(directory, stage)
+    assert values["total_tokens"] == 130
+    assert values["reasoning_output_tokens"] == 12
+
+
+def test_missing_reasoning_and_failed_stage_preserve_unknowns(tmp_path):
+    directory = trial(tmp_path, "010", "baseline")
+    stage = report.read(directory / "run.json")["stages"][0]
+    raw_usage(directory, usages=[stage["usage"]])
+    values = report.stage_token_breakdown(directory, stage)
+    assert values["total_tokens"] == 130
+    assert values["reasoning_output_tokens"] is None
+    assert values["nonreasoning_output_tokens"] is None
+    stage["status"] = "timeout"
+    assert all(v is None for v in report.stage_token_breakdown(directory, stage).values())
+
+
+def test_partial_reasoning_coverage_is_not_summed(tmp_path):
+    directory = trial(tmp_path, "010", "baseline")
+    stage = report.read(directory / "run.json")["stages"][0]
+    raw_usage(directory, usages=[{"input_tokens": 50, "cached_input_tokens": 10, "output_tokens": 15,
+                                 "reasoning_output_tokens": 6},
+                                {"input_tokens": 50, "cached_input_tokens": 10, "output_tokens": 15}])
+    assert report.stage_token_breakdown(directory, stage)["reasoning_output_tokens"] is None
+
+
+@pytest.mark.parametrize("field", report.TOKENS)
+def test_raw_usage_mismatch_fails_before_report_write(tmp_path, field):
+    schedule(tmp_path, tasks=("010",))
+    directory = trial(tmp_path, "010", "baseline")
+    usage = {"input_tokens": 100, "cached_input_tokens": 20, "output_tokens": 30, "reasoning_output_tokens": 12}
+    usage[field] += 1
+    raw_usage(directory, usages=[usage])
+    with pytest.raises(ValueError, match="Raw token usage differs"):
+        generate(tmp_path)
+    assert not (tmp_path / "report.md").exists()
+
+
+def test_missing_expected_science_stage_prevents_trial_total(tmp_path):
+    schedule(tmp_path, tasks=("010",))
+    directory = trial(tmp_path, "010", "science")
+    raw_usage(directory)
+    content = generate(tmp_path)
+    assert "| 010 | science | repair | completed | 100 | 20 | 80 | 30 | 12 | 18 | 130 |" in content
+    assert "| 010 | science | trial total | completed | unknown | unknown | unknown | unknown | unknown | unknown | unknown |" in content

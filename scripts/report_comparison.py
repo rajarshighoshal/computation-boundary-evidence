@@ -15,6 +15,53 @@ from pathlib import Path
 
 ARMS = ("baseline", "science")
 TOKENS = ("input_tokens", "cached_input_tokens", "output_tokens")
+BREAKDOWN = ("input_tokens", "cached_input_tokens", "uncached_input_tokens", "output_tokens",
+             "reasoning_output_tokens", "nonreasoning_output_tokens", "total_tokens")
+
+
+def stage_token_breakdown(trial, stage):
+    """Audit completed-turn usage; incomplete stages cannot establish full cost."""
+    unknown = dict.fromkeys(BREAKDOWN)
+    name = stage.get("name")
+    if name not in ("extract", "repair"):
+        return unknown
+    path = trial / "agent" / f"{name}.jsonl"
+    if not path.is_file():
+        return unknown
+    usages = []
+    with path.open(encoding="utf-8", errors="replace") as stream:
+        for line in stream:
+            try:
+                event = json.loads(line)
+            except ValueError:
+                continue  # CLI diagnostics can share this stream.
+            if isinstance(event, dict) and event.get("type") == "turn.completed":
+                usages.append(event.get("usage") or {})
+    if not usages:
+        return unknown
+    valid = lambda value: type(value) is int and value >= 0
+    values = {field: sum(u[field] for u in usages) if all(
+        isinstance(u, dict) and valid(u.get(field)) for u in usages) else None
+        for field in (*TOKENS, "reasoning_output_tokens")}
+    recorded = stage.get("usage") or {}
+    for field in TOKENS:
+        if values[field] is not None and recorded.get(field) is not None and values[field] != recorded[field]:
+            raise ValueError(f"Raw token usage differs from stage receipt: {path}/{field}")
+    if recorded.get("completed_turns") is not None and recorded["completed_turns"] != len(usages):
+        raise ValueError(f"Raw completed-turn count differs from stage receipt: {path}")
+    # A partial log or missing receipt must not be presented as a full stage total.
+    if stage.get("status") != "completed" or any(
+            values[field] is None or not valid(recorded.get(field)) for field in TOKENS):
+        return unknown
+    for usage in usages:
+        if usage["cached_input_tokens"] > usage["input_tokens"] or (
+                valid(usage.get("reasoning_output_tokens")) and usage["reasoning_output_tokens"] > usage["output_tokens"]):
+            raise ValueError(f"Token subset exceeds its parent total: {path}")
+    values["uncached_input_tokens"] = values["input_tokens"] - values["cached_input_tokens"]
+    values["nonreasoning_output_tokens"] = (values["output_tokens"] - values["reasoning_output_tokens"]
+                                             if values["reasoning_output_tokens"] is not None else None)
+    values["total_tokens"] = values["input_tokens"] + values["output_tokens"]
+    return values
 
 
 def read(path):
@@ -167,6 +214,31 @@ def render(run_root, summary):
             resource_rows.append((arm, name, number(value["observed_total"], 0 if name in TOKENS else 2),
                                   value["observed_trials"], value["missing_trials"]))
     table(lines, ["Arm", "Quantity", "Observed total", "Measured trials", "Missing recorded trials"], resource_rows)
+    lines += ["### Raw-event token breakdown by task and stage", "",
+              "Input includes cached input; output includes reasoning. Total = input + output, with neither subset added again. "
+              "Nonreasoning output = output − reasoning; this is not necessarily visible text. "
+              "These counts are tokens, not monetary cost. Raw `agent/{extract,repair}.jsonl` completed-turn events are "
+              "cross-checked against stage receipts. Missing reasoning stays unknown. Incomplete stages have unknown full costs; "
+              "the earlier receipt totals can contain completed turns from an interrupted stage. "
+              "Trial totals require every expected stage to be present and measured. CLI diagnostic lines are skipped, as in receipt collection.", ""]
+    breakdown_rows = []
+    for item, key in zip(planned, keys):
+        row = rows.get(key, {})
+        stages = row.get("stages", [])
+        measured = []
+        for stage in stages:
+            values = stage_token_breakdown(trial_path(run_root, row), stage)
+            measured.append(values)
+            breakdown_rows.append((*key, stage.get("name"), stage.get("status"),
+                                   *(number(values[field], 0) for field in BREAKDOWN)))
+        expected = {"repair"} if item["condition"] == "baseline" else {"extract", "repair"}
+        complete = len(stages) == len(expected) and {s.get("name") for s in stages} == expected
+        totals = {field: sum(v[field] for v in measured) if complete and all(
+            v[field] is not None for v in measured) else None for field in BREAKDOWN}
+        breakdown_rows.append((*key, "trial total", row.get("status", "no receipt"),
+                               *(number(totals[field], 0) for field in BREAKDOWN)))
+    table(lines, ["Task", "Arm", "Stage", "Status", "Input", "Cached input", "Uncached input", "Output",
+                  "Reasoning output", "Nonreasoning output", "Total"], breakdown_rows)
     wall = None
     try:
         wall = (dt.datetime.fromisoformat(schedule["finished_at"]) - dt.datetime.fromisoformat(schedule["started_at"])).total_seconds()
