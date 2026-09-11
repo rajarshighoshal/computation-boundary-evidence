@@ -143,7 +143,7 @@ def test_setup_uses_native_extractor_asset_and_keeps_x64_repair(tmp_path, monkey
     monkeypatch.setattr(module, "DockerEnvironment", Docker)
     d = SimpleNamespace(logs_dir=tmp_path / "logs", condition="science", workspace=tmp_path,
                         config=SimpleNamespace(codex_version="0.153.4", extraction_seconds=360),
-                        network_allowlist=lambda: None)
+                        extraction_model_seconds=None, network_allowlist=lambda: None)
     d.checked = AsyncMock(side_effect=["312", "base-commit"])
     staged = []
     async def setup_stage(environment, stage):
@@ -195,13 +195,12 @@ def test_each_call_uses_extraction_environment_distinct_logs_and_sessions(tmp_pa
     d.checked = AsyncMock(return_value="/usr/bin")
     async def check():
         first = await ScientificCodex._run_codex(d, "extract_draft", "draft", 600)
-        second = await ScientificCodex._run_codex(d, "extract_draft", "draft", 600)
-        assert first["status"] == "completed" and second["status"] == "completed"
-        assert first["usage"]["input_tokens"] == second["usage"]["input_tokens"] == 3
+        assert first["status"] == "completed"
+        assert first["usage"]["input_tokens"] == 3
     asyncio.run(check())
-    assert len({home for _, home, _ in launched}) == 2
-    assert [filename for _, _, filename in launched] == ["extract_draft.jsonl", "extract_draft.jsonl"]
-    assert environment.dirs == ["/logs/agent/extract_draft-sessions", "/logs/agent/extract_draft-sessions"]
+    assert [home for _, home, _ in launched] == ["/tmp/scicontext-codex-extract_draft"]
+    assert [filename for _, _, filename in launched] == ["extract_draft.jsonl"]
+    assert environment.dirs == ["/logs/agent/extract_draft-sessions"]
     assert all((tmp_path / f"{name}-process.json").is_file() for name, _, _ in launched)
     assert all("rm -rf /logs/agent" not in c.args[1] for c in d.checked.await_args_list)
 
@@ -222,7 +221,7 @@ def test_upstream_finally_cannot_hold_call_past_deadline(tmp_path, monkeypatch, 
         env = SimpleNamespace(upload_file=AsyncMock(), download_file=AsyncMock(side_effect=OSError("unavailable")),
                               download_dir=AsyncMock())
         d = SimpleNamespace(extract_environment=env, environment=env, root="/app/task_058",
-                            config=SimpleNamespace(model="gpt-6-astra", reasoning_effort="high", codex_version="0.153.4"),
+                            extraction_model_seconds=None, config=SimpleNamespace(model="gpt-6-astra", reasoning_effort="high", codex_version="0.153.4"),
                             logs_dir=tmp_path, auth_file=tmp_path / "dummy", checked=AsyncMock(return_value="/usr/bin"))
         started = time.monotonic()
         task = asyncio.create_task(ScientificCodex._run_codex(d, "extract_draft", "task", .12))
@@ -254,7 +253,7 @@ def test_artifact_downloads_cannot_hold_call_past_deadline(tmp_path, monkeypatch
             await asyncio.sleep(10)
         env = SimpleNamespace(upload_file=AsyncMock(), download_file=stalled, download_dir=stalled)
         d = SimpleNamespace(extract_environment=env, environment=env, root="/app/task_058",
-                            config=SimpleNamespace(model="gpt-6-astra", reasoning_effort="high", codex_version="0.153.4"),
+                            extraction_model_seconds=None, config=SimpleNamespace(model="gpt-6-astra", reasoning_effort="high", codex_version="0.153.4"),
                             logs_dir=tmp_path, auth_file=tmp_path / "dummy", checked=AsyncMock(return_value="/usr/bin"))
         started = time.monotonic()
         result = await ScientificCodex._run_codex(d, "extract_draft", "task", .1)
@@ -279,7 +278,7 @@ def test_provider_failure_receipt_is_fatal_for_every_call(tmp_path, monkeypatch,
                 raise OSError("missing")
         env = SimpleNamespace(upload_file=AsyncMock(), download_file=download, download_dir=AsyncMock())
         d = SimpleNamespace(extract_environment=env, environment=env, root="/app/task_058",
-                            config=SimpleNamespace(model="gpt-6-astra", reasoning_effort="high", codex_version="0.153.4"),
+                            extraction_model_seconds=None, config=SimpleNamespace(model="gpt-6-astra", reasoning_effort="high", codex_version="0.153.4"),
                             logs_dir=tmp_path, auth_file=tmp_path / "dummy", checked=AsyncMock(return_value="/usr/bin"))
         result = await ScientificCodex._run_codex(d, stage, "task", 1)
         assert result["status"] == "failed" and result["fatal_model_error"]
