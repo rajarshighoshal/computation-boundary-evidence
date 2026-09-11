@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from scicontext.relations import load_trace
 from scicontext.trace_runtime import _Tracer, _parse_predicates
 
 
@@ -36,7 +37,7 @@ def _run_trace(tmp_path: Path, script_text: str) -> Path:
 
 def test_trace_records_repo_frames_only(tmp_path):
     out = _run_trace(tmp_path, "import numpy as np\n\ndef double(x):\n    return np.asarray(x) * 2\n\nresult = double([1.0, 2.0])\nassert result[0] == 2.0\n")
-    records = [json.loads(line) for line in (out / "trace.jsonl").read_text().splitlines() if line]
+    records = load_trace(out / "trace.jsonl.gz")
     names = {record["name"] for record in records}
     assert "double" in names
     assert any("reproduce.py" in record["file"] for record in records)
@@ -44,7 +45,7 @@ def test_trace_records_repo_frames_only(tmp_path):
 
 def test_trace_fingerprints_args_and_returns(tmp_path):
     out = _run_trace(tmp_path, "def scale(x, factor):\n    return x * factor\n\nscale(2.0, 3.0)\n")
-    records = [json.loads(line) for line in (out / "trace.jsonl").read_text().splitlines() if line]
+    records = load_trace(out / "trace.jsonl.gz")
     call = next(record for record in records if record["name"] == "scale")
     assert call["inputs"]["x"]["exact"] == call["inputs"]["x"]["exact"]
     assert call["inputs"]["factor"]["exact"]
@@ -71,5 +72,5 @@ def test_trace_cli_runs_end_to_end(tmp_path):
                              "--out", str(tmp_path / "trace-out"), "--seconds", "30"],
                             capture_output=True, text=True, timeout=120)
     assert result.returncode == 0, result.stderr
-    records = list((tmp_path / "trace-out" / "trace.jsonl").read_text().splitlines())
-    assert any(json.loads(line)["name"] == "f" for line in records if line)
+    records = load_trace(tmp_path / "trace-out" / "trace.jsonl.gz")
+    assert any(record["name"] == "f" for record in records)
