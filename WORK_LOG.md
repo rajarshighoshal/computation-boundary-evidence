@@ -14,29 +14,23 @@ Language-specific structure extraction must feed the shared representation. No r
   same representation; native scope/write/omission regressions tested. No API-rule expansion.
 - Root remains the only writer in main; no extra worktrees. Read-only review findings were addressed
   with regression tests; the implementation is ready for external review.
-- Approved now: extraction-only checks on full public workspaces for 051/SHTOOLS, 025/Osprey,
-  016/MACS; Astra/medium, one attempt each, six minutes per model call. No repairs or verifiers.
-- Active: verify the existing extraction-only command and workspace preparation, then launch the
-  approved calls in parallel where feasible. Final verification: preserve inputs/outputs and stage
-  token usage; inspect scientific meanings against public evidence and report failures honestly.
-- Launch configuration: `configs/scientific-reading-v1.json`; three pinned unrestricted environments
-  downloaded, separate release receipt prepared. Explicit model cap 360s; full extraction wall budget
-  600s includes preparation/handoff/cleanup. Existing runner concurrency 2; 599 local tests pass.
-- Component preflight complete: purpose/convention evidence exists, but selected-file artifacts are
-  not task-complete (MACS omits refinement; Osprey omits the other report problem). See METHOD.md.
-- Fixed Python interface/docstring reservation and native per-function allocation; MATLAB outputs
-  now use function-exit binding instead of whole-body return excerpts. Legacy selection unchanged.
-- Review target: scientific meanings must connect to code objects/interfaces, not merely rename
-  APIs. Current offline annotations are fixtures, not demonstrated LLM scientific understanding.
-- Final local check passed: inspect generated representations, full local tests and helper-wheel
-  availability. Native Cython real-source quality and guest runtime imports remain unverified.
-  This does not establish repair improvement or authorize another experiment.
+- Approved extraction check COMPLETE: full public workspaces 051/SHTOOLS, 025/Osprey, 016/MACS;
+  Astra/medium, one call each, all returned under the 360s model cap. No repairs/verifiers/retries.
+  Code/config frozen at `2aafb20`; model time separate from 600s extraction wall allowance.
+- Final verification passed: outputs/graphs preserved, all session token counters audited, runtime
+  model/effort/read-only settings confirmed, selected scientific claims checked against public sources.
+  No task containers remain running. Report: `docs/SCIENTIFIC_READING_V1.md` and `_NOTES.md`.
+- Main finding: meaningful scientific interpretation, inadequate implementation grounding. Graph
+  selection misses the scientific bodies; annotations cite them as prose while anchoring elsewhere.
+  Next justified work is task-directed source/operation selection, not new API rules or guardrails.
+  No further model attempts or repair comparisons are authorized.
+- This does not establish repair improvement, state-of-the-art quality or full-benchmark coverage.
 
 ## Latest checkpoint
 
-Current preflight: `runs/scientific-input-preflight/pytest.xml` (598 tests), with pinned selected-file
-artifacts and implementation hashes in that directory's `receipt.json`. Earlier committed multilingual
-checkpoint: `4fd7130`, `runs/multilingual-object-checkpoint-reviewed/receipt.json`.
+Live check: `runs/scientific-reading-v1/`, `results/scientific-reading-v1.json` and
+`results/scientific-reading-v1-token-audit.json`. Public source review copies are inside the run.
+Earlier preflight: `6954048`, `runs/scientific-input-preflight/`; multilingual checkpoint `4fd7130`.
 Native C/C++/Fortran/MATLAB/Cython feed shared objects; unsupported syntax is explicit. The MACS
 file is Python syntax at its pinned revision, not evidence of a real `.pyx` source check. Earlier
 failed source checks remain preserved. Helper-wheel receipts: `.cache/multilingual-fit/assets/`;

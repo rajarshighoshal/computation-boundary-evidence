@@ -1,0 +1,1322 @@
+{
+  "kind": "development_extraction_quality",
+  "public_review_source_hashes": {
+    "public-review/016/paper.md": "6d3f583efd053ff23aafad817babfa8d00af96697f2e1328132ec4c1272a7a7d",
+    "public-review/016/reproduce.py": "e85fee848d2cd3edeb205b4ff4c958010e855663f3a28563bfbb28f9fa980d48",
+    "public-review/016/source/MACS3/IO/PeakIO.py": "6378a6d7ac4d96868359a6e8b4df105001145ec9034efa7ac37dcbeebce8bb81",
+    "public-review/016/source/MACS3/Signal/BedGraph.py": "52ac852c94e114142c749bf19dc5d5d37c1f2ed547d01ce661eb75284bd75fcc",
+    "public-review/016/source/manuals/hmmratac.md": "c5d68ae782cb394027d7c47626276bb1932179eebe4101bbd8d204d7152e6343",
+    "public-review/025/paper.md": "24fff09607fad6a509918bf318cc5ed12330597e9b307bf6f69ce59214b2ec16",
+    "public-review/025/reproduce.py": "884f0b323053912f21cd3abbfdd4cc9190eab4999db68ce822c82043c737e58f",
+    "public-review/025/source/fit/osp_fitHERMES.m": "5e97af40098cf9c0404e899b95094be475c7f18456bb78e2753229682b2e136e",
+    "public-review/025/source/fit/osp_fitMEGA.m": "fd6c0ab6fdbfa22a78308d70407f2f991ebb97cc16567f84c8c4ed812877c0c4",
+    "public-review/025/source/libraries/FID-A/fitTools/fitModels/Osprey/osp_addDiffMMPeaks.m": "dc112fac8efcbb01f3cacdae0fe4e5706973a44a26dd02e5597569df8246a095",
+    "public-review/025/source/quantify/OspreyQuantify.m": "08e5101e1a9ad25aea8690f05aea197b90b74bb1339a20a15f96108b1fc0f597",
+    "public-review/051/fixtures/mars_field_study.f95": "fccaa28dd381e5aa5096c08c182c694536307db87ae32b07e29a8da8842b37d3",
+    "public-review/051/paper.md": "a12a3bc9a662b7d8dd419d324c27c98085072c219b715f45a4585e5f6dc58f26",
+    "public-review/051/source/src/MakeGravGradGridDH.f95": "7ed888aa53c803e43ebef005b2d310c761e5871782086fa0a8b48d8904783497",
+    "public-review/051/source/src/MakeMagGradGridDH.f95": "711ed4a38e10b85a860f095fc6f30b4e7afa99032e6d992ebe32fecb25891449",
+    "public-review/051/source/src/fdoc/makegravgradgriddh.md": "b752ca90e97d489cf11b56eb4ad8a039a352c85fc1b5c6e91256c2780f2ce10a",
+    "public-review/051/source/src/fdoc/makemaggradgriddh.md": "f50d03115739c0e2caef3c7759fae88483d6a29a54cc791c9c1ae5a2ef2a21d2",
+    "public-review/051/source/src/fdoc/makemaggriddh.md": "77b5fb0de1a80e42d26be217c29ffdbfe7490b3f2fdda5ea1709f54832af7445",
+    "public-review/051/source/src/fdoc/shrotaterealcoef.md": "8fe7fa137ae351a6fc07f6628cc79f2a288db86f3282d11da82f837d06310e66"
+  },
+  "records": [
+    {
+      "accepted_claims": null,
+      "analysis": {
+        "coverage": {
+          "inspected_calls": 89,
+          "scientific_api_calls": 0,
+          "scientific_call_fraction": 0.0,
+          "scientific_operations": 0,
+          "support_operations": 170,
+          "uninterpreted_calls": 89,
+          "unsupported_cases": 241
+        }
+      },
+      "annotation_schema_version": "object-enrichment-1.0",
+      "annotations_status": "available",
+      "assembly": {
+        "enrichment": {
+          "applied_object_ids": [
+            "so_cf6a0bbf76187ee146844858",
+            "so_a73521e436704245ba0282bb",
+            "so_e68c3c4b3aa5bc54d719819c",
+            "so_676c7c2267f8a70465cf0eab",
+            "so_1afe2a79152553f5b82dba39",
+            "so_b7f30319d31f2007a06610b2",
+            "so_56f29a16f1b8e98862a01672",
+            "so_9f51446c385b447f071d8617",
+            "so_7331cf4ff0ecef83e0c27fee",
+            "so_040a93127ec28992f56c6886",
+            "so_a0c4f2d3445d3172b0c0c9e4",
+            "so_eecceff372193482e31a76cd",
+            "so_313fb6d4b5d86bbd38fc8dd3",
+            "so_602c443624c05a46dd9848e2",
+            "so_53fe9ce7b6d70f5683c2a7f9",
+            "so_b830a1b392f0f86c629731ab",
+            "so_02678affd5e29d3a49beb444",
+            "so_5585bf2e16e22389c756f614",
+            "so_0f1283ab6f37022c90b29656",
+            "so_c7bf958d359d21660ac66158",
+            "so_db409cbb3f0416b6be1a1a4f",
+            "so_50222a1c457a245eecb4ba0f",
+            "so_602846ad6877823dd05fef00",
+            "so_4adc3a85436d5102ca2a43c4",
+            "so_813fa04349a045aba8c84774",
+            "so_16bf65b54dcb8e74ad6aed5e"
+          ],
+          "dropped": []
+        },
+        "interpretation_status": "enriched",
+        "status": "scientific_objects",
+        "usable": true
+      },
+      "completed": true,
+      "declared_probes": null,
+      "extraction_status": "usable_graph",
+      "graph_sha256": "01348a38d14cf6226165e9d10395f728df1fd367424be6029bf29164759fcc67",
+      "graph_status": "verified",
+      "interpretation_status": "enriched",
+      "matched_quantity_bindings": null,
+      "model_calls": [
+        {
+          "duration_seconds": 185.72508133301744,
+          "name": "extract_draft",
+          "status": "completed",
+          "timeout_seconds": 360.0,
+          "tokens": {
+            "cached_input_tokens": 257024,
+            "input_tokens": 337216,
+            "nonreasoning_output_tokens": 4855,
+            "output_tokens": 4915,
+            "reasoning_output_tokens": 60,
+            "total_tokens": 342131,
+            "uncached_input_tokens": 80192
+          }
+        }
+      ],
+      "phases": [
+        {
+          "allowance_seconds": 30.0,
+          "duration_seconds": 1.56128720799461,
+          "name": "prepare",
+          "started_offset_seconds": 5.308300023898482e-05,
+          "status": "ready"
+        },
+        {
+          "allowance_seconds": 463.4381486669881,
+          "duration_seconds": 185.72508133301744,
+          "name": "extract_draft",
+          "started_offset_seconds": 1.5614075829798821,
+          "status": "completed"
+        },
+        {
+          "allowance_seconds": 352.7130458760075,
+          "duration_seconds": 0.8179012500040699,
+          "name": "assemble_initial",
+          "started_offset_seconds": 187.2865082079952,
+          "status": "scientific_objects"
+        }
+      ],
+      "probe_delivery": {
+        "accepted_ids": [],
+        "executed_ids": [],
+        "status": "none_retained"
+      },
+      "probe_receipt_status": "missing",
+      "probe_results": null,
+      "probe_rounds": [],
+      "provenance": {
+        "benchmark_revision": "42e7e97915ff7d73436a5d37b5cbe6b77e9c2a00",
+        "codex_version": "0.153.4",
+        "config": {
+          "codex_version": "0.153.4",
+          "extraction_seconds": 600.0,
+          "model": "gpt-6-astra",
+          "reasoning_effort": "medium",
+          "total_seconds": 900.0
+        },
+        "dataset_revision": "d8bdbcb4ecb2b565686382459c815d2b6291fd31",
+        "environment_image": "docker.io/kevinxulearning/swe-bench-science-environment-fortran-task-051:v0.1.2@sha256:914f6a785eeb3753ebdf16fc5ed577533a88977cddcfb92d9565d3d8d35541da",
+        "implementation_revision": "2aafb202c5d1aba9619af005c453dab11b88603b",
+        "model": "gpt-6-astra",
+        "prompt_sha256": {
+          "prompts/enrich_objects.md": "9818342f007556db278fd178e4fb8ff0d61d3bd4675e227e1a8ff1bf7c43811b",
+          "prompts/extract.md": "8391ec931305b71b406c74e7784f66c969e28035b14034c98d9b5628977cdfce",
+          "prompts/extract_revision.md": "3b726cbd85feaea31f8d08e7af4fdfdda5691cc2177b603d8b73b5be4d0422a2",
+          "prompts/repair.md": "9b9bd47560b889414d5b5b4fcb05c0dd6ba406856a6ce7fdee9c59102115066b"
+        },
+        "reasoning_effort": "medium",
+        "selection_sha256": "1111eec628b43c2657ea83c13009d1b26580b8ce9c25ed10ce0c5ca9cfbd527e"
+      },
+      "schedule_status": "completed",
+      "scientific_objects": {
+        "coverage": {
+          "api_connected_objects": 0,
+          "code_only_objects": 913,
+          "fraction_definition": "scientific_api_calls / inspected_calls; includes array/support and rejected calls in denominator, excludes arithmetic from numerator; packet-local, not scientific completeness",
+          "input_entries": 512,
+          "languages": [
+            "cpp",
+            "fortran",
+            "python"
+          ],
+          "limitations": [
+            "Finite API rules and packet-local dataflow; absence is not scientific irrelevance.",
+            "Contracts and inferred shapes/units are conditional on documented library semantics, not runtime proofs.",
+            "Wrapper links identify lexical function bodies only: no argument substitution, return-value equivalence, cross-file linking or runtime call proof.",
+            "Runtime monkey-patching, mutation analysis and domain meaning inferred from names are not modelled.",
+            "Graph topology is constructor evidence only; later mutations and execution are not established.",
+            "Native-language operators are source syntax, not inferred scientific or runtime semantics."
+          ],
+          "objects": 913,
+          "operations": 259,
+          "packet_truncation": {
+            "entries_truncated": true,
+            "files_truncated": true,
+            "scan_files_truncated": false
+          },
+          "per_file": [
+            {
+              "inspected_calls": 27,
+              "path": "fixtures/mars_field_study.f95",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 12,
+              "uninterpreted_calls": 27,
+              "unsupported_cases": 28
+            },
+            {
+              "inspected_calls": 10,
+              "path": "reproduce.py",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 15,
+              "uninterpreted_calls": 10,
+              "unsupported_cases": 28
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/include/shtools.h",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 28
+            },
+            {
+              "inspected_calls": 15,
+              "path": "source/src/BAtoHilm.f95",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 54,
+              "uninterpreted_calls": 15,
+              "unsupported_cases": 39
+            },
+            {
+              "inspected_calls": 21,
+              "path": "source/src/BAtoHilmRhoH.f95",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 67,
+              "uninterpreted_calls": 21,
+              "unsupported_cases": 57
+            },
+            {
+              "inspected_calls": 6,
+              "path": "source/src/create_c_header.py",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 9,
+              "uninterpreted_calls": 6,
+              "unsupported_cases": 20
+            },
+            {
+              "inspected_calls": 10,
+              "path": "source/src/create_cbind_wrapper.py",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 13,
+              "uninterpreted_calls": 10,
+              "unsupported_cases": 41
+            }
+          ],
+          "recognized_scientific_operations": 0,
+          "rule_families": [],
+          "source_files": [
+            "fixtures/mars_field_study.f95",
+            "reproduce.py",
+            "source/include/shtools.h",
+            "source/src/BAtoHilm.f95",
+            "source/src/BAtoHilmRhoH.f95",
+            "source/src/create_c_header.py",
+            "source/src/create_cbind_wrapper.py"
+          ],
+          "source_frontend_issues": 28,
+          "totals": {
+            "inspected_calls": 89,
+            "scientific_api_calls": 0,
+            "scientific_call_fraction": 0.0,
+            "scientific_operations": 0,
+            "support_operations": 170,
+            "uninterpreted_calls": 89,
+            "unsupported_cases": 241
+          },
+          "unresolved_inputs": 68,
+          "unsupported_cases": 241,
+          "valid_source_entries": 512
+        },
+        "enrichment": {
+          "applied_object_ids": [
+            "so_cf6a0bbf76187ee146844858",
+            "so_a73521e436704245ba0282bb",
+            "so_e68c3c4b3aa5bc54d719819c",
+            "so_676c7c2267f8a70465cf0eab",
+            "so_1afe2a79152553f5b82dba39",
+            "so_b7f30319d31f2007a06610b2",
+            "so_56f29a16f1b8e98862a01672",
+            "so_9f51446c385b447f071d8617",
+            "so_7331cf4ff0ecef83e0c27fee",
+            "so_040a93127ec28992f56c6886",
+            "so_a0c4f2d3445d3172b0c0c9e4",
+            "so_eecceff372193482e31a76cd",
+            "so_313fb6d4b5d86bbd38fc8dd3",
+            "so_602c443624c05a46dd9848e2",
+            "so_53fe9ce7b6d70f5683c2a7f9",
+            "so_b830a1b392f0f86c629731ab",
+            "so_02678affd5e29d3a49beb444",
+            "so_5585bf2e16e22389c756f614",
+            "so_0f1283ab6f37022c90b29656",
+            "so_c7bf958d359d21660ac66158",
+            "so_db409cbb3f0416b6be1a1a4f",
+            "so_50222a1c457a245eecb4ba0f",
+            "so_602846ad6877823dd05fef00",
+            "so_4adc3a85436d5102ca2a43c4",
+            "so_813fa04349a045aba8c84774",
+            "so_16bf65b54dcb8e74ad6aed5e"
+          ],
+          "dropped": []
+        },
+        "interfaces": 123,
+        "interpreted_interfaces": 5,
+        "interpreted_objects": 26,
+        "interpreted_source_paths": [
+          "fixtures/mars_field_study.f95",
+          "reproduce.py",
+          "source/include/shtools.h"
+        ],
+        "objects": 913,
+        "source_paths": [
+          "fixtures/mars_field_study.f95",
+          "reproduce.py",
+          "source/include/shtools.h",
+          "source/src/BAtoHilm.f95",
+          "source/src/BAtoHilmRhoH.f95",
+          "source/src/create_c_header.py",
+          "source/src/create_cbind_wrapper.py"
+        ]
+      },
+      "seconds": 204.05501599999843,
+      "selected_model_call": "extract_draft",
+      "selected_probe_results": null,
+      "selected_probe_specs": null,
+      "session_metadata": [
+        {
+          "cli_version": "0.153.4",
+          "cwd": "/app/task_051",
+          "id": "01a08e91-22c2-7390-8642-c9bdae5c07f4",
+          "model_provider": "openai",
+          "path": "agent/extract_draft-sessions/2026/09/11/rollout-2026-09-11T03-44-31-01a08e91-22c2-7390-8642-c9bdae5c07f4.jsonl",
+          "source": "exec"
+        }
+      ],
+      "setup": {
+        "baseline_tree": "f9ccf11d53e5065e851df5e3c36c73d047a493de",
+        "claim_cap": null,
+        "codex_receipt": {
+          "architecture": "x64",
+          "files": {
+            "package/README.md": "ba4e1f69ff48386e72a9c5e1edaf76aad64a475c2d51af79ccba6d1128261ba7",
+            "package/package.json": "7faa8bf27c4647662dae29b7e429b3dc394d718d273af0045e1aa99d2fb1bb37",
+            "package/vendor/x86_64-unknown-linux-musl/bin/codex": "56ef98ab4032d317ab26e9b5e5a175650717351edb16ed9cde0cb6d1734d62da",
+            "package/vendor/x86_64-unknown-linux-musl/bin/codex-code-mode-host": "3e85d67471825f73d02ff5f7e047ca1f6ca8caa3f59e4c6e8d9ca6ca7302cb45",
+            "package/vendor/x86_64-unknown-linux-musl/codex-package.json": "43f8735a93a7947c6dc082c550d2ff2d795fccfd1c7eb27c93aa91cbead1e3f4",
+            "package/vendor/x86_64-unknown-linux-musl/codex-path/rg": "e62198eb19b136b88c330af83647b5a962cb99b6b1f066758568f12de1974849",
+            "package/vendor/x86_64-unknown-linux-musl/codex-resources/bwrap": "77360cb751ccedc5971391444ac86a8a33c15b04d6b4a6fe45f5d25496e62c4c",
+            "package/vendor/x86_64-unknown-linux-musl/codex-resources/zsh/bin/zsh": "67faaaa89242c4a332e16e508a1977cffc24bf7fca31d4411cdfd101f3831ef3"
+          },
+          "integrity": "sha512-x1EcwBlY3AObM1VTUHNM2AzAJQsyreGdagpF+qFiYi/Oa30VBktvvG0C6tLtCzqW6hjZNWkGZQWmeVk7MuJKWg==",
+          "url": "https://registry.npmjs.org/@openai/codex/-/codex-0.153.4-linux-x64.tgz",
+          "version": "0.153.4"
+        },
+        "codex_version": "0.153.4",
+        "docker_cpus": 4,
+        "docker_memory_bytes": 9365356544,
+        "environment_image": "docker.io/kevinxulearning/swe-bench-science-environment-fortran-task-051:v0.1.2@sha256:914f6a785eeb3753ebdf16fc5ed577533a88977cddcfb92d9565d3d8d35541da",
+        "execution": "upstream_pier_codex_docker_boundary",
+        "extraction_access_mode": "read-only",
+        "extraction_codex_receipt": {
+          "architecture": "arm64",
+          "files": {
+            "package/README.md": "ba4e1f69ff48386e72a9c5e1edaf76aad64a475c2d51af79ccba6d1128261ba7",
+            "package/package.json": "5f21885cb53e91738ad62d47401934bac0cde912f4dbb9ea939a79ec64355e45",
+            "package/vendor/aarch64-unknown-linux-musl/bin/codex": "4d76e542c222ea8c75861d8c4ade60a1a332a63255ce1c60bdaebf7c2a2869e6",
+            "package/vendor/aarch64-unknown-linux-musl/bin/codex-code-mode-host": "d677dedf8179ca28ceb869a2e0b60d3ffad3d26f6e7738f7617d34500128a369",
+            "package/vendor/aarch64-unknown-linux-musl/codex-package.json": "a3c985c334a13f6168900d9aa900d875797e4c7a8a6432768bd1d64740f53f54",
+            "package/vendor/aarch64-unknown-linux-musl/codex-path/rg": "e36d0eb52e70696bdf1781392722e05a21bb91d3b7b762ef5ec20e5df2ec687b",
+            "package/vendor/aarch64-unknown-linux-musl/codex-resources/bwrap": "c547cbdc762a70ed216789ffaa4c6c0e7d2beabe32245a498f8e365a9fc8dab4",
+            "package/vendor/aarch64-unknown-linux-musl/codex-resources/zsh/bin/zsh": "7feeacd883e1dc749847936948c378653c80a69ec4a9542f0f126b411882c179"
+          },
+          "integrity": "sha512-QKdjYLYV4hXIuUQDP3P6F4NXuWFoKo9WUoV4nAREIx55kiUyi8UsYdsVobkeXir5n/maEQgYMCKLHVma4rNPiw==",
+          "url": "https://registry.npmjs.org/@openai/codex/-/codex-0.153.4-linux-arm64.tgz",
+          "version": "0.153.4"
+        },
+        "extraction_harness_architecture": "arm64",
+        "extraction_model_call_cap": 1,
+        "extraction_model_seconds": 360.0,
+        "extractor": "scientific_objects_v1",
+        "harness_architecture": "x64",
+        "helper_hashes": {
+          "__init__.py": "0aba189477c461f271a3c65dec90fc54ff805cfac439bee79d9974423da193ae",
+          "annotations.py": "002c32a4eae5ecb185ad0ac3b93cc90d490daac20323fa67691e399e942e033d",
+          "assets.py": "601bfb15c241346c80cb3186d360676d2a54140bb27521ccc185e05cd1f242e7",
+          "cli.py": "65a60502dd0df8515cf830721ceb9c245da8b6250990bbf2872f4e89ed2a67cf",
+          "configuration.py": "42aec6f7932572a2cfaeebe07b8f8438bc583450cc6fc1225d059bde4a6d6848",
+          "controller.py": "b9d3dd300b6be1abce0d65e43beb422e1b76c3f794e126a1a43e914bc360c969",
+          "cython_frontend.py": "3dd0a5522ed672cf66d31669c8e19bccff351a2e59970d442de7dac099515c3d",
+          "evidence.py": "cdeb8361d5ffa5aa1181be702794ed382dca8381a8b21e82e43f36de049934a8",
+          "expressions.py": "954d51c6f0c11cb0a37ce92d51e9e670721c300a34af6a98b9de3ab90faecf8c",
+          "extraction.py": "62f57a7de3f61804f76cda9f5e935675dde54640939167e58f16669a866206d6",
+          "graph.py": "7e2d806215fd9b091f52eef66555542ab31be7a0a85e6e0460ea796cf10ca26f",
+          "io.py": "db29f23b97b8efd5a4fdaaa082b90dc494a6e99e18d61df58b14094ace36e29a",
+          "language_frontends.py": "2df7f4725aaeb4c328354af88f366b986ba3e99e25fb81781b2486644b5b8c2f",
+          "native_objects.py": "0344ed80e2cffaad4bda3026f056d62be51bc890fd051945e50394f3c38f14e0",
+          "object_context.py": "19cdab01fad3eef0ad44c94d12bfe81ca3238cb212996dc40f6ccd5b75968b4f",
+          "packet.py": "2f12ad124e69be0b4af6ef68a217479b77fd7903d28abdc0a1c3dd8e38d01ab9",
+          "pier_agent.py": "08d252e3ef354f6e24a9b27cced06a1235530dc25ce748100cba22281680f3b0",
+          "probes.py": "eb6ddb23f0f0204e501ea7ebf7f0f739d41ec426e952b5bbb2a268548752901d",
+          "release.py": "36b3a348069bdfb26e25dd420a73a371a0ac31dfaac3a2f245f7cbec673b19a8",
+          "results.py": "4ce5780de79b43318793da8bf715ca79ce473d2149205c9054dd7e403d53a051",
+          "sampling.py": "99ba9291592876d73e2311873a109b64559e7fd62a9bdbe645fbe1a1c242507d",
+          "scientific_objects.py": "18b2f661dc868a98a96808e86ea907f1bf8c71e0dd8701f196295c67e8cb361b",
+          "semantics.py": "d8586c2af98c9cadbd6825f92e1b251f2ace0d1609286084f649cbc8876cd9cc",
+          "task_slice.py": "be37448aa472c9fe4133e151d1f28110740316ee587b8e1e2b04b603c6d10afc",
+          "tool_cli.py": "713b0829e84fba52c569aacd8f1e6db3ff268ea4ff9996dd719692543999eb37"
+        },
+        "host_memory_below_task_request": false,
+        "interpretation_cap_seconds": 465.0,
+        "probe_cap": 0,
+        "python_minor": "311",
+        "revision_policy": "one_scientific_interpretation_call; no probe/refinement loop",
+        "scientific_image_architecture": "amd64",
+        "task_requested_memory_mb": 8192,
+        "timeout": "GNU timeout foreground process group"
+      },
+      "setup_status": "available",
+      "source_matched_implementations": null,
+      "stage_status": "completed",
+      "status": "completed",
+      "task_id": "051",
+      "tokens": {
+        "cached_input_tokens": 257024,
+        "input_tokens": 337216,
+        "nonreasoning_output_tokens": 4855,
+        "output_tokens": 4915,
+        "reasoning_output_tokens": 60,
+        "total_tokens": 342131,
+        "uncached_input_tokens": 80192
+      },
+      "trial_path": "jobs/task-051-science/task_051__h2ztc76",
+      "unknown_alignments": null,
+      "unmatched_supplied_probe_results": null,
+      "usable_graph": true
+    },
+    {
+      "accepted_claims": null,
+      "analysis": {
+        "coverage": {
+          "inspected_calls": 134,
+          "scientific_api_calls": 0,
+          "scientific_call_fraction": 0.0,
+          "scientific_operations": 0,
+          "support_operations": 401,
+          "uninterpreted_calls": 134,
+          "unsupported_cases": 658
+        }
+      },
+      "annotation_schema_version": "object-enrichment-1.0",
+      "annotations_status": "available",
+      "assembly": {
+        "enrichment": {
+          "applied_object_ids": [
+            "so_255d470ddfa613c936e552bb",
+            "so_2eb33283b31998f748189608",
+            "so_24aa095c6c02fefaea6ca715",
+            "so_aef28d93da3b6197663f7953",
+            "so_07c65441543968489fa53f38",
+            "so_3dba211d40fff6b2058d8b0c",
+            "so_e330bf2c14fd9bcb2f10cf58",
+            "so_55b84fcdd21c5c8694a2b4fb",
+            "so_f522ea3e5c34add3e937487c",
+            "so_36b1f8a4a892276869963e23",
+            "so_d1db6286a911344402853967",
+            "so_de7980767e052039edd65e38"
+          ],
+          "dropped": []
+        },
+        "interpretation_status": "enriched",
+        "status": "scientific_objects",
+        "usable": true
+      },
+      "completed": true,
+      "declared_probes": null,
+      "extraction_status": "usable_graph",
+      "graph_sha256": "ce92b624f35c20ef62818933f0fab443ed320e75c233aaa939dea6f3e0c0f502",
+      "graph_status": "verified",
+      "interpretation_status": "enriched",
+      "matched_quantity_bindings": null,
+      "model_calls": [
+        {
+          "duration_seconds": 167.6448306249804,
+          "name": "extract_draft",
+          "status": "completed",
+          "timeout_seconds": 360.0,
+          "tokens": {
+            "cached_input_tokens": 463616,
+            "input_tokens": 526076,
+            "nonreasoning_output_tokens": 4094,
+            "output_tokens": 4191,
+            "reasoning_output_tokens": 97,
+            "total_tokens": 530267,
+            "uncached_input_tokens": 62460
+          }
+        }
+      ],
+      "phases": [
+        {
+          "allowance_seconds": 30.0,
+          "duration_seconds": 1.9998166250006761,
+          "name": "prepare",
+          "started_offset_seconds": 5.083298310637474e-05,
+          "status": "ready"
+        },
+        {
+          "allowance_seconds": 462.99973404200864,
+          "duration_seconds": 167.6448306249804,
+          "name": "extract_draft",
+          "started_offset_seconds": 1.9999081249989104,
+          "status": "completed"
+        },
+        {
+          "allowance_seconds": 370.3548720419931,
+          "duration_seconds": 0.8771141670003999,
+          "name": "assemble_initial",
+          "started_offset_seconds": 169.64477091599838,
+          "status": "scientific_objects"
+        }
+      ],
+      "probe_delivery": {
+        "accepted_ids": [],
+        "executed_ids": [],
+        "status": "none_retained"
+      },
+      "probe_receipt_status": "missing",
+      "probe_results": null,
+      "probe_rounds": [],
+      "provenance": {
+        "benchmark_revision": "42e7e97915ff7d73436a5d37b5cbe6b77e9c2a00",
+        "codex_version": "0.153.4",
+        "config": {
+          "codex_version": "0.153.4",
+          "extraction_seconds": 600.0,
+          "model": "gpt-6-astra",
+          "reasoning_effort": "medium",
+          "total_seconds": 900.0
+        },
+        "dataset_revision": "d8bdbcb4ecb2b565686382459c815d2b6291fd31",
+        "environment_image": "docker.io/kevinxulearning/swe-bench-science-environment-matlab-octave-task-025:v0.1.0@sha256:eebf7a8137f4a36b5d7f27d49bf52596cf342700ca016f003c723f1affab8626",
+        "implementation_revision": "2aafb202c5d1aba9619af005c453dab11b88603b",
+        "model": "gpt-6-astra",
+        "prompt_sha256": {
+          "prompts/enrich_objects.md": "9818342f007556db278fd178e4fb8ff0d61d3bd4675e227e1a8ff1bf7c43811b",
+          "prompts/extract.md": "8391ec931305b71b406c74e7784f66c969e28035b14034c98d9b5628977cdfce",
+          "prompts/extract_revision.md": "3b726cbd85feaea31f8d08e7af4fdfdda5691cc2177b603d8b73b5be4d0422a2",
+          "prompts/repair.md": "9b9bd47560b889414d5b5b4fcb05c0dd6ba406856a6ce7fdee9c59102115066b"
+        },
+        "reasoning_effort": "medium",
+        "selection_sha256": "1111eec628b43c2657ea83c13009d1b26580b8ce9c25ed10ce0c5ca9cfbd527e"
+      },
+      "schedule_status": "completed",
+      "scientific_objects": {
+        "coverage": {
+          "api_connected_objects": 0,
+          "code_only_objects": 1353,
+          "fraction_definition": "scientific_api_calls / inspected_calls; includes array/support and rejected calls in denominator, excludes arithmetic from numerator; packet-local, not scientific completeness",
+          "input_entries": 512,
+          "languages": [
+            "c",
+            "cpp",
+            "matlab",
+            "python"
+          ],
+          "limitations": [
+            "Finite API rules and packet-local dataflow; absence is not scientific irrelevance.",
+            "Contracts and inferred shapes/units are conditional on documented library semantics, not runtime proofs.",
+            "Wrapper links identify lexical function bodies only: no argument substitution, return-value equivalence, cross-file linking or runtime call proof.",
+            "Runtime monkey-patching, mutation analysis and domain meaning inferred from names are not modelled.",
+            "Graph topology is constructor evidence only; later mutations and execution are not established.",
+            "Native-language operators are source syntax, not inferred scientific or runtime semantics."
+          ],
+          "objects": 1353,
+          "operations": 535,
+          "packet_truncation": {
+            "entries_truncated": true,
+            "files_truncated": true,
+            "scan_files_truncated": false
+          },
+          "per_file": [
+            {
+              "inspected_calls": 34,
+              "path": "reproduce.py",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 19,
+              "uninterpreted_calls": 34,
+              "unsupported_cases": 87
+            },
+            {
+              "inspected_calls": 50,
+              "path": "source/GUI/Osprey.m",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 228,
+              "uninterpreted_calls": 50,
+              "unsupported_cases": 340
+            },
+            {
+              "inspected_calls": 47,
+              "path": "source/libraries/L-BFGS-B-C/Matlab/lbfgsb_wrapper.c",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 138,
+              "uninterpreted_calls": 47,
+              "unsupported_cases": 196
+            },
+            {
+              "inspected_calls": 3,
+              "path": "source/libraries/L-BFGS-B-C/src/driver1.c",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 16,
+              "uninterpreted_calls": 3,
+              "unsupported_cases": 34
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/libraries/L-BFGS-B-C/src/lbfgsb.h",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 1
+            }
+          ],
+          "recognized_scientific_operations": 0,
+          "rule_families": [],
+          "source_files": [
+            "reproduce.py",
+            "source/GUI/Osprey.m",
+            "source/libraries/L-BFGS-B-C/Matlab/lbfgsb_wrapper.c",
+            "source/libraries/L-BFGS-B-C/src/driver1.c",
+            "source/libraries/L-BFGS-B-C/src/lbfgsb.h"
+          ],
+          "source_frontend_issues": 4,
+          "totals": {
+            "inspected_calls": 134,
+            "scientific_api_calls": 0,
+            "scientific_call_fraction": 0.0,
+            "scientific_operations": 0,
+            "support_operations": 401,
+            "uninterpreted_calls": 134,
+            "unsupported_cases": 658
+          },
+          "unresolved_inputs": 190,
+          "unsupported_cases": 658,
+          "valid_source_entries": 512
+        },
+        "enrichment": {
+          "applied_object_ids": [
+            "so_255d470ddfa613c936e552bb",
+            "so_2eb33283b31998f748189608",
+            "so_24aa095c6c02fefaea6ca715",
+            "so_aef28d93da3b6197663f7953",
+            "so_07c65441543968489fa53f38",
+            "so_3dba211d40fff6b2058d8b0c",
+            "so_e330bf2c14fd9bcb2f10cf58",
+            "so_55b84fcdd21c5c8694a2b4fb",
+            "so_f522ea3e5c34add3e937487c",
+            "so_36b1f8a4a892276869963e23",
+            "so_d1db6286a911344402853967",
+            "so_de7980767e052039edd65e38"
+          ],
+          "dropped": []
+        },
+        "interfaces": 51,
+        "interpreted_interfaces": 7,
+        "interpreted_objects": 12,
+        "interpreted_source_paths": [
+          "reproduce.py"
+        ],
+        "objects": 1353,
+        "source_paths": [
+          "reproduce.py",
+          "source/GUI/Osprey.m",
+          "source/libraries/L-BFGS-B-C/Matlab/lbfgsb_wrapper.c",
+          "source/libraries/L-BFGS-B-C/src/driver1.c",
+          "source/libraries/L-BFGS-B-C/src/lbfgsb.h"
+        ]
+      },
+      "seconds": 185.93820883298758,
+      "selected_model_call": "extract_draft",
+      "selected_probe_results": null,
+      "selected_probe_specs": null,
+      "session_metadata": [
+        {
+          "cli_version": "0.153.4",
+          "cwd": "/app/task_025",
+          "id": "01a08e91-2420-7681-b7d2-9410ca38ca04",
+          "model_provider": "openai",
+          "path": "agent/extract_draft-sessions/2026/09/11/rollout-2026-09-11T03-44-31-01a08e91-2420-7681-b7d2-9410ca38ca04.jsonl",
+          "source": "exec"
+        }
+      ],
+      "setup": {
+        "baseline_tree": "b00787caa60efc83bf2e1e52365bf44c3278a612",
+        "claim_cap": null,
+        "codex_receipt": {
+          "architecture": "x64",
+          "files": {
+            "package/README.md": "ba4e1f69ff48386e72a9c5e1edaf76aad64a475c2d51af79ccba6d1128261ba7",
+            "package/package.json": "7faa8bf27c4647662dae29b7e429b3dc394d718d273af0045e1aa99d2fb1bb37",
+            "package/vendor/x86_64-unknown-linux-musl/bin/codex": "56ef98ab4032d317ab26e9b5e5a175650717351edb16ed9cde0cb6d1734d62da",
+            "package/vendor/x86_64-unknown-linux-musl/bin/codex-code-mode-host": "3e85d67471825f73d02ff5f7e047ca1f6ca8caa3f59e4c6e8d9ca6ca7302cb45",
+            "package/vendor/x86_64-unknown-linux-musl/codex-package.json": "43f8735a93a7947c6dc082c550d2ff2d795fccfd1c7eb27c93aa91cbead1e3f4",
+            "package/vendor/x86_64-unknown-linux-musl/codex-path/rg": "e62198eb19b136b88c330af83647b5a962cb99b6b1f066758568f12de1974849",
+            "package/vendor/x86_64-unknown-linux-musl/codex-resources/bwrap": "77360cb751ccedc5971391444ac86a8a33c15b04d6b4a6fe45f5d25496e62c4c",
+            "package/vendor/x86_64-unknown-linux-musl/codex-resources/zsh/bin/zsh": "67faaaa89242c4a332e16e508a1977cffc24bf7fca31d4411cdfd101f3831ef3"
+          },
+          "integrity": "sha512-x1EcwBlY3AObM1VTUHNM2AzAJQsyreGdagpF+qFiYi/Oa30VBktvvG0C6tLtCzqW6hjZNWkGZQWmeVk7MuJKWg==",
+          "url": "https://registry.npmjs.org/@openai/codex/-/codex-0.153.4-linux-x64.tgz",
+          "version": "0.153.4"
+        },
+        "codex_version": "0.153.4",
+        "docker_cpus": 4,
+        "docker_memory_bytes": 9365356544,
+        "environment_image": "docker.io/kevinxulearning/swe-bench-science-environment-matlab-octave-task-025:v0.1.0@sha256:eebf7a8137f4a36b5d7f27d49bf52596cf342700ca016f003c723f1affab8626",
+        "execution": "upstream_pier_codex_docker_boundary",
+        "extraction_access_mode": "read-only",
+        "extraction_codex_receipt": {
+          "architecture": "arm64",
+          "files": {
+            "package/README.md": "ba4e1f69ff48386e72a9c5e1edaf76aad64a475c2d51af79ccba6d1128261ba7",
+            "package/package.json": "5f21885cb53e91738ad62d47401934bac0cde912f4dbb9ea939a79ec64355e45",
+            "package/vendor/aarch64-unknown-linux-musl/bin/codex": "4d76e542c222ea8c75861d8c4ade60a1a332a63255ce1c60bdaebf7c2a2869e6",
+            "package/vendor/aarch64-unknown-linux-musl/bin/codex-code-mode-host": "d677dedf8179ca28ceb869a2e0b60d3ffad3d26f6e7738f7617d34500128a369",
+            "package/vendor/aarch64-unknown-linux-musl/codex-package.json": "a3c985c334a13f6168900d9aa900d875797e4c7a8a6432768bd1d64740f53f54",
+            "package/vendor/aarch64-unknown-linux-musl/codex-path/rg": "e36d0eb52e70696bdf1781392722e05a21bb91d3b7b762ef5ec20e5df2ec687b",
+            "package/vendor/aarch64-unknown-linux-musl/codex-resources/bwrap": "c547cbdc762a70ed216789ffaa4c6c0e7d2beabe32245a498f8e365a9fc8dab4",
+            "package/vendor/aarch64-unknown-linux-musl/codex-resources/zsh/bin/zsh": "7feeacd883e1dc749847936948c378653c80a69ec4a9542f0f126b411882c179"
+          },
+          "integrity": "sha512-QKdjYLYV4hXIuUQDP3P6F4NXuWFoKo9WUoV4nAREIx55kiUyi8UsYdsVobkeXir5n/maEQgYMCKLHVma4rNPiw==",
+          "url": "https://registry.npmjs.org/@openai/codex/-/codex-0.153.4-linux-arm64.tgz",
+          "version": "0.153.4"
+        },
+        "extraction_harness_architecture": "arm64",
+        "extraction_model_call_cap": 1,
+        "extraction_model_seconds": 360.0,
+        "extractor": "scientific_objects_v1",
+        "harness_architecture": "x64",
+        "helper_hashes": {
+          "__init__.py": "0aba189477c461f271a3c65dec90fc54ff805cfac439bee79d9974423da193ae",
+          "annotations.py": "002c32a4eae5ecb185ad0ac3b93cc90d490daac20323fa67691e399e942e033d",
+          "assets.py": "601bfb15c241346c80cb3186d360676d2a54140bb27521ccc185e05cd1f242e7",
+          "cli.py": "65a60502dd0df8515cf830721ceb9c245da8b6250990bbf2872f4e89ed2a67cf",
+          "configuration.py": "42aec6f7932572a2cfaeebe07b8f8438bc583450cc6fc1225d059bde4a6d6848",
+          "controller.py": "b9d3dd300b6be1abce0d65e43beb422e1b76c3f794e126a1a43e914bc360c969",
+          "cython_frontend.py": "3dd0a5522ed672cf66d31669c8e19bccff351a2e59970d442de7dac099515c3d",
+          "evidence.py": "cdeb8361d5ffa5aa1181be702794ed382dca8381a8b21e82e43f36de049934a8",
+          "expressions.py": "954d51c6f0c11cb0a37ce92d51e9e670721c300a34af6a98b9de3ab90faecf8c",
+          "extraction.py": "62f57a7de3f61804f76cda9f5e935675dde54640939167e58f16669a866206d6",
+          "graph.py": "7e2d806215fd9b091f52eef66555542ab31be7a0a85e6e0460ea796cf10ca26f",
+          "io.py": "db29f23b97b8efd5a4fdaaa082b90dc494a6e99e18d61df58b14094ace36e29a",
+          "language_frontends.py": "2df7f4725aaeb4c328354af88f366b986ba3e99e25fb81781b2486644b5b8c2f",
+          "native_objects.py": "0344ed80e2cffaad4bda3026f056d62be51bc890fd051945e50394f3c38f14e0",
+          "object_context.py": "19cdab01fad3eef0ad44c94d12bfe81ca3238cb212996dc40f6ccd5b75968b4f",
+          "packet.py": "2f12ad124e69be0b4af6ef68a217479b77fd7903d28abdc0a1c3dd8e38d01ab9",
+          "pier_agent.py": "08d252e3ef354f6e24a9b27cced06a1235530dc25ce748100cba22281680f3b0",
+          "probes.py": "eb6ddb23f0f0204e501ea7ebf7f0f739d41ec426e952b5bbb2a268548752901d",
+          "release.py": "36b3a348069bdfb26e25dd420a73a371a0ac31dfaac3a2f245f7cbec673b19a8",
+          "results.py": "4ce5780de79b43318793da8bf715ca79ce473d2149205c9054dd7e403d53a051",
+          "sampling.py": "99ba9291592876d73e2311873a109b64559e7fd62a9bdbe645fbe1a1c242507d",
+          "scientific_objects.py": "18b2f661dc868a98a96808e86ea907f1bf8c71e0dd8701f196295c67e8cb361b",
+          "semantics.py": "d8586c2af98c9cadbd6825f92e1b251f2ace0d1609286084f649cbc8876cd9cc",
+          "task_slice.py": "be37448aa472c9fe4133e151d1f28110740316ee587b8e1e2b04b603c6d10afc",
+          "tool_cli.py": "713b0829e84fba52c569aacd8f1e6db3ff268ea4ff9996dd719692543999eb37"
+        },
+        "host_memory_below_task_request": false,
+        "interpretation_cap_seconds": 465.0,
+        "probe_cap": 0,
+        "python_minor": "311",
+        "revision_policy": "one_scientific_interpretation_call; no probe/refinement loop",
+        "scientific_image_architecture": "amd64",
+        "task_requested_memory_mb": 8192,
+        "timeout": "GNU timeout foreground process group"
+      },
+      "setup_status": "available",
+      "source_matched_implementations": null,
+      "stage_status": "completed",
+      "status": "completed",
+      "task_id": "025",
+      "tokens": {
+        "cached_input_tokens": 463616,
+        "input_tokens": 526076,
+        "nonreasoning_output_tokens": 4094,
+        "output_tokens": 4191,
+        "reasoning_output_tokens": 97,
+        "total_tokens": 530267,
+        "uncached_input_tokens": 62460
+      },
+      "trial_path": "jobs/task-025-science/task_025__J7fW9jb",
+      "unknown_alignments": null,
+      "unmatched_supplied_probe_results": null,
+      "usable_graph": true
+    },
+    {
+      "accepted_claims": null,
+      "analysis": {
+        "coverage": {
+          "inspected_calls": 43,
+          "scientific_api_calls": 0,
+          "scientific_call_fraction": 0.0,
+          "scientific_operations": 0,
+          "support_operations": 51,
+          "uninterpreted_calls": 43,
+          "unsupported_cases": 219
+        }
+      },
+      "annotation_schema_version": "object-enrichment-1.0",
+      "annotations_status": "available",
+      "assembly": {
+        "enrichment": {
+          "applied_object_ids": [
+            "so_ded2ef1e4c50e11fd9f849f6",
+            "so_f923ec1140076860ef3e85eb",
+            "so_df91fa5fad2cb3d3200e69b0",
+            "so_a106a4e34671cef8b8cd5885",
+            "so_cc2776c27ff25933ca743a2a",
+            "so_fa2a58801a17fef68d2f1d66",
+            "so_b1e5ee1b118503a0331492ce",
+            "so_ebbc558bf5d4aa991284049b",
+            "so_0fb03b52ac58a4711f29bfc9",
+            "so_db4e8814a02fb5562ce09380",
+            "so_d682d4affbb188085fb2757f",
+            "so_9be4b314070cf91d722971c8",
+            "so_d1e5a9e332e1b3a2dcbb67ab",
+            "so_4a400ca277de77902c48105a"
+          ],
+          "dropped": []
+        },
+        "interpretation_status": "enriched",
+        "status": "scientific_objects",
+        "usable": true
+      },
+      "completed": true,
+      "declared_probes": null,
+      "extraction_status": "usable_graph",
+      "graph_sha256": "b5feea48ce1cd3e9a413b56e18a5df7ad1b9764675edbe89b12e37dccae8bb2f",
+      "graph_status": "verified",
+      "interpretation_status": "enriched",
+      "matched_quantity_bindings": null,
+      "model_calls": [
+        {
+          "duration_seconds": 154.734433250007,
+          "name": "extract_draft",
+          "status": "completed",
+          "timeout_seconds": 360.0,
+          "tokens": {
+            "cached_input_tokens": 375808,
+            "input_tokens": 433592,
+            "nonreasoning_output_tokens": 3913,
+            "output_tokens": 3965,
+            "reasoning_output_tokens": 52,
+            "total_tokens": 437557,
+            "uncached_input_tokens": 57784
+          }
+        }
+      ],
+      "phases": [
+        {
+          "allowance_seconds": 30.0,
+          "duration_seconds": 3.0332050420111045,
+          "name": "prepare",
+          "started_offset_seconds": 9.24580090213567e-05,
+          "status": "ready"
+        },
+        {
+          "allowance_seconds": 461.96595604196773,
+          "duration_seconds": 154.734433250007,
+          "name": "extract_draft",
+          "started_offset_seconds": 3.0333523750014137,
+          "status": "completed"
+        },
+        {
+          "allowance_seconds": 382.231495791988,
+          "duration_seconds": 0.7908729159971699,
+          "name": "assemble_initial",
+          "started_offset_seconds": 157.76781312501407,
+          "status": "scientific_objects"
+        }
+      ],
+      "probe_delivery": {
+        "accepted_ids": [],
+        "executed_ids": [],
+        "status": "none_retained"
+      },
+      "probe_receipt_status": "missing",
+      "probe_results": null,
+      "probe_rounds": [],
+      "provenance": {
+        "benchmark_revision": "42e7e97915ff7d73436a5d37b5cbe6b77e9c2a00",
+        "codex_version": "0.153.4",
+        "config": {
+          "codex_version": "0.153.4",
+          "extraction_seconds": 600.0,
+          "model": "gpt-6-astra",
+          "reasoning_effort": "medium",
+          "total_seconds": 900.0
+        },
+        "dataset_revision": "d8bdbcb4ecb2b565686382459c815d2b6291fd31",
+        "environment_image": "docker.io/kevinxulearning/swe-bench-science-environment-python-cython-task-016:v0.1.2@sha256:7ecc99a79a168dd6e0af31158840cb3f21df04a153ec9283c44ff951ec3a16b0",
+        "implementation_revision": "2aafb202c5d1aba9619af005c453dab11b88603b",
+        "model": "gpt-6-astra",
+        "prompt_sha256": {
+          "prompts/enrich_objects.md": "9818342f007556db278fd178e4fb8ff0d61d3bd4675e227e1a8ff1bf7c43811b",
+          "prompts/extract.md": "8391ec931305b71b406c74e7784f66c969e28035b14034c98d9b5628977cdfce",
+          "prompts/extract_revision.md": "3b726cbd85feaea31f8d08e7af4fdfdda5691cc2177b603d8b73b5be4d0422a2",
+          "prompts/repair.md": "9b9bd47560b889414d5b5b4fcb05c0dd6ba406856a6ce7fdee9c59102115066b"
+        },
+        "reasoning_effort": "medium",
+        "selection_sha256": "1111eec628b43c2657ea83c13009d1b26580b8ce9c25ed10ce0c5ca9cfbd527e"
+      },
+      "schedule_status": "completed",
+      "scientific_objects": {
+        "coverage": {
+          "api_connected_objects": 0,
+          "code_only_objects": 425,
+          "fraction_definition": "scientific_api_calls / inspected_calls; includes array/support and rejected calls in denominator, excludes arithmetic from numerator; packet-local, not scientific completeness",
+          "input_entries": 512,
+          "languages": [
+            "cpp",
+            "cython",
+            "python"
+          ],
+          "limitations": [
+            "Finite API rules and packet-local dataflow; absence is not scientific irrelevance.",
+            "Contracts and inferred shapes/units are conditional on documented library semantics, not runtime proofs.",
+            "Wrapper links identify lexical function bodies only: no argument substitution, return-value equivalence, cross-file linking or runtime call proof.",
+            "Runtime monkey-patching, mutation analysis and domain meaning inferred from names are not modelled.",
+            "Graph topology is constructor evidence only; later mutations and execution are not established.",
+            "Native-language operators are source syntax, not inferred scientific or runtime semantics."
+          ],
+          "objects": 425,
+          "operations": 94,
+          "packet_truncation": {
+            "entries_truncated": true,
+            "files_truncated": true,
+            "scan_files_truncated": false
+          },
+          "per_file": [
+            {
+              "inspected_calls": 13,
+              "path": "reproduce.py",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 12,
+              "uninterpreted_calls": 13,
+              "unsupported_cases": 32
+            },
+            {
+              "inspected_calls": 18,
+              "path": "source/MACS3/IO/OutputWriter.py",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 28,
+              "uninterpreted_calls": 18,
+              "unsupported_cases": 70
+            },
+            {
+              "inspected_calls": 12,
+              "path": "source/MACS3/IO/PeakIO.py",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 9,
+              "uninterpreted_calls": 12,
+              "unsupported_cases": 43
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/MACS3/Signal/RACollection.pxd",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 0
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/MACS3/Signal/cPosValCalculation.h",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 0
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/MACS3/Signal/cPosValCalculation.pxd",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 2,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 2
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/MACS3/Signal/swalign.h",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 0
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/MACS3/Utilities/OptValidator.py",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 71
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/MACS3/fermi-lite/fml.h",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 1
+            }
+          ],
+          "recognized_scientific_operations": 0,
+          "rule_families": [],
+          "source_files": [
+            "reproduce.py",
+            "source/MACS3/IO/OutputWriter.py",
+            "source/MACS3/IO/PeakIO.py",
+            "source/MACS3/Signal/RACollection.pxd",
+            "source/MACS3/Signal/cPosValCalculation.h",
+            "source/MACS3/Signal/cPosValCalculation.pxd",
+            "source/MACS3/Signal/swalign.h",
+            "source/MACS3/Utilities/OptValidator.py",
+            "source/MACS3/fermi-lite/fml.h"
+          ],
+          "source_frontend_issues": 1,
+          "totals": {
+            "inspected_calls": 43,
+            "scientific_api_calls": 0,
+            "scientific_call_fraction": 0.0,
+            "scientific_operations": 0,
+            "support_operations": 51,
+            "uninterpreted_calls": 43,
+            "unsupported_cases": 219
+          },
+          "unresolved_inputs": 65,
+          "unsupported_cases": 219,
+          "valid_source_entries": 512
+        },
+        "enrichment": {
+          "applied_object_ids": [
+            "so_ded2ef1e4c50e11fd9f849f6",
+            "so_f923ec1140076860ef3e85eb",
+            "so_df91fa5fad2cb3d3200e69b0",
+            "so_a106a4e34671cef8b8cd5885",
+            "so_cc2776c27ff25933ca743a2a",
+            "so_fa2a58801a17fef68d2f1d66",
+            "so_b1e5ee1b118503a0331492ce",
+            "so_ebbc558bf5d4aa991284049b",
+            "so_0fb03b52ac58a4711f29bfc9",
+            "so_db4e8814a02fb5562ce09380",
+            "so_d682d4affbb188085fb2757f",
+            "so_9be4b314070cf91d722971c8",
+            "so_d1e5a9e332e1b3a2dcbb67ab",
+            "so_4a400ca277de77902c48105a"
+          ],
+          "dropped": []
+        },
+        "interfaces": 73,
+        "interpreted_interfaces": 5,
+        "interpreted_objects": 14,
+        "interpreted_source_paths": [
+          "reproduce.py",
+          "source/MACS3/IO/PeakIO.py"
+        ],
+        "objects": 425,
+        "source_paths": [
+          "reproduce.py",
+          "source/MACS3/IO/OutputWriter.py",
+          "source/MACS3/IO/PeakIO.py",
+          "source/MACS3/Signal/RACollection.pxd",
+          "source/MACS3/Signal/cPosValCalculation.h",
+          "source/MACS3/Signal/cPosValCalculation.pxd",
+          "source/MACS3/Signal/swalign.h",
+          "source/MACS3/Utilities/OptValidator.py",
+          "source/MACS3/fermi-lite/fml.h"
+        ]
+      },
+      "seconds": 173.67372766701737,
+      "selected_model_call": "extract_draft",
+      "selected_probe_results": null,
+      "selected_probe_specs": null,
+      "session_metadata": [
+        {
+          "cli_version": "0.153.4",
+          "cwd": "/app/task_016",
+          "id": "01a08e94-eca8-7160-b120-cc4e4b7d83a9",
+          "model_provider": "openai",
+          "path": "agent/extract_draft-sessions/2026/09/11/rollout-2026-09-11T03-48-39-01a08e94-eca8-7160-b120-cc4e4b7d83a9.jsonl",
+          "source": "exec"
+        }
+      ],
+      "setup": {
+        "baseline_tree": "51773d48a9f1b3066e36125739059a81e79e9ec1",
+        "claim_cap": null,
+        "codex_receipt": {
+          "architecture": "x64",
+          "files": {
+            "package/README.md": "ba4e1f69ff48386e72a9c5e1edaf76aad64a475c2d51af79ccba6d1128261ba7",
+            "package/package.json": "7faa8bf27c4647662dae29b7e429b3dc394d718d273af0045e1aa99d2fb1bb37",
+            "package/vendor/x86_64-unknown-linux-musl/bin/codex": "56ef98ab4032d317ab26e9b5e5a175650717351edb16ed9cde0cb6d1734d62da",
+            "package/vendor/x86_64-unknown-linux-musl/bin/codex-code-mode-host": "3e85d67471825f73d02ff5f7e047ca1f6ca8caa3f59e4c6e8d9ca6ca7302cb45",
+            "package/vendor/x86_64-unknown-linux-musl/codex-package.json": "43f8735a93a7947c6dc082c550d2ff2d795fccfd1c7eb27c93aa91cbead1e3f4",
+            "package/vendor/x86_64-unknown-linux-musl/codex-path/rg": "e62198eb19b136b88c330af83647b5a962cb99b6b1f066758568f12de1974849",
+            "package/vendor/x86_64-unknown-linux-musl/codex-resources/bwrap": "77360cb751ccedc5971391444ac86a8a33c15b04d6b4a6fe45f5d25496e62c4c",
+            "package/vendor/x86_64-unknown-linux-musl/codex-resources/zsh/bin/zsh": "67faaaa89242c4a332e16e508a1977cffc24bf7fca31d4411cdfd101f3831ef3"
+          },
+          "integrity": "sha512-x1EcwBlY3AObM1VTUHNM2AzAJQsyreGdagpF+qFiYi/Oa30VBktvvG0C6tLtCzqW6hjZNWkGZQWmeVk7MuJKWg==",
+          "url": "https://registry.npmjs.org/@openai/codex/-/codex-0.153.4-linux-x64.tgz",
+          "version": "0.153.4"
+        },
+        "codex_version": "0.153.4",
+        "docker_cpus": 4,
+        "docker_memory_bytes": 9365356544,
+        "environment_image": "docker.io/kevinxulearning/swe-bench-science-environment-python-cython-task-016:v0.1.2@sha256:7ecc99a79a168dd6e0af31158840cb3f21df04a153ec9283c44ff951ec3a16b0",
+        "execution": "upstream_pier_codex_docker_boundary",
+        "extraction_access_mode": "read-only",
+        "extraction_codex_receipt": {
+          "architecture": "arm64",
+          "files": {
+            "package/README.md": "ba4e1f69ff48386e72a9c5e1edaf76aad64a475c2d51af79ccba6d1128261ba7",
+            "package/package.json": "5f21885cb53e91738ad62d47401934bac0cde912f4dbb9ea939a79ec64355e45",
+            "package/vendor/aarch64-unknown-linux-musl/bin/codex": "4d76e542c222ea8c75861d8c4ade60a1a332a63255ce1c60bdaebf7c2a2869e6",
+            "package/vendor/aarch64-unknown-linux-musl/bin/codex-code-mode-host": "d677dedf8179ca28ceb869a2e0b60d3ffad3d26f6e7738f7617d34500128a369",
+            "package/vendor/aarch64-unknown-linux-musl/codex-package.json": "a3c985c334a13f6168900d9aa900d875797e4c7a8a6432768bd1d64740f53f54",
+            "package/vendor/aarch64-unknown-linux-musl/codex-path/rg": "e36d0eb52e70696bdf1781392722e05a21bb91d3b7b762ef5ec20e5df2ec687b",
+            "package/vendor/aarch64-unknown-linux-musl/codex-resources/bwrap": "c547cbdc762a70ed216789ffaa4c6c0e7d2beabe32245a498f8e365a9fc8dab4",
+            "package/vendor/aarch64-unknown-linux-musl/codex-resources/zsh/bin/zsh": "7feeacd883e1dc749847936948c378653c80a69ec4a9542f0f126b411882c179"
+          },
+          "integrity": "sha512-QKdjYLYV4hXIuUQDP3P6F4NXuWFoKo9WUoV4nAREIx55kiUyi8UsYdsVobkeXir5n/maEQgYMCKLHVma4rNPiw==",
+          "url": "https://registry.npmjs.org/@openai/codex/-/codex-0.153.4-linux-arm64.tgz",
+          "version": "0.153.4"
+        },
+        "extraction_harness_architecture": "arm64",
+        "extraction_model_call_cap": 1,
+        "extraction_model_seconds": 360.0,
+        "extractor": "scientific_objects_v1",
+        "harness_architecture": "x64",
+        "helper_hashes": {
+          "__init__.py": "0aba189477c461f271a3c65dec90fc54ff805cfac439bee79d9974423da193ae",
+          "annotations.py": "002c32a4eae5ecb185ad0ac3b93cc90d490daac20323fa67691e399e942e033d",
+          "assets.py": "601bfb15c241346c80cb3186d360676d2a54140bb27521ccc185e05cd1f242e7",
+          "cli.py": "65a60502dd0df8515cf830721ceb9c245da8b6250990bbf2872f4e89ed2a67cf",
+          "configuration.py": "42aec6f7932572a2cfaeebe07b8f8438bc583450cc6fc1225d059bde4a6d6848",
+          "controller.py": "b9d3dd300b6be1abce0d65e43beb422e1b76c3f794e126a1a43e914bc360c969",
+          "cython_frontend.py": "3dd0a5522ed672cf66d31669c8e19bccff351a2e59970d442de7dac099515c3d",
+          "evidence.py": "cdeb8361d5ffa5aa1181be702794ed382dca8381a8b21e82e43f36de049934a8",
+          "expressions.py": "954d51c6f0c11cb0a37ce92d51e9e670721c300a34af6a98b9de3ab90faecf8c",
+          "extraction.py": "62f57a7de3f61804f76cda9f5e935675dde54640939167e58f16669a866206d6",
+          "graph.py": "7e2d806215fd9b091f52eef66555542ab31be7a0a85e6e0460ea796cf10ca26f",
+          "io.py": "db29f23b97b8efd5a4fdaaa082b90dc494a6e99e18d61df58b14094ace36e29a",
+          "language_frontends.py": "2df7f4725aaeb4c328354af88f366b986ba3e99e25fb81781b2486644b5b8c2f",
+          "native_objects.py": "0344ed80e2cffaad4bda3026f056d62be51bc890fd051945e50394f3c38f14e0",
+          "object_context.py": "19cdab01fad3eef0ad44c94d12bfe81ca3238cb212996dc40f6ccd5b75968b4f",
+          "packet.py": "2f12ad124e69be0b4af6ef68a217479b77fd7903d28abdc0a1c3dd8e38d01ab9",
+          "pier_agent.py": "08d252e3ef354f6e24a9b27cced06a1235530dc25ce748100cba22281680f3b0",
+          "probes.py": "eb6ddb23f0f0204e501ea7ebf7f0f739d41ec426e952b5bbb2a268548752901d",
+          "release.py": "36b3a348069bdfb26e25dd420a73a371a0ac31dfaac3a2f245f7cbec673b19a8",
+          "results.py": "4ce5780de79b43318793da8bf715ca79ce473d2149205c9054dd7e403d53a051",
+          "sampling.py": "99ba9291592876d73e2311873a109b64559e7fd62a9bdbe645fbe1a1c242507d",
+          "scientific_objects.py": "18b2f661dc868a98a96808e86ea907f1bf8c71e0dd8701f196295c67e8cb361b",
+          "semantics.py": "d8586c2af98c9cadbd6825f92e1b251f2ace0d1609286084f649cbc8876cd9cc",
+          "task_slice.py": "be37448aa472c9fe4133e151d1f28110740316ee587b8e1e2b04b603c6d10afc",
+          "tool_cli.py": "713b0829e84fba52c569aacd8f1e6db3ff268ea4ff9996dd719692543999eb37"
+        },
+        "host_memory_below_task_request": false,
+        "interpretation_cap_seconds": 465.0,
+        "probe_cap": 0,
+        "python_minor": "312",
+        "revision_policy": "one_scientific_interpretation_call; no probe/refinement loop",
+        "scientific_image_architecture": "amd64",
+        "task_requested_memory_mb": 8192,
+        "timeout": "GNU timeout foreground process group"
+      },
+      "setup_status": "available",
+      "source_matched_implementations": null,
+      "stage_status": "completed",
+      "status": "completed",
+      "task_id": "016",
+      "tokens": {
+        "cached_input_tokens": 375808,
+        "input_tokens": 433592,
+        "nonreasoning_output_tokens": 3913,
+        "output_tokens": 3965,
+        "reasoning_output_tokens": 52,
+        "total_tokens": 437557,
+        "uncached_input_tokens": 57784
+      },
+      "trial_path": "jobs/task-016-science/task_016__Wr2FozG",
+      "unknown_alignments": null,
+      "unmatched_supplied_probe_results": null,
+      "usable_graph": true
+    }
+  ],
+  "schedule": {
+    "config": {
+      "allow_restricted_licenses": false,
+      "attempts": 1,
+      "codex_version": "0.153.4",
+      "concurrency": 2,
+      "dataset_revision": "d8bdbcb4ecb2b565686382459c815d2b6291fd31",
+      "development_task_ids": [
+        "051",
+        "025",
+        "016"
+      ],
+      "extraction_model_seconds": 360,
+      "extraction_seconds": 600,
+      "extractor": "scientific_objects",
+      "model": "gpt-6-astra",
+      "pier_version": "0.3.0",
+      "purpose": "Approved extraction-only scientific-quality checks on full public workspaces. One model call per task, at most 360 model seconds; no repair, probes, verifier or retry. Preparation/assembly/cleanup have separate wall-clock allowance.",
+      "reasoning_effort": "medium",
+      "release_commit": "42e7e97915ff7d73436a5d37b5cbe6b77e9c2a00",
+      "release_receipt": "data/scientific-reading-v1-release.json",
+      "schema_version": "1.0",
+      "study_kind": "scientific_object_reading_development_check",
+      "task_ids": [
+        "051",
+        "025",
+        "016"
+      ],
+      "total_seconds": 900
+    },
+    "config_sha256": "82a121eaa12c9364cf75b88a2244d02576ee25f590534f385cd5ecf536ef0841",
+    "execute": true,
+    "execution_policy": {
+      "admission": "two_task_extraction_groups",
+      "concurrency": 2,
+      "pier_concurrency_per_process": 1,
+      "shared_resources": true
+    },
+    "finished_at": "2026-09-11T03:51:43.552653+00:00",
+    "implementation_dirty": false,
+    "implementation_revision": "2aafb202c5d1aba9619af005c453dab11b88603b",
+    "kind": "extraction_verification",
+    "output": "/Users/rajarshighoshal/Projects/TUg_research_task/runs/scientific-reading-v1",
+    "prompt_sha256": {
+      "prompts/enrich_objects.md": "9818342f007556db278fd178e4fb8ff0d61d3bd4675e227e1a8ff1bf7c43811b",
+      "prompts/extract.md": "8391ec931305b71b406c74e7784f66c969e28035b14034c98d9b5628977cdfce",
+      "prompts/extract_revision.md": "3b726cbd85feaea31f8d08e7af4fdfdda5691cc2177b603d8b73b5be4d0422a2",
+      "prompts/repair.md": "9b9bd47560b889414d5b5b4fcb05c0dd6ba406856a6ce7fdee9c59102115066b"
+    },
+    "schedule": [
+      {
+        "condition": "science",
+        "finished_at": "2026-09-11T03:48:07.407276+00:00",
+        "phase": "finished",
+        "started_at": "2026-09-11T03:43:56.612694+00:00",
+        "status": "completed",
+        "task_id": "051"
+      },
+      {
+        "condition": "science",
+        "finished_at": "2026-09-11T03:47:49.333514+00:00",
+        "phase": "finished",
+        "started_at": "2026-09-11T03:43:58.074169+00:00",
+        "status": "completed",
+        "task_id": "025"
+      },
+      {
+        "condition": "science",
+        "finished_at": "2026-09-11T03:51:43.552135+00:00",
+        "phase": "finished",
+        "started_at": "2026-09-11T03:48:07.407523+00:00",
+        "status": "completed",
+        "task_id": "016"
+      }
+    ],
+    "schema_version": "1.0",
+    "selection_sha256": "1111eec628b43c2657ea83c13009d1b26580b8ce9c25ed10ce0c5ca9cfbd527e",
+    "started_at": "2026-09-11T03:43:56.611020+00:00",
+    "status": "completed",
+    "uv_lock_sha256": "d54b54352b038f3237f140916e33f447d9fb01d1f26547e70746c580ff17973f"
+  },
+  "schedule_wall_seconds": 466.941633,
+  "source_run_root": "runs/scientific-reading-v1",
+  "summary_audit": "verified",
+  "task_ids": [
+    "051",
+    "025",
+    "016"
+  ],
+  "token_totals": {
+    "cached_input_tokens": 1096448,
+    "input_tokens": 1296884,
+    "output_tokens": 13071,
+    "reasoning_output_tokens": 209,
+    "total_tokens": 1309955
+  }
+}

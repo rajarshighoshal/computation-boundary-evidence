@@ -57,6 +57,11 @@ The demo uses hand-authored interpretation fixtures. It tests representation/enr
 not LLM discovery or benchmark performance. Real scientific quality needs a separately approved
 live check. Per-file coverage and its denominator are recorded in the graph.
 
+The approved [live reading check](SCIENTIFIC_READING_V1.md) now has outputs from full public
+SHTOOLS, Osprey and MACS workspaces. [Source review](SCIENTIFIC_READING_V1_NOTES.md) found substantive
+scientific interpretations but insufficient links to the relevant implementation bodies. This is
+evidence for a source-selection failure, not repair improvement or completed model–code alignment.
+
 Pinned Linux/x86-64 helper wheels were downloaded for Python 3.10–3.13; this verifies wheel
 availability, not imports inside every benchmark image. The 3.10 helper uses rpds-py 0.30.0 because
 the existing newer pin lacks a compatible wheel; other guest versions retain that newer pin.

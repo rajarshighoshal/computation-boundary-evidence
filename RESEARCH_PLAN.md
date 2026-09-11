@@ -31,8 +31,10 @@ frontends now feed source/interface/expression evidence into the same representa
 scientific semantics remain unknown until interpreted. Offline fixtures and model doubles test
 mechanisms; they do not establish autonomous scientific interpretation.
 
-Next, inspect the scientific-reading outputs on actual public tasks with an approved bounded
-budget, after checking guest helper compatibility. Do not expand the
+Approved live extraction-only checks now exist for SHTOOLS, Osprey and MACS; see
+`docs/SCIENTIFIC_READING_V1.md` and `_NOTES.md`. They recovered substantive documented scientific
+meaning, but the graph often missed the corresponding implementation bodies. Next is task-directed
+source/operation selection, followed by a separately approved check. Do not expand the
 API rule catalogue merely to make demonstrations look complete. Unsupported structure and missing
 scientific definitions must remain explicit. Having a parser for a language is not whole-repository
 coverage, and neither parser coverage nor annotation validity establishes scientific understanding.
