@@ -118,13 +118,13 @@ class _Tracer:
             return False
         return True
 
-    def on_start_entry(self, code, offset):
+    def on_start_entry(self, code, offset, legacy_frame=None):
         # PY_START: the started function's frame is guaranteed on the stack.
         if self.in_callback:
             return
         self.in_callback = True
         try:
-            frame = sys._getframe(1)
+            frame = legacy_frame if legacy_frame is not None else sys._getframe(1)
             if frame is None or not self._eligible(frame):
                 return
             thread_stacks = self.stacks.setdefault(threading.get_ident(), [])
@@ -302,15 +302,18 @@ class _Tracer:
             os.chdir(previous)
 
     def _legacy_hook(self, frame, event, arg):
-        if event == "call":
-            self.on_call(None, None)
-            return self._legacy_hook
-        if event == "return":
-            self.on_return(None, None, arg)
-        elif event == "exception":
-            self.on_raise(None, None, arg[1])
-        elif event == "line":
-            self.on_start(None, frame.f_lineno)
+        try:
+            if event == "call":
+                self.on_start_entry(None, None, legacy_frame=frame)
+                return self._legacy_hook
+            if event == "return":
+                self.on_return(None, None, arg)
+            elif event == "exception":
+                self.on_raise(None, None, arg[1])
+        except Exception as error:
+            with open(self.out / "hook_errors.jsonl", "a") as handle:
+                handle.write(json.dumps({"event": event, "error": f"{type(error).__name__}: {error}",
+                                         "frame": frame.f_code.co_filename if frame else None}) + "\n")
         return self._legacy_hook
 
 

@@ -81,7 +81,7 @@ def _dict_fp(value: dict, budget: int, depth: int) -> dict:
                    for key, val in value.items())
     exact = _hash_bytes(*[f"{k}:{v['exact']}" for k, v in items])
     equiv = _hash_bytes(*[f"{k}:{v['equiv'] or v['exact']}" for k, v in items])
-    multiset = _hash_bytes(*sorted(v["exact"] for _, v in items))
+    multiset = _hash_bytes(*sorted(v["exact"] or "" for _, v in items))
     struct = _hash_bytes(*sorted(f"{k}:{v['struct']}" for k, v in items))
     return {"t": "dict", "exact": exact, "equiv": equiv, "multiset": multiset, "rev": None,
             "struct": struct, "bytes": 0, "truncated": False}
@@ -94,7 +94,7 @@ def _sequence_fp(value, budget: int, depth: int) -> dict:
     items = [_fingerprint(item, budget, depth + 1) for item in value]
     exact = _hash_bytes(*[v["exact"] for v in items])
     equiv = _hash_bytes(*[v["equiv"] or v["exact"] for v in items])
-    multiset = _hash_bytes(*sorted(v["exact"] for v in items))
+    multiset = _hash_bytes(*sorted(v["exact"] or "" for v in items))
     rev = _hash_bytes(*[v["exact"] for v in reversed(items)])
     struct = _hash_bytes(*[v["struct"] for v in items])
     return {"t": "seq", "exact": exact, "equiv": equiv, "multiset": multiset, "rev": rev,
@@ -123,6 +123,12 @@ def _object_fp(value, budget: int, depth: int) -> dict:
 
 
 def _fingerprint(value, budget: int = FINGERPRINT_BYTE_BUDGET, depth: int = 0) -> dict:
+    try:
+        import numpy as np
+        if isinstance(value, np.generic):
+            value = value.item()
+    except (ImportError, TypeError):
+        pass
     if value is None or isinstance(value, (bool, int, float, str)):
         return _scalar_fp(value)
     if isinstance(value, (list, tuple)):

@@ -182,7 +182,10 @@ def _cl(key, rule, func_key, constraint_type) -> dict:
 
 
 def derive_loci(trace_records: list, predicate_evaluations: list, script_status: str | None = None,
-                observer_summary: dict | None = None, packet: dict | None = None) -> dict:
+                observer_summary: dict | None = None, packet: dict | None = None,
+                script_file: str | None = None, script_report: dict | None = None) -> dict:
+    if script_file:
+        trace_records = [record for record in trace_records if record.get("file") != script_file]
     instances = {record["seq"]: record for record in trace_records}
     children = _children_map(instances)
     declared_equivalent, declared_distinct = _declared_relations(predicate_evaluations, instances)
@@ -281,10 +284,26 @@ def derive_loci(trace_records: list, predicate_evaluations: list, script_status:
                 locus["properties"]["predicate_source"] = "process_observable"
                 locus["properties"]["evidence"]["process"] = process
                 loci.append(locus)
-    return {"loci": loci,
+    if script_report and script_report.get("status") != "workflow_completed":
+        kind = script_report.get("failure_kind") or "workflow_failure"
+        locus = _cl(("reproduce.py", "<script>", 0), "R6", ("reproduce.py", "<script>", 0),
+                    "distinctness" if "collapse" in kind else "containment")
+        locus["properties"]["evidence"]["measures"]["failure_kind"] = kind
+        loci.append(locus)
+    aggregated: dict[str, dict] = {}
+    for locus in loci:
+        existing = aggregated.get(locus["id"])
+        if existing is None:
+            aggregated[locus["id"]] = locus
+            continue
+        existing["properties"]["locus_transitions"] = sorted(set(
+            existing["properties"]["locus_transitions"] + locus["properties"]["locus_transitions"]))
+        existing["properties"]["evidence"]["pairs"].extend(locus["properties"]["evidence"]["pairs"])
+    unique_loci = list(aggregated.values())
+    return {"loci": unique_loci,
             "dynamic": {"schema_version": SCHEMA_VERSION, "instances": len(instances),
-                        "pairs": pair_count, "loci": len(loci),
-                        "nondeterministic_funcs": [list(key) for key in nondeterministic],
+                        "pairs": pair_count, "loci": len(unique_loci),
+                        "nondeterministic_funcs": sorted({json.dumps(key) for key in nondeterministic}),
                         "declared_equivalent_pairs": sorted(map(list, declared_equivalent)),
                         "declared_distinct_pairs": sorted(map(list, declared_distinct))}}
 
