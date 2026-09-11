@@ -3,31 +3,144 @@ from __future__ import annotations
 
 import copy
 import json
+from collections import deque
 from pathlib import Path
 
 from jsonschema import Draft202012Validator
+
+# Bounded slice of the object graph handed to the enrichment model. The full
+# graph stays in the objects artifact; these caps only limit the model input.
+ENRICHMENT_MAX_OBJECTS = 300
+ENRICHMENT_MIN_OBJECTS = 25
+ENRICHMENT_MAX_BYTES = 1_500_000
+ENRICHMENT_MAX_UNSUPPORTED = 200
+ENRICHMENT_LINK_DEPTH = 3
+
+_CODE_PASSAGE_KEYS = ("id", "path", "sha256", "start_line", "end_line", "scope",
+                      "text", "language", "native")
+_OBJECT_KIND_PRIORITY = {"code_interface": 0, "quantity": 1, "graph": 1, "integral": 1,
+                         "linear_system_solution": 1, "component_partition": 1,
+                         "array": 2, "literal": 3}
 
 
 def enrichment_schema() -> dict:
     return json.loads(Path(__file__).with_name("object-enrichment.schema.json").read_text())
 
 
+def _selection_plan(graph: dict) -> dict:
+    """BFS distances from workflow-retrieved interfaces and linked call sites."""
+    adjacency = {}
+    for link in graph.get("links", []):
+        adjacency.setdefault(link["source"], []).append(link["target"])
+        adjacency.setdefault(link["target"], []).append(link["source"])
+    roots = [obj["id"] for obj in graph["objects"] if obj.get("kind") == "code_interface"]
+    roots.extend(op["id"] for op in graph["operations"]
+                 if op.get("properties", {}).get("retrieved_targets"))
+    distance = {}
+    frontier = deque((root, 0) for root in roots)
+    while frontier:
+        identifier, depth = frontier.popleft()
+        if depth > ENRICHMENT_LINK_DEPTH or distance.get(identifier, ENRICHMENT_LINK_DEPTH + 1) <= depth:
+            continue
+        distance[identifier] = depth
+        for neighbor in adjacency.get(identifier, []):
+            if neighbor not in distance:
+                frontier.append((neighbor, depth + 1))
+    return distance
+
+
+def _object_priority(identifier, object_map, distance):
+    obj = object_map.get(identifier)
+    depth = distance.get(identifier, ENRICHMENT_LINK_DEPTH + 1)
+    if obj is None:
+        return (depth, 4, 0, identifier)
+    return (depth, _OBJECT_KIND_PRIORITY.get(obj.get("kind"), 2), -len(obj.get("roles", [])), identifier)
+
+
 def enrichment_input(graph: dict, packet: dict) -> dict:
-    """Supply scientific source material alongside the actual object relationships."""
+    """Supply scientific source material alongside the actual object relationships.
+
+    The input is a bounded selection, not a graph dump: workflow-retrieved
+    interfaces and their dataflow neighborhood are kept first, then everything
+    else up to fixed object/byte budgets. A ``selection`` receipt records every
+    drop as a structure-budget decision, not a scientific-relevance verdict.
+    """
     payload = {key: copy.deepcopy(graph[key]) for key in ("objects", "operations", "links", "unsupported")}
-    ids = {identifier for obj in graph["objects"] for identifier in obj["source_entry_ids"]}
-    ids.update(op["source_entry_id"] for op in graph["operations"])
-    scopes = {(obj["path"], obj["scope"]) for obj in graph["objects"]}
-    source_paths = {obj["path"] for obj in graph["objects"]}
-    payload["context"] = {
-        "scientific_passages": copy.deepcopy(packet.get("documents", [])),
-        "code_passages": [{key: entry.get(key) for key in
-            ("id", "path", "sha256", "start_line", "end_line", "scope", "text", "language", "native")}
-            for entry in packet.get("entries", []) if entry["id"] in ids or
-            entry["kind"] == "docstring" and entry["path"] in source_paths or
-            entry["kind"] == "signature" and (entry["path"], entry["scope"]) in scopes],
-    }
-    return payload
+    objects, operations, links, unsupported = (payload["objects"], payload["operations"],
+                                               payload["links"], payload["unsupported"])
+    distance = _selection_plan(graph)
+    object_map = {obj["id"]: obj for obj in objects}
+    ordered = sorted(objects, key=lambda obj: _object_priority(obj["id"], object_map, distance))
+
+    def kept_operation(op, kept):
+        if op["id"] in kept:
+            return True
+        if any(o in kept for o in op.get("output_ids", [])):
+            return True
+        if any(item.get("object_id") in kept for item in op.get("inputs", [])):
+            return True
+        return any(rt.get("object_id") in kept for rt in op.get("properties", {}).get("retrieved_targets", []))
+
+    def assemble(kept):
+        op_ids = {op["id"] for op in operations if kept_operation(op, kept)}
+        entry_ids = {eid for obj in objects if obj["id"] in kept for eid in obj["source_entry_ids"]}
+        entry_ids.update(op["source_entry_id"] for op in operations if op["id"] in op_ids)
+        scopes = {(obj["path"], obj["scope"]) for obj in objects if obj["id"] in kept}
+        source_paths = {obj["path"] for obj in objects if obj["id"] in kept}
+        code_passages = [{key: entry.get(key) for key in _CODE_PASSAGE_KEYS}
+                         for entry in packet.get("entries", [])
+                         if entry["id"] in entry_ids
+                         or entry["kind"] == "docstring" and entry["path"] in source_paths
+                         or entry["kind"] == "signature" and (entry["path"], entry["scope"]) in scopes]
+        selected_unsupported = [item for item in unsupported
+                                if item.get("source_entry_id") in entry_ids
+                                or item.get("source_entry_id") is None  # file-level parse/omission records
+                                or item.get("path") in source_paths]
+        selected_unsupported = selected_unsupported[:ENRICHMENT_MAX_UNSUPPORTED]
+        selected_links = [link for link in links
+                          if link["source"] in kept | op_ids and link["target"] in kept | op_ids]
+        return {"objects": [obj for obj in objects if obj["id"] in kept],
+                "operations": [op for op in operations if op["id"] in op_ids],
+                "links": selected_links,
+                "unsupported": selected_unsupported,
+                "context": {"scientific_passages": copy.deepcopy(packet.get("documents", [])),
+                            "code_passages": code_passages}}
+
+    kept = {obj["id"] for obj in ordered[:ENRICHMENT_MAX_OBJECTS]}
+    selected = assemble(kept)
+    truncated = False
+    for _ in range(max(0, len(kept) - ENRICHMENT_MIN_OBJECTS) + 1):
+        if len(json.dumps(selected, ensure_ascii=False).encode()) <= ENRICHMENT_MAX_BYTES or len(kept) <= ENRICHMENT_MIN_OBJECTS:
+            break
+        truncated = True
+        kept.remove(next(obj for obj in reversed(ordered) if obj["id"] in kept)["id"])
+        selected = assemble(kept)
+    documents_trimmed = False
+    while (len(json.dumps(selected, ensure_ascii=False).encode()) > ENRICHMENT_MAX_BYTES
+           and selected["context"]["scientific_passages"]):
+        passages = selected["context"]["scientific_passages"]
+        passages.pop(max(range(len(passages)), key=lambda i: len(json.dumps(passages[i]))))
+        documents_trimmed = True
+        truncated = True
+    # Any budget that forced a drop counts as truncation, including the object,
+    # unsupported-item and link caps, not only the byte loop.
+    truncated = truncated or (len(kept) < len(objects)
+                              or len(selected["unsupported"]) < len(unsupported)
+                              or len(selected["links"]) < len(links))
+    selection = {"total_objects": len(objects), "kept_objects": len(kept),
+                 "total_operations": len(operations), "kept_operations": len(selected["operations"]),
+                 "total_links": len(links), "kept_links": len(selected["links"]),
+                 "total_unsupported": len(unsupported), "kept_unsupported": len(selected["unsupported"]),
+                 "workflow_roots": sum(1 for d in distance.values() if d == 0),
+                 "workflow_reachable": sum(1 for d in distance.values() if d <= ENRICHMENT_LINK_DEPTH),
+                 "limits": {"max_objects": ENRICHMENT_MAX_OBJECTS, "min_objects": ENRICHMENT_MIN_OBJECTS,
+                            "max_bytes": ENRICHMENT_MAX_BYTES, "max_unsupported": ENRICHMENT_MAX_UNSUPPORTED,
+                            "link_depth": ENRICHMENT_LINK_DEPTH},
+                 "truncated": truncated, "documents_trimmed": documents_trimmed,
+                 "note": "Bounded context slice for the enrichment model; the full graph remains in the objects artifact. Drops record structure-budget decisions, not scientific irrelevance."}
+    selected["selection"] = selection
+    selection["serialized_bytes"] = len(json.dumps(selected, ensure_ascii=False).encode())
+    return selected
 
 
 def enrich_objects(graph: dict, response: object) -> dict:

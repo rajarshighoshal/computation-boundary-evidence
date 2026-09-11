@@ -11,6 +11,13 @@ plus `context`: the public task statement and relevant scientific excerpts with 
 Context uses the existing public-source packet; no private outcomes, previous repair answers,
 personal memory or unsupported synthetic evidence enters the payload.
 
+The input is a bounded selection, not a graph dump. Workflow-retrieved interfaces and their
+dataflow neighborhood are kept first, then everything else up to fixed object, unsupported-item
+and byte budgets. A `selection` receipt records every drop as a structure-budget decision, not
+a scientific-relevance verdict; the full graph remains in the objects artifact. The prompt also
+directs the model to write a first-pass annotation file to the scratch path early, so a timed-out
+turn still leaves a usable partial interpretation instead of none.
+
 This deliberately differs from a graph-only input proposal: scientific context is necessary for
 the planned model–code alignment. Removing it would leave only API semantics and variable names.
 The restriction belongs on what the LLM can change, not on removing the scientific source material.

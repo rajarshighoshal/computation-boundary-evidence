@@ -14,7 +14,16 @@ role as a model operator when the supplied material supports that connection. Fo
 recorded relationships to explain how quantities move between components and interfaces.
 Use code_interface objects to explain a component's scientific purpose, then annotate its
 important inputs and outputs. Focus on task-relevant interfaces and values, not every literal.
-You may inspect additional public task material read-only when a definition needs context.
+The supplied input file is already a focused selection of workflow-relevant objects and passages:
+prefer it over broad repository exploration. Inspect additional public task material read-only
+only when a specific definition is genuinely missing, and only within the remaining allowance.
+
+After your first pass over the supplied objects, write your current annotations JSON to
+{scratch}/extract_draft-annotations.json using the shell tool (for example, a quoted heredoc
+into that exact path). The harness collects this file even if the turn later times out, so a
+partial first pass is strictly better than no annotations. Annotate the most task-relevant
+objects first (code interfaces, their parameters and outputs, then dataflow neighbors).
+Refine and overwrite the file if time remains, and return the final JSON as your response.
 
 Return only object-enrichment-1.0 JSON with an annotations array. Each annotation references
 an exact supplied object_id and may contain only meaning, conventions and assumptions.
@@ -29,8 +38,9 @@ structure; they do not replace it. Existing code may be buggy: distinguish what 
 from what scientific sources intend, without inventing an unsupported intended answer.
 
 Finish with a compact, useful interpretation, not a comprehensive reconstruction. The model
-allowance is at most {seconds} seconds. Stop exploration by {explore_until}, draft by {save_by},
-and return JSON by {finish_by}. These are latest milestones, not time to fill.
+allowance is at most {seconds} seconds. Stop exploration by {explore_until}, write the
+first-pass annotation file by {save_by}, and return the final JSON by {finish_by}.
+These are latest milestones, not time to fill.
 
 Task root: {root}
 Original task:
