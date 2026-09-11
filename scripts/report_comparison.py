@@ -326,12 +326,19 @@ def render(run_root, summary):
                    for stage in stages for phase in stage.get("phases", [])])
         else:
             lines += ["Extraction timing/status receipt unavailable.", ""]
-        counts = [(name, len(graph[name]) if isinstance(graph.get(name), list) else None)
-                  for name in ("claims", "quantities", "evidence", "observations")]
+        object_mode = config.get("extractor") == "scientific_objects" or graph.get("schema_version") == "scientific-objects-1.0"
+        fields = ("objects", "operations", "links", "unsupported") if object_mode else ("claims", "quantities", "evidence", "observations")
+        counts = [(name, len(graph[name]) if isinstance(graph.get(name), list) else None) for name in fields]
         coverage = row.get("graph_coverage") or {}
         lines += ["Graph nodes: " + ", ".join(f"{name}={text(value)}" for name, value in counts) + ".",
                   "Recorded mechanical coverage: " + (", ".join(f"{name}={text(value)}" for name, value in sorted(coverage.items())) if coverage else "unknown") + ".", ""]
         analysis = bundle.get("analysis") if isinstance(bundle.get("analysis"), dict) else {}
+        if object_mode:
+            objects = graph.get("objects")
+            annotated = sum(bool(o.get("interpretation")) for o in objects) if isinstance(objects, list) else None
+            lines += [f"Interpretation delivery: {text(bundle.get('assembly', {}).get('interpretation_status'))}; "
+                      f"annotated objects: {text(annotated)}. These are delivery counts, not scientific correctness.", ""]
+            continue
         for name in ("code_grounding", "alignments"):
             items = analysis.get(name)
             counters = collections.Counter(item.get("status", "unknown") for item in items if isinstance(item, dict)) if isinstance(items, list) else None
@@ -360,7 +367,8 @@ def render(run_root, summary):
           [(row["task_id"], row["condition"], row["trial_path"], row["provenance"].get("environment_image"), row["provenance"].get("verifier_image")) for row in summary["trials"]])
     declared_development = set(summary["exposure"]["development_tasks"]) | set(config.get("development_task_ids", []))
     exposed = [task for task in tasks if task in declared_development]
-    prior = [task for task in tasks if task in summary["exposure"]["prior_private_test_exposure"]]
+    known_private = set(summary["exposure"]["prior_private_test_exposure"]) | set(config.get("extra_private_diagnostic_exposure_task_ids", []))
+    prior = [task for task in tasks if task in known_private]
     lines += [f"Recorded development-task overlap: {', '.join(exposed) or 'none'}; recorded prior hidden-test exposure: {', '.join(prior) or 'none'}. "
               "These markers are not a claim about other possible exposure.", "",
               f"Independent reconstruction verified {len(rows)} recorded trials and {len(summary['pairs'])} recorded task/run pairs. "

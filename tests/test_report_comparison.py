@@ -100,6 +100,36 @@ def test_complete_comparison_includes_counts_resources_phases_and_provenance(tmp
     assert "010/baseline → 010/science → 011/baseline → 011/science" in content
 
 
+def test_declared_additional_diagnostic_exposure_is_not_lost(tmp_path):
+    value = schedule(tmp_path, tasks=("001",))
+    value["config"]["extra_private_diagnostic_exposure_task_ids"] = ["001"]
+    dump(tmp_path / "schedule.json", value)
+    for arm in report.ARMS:
+        trial(tmp_path, "001", arm)
+    content = generate(tmp_path)
+    assert "recorded prior hidden-test exposure: 001" in content
+
+
+def test_scientific_object_graph_uses_current_coverage_fields(tmp_path):
+    value = schedule(tmp_path, tasks=("010",))
+    value["config"]["extractor"] = "scientific_objects"
+    dump(tmp_path / "schedule.json", value)
+    trial(tmp_path, "010", "baseline")
+    directory = trial(tmp_path, "010", "science", graph=True)
+    graph = {"schema_version": "scientific-objects-1.0", "objects": [{"interpretation": {"meaning": "Fixture"}}],
+             "operations": [], "links": [], "unsupported": []}
+    digest = hashlib.sha256(json.dumps(graph, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    record = json.loads((directory / "run.json").read_text())
+    record["graph_sha256"] = digest
+    dump(directory / "run.json", record)
+    dump(directory / "graph-bundle.json", {"graph": graph, "graph_sha256": digest,
+        "assembly": {"interpretation_status": "enriched"}})
+    content = generate(tmp_path)
+    assert "objects=1, operations=0, links=0, unsupported=0" in content
+    assert "annotated objects: 1" in content
+    assert "claims=unknown" not in content
+
+
 def test_partial_schedule_retains_unrun_tasks_and_unknown_costs(tmp_path):
     value = schedule(tmp_path, tasks=("010", "011", "012"), status="runner_failure")
     value["schedule"][0]["status"] = "completed"

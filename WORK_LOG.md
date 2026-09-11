@@ -31,9 +31,14 @@ Language-specific structure extraction must feed the shared representation.
   360s model extraction cap and 600s extraction wall allowance are inside that total. Official verification.
   Existing maximum concurrency 2: both arms together, then next task; no method changes or retries.
   Task001's prior private-test diagnostic exposure was disclosed; all five are development cases.
-- Active: freeze configuration, launch pairs, monitor exact runner handle and retain every result.
-  Final verification: paired official outcomes, patches, extraction/repair costs including reasoning,
-  runtime settings, source/prompt freeze and independent token/summary audits.
+- Original five-task run STOPPED at an infrastructure error; no containers remain running.
+  091 completed: baseline passed, science failed private checks (both public passed). 058 science
+  extraction completed, but repair never launched: host `docker` spawn raised E2BIG on the 7.7MB
+  handoff. The runner interrupted 058 baseline; 009/114/001 were not started. No retries performed.
+- Next decision required: compact repair-facing scientific context plus full graph as a file, and
+  documented stdin prompt transport. Presentation changes require a newly frozen comparison;
+  do not restart or pool affected attempts without user approval. Source/prompt method remains a27.
+  Preserve partial results and audit completed stages; interrupted/missing costs remain unknown.
 - This does not establish repair improvement, state-of-the-art quality or full-benchmark coverage.
 
 ## Latest checkpoint
