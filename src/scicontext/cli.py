@@ -312,17 +312,26 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
         return plan
     if output.exists():
         raise FileExistsError("Run directory already exists; choose a fresh name to preserve attempts")
-    if auth_file is None:
-        auth_file = Path.home() / ".codex/auth.json"
-    if not auth_file.is_file():
-        raise ValueError("Saved ChatGPT auth cache not found; provide a private --auth-file or use device login")
-    # Inspect only the auth mode, never serialize credential values into public receipts.
-    auth_mode = read_json(auth_file)
-    if auth_mode.get("auth_mode") == "apikey" or auth_mode.get("OPENAI_API_KEY"):
-        raise ValueError("API-key auth is not the approved route; require ChatGPT subscription auth")
-    if not auth_mode.get("tokens"):
-        raise ValueError("Expected a saved ChatGPT token cache")
-    del auth_mode
+    agent = config.get("agent", "codex")
+    if agent not in {"codex", "deepseek"}:
+        raise ValueError("Unknown experiment agent; use codex or deepseek")
+    deepseek_key = None
+    if agent == "codex":
+        if auth_file is None:
+            auth_file = Path.home() / ".codex/auth.json"
+        if not auth_file.is_file():
+            raise ValueError("Saved ChatGPT auth cache not found; provide a private --auth-file or use device login")
+        # Inspect only the auth mode, never serialize credential values into public receipts.
+        auth_mode = read_json(auth_file)
+        if auth_mode.get("auth_mode") == "apikey" or auth_mode.get("OPENAI_API_KEY"):
+            raise ValueError("API-key auth is not the approved route; require ChatGPT subscription auth")
+        if not auth_mode.get("tokens"):
+            raise ValueError("Expected a saved ChatGPT token cache")
+        del auth_mode
+    else:
+        deepseek_key = os.environ.get("DEEPSEEK_API_KEY")
+        if not deepseek_key:
+            raise ValueError("DEEPSEEK_API_KEY is not set for the deepseek agent route")
     output.mkdir(parents=True)
     frozen_source = _snapshot_frozen_source(workspace, output)
     plan["frozen_source"] = frozen_source
@@ -343,9 +352,16 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
         private_session = tempfile.TemporaryDirectory(prefix="scicontext-auth-")
         private_dir = private_session.name
         os.chmod(private_dir, 0o700)
-        private_auth = Path(private_dir) / "auth.json"
-        shutil.copyfile(auth_file, private_auth)
-        private_auth.chmod(0o600)
+        private_auth = None
+        private_deepseek_key = None
+        if agent == "codex":
+            private_auth = Path(private_dir) / "auth.json"
+            shutil.copyfile(auth_file, private_auth)
+            private_auth.chmod(0o600)
+        else:
+            private_deepseek_key = Path(private_dir) / "deepseek-key.json"
+            write_json(private_deepseek_key, {"api_key": deepseek_key})
+            private_deepseek_key.chmod(0o600)
         def prepare_attempt(item):
             nonlocal current, task_row, return_code
             current = item
@@ -375,24 +391,32 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
                 _run_owned_process(["docker", "pull", "--platform", "linux/amd64", image], check=True, stdout=subprocess.DEVNULL)
             command = [str(Path(sys.executable).parent / "pier"), "run",
                        "--path", str(task_input.resolve()), "--env", "docker", "--model", budget.model,
-                       "--agent-import-path", "scicontext.pier_agent:ScientificCodex",
+                       "--agent-import-path",
+                       "scicontext.pier_agent:ScientificCodex" if agent == "codex" else "scicontext.deepseek_agent:DeepSeekAgent",
                        "--no-force-build", "--no-delete", "--yes", "--n-concurrent", "1", "--n-attempts", "1",
                        "--max-retries", "0", "--agent-timeout-multiplier", str(total / 5400),
                        "--jobs-dir", str((output / "jobs").resolve()), "--job-name", f"task-{task}-{condition}"]
             if extraction_only:
                 command += ["--disable-verification"]
-            for key, value in {"condition": condition, "total_seconds": total, "extraction_seconds": extract,
-                               "reasoning_effort": budget.reasoning_effort, "codex_version": budget.codex_version,
-                               "workspace": str(workspace), "auth_file": str(private_auth), "smoke": smoke,
-                               "extraction_only": extraction_only,
-                               "frozen_source_dir": frozen_source["dir"],
-                               "extractor": config.get("extractor", "scientific_objects")}.items():
+            kwargs = {"condition": condition, "total_seconds": total, "extraction_seconds": extract,
+                      "reasoning_effort": budget.reasoning_effort, "codex_version": budget.codex_version,
+                      "workspace": str(workspace), "smoke": smoke,
+                      "extraction_only": extraction_only,
+                      "frozen_source_dir": frozen_source["dir"],
+                      "extractor": config.get("extractor", "scientific_objects")}
+            if agent == "codex":
+                kwargs["auth_file"] = str(private_auth)
+            else:
+                kwargs["deepseek_key_file"] = str(private_deepseek_key)
+            for key, value in kwargs.items():
                 command += ["--agent-kwarg", f"{key}={str(value).lower() if isinstance(value, bool) else value}"]
             if config.get("extraction_model_seconds") is not None:
                 command += ["--agent-kwarg", f"extraction_model_seconds={config['extraction_model_seconds']}"]
             log = output / f"task-{task}-{condition}-runner.log"
             write_json(output / f"task-{task}-{condition}-launch.json", {
-                **item, "command": ["auth_file=<private>" if arg.startswith("auth_file=") else arg for arg in command],
+                **item, "command": ["auth_file=<private>" if arg.startswith("auth_file=")
+                                    else "deepseek_key_file=<private>" if arg.startswith("deepseek_key_file=")
+                                    else arg for arg in command],
                 "images": {k: task_row[k] for k in ("environment_image", "verifier_image")},
                 "task_selection_sha256": digest_file(task_input / "selection.json"),
             })
