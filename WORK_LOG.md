@@ -46,17 +46,33 @@ Language-specific structure extraction must feed the shared representation.
 - Astra v2 STOPPED at user request for the model switch. Its partial results and costs are preserved in
   `results/workflow-five-v2.json`, `results/workflow-five-v2-token-audit.json`, `docs/WORKFLOW_FIVE_V2.md`.
   Owned containers stopped; no completed/partial Astra outcomes will be pooled into the Luna run.
-- Active: freeze and launch `configs/workflow-five-luna-v1.json` on the original five, Luna/xhigh in
-  both arms and both treatment stages. Config/TOML checks and 80 relevant runner tests pass.
-  Method remains `dc62db2`; only model/effort change, not scientific method or time budgets.
-  Final verification: all ten attempt receipts reconciled, official verifier outcomes and per-stage
-  input/cached/output/reasoning tokens audited, generated comparison report; preserve v1 separately.
+- COMPLETE: `runs/workflow-five-luna-v1` launched from clean control commit `972722f`, configured by
+  `configs/workflow-five-luna-v1.json`. The cube-reader pair passed in both arms; OpenMC baseline
+  passed but context arm failed (extractor timed out; zero scientific annotations, code-only fallback).
+  DESC passed both arms (9/9 each). PyPSA failed both arms, with 10/15 baseline versus 13/15 context.
+  Autochem failed both arms (1/3 each). All ten attempts and official verifiers finished: baseline 3/5,
+  context 2/5, no science-only solved task. Schedule wall time and per-stage costs are in the generated
+  `docs/WORKFLOW_FIVE_LUNA_V1_SUMMARY.md`; full report `docs/WORKFLOW_FIVE_LUNA_V1.md`.
+  PROVENANCE MISMATCH FOUND: `object_context.py` hashes differ across groups (091/058 frozen,
+  009 another hash, 114/001 a third). The running autochem container copy confirms added input-pruning
+  code absent from current/frozen source; saved in `runs/workflow-five-luna-v1/provenance-check/`.
+  User notified and asked about concurrent edits; origin remains unknown. Read-only input replay found
+  substantive differences only for DESC: five literal objects and five links omitted. PyPSA/autochem
+  retained identical underlying input plus selection metadata. Do not claim one unchanged method.
+  Both treatment stages use Luna/xhigh. Config/TOML checks and 80 runner tests pass.
+  Final verification COMPLETE: ten receipts/patch hashes independently reconciled, 14 stage token totals
+  verified and OpenMC extraction cost unknown. All Docker task containers stopped. Reporting tests: 40
+  pass. No active model call or approved retry remains. Source/prompt changes were not made by this
+  monitoring session; reporting now flags per-attempt helper-source drift automatically.
+- Next decision is scientific, not implementation: discuss the negative pilot, extractor completion and
+  unexplained mid-run input-helper edits before approving a new frozen evaluation. Do not launch more calls.
 - This does not establish repair improvement, state-of-the-art quality or full-benchmark coverage.
 
 ## Latest checkpoint
 
 Latest offline source hashes and target/guest-check results: `results/workflow-retrieval-v1.json`.
-Latest live results: `results/scientific-reading-v2.json`, `results/scientific-reading-v2-token-audit.json`,
+Latest live comparison: `results/workflow-five-luna-v1.json` and `results/workflow-five-luna-v1-token-audit.json`.
+Earlier extraction results: `results/scientific-reading-v2.json`, `results/scientific-reading-v2-token-audit.json`,
 and `results/scientific-reading-v1-v2.json`; raw outputs and verification in `runs/scientific-reading-v2/`.
 Live check: `runs/scientific-reading-v1/`, `results/scientific-reading-v1.json` and
 `results/scientific-reading-v1-token-audit.json`. Public source review copies are inside the run.
@@ -71,7 +87,7 @@ Prior negative comparison remains unchanged in `docs/PROBE_FIRST_PAIRS_V1.md` an
 
 ## Carry forward
 
-- Astra five-task v2 is stopped; do not resume it. Luna original-five launch is next. Preserve user-owned PDFs,
+- Astra v2 stopped; Luna original-five finished. No active runs or automatic retries. Preserve user-owned PDFs,
   `.serena/` and `workspace/`.
 - Docker memory remains temporarily increased; restore `MemoryMiB=4096` only when no longer needed.
   Original setting/receipt: `results/docker-memory-change.json`.

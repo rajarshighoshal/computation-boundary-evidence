@@ -192,6 +192,19 @@ def render(run_root, summary):
              f"planned attempts without a run receipt: {absent}. Schedule status: `{text(schedule.get('status'))}`.", "",
              "This is an exploratory comparison, not evidence of a general improvement. Unknown outcomes are not failures or successes; "
              "missing cost measurements are not zero. No significance or causal-attribution claim is made.", ""]
+    helper_versions = collections.defaultdict(lambda: collections.defaultdict(list))
+    for key in keys:
+        for filename, digest in setups.get(key, ({}, "missing"))[0].get("helper_hashes", {}).items():
+            helper_versions[filename][digest].append(f"{key[0]}/{key[1]}")
+    changed_helpers = {name: versions for name, versions in helper_versions.items() if len(versions) > 1}
+    if changed_helpers:
+        lines += ["**Helper-source drift was recorded across attempts.** These are descriptive results, not "
+                  "a uniform frozen-method comparison. The commit label alone does not establish identical "
+                  "executed source. Preserve the actual input artifacts and available code snapshots; "
+                  "the recorded hashes do not identify who changed the file.", ""]
+        table(lines, ["Helper file", "Recorded SHA-256", "Attempts"],
+              [(name, digest, ", ".join(attempts)) for name, versions in sorted(changed_helpers.items())
+               for digest, attempts in versions.items()])
     if schedule.get("status") == "completed_with_failures" and not absent:
         lines += ["The queue drained, but some attempts failed operationally. Missing verifier outcomes remain "
                   "unknown; receipts, available verifier results and measured costs remain listed.", ""]
@@ -383,17 +396,59 @@ def render(run_root, summary):
     return "\n".join(lines)
 
 
+def render_compact(run_root, summary):
+    """Small result/usage tables for the handoff; same audited stage counters."""
+    schedule = read(run_root / "schedule.json")
+    rows = {(r["task_id"], r["condition"]): r for r in summary["trials"]}
+    seconds = (dt.datetime.fromisoformat(schedule["finished_at"]) -
+               dt.datetime.fromisoformat(schedule["started_at"])).total_seconds()
+    lines = ["# Luna pilot: compact results", "",
+             f"Elapsed wall time including setup/verification: {number(seconds, divisor=60)} minutes.",
+             "Source-version differences exist across task groups; see the full report. These are descriptive outcomes.", ""]
+    outcomes = []
+    for task in schedule["config"]["task_ids"]:
+        for arm in ARMS:
+            row = rows[(task, arm)]
+            private, public = row.get("private", {}), row.get("public", {})
+            outcomes.append((task, arm, outcome(row), private.get("passed"), private.get("failed"),
+                             f"{public.get('passed', '?')}/{public.get('collected', '?')}",
+                             number(row.get("duration_seconds"), divisor=60)))
+    table(lines, ["Task", "Arm", "Result", "Private passed", "Private failed", "Public passed/collected", "Agent minutes"], outcomes)
+    lines += ["Agent time includes extraction/handoff for science, but excludes setup and official verification.", "",
+              "## Stage time and token usage", "",
+              "Input includes cached input; output includes reasoning. Do not add subsets twice. "
+              "Counts include repeated input across model calls, not unique prompt size. "
+              "No per-run dollar or credit bill was recorded.", ""]
+    usage_rows = []
+    for task in schedule["config"]["task_ids"]:
+        for arm in ARMS:
+            row = rows[(task, arm)]
+            for stage in row["stages"]:
+                usage = stage_token_breakdown(trial_path(run_root, row), stage)
+                usage_rows.append((task, f"{arm}/{stage['name']}", number(stage.get("duration_seconds")),
+                                   *(f"{usage[k]:,}" if usage[k] is not None else "unknown"
+                                     for k in ("input_tokens", "cached_input_tokens", "output_tokens", "reasoning_output_tokens"))))
+    table(lines, ["Task", "Stage", "Seconds", "Input", "Cached input", "Output", "Reasoning output"], usage_rows)
+    lines += ["OpenMC extraction timed out without completed-turn usage: its full extraction/treatment cost remains unknown, "
+              "not zero. Its repair cost is separately measured. Extraction seconds include static preparation and assembly.", ""]
+    return "\n".join(lines)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-root", required=True, type=Path)
     parser.add_argument("--summary", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--compact-output", type=Path)
     args = parser.parse_args(argv)
     subprocess.run([sys.executable, str(Path(__file__).with_name("recompute_results.py")),
                     str(args.run_root / "jobs"), "--verify", str(args.summary)], check=True)
     content = render(args.run_root, read(args.summary))
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(content, encoding="utf-8")
+    if args.compact_output:
+        args.compact_output.parent.mkdir(parents=True, exist_ok=True)
+        args.compact_output.write_text(render_compact(args.run_root, read(args.summary)), encoding="utf-8")
     print(f"Generated {args.output}")
     return 0
 

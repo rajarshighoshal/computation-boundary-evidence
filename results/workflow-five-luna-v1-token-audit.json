@@ -1,0 +1,344 @@
+{
+  "method": "Completed-turn usage independently matched to final cumulative exec-session counters; subsets are not added twice",
+  "records": [
+    {
+      "cli_log": "runs/workflow-five-luna-v1/jobs/task-001-baseline/task_001__UegkNMu/agent/repair.jsonl",
+      "cli_sha256": "76cfa6a7739235495a42f78d3d34dfc6f9e8fd7f313d9829d6fa2e5a541ee536",
+      "condition": "baseline",
+      "session_file": "runs/workflow-five-luna-v1/jobs/task-001-baseline/task_001__UegkNMu/agent/repair-sessions/2026/09/11/rollout-2026-09-11T12-11-12-01a09061-049d-7240-86d2-acee2d3524b0.jsonl",
+      "session_sha256": "121029a00396c37a089cc7844bbfa020bd9f2a6d47c40d33064a849a6913fbff",
+      "stage": "repair",
+      "status": "verified",
+      "task_id": "001",
+      "usage": {
+        "cached_input_tokens": 2444800,
+        "input_tokens": 2575756,
+        "nonreasoning_output_tokens": 7821,
+        "output_tokens": 23965,
+        "reasoning_output_tokens": 16144,
+        "total_tokens": 2599721,
+        "uncached_input_tokens": 130956
+      }
+    },
+    {
+      "condition": "science",
+      "model_calls": [
+        {
+          "cli_log": "runs/workflow-five-luna-v1/jobs/task-001-science/task_001__rxJHtFM/agent/extract_draft.jsonl",
+          "cli_sha256": "6b5d40c692884b75592c5c53212747f055b3244486ae01ebafaa80aeb9c9bad1",
+          "session_file": "runs/workflow-five-luna-v1/jobs/task-001-science/task_001__rxJHtFM/agent/extract_draft-sessions/2026/09/11/rollout-2026-09-11T12-11-22-01a09061-2d21-73b0-a106-ed13011757c1.jsonl",
+          "session_sha256": "802828643e113ba20325ef7460795c8ab7abf873c57ce091d7e6fca941583f2d",
+          "stage": "extract_draft",
+          "status": "verified",
+          "usage": {
+            "cached_input_tokens": 864512,
+            "input_tokens": 951350,
+            "nonreasoning_output_tokens": 6520,
+            "output_tokens": 12936,
+            "reasoning_output_tokens": 6416,
+            "total_tokens": 964286,
+            "uncached_input_tokens": 86838
+          }
+        }
+      ],
+      "stage": "extract",
+      "status": "verified",
+      "task_id": "001",
+      "usage": {
+        "cached_input_tokens": 864512,
+        "input_tokens": 951350,
+        "nonreasoning_output_tokens": 6520,
+        "output_tokens": 12936,
+        "reasoning_output_tokens": 6416,
+        "total_tokens": 964286,
+        "uncached_input_tokens": 86838
+      }
+    },
+    {
+      "cli_log": "runs/workflow-five-luna-v1/jobs/task-001-science/task_001__rxJHtFM/agent/repair.jsonl",
+      "cli_sha256": "398c3aeec4c6df8c2f6d1d254f30f438bfd3badf8b54811d8a4c39ec65016972",
+      "condition": "science",
+      "session_file": "runs/workflow-five-luna-v1/jobs/task-001-science/task_001__rxJHtFM/agent/repair-sessions/2026/09/11/rollout-2026-09-11T12-16-35-01a09065-f165-7a81-8189-d87b6cfb89e7.jsonl",
+      "session_sha256": "bfeb47987e946ee5434c283386cd2053a6140b0ebd2edf6b182bdb106f7fcb57",
+      "stage": "repair",
+      "status": "verified",
+      "task_id": "001",
+      "usage": {
+        "cached_input_tokens": 3224064,
+        "input_tokens": 3431829,
+        "nonreasoning_output_tokens": 16049,
+        "output_tokens": 31972,
+        "reasoning_output_tokens": 15923,
+        "total_tokens": 3463801,
+        "uncached_input_tokens": 207765
+      }
+    },
+    {
+      "cli_log": "runs/workflow-five-luna-v1/jobs/task-009-baseline/task_009__DN6gUf3/agent/repair.jsonl",
+      "cli_sha256": "9ab36ddcc8d67d6750e11c4d0970bcc80ae3b0a0772c5f40665e561680589e65",
+      "condition": "baseline",
+      "session_file": "runs/workflow-five-luna-v1/jobs/task-009-baseline/task_009__DN6gUf3/agent/repair-sessions/2026/09/11/rollout-2026-09-11T11-44-38-01a09048-b1e2-7b90-832b-5216a7fbf219.jsonl",
+      "session_sha256": "a1aef56da660541b9b25488e29a64abbbe4b4b439575816cee2f4c518f9d2cc1",
+      "stage": "repair",
+      "status": "verified",
+      "task_id": "009",
+      "usage": {
+        "cached_input_tokens": 1035264,
+        "input_tokens": 1158536,
+        "nonreasoning_output_tokens": 9364,
+        "output_tokens": 25234,
+        "reasoning_output_tokens": 15870,
+        "total_tokens": 1183770,
+        "uncached_input_tokens": 123272
+      }
+    },
+    {
+      "condition": "science",
+      "model_calls": [
+        {
+          "cli_log": "runs/workflow-five-luna-v1/jobs/task-009-science/task_009__NQgBc9X/agent/extract_draft.jsonl",
+          "cli_sha256": "0141be4d1c515cf4cb7370c1939695bdd5bdf088bd1b975c329c203aec6ec315",
+          "session_file": "runs/workflow-five-luna-v1/jobs/task-009-science/task_009__NQgBc9X/agent/extract_draft-sessions/2026/09/11/rollout-2026-09-11T11-44-48-01a09048-d9eb-7f01-946c-2a3da717c054.jsonl",
+          "session_sha256": "54aa6f29a15f2ee65d64fc3e29213901235fb9a5702cdfddaf646536b7e76a16",
+          "stage": "extract_draft",
+          "status": "verified",
+          "usage": {
+            "cached_input_tokens": 563200,
+            "input_tokens": 686867,
+            "nonreasoning_output_tokens": 9570,
+            "output_tokens": 12022,
+            "reasoning_output_tokens": 2452,
+            "total_tokens": 698889,
+            "uncached_input_tokens": 123667
+          }
+        }
+      ],
+      "stage": "extract",
+      "status": "verified",
+      "task_id": "009",
+      "usage": {
+        "cached_input_tokens": 563200,
+        "input_tokens": 686867,
+        "nonreasoning_output_tokens": 9570,
+        "output_tokens": 12022,
+        "reasoning_output_tokens": 2452,
+        "total_tokens": 698889,
+        "uncached_input_tokens": 123667
+      }
+    },
+    {
+      "cli_log": "runs/workflow-five-luna-v1/jobs/task-009-science/task_009__NQgBc9X/agent/repair.jsonl",
+      "cli_sha256": "2e9e4396c53df9229bc7a5d34d166610e011223401b378a39c844bd7e74889b8",
+      "condition": "science",
+      "session_file": "runs/workflow-five-luna-v1/jobs/task-009-science/task_009__NQgBc9X/agent/repair-sessions/2026/09/11/rollout-2026-09-11T11-49-15-01a0904c-ecc9-7a71-aa96-449fd108d75e.jsonl",
+      "session_sha256": "1d94760331f76eb445273443900bcdb608af927c513ddbcabedc2f88031e1479",
+      "stage": "repair",
+      "status": "verified",
+      "task_id": "009",
+      "usage": {
+        "cached_input_tokens": 1579776,
+        "input_tokens": 1708305,
+        "nonreasoning_output_tokens": 5729,
+        "output_tokens": 19999,
+        "reasoning_output_tokens": 14270,
+        "total_tokens": 1728304,
+        "uncached_input_tokens": 128529
+      }
+    },
+    {
+      "cli_log": "runs/workflow-five-luna-v1/jobs/task-058-baseline/task_058__zudmxwQ/agent/repair.jsonl",
+      "cli_sha256": "fd1eb375d30f9f7e5a576d5619ce8a2578f80225bb3e99242d334aff544e2d0c",
+      "condition": "baseline",
+      "session_file": "runs/workflow-five-luna-v1/jobs/task-058-baseline/task_058__zudmxwQ/agent/repair-sessions/2026/09/11/rollout-2026-09-11T11-20-26-01a09032-8971-7b70-b6a7-d2fe7da132bb.jsonl",
+      "session_sha256": "7637a95e8d6661fa72d6418d65cbdef7e04c73a37b9822e0099f7e5937ab443f",
+      "stage": "repair",
+      "status": "verified",
+      "task_id": "058",
+      "usage": {
+        "cached_input_tokens": 5056000,
+        "input_tokens": 5225950,
+        "nonreasoning_output_tokens": 6883,
+        "output_tokens": 17563,
+        "reasoning_output_tokens": 10680,
+        "total_tokens": 5243513,
+        "uncached_input_tokens": 169950
+      }
+    },
+    {
+      "condition": "science",
+      "model_calls": [
+        {
+          "stage": "extract_draft",
+          "status": "unknown_incomplete_stage"
+        }
+      ],
+      "stage": "extract",
+      "status": "unknown_incomplete_stage",
+      "task_id": "058"
+    },
+    {
+      "cli_log": "runs/workflow-five-luna-v1/jobs/task-058-science/task_058__nrvUsTR/agent/repair.jsonl",
+      "cli_sha256": "f5f398f0d805009258e4c31e969b9686aa60d6cbda56856c5471fbaadf442cac",
+      "condition": "science",
+      "session_file": "runs/workflow-five-luna-v1/jobs/task-058-science/task_058__nrvUsTR/agent/repair-sessions/2026/09/11/rollout-2026-09-11T11-27-06-01a09038-a391-7ed3-99a0-2f3c94064286.jsonl",
+      "session_sha256": "5ebeafade068bd87e6be93d1337269b776093a6e166650ef65b3b694712229a0",
+      "stage": "repair",
+      "status": "verified",
+      "task_id": "058",
+      "usage": {
+        "cached_input_tokens": 4541952,
+        "input_tokens": 4720323,
+        "nonreasoning_output_tokens": 8854,
+        "output_tokens": 17215,
+        "reasoning_output_tokens": 8361,
+        "total_tokens": 4737538,
+        "uncached_input_tokens": 178371
+      }
+    },
+    {
+      "cli_log": "runs/workflow-five-luna-v1/jobs/task-091-baseline/task_091__vAJWaLT/agent/repair.jsonl",
+      "cli_sha256": "1fc50000fe0669b4d0da50a88eec7987eea77ce87a4716f2604aed7d0aa16d60",
+      "condition": "baseline",
+      "session_file": "runs/workflow-five-luna-v1/jobs/task-091-baseline/task_091__vAJWaLT/agent/repair-sessions/2026/09/11/rollout-2026-09-11T11-06-26-01a09025-b9c6-7c21-9e97-496764e2368d.jsonl",
+      "session_sha256": "aa08d4f0a7893c001c3e25d5d68cb42f81ff27669218dba7d9304f483a191dbe",
+      "stage": "repair",
+      "status": "verified",
+      "task_id": "091",
+      "usage": {
+        "cached_input_tokens": 2344448,
+        "input_tokens": 2483400,
+        "nonreasoning_output_tokens": 9481,
+        "output_tokens": 20896,
+        "reasoning_output_tokens": 11415,
+        "total_tokens": 2504296,
+        "uncached_input_tokens": 138952
+      }
+    },
+    {
+      "condition": "science",
+      "model_calls": [
+        {
+          "cli_log": "runs/workflow-five-luna-v1/jobs/task-091-science/task_091__Lzsen2s/agent/extract_draft.jsonl",
+          "cli_sha256": "4c68d688ccab48ba9e19ee3abb812429cab88cbb965ef1d9ef35e6a9943940d1",
+          "session_file": "runs/workflow-five-luna-v1/jobs/task-091-science/task_091__Lzsen2s/agent/extract_draft-sessions/2026/09/11/rollout-2026-09-11T11-06-38-01a09025-e8d9-76c2-aa3e-2129c8236c95.jsonl",
+          "session_sha256": "4a5cfa62fc359d0d4cd96ca37e1a31ff0eb40607aa8418771cce7e57b9188dfd",
+          "stage": "extract_draft",
+          "status": "verified",
+          "usage": {
+            "cached_input_tokens": 1138176,
+            "input_tokens": 1238254,
+            "nonreasoning_output_tokens": 5338,
+            "output_tokens": 13224,
+            "reasoning_output_tokens": 7886,
+            "total_tokens": 1251478,
+            "uncached_input_tokens": 100078
+          }
+        }
+      ],
+      "stage": "extract",
+      "status": "verified",
+      "task_id": "091",
+      "usage": {
+        "cached_input_tokens": 1138176,
+        "input_tokens": 1238254,
+        "nonreasoning_output_tokens": 5338,
+        "output_tokens": 13224,
+        "reasoning_output_tokens": 7886,
+        "total_tokens": 1251478,
+        "uncached_input_tokens": 100078
+      }
+    },
+    {
+      "cli_log": "runs/workflow-five-luna-v1/jobs/task-091-science/task_091__Lzsen2s/agent/repair.jsonl",
+      "cli_sha256": "cdd1f202336103699d5ff0b3de12003a89eecef492d570d33bf75c9b8bd623e3",
+      "condition": "science",
+      "session_file": "runs/workflow-five-luna-v1/jobs/task-091-science/task_091__Lzsen2s/agent/repair-sessions/2026/09/11/rollout-2026-09-11T11-11-47-01a0902a-a011-77c3-b9a3-ea9caed10a98.jsonl",
+      "session_sha256": "eecce62f220cdc8166094dd2bfbb84c46753e14fb5b4ec086972f6a905b93d89",
+      "stage": "repair",
+      "status": "verified",
+      "task_id": "091",
+      "usage": {
+        "cached_input_tokens": 1934848,
+        "input_tokens": 2105388,
+        "nonreasoning_output_tokens": 10082,
+        "output_tokens": 22269,
+        "reasoning_output_tokens": 12187,
+        "total_tokens": 2127657,
+        "uncached_input_tokens": 170540
+      }
+    },
+    {
+      "cli_log": "runs/workflow-five-luna-v1/jobs/task-114-baseline/task_114__AsdTg4B/agent/repair.jsonl",
+      "cli_sha256": "29c38dd6fc7b980ce3a3de13903281983b5784723c97fdbfbbda31f41407010a",
+      "condition": "baseline",
+      "session_file": "runs/workflow-five-luna-v1/jobs/task-114-baseline/task_114__AsdTg4B/agent/repair-sessions/2026/09/11/rollout-2026-09-11T11-57-04-01a09054-1284-79f1-9321-98d2a329e47b.jsonl",
+      "session_sha256": "ec87c4aa52c1d50cf5ad4582b7f1ae7a5989df6c979451dbae49d1e07f95dcf0",
+      "stage": "repair",
+      "status": "verified",
+      "task_id": "114",
+      "usage": {
+        "cached_input_tokens": 2972160,
+        "input_tokens": 3124910,
+        "nonreasoning_output_tokens": 8465,
+        "output_tokens": 23892,
+        "reasoning_output_tokens": 15427,
+        "total_tokens": 3148802,
+        "uncached_input_tokens": 152750
+      }
+    },
+    {
+      "condition": "science",
+      "model_calls": [
+        {
+          "cli_log": "runs/workflow-five-luna-v1/jobs/task-114-science/task_114__7Dmkndc/agent/extract_draft.jsonl",
+          "cli_sha256": "45212849401dc2cb24d03e43f3c581d5f17a2504f2ef061ca606b688f6a21be2",
+          "session_file": "runs/workflow-five-luna-v1/jobs/task-114-science/task_114__7Dmkndc/agent/extract_draft-sessions/2026/09/11/rollout-2026-09-11T11-57-15-01a09054-3e9f-7813-8551-854ce8cbfebe.jsonl",
+          "session_sha256": "c57456cd6a30754f0696ca27457e5e5830e7edabf49ed78180373a1e3066c029",
+          "stage": "extract_draft",
+          "status": "verified",
+          "usage": {
+            "cached_input_tokens": 654848,
+            "input_tokens": 733230,
+            "nonreasoning_output_tokens": 9732,
+            "output_tokens": 17326,
+            "reasoning_output_tokens": 7594,
+            "total_tokens": 750556,
+            "uncached_input_tokens": 78382
+          }
+        }
+      ],
+      "stage": "extract",
+      "status": "verified",
+      "task_id": "114",
+      "usage": {
+        "cached_input_tokens": 654848,
+        "input_tokens": 733230,
+        "nonreasoning_output_tokens": 9732,
+        "output_tokens": 17326,
+        "reasoning_output_tokens": 7594,
+        "total_tokens": 750556,
+        "uncached_input_tokens": 78382
+      }
+    },
+    {
+      "cli_log": "runs/workflow-five-luna-v1/jobs/task-114-science/task_114__7Dmkndc/agent/repair.jsonl",
+      "cli_sha256": "b23edcafbed41b7ed61801e754692256aa6cbe931e3a7698bbe1ea5a453fb98b",
+      "condition": "science",
+      "session_file": "runs/workflow-five-luna-v1/jobs/task-114-science/task_114__7Dmkndc/agent/repair-sessions/2026/09/11/rollout-2026-09-11T12-03-31-01a09059-fd57-7bd3-ba6b-83bfbbd2da5b.jsonl",
+      "session_sha256": "a00b4520b709dc0946c7d55a8255221a6e64456df621f5113e03c8a10d9537f1",
+      "stage": "repair",
+      "status": "verified",
+      "task_id": "114",
+      "usage": {
+        "cached_input_tokens": 2014976,
+        "input_tokens": 2141489,
+        "nonreasoning_output_tokens": 8183,
+        "output_tokens": 15377,
+        "reasoning_output_tokens": 7194,
+        "total_tokens": 2156866,
+        "uncached_input_tokens": 126513
+      }
+    }
+  ],
+  "run_root": "runs/workflow-five-luna-v1"
+}

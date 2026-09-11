@@ -93,6 +93,37 @@ def test_drained_schedule_with_failure_does_not_claim_tasks_were_unrun(tmp_path)
     assert "The planned comparison is incomplete" not in text
 
 
+def test_helper_source_drift_is_disclosed_even_when_commit_metadata_matches(tmp_path):
+    schedule(tmp_path, tasks=("010",))
+    for arm, digest in (("baseline", "first-version"), ("science", "second-version")):
+        path = trial(tmp_path, "010", arm) / "agent/setup.json"
+        value = json.loads(path.read_text())
+        value["helper_hashes"] = {"object_context.py": digest}
+        dump(path, value)
+    text = generate(tmp_path)
+    assert "Helper-source drift was recorded" in text
+    assert "not a uniform frozen-method comparison" in text
+    assert "first-version" in text and "second-version" in text
+
+
+def test_compact_tables_use_private_failures_and_audited_usage(tmp_path):
+    schedule(tmp_path, tasks=("010",))
+    for arm in ("baseline", "science"):
+        path = trial(tmp_path, "010", arm)
+        reward = path / "verifier/reward.json"
+        value = json.loads(reward.read_text())
+        value["private"]["failed"] = 0
+        dump(reward, value)
+    summary = summarize(tmp_path)
+    compact = tmp_path / "compact.md"
+    report.main(["--run-root", str(tmp_path), "--summary", str(summary),
+                 "--output", str(tmp_path / "report.md"), "--compact-output", str(compact)])
+    text = compact.read_text()
+    assert "| 010 | baseline | pass | 3 | 0 | 1/1 | 6.67 |" in text
+    assert "| 010 | science/repair | 300.00 | unknown |" in text
+    assert "No per-run dollar or credit bill was recorded" in text
+
+
 def test_complete_comparison_includes_counts_resources_phases_and_provenance(tmp_path):
     schedule(tmp_path)
     for task in ("010", "011"):
