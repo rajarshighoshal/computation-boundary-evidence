@@ -66,13 +66,6 @@ def _ndarray_fp(value, budget: int, depth: int) -> dict:
             "stats": stats}
 
 
-def _series_fp(value, budget: int, depth: int) -> dict:
-    values = _ndarray_fp(value.to_numpy(), budget, depth) if hasattr(value, "to_numpy") else _ndarray_fp(list(value), budget, depth)
-    index = _fingerprint(list(value.index), budget, depth + 1)
-    values.update({"t": "series", "index_exact": index["exact"], "index_struct": index["struct"]})
-    return values
-
-
 def _dict_fp(value: dict, budget: int, depth: int) -> dict:
     if depth > _MAX_DEPTH:
         return {"t": "dict", "exact": None, "equiv": None, "multiset": None, "rev": None,
@@ -143,12 +136,6 @@ def _fingerprint(value, budget: int = FINGERPRINT_BYTE_BUDGET, depth: int = 0) -
             return _ndarray_fp(value, budget, depth)
     except ImportError:
         pass
-    module = type(value).__module__ or ""
-    if module.startswith(("pandas", "xarray")) or type(value).__name__ in {"Series", "DataFrame", "Index"}:
-        try:
-            return _series_fp(value, budget, depth)
-        except Exception:
-            pass
     return _object_fp(value, budget, depth)
 
 

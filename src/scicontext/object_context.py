@@ -18,9 +18,10 @@ ENRICHMENT_LINK_DEPTH = 3
 
 _CODE_PASSAGE_KEYS = ("id", "path", "sha256", "start_line", "end_line", "scope",
                       "text", "language", "native")
-_OBJECT_KIND_PRIORITY = {"code_interface": 0, "quantity": 1, "graph": 1, "integral": 1,
-                         "linear_system_solution": 1, "component_partition": 1,
-                         "array": 2, "literal": 3}
+_OBJECT_KIND_PRIORITY = {"constraint_locus": 0, "transition_instance": 1, "state_quantity": 1,
+                         "code_interface": 2, "quantity": 3, "graph": 3, "integral": 3,
+                         "linear_system_solution": 3, "component_partition": 3,
+                         "array": 4, "literal": 5}
 
 
 def enrichment_schema() -> dict:
@@ -233,7 +234,22 @@ def object_bundle(graph: dict, response: object, context: dict | None = None) ->
 
 def render_guide(graph: dict) -> str:
     """Readable annotations; the complete structure stays in the companion JSON file."""
-    lines = ["# Scientific working model", "",
+    lines = ["# Scientific working model", ""]
+    loci = [obj for obj in graph.get("objects", []) if obj.get("kind") == "constraint_locus"
+            and obj.get("properties", {}).get("status") == "violated"]
+    if loci:
+        lines += ["## Constraint findings from executing the public reproducer (observations, not intent)", ""]
+        for locus in loci:
+            properties = locus.get("properties", {})
+            evidence = properties.get("evidence", {})
+            delta = next((p.get("delta_param") for p in evidence.get("pairs", []) if p.get("delta_param")), None)
+            detail = (f"param {delta['name']} ({delta['a']} vs {delta['b']})" if delta
+                      else f"{len(evidence.get('pairs', []))} relation pair(s)")
+            lines.append(f"- {locus['id']} [{properties.get('rule_id')}] {properties.get('constraint_type')} "
+                         f"{properties.get('status')} @ {locus['symbol']} "
+                         f"({locus.get('path')}:{locus.get('source_span', {}).get('start_line')}) — {detail}")
+        lines.append("")
+    lines += ["",
         "Interpretations are anchored to object IDs and public source passages.",
         "The companion scientific-graph.json preserves every object, operation, link, unsupported "
         "item and coverage record. Use the object IDs below to inspect relevant relationships "

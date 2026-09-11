@@ -143,7 +143,7 @@ class _Tracer:
                       "pid": os.getpid(), "tid": threading.get_ident(),
                       "t0": time.monotonic() - self.started,
                       "fingerprinted": count < MAX_INSTANCES_PER_FUNC}
-            if record["fingerprinted"]:
+            if record["fingerprinted"] and not os.environ.get("SCITRACE_SKIP_INPUTS"):
                 self._record_inputs(frame, record)
             thread_stacks.append(record)
         finally:
@@ -155,10 +155,42 @@ class _Tracer:
         except TypeError:
             size = 0
         if size > MAX_VALUE_BYTES or (isinstance(value, (dict, list, tuple, set, frozenset))
-                                      and len(value) > MAX_CONTAINER_ITEMS):
-            return {"t": "opaque-large", "exact": None, "equiv": None, "multiset": None,
+                                      and len(value) > MAX_CONTAINER_ITEMS) or not self._safe_to_recurse(value):
+            return {"t": "opaque", "exact": None, "equiv": None, "multiset": None,
                     "rev": None, "struct": type(value).__name__, "bytes": size, "truncated": True}
         return self.fingerprint(value, budget=TRACE_ARRAY_BUDGET)
+
+    def _log_return_size(self, record, value):
+        try:
+            module = type(value).__module__
+            size = sys.getsizeof(value)
+            deep = ""
+            if hasattr(value, "memory_usage"):
+                try:
+                    deep = f" mem={int(value.memory_usage(index=True, deep=False).sum())}"
+                except Exception:
+                    pass
+            if hasattr(value, "nbytes") and not hasattr(value, "memory_usage"):
+                deep = f" nbytes={getattr(value, 'nbytes')}"
+            with open(self.out / "return_sizes.log", "a") as handle:
+                handle.write(f"{record['seq']} {record['name']} {module}.{type(value).__name__} {size}{deep}\n")
+                handle.flush()
+        except Exception:
+            pass
+
+    @staticmethod
+    def _safe_to_recurse(value):
+        """Only builtin/numpy types and plain containers of them are fingerprinted;
+        third-party object internals are opaque (prevents C-extension crashes)."""
+        root = (type(value).__module__ or "").split(".")[0]
+        if root in {"builtins", "numpy", "pandas"}:
+            return True
+        if isinstance(value, dict):
+            return all(_Tracer._safe_to_recurse(k) and _Tracer._safe_to_recurse(v)
+                       for k, v in list(value.items())[:MAX_CONTAINER_ITEMS])
+        if isinstance(value, (list, tuple, set, frozenset)):
+            return all(_Tracer._safe_to_recurse(item) for item in list(value)[:MAX_CONTAINER_ITEMS])
+        return False
 
     def _record_inputs(self, frame, record):
         code = frame.f_code
@@ -195,10 +227,12 @@ class _Tracer:
         record = thread_stacks.pop()
         record["duration"] = time.monotonic() - self.started - record.pop("t0")
         record.pop("count", None)
-        if record.get("fingerprinted"):
+        if record.get("fingerprinted") and not os.environ.get("SCITRACE_SKIP_RETURNS"):
+            if os.environ.get("SCITRACE_DEBUG_RETURNS"):
+                self._log_return_size(record, retval)
             self.in_fingerprint = True
             try:
-                record["return_fp"] = self.fingerprint(retval)
+                record["return_fp"] = self._guarded_fingerprint(retval)
             finally:
                 self.in_fingerprint = False
         else:
