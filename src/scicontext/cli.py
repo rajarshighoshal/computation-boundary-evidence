@@ -260,7 +260,8 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
     if config.get("extractor", "scientific_objects") != "scientific_objects":
         raise ValueError("Unknown extraction method")
     budget = TrialConfig(config["model"], config["reasoning_effort"], config["codex_version"],
-                         config["total_seconds"], config["extraction_seconds"])
+                         config["total_seconds"], config["extraction_seconds"],
+                         config.get("flexible_budget", False))
     concurrency = config.get("concurrency")
     if config.get("attempts") != 1 or type(concurrency) is not int or concurrency not in (1, 2, 3):
         raise ValueError("Pilot supports exactly one attempt and concurrency 1..3")
@@ -400,6 +401,7 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
                 command += ["--disable-verification"]
             kwargs = {"condition": condition, "total_seconds": total, "extraction_seconds": extract,
                       "reasoning_effort": budget.reasoning_effort, "codex_version": budget.codex_version,
+                      "flexible_budget": budget.flexible_budget,
                       "workspace": str(workspace), "smoke": smoke,
                       "extraction_only": extraction_only,
                       "frozen_source_dir": frozen_source["dir"],

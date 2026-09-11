@@ -106,7 +106,8 @@ class ScientificCodex(BaseAgent):
     def __init__(self, *args, condition="baseline", total_seconds=1800,
                  extraction_seconds=360, reasoning_effort="high", codex_version="0.153.4",
                  workspace=None, auth_file=None, smoke=False, extraction_only=False,
-                 extractor="scientific_objects", extraction_model_seconds=None, frozen_source_dir=None, **kwargs):
+                 extractor="scientific_objects", extraction_model_seconds=None, frozen_source_dir=None,
+                 flexible_budget=False, **kwargs):
         super().__init__(*args, **kwargs)
         if condition not in {"baseline", "science"}:
             raise ValueError("Unknown experiment condition")
@@ -120,7 +121,8 @@ class ScientificCodex(BaseAgent):
             raise ValueError("extraction_model_seconds must be finite and positive")
         self.frozen_source = (Path(frozen_source_dir).resolve() if frozen_source_dir else None)
         self.config = TrialConfig(self.model_name or "gpt-6-astra", reasoning_effort,
-                                  codex_version, float(total_seconds), float(extraction_seconds))
+                                  codex_version, float(total_seconds), float(extraction_seconds),
+                                  flexible_budget)
         self.workspace = Path(workspace or Path.cwd()).resolve()
         self.auth_file = Path(auth_file or "").expanduser()
         if not self.auth_file.is_file():

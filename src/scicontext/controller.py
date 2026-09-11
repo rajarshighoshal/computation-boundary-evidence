@@ -18,11 +18,12 @@ class TrialConfig:
     codex_version: str = "0.153.4"
     total_seconds: float = 1800.0
     extraction_seconds: float = 360.0
+    flexible_budget: bool = False
 
     def __post_init__(self):
         if not all(math.isfinite(v) and v > 0 for v in (self.total_seconds, self.extraction_seconds)):
             raise ValueError("Time allowances must be finite and positive")
-        if self.extraction_seconds >= self.total_seconds:
+        if not self.flexible_budget and self.extraction_seconds >= self.total_seconds:
             raise ValueError("Extraction must leave repair time")
 
 
@@ -133,10 +134,13 @@ async def run_trial(driver: Driver, config: TrialConfig, task_id: str, condition
     handoff = None
     try:
         if condition == "science":
-            extraction_deadline = min(deadline, started + config.extraction_seconds)
+            # Flexible budgets give extraction the whole window (usage is then a
+            # reported outcome); fixed budgets keep the extraction carve-out.
+            extraction_deadline = (min(deadline, started + config.extraction_seconds) if not config.flexible_budget
+                                   else deadline)
             extraction_result = None
             # Reserve a bounded portion for deterministic validation/copy/cleanup.
-            reserve = min(60.0, config.extraction_seconds / 6)
+            reserve = min(60.0, (config.extraction_seconds if not config.flexible_budget else config.total_seconds) / 6)
             try:
                 try:
                     extraction_result = await stage("extract", instruction, max(0.001, extraction_deadline - time.monotonic() - reserve))
@@ -146,7 +150,7 @@ async def run_trial(driver: Driver, config: TrialConfig, task_id: str, condition
                 # perfectly usable. Validation uses only the reserved time.
                 # Artifact transfer must leave time for the ordinary container
                 # shutdown as well; it cannot consume the whole reserve.
-                shutdown_reserve = min(20.0, config.extraction_seconds / 12)
+                shutdown_reserve = min(20.0, (config.extraction_seconds if not config.flexible_budget else config.total_seconds) / 12)
                 left = extraction_deadline - time.monotonic() - shutdown_reserve
                 if left > 0:
                     handoff = await asyncio.wait_for(driver.collect_graph(left), timeout=left)
@@ -185,7 +189,7 @@ async def run_trial(driver: Driver, config: TrialConfig, task_id: str, condition
                     prompt += "\n\nSCIENTIFIC WORKING MODEL FOR THIS REPOSITORY\n" + guide + "\n"
                 prompt += handoff["handoff"]
                 prompt += ("\nUse the scientific context as follows:"
-                           "\n- Connect the reported issue to the objects and interfaces above; prefer workflow interfaces, then their parameters and outputs."
+                           "\n- Inspect the source spans listed for the workflow interfaces first, then their parameters and outputs."
                            "\n- Interpretations are fallible context, not repair rules: reconcile them with the task and public sources, and drop any that conflict."
                            "\n- When you rely on an interpretation, cite its object ID.")
             result = await stage("repair", prompt, remaining)

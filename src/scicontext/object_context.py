@@ -234,8 +234,7 @@ def object_bundle(graph: dict, response: object, context: dict | None = None) ->
 def render_guide(graph: dict) -> str:
     """Readable annotations; the complete structure stays in the companion JSON file."""
     lines = ["# Scientific working model", "",
-        "These are contextual interpretations, not mandatory repair rules. Reconcile them with the "
-        "task and public sources; distinguish intended science from possibly buggy implementation.",
+        "Interpretations are anchored to object IDs and public source passages.",
         "The companion scientific-graph.json preserves every object, operation, link, unsupported "
         "item and coverage record. Use the object IDs below to inspect relevant relationships "
         "selectively; do not dump the entire graph into the conversation.", ""]

@@ -150,10 +150,10 @@ def test_code_first_interpretation_reaches_normal_repair_without_probe_loop(scie
     assert "SCIENTIFIC WORKING MODEL FOR THIS REPOSITORY" in driver.repair_prompt
     assert "Stiffness operator" in driver.repair_prompt
     assert "Fixed boundary conditions" in driver.repair_prompt
-    assert "not mandatory repair rules" in driver.repair_prompt
+    assert "fallible context, not repair rules" in driver.repair_prompt
     assert "cite its object ID" in driver.repair_prompt
     assert "reconcile them with the task and public sources" in driver.repair_prompt
-    assert "not mandatory repair rules" in driver.repair_prompt
+    assert "fallible context, not repair rules" in driver.repair_prompt
     assert "Rerun applicable supplied public probes" not in driver.repair_prompt
     assert driver.bundle["context"]["scientific_passages"]
 
