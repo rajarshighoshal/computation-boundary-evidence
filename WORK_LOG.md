@@ -31,7 +31,11 @@ Language-specific structure extraction must feed the shared representation. No r
 - Coverage is intentionally partial: Osprey timing/scaling regions and the uncalled gravitational
   counterpart remain gaps. Interface/operation counts are not scientific correctness or repair gains.
 - User confirmed: no compiler IR or exhaustive reconstruction; deliver a usable research prototype.
-  Next is a separately approved combined-context check of this revision; no model budget remains approved.
+- APPROVED NOW: one combined-context extraction call each on 051/025/016, Astra/medium, 360 model
+  seconds, no repairs/verifiers/retries. Freeze the source/prompt implementation at `a27cc93`.
+  Use a fresh v2 run directory; compare scientific implementation anchoring, public-source support,
+  readability and token costs with v1. Driver-only explanations/function-name paraphrases do not
+  satisfy the scientific-content criterion. Final check: artifact/token/protocol audit and source review.
 - This does not establish repair improvement, state-of-the-art quality or full-benchmark coverage.
 
 ## Latest checkpoint
