@@ -26,8 +26,8 @@ Language-specific structure extraction must feed the shared representation.
   intersection statement and a SHTOOLS pole assignment. Much scientific content was already in v1;
   this is not new scientific discovery. Osprey mathematical chains remain partly absent, some citation
   ranges are imprecise, and the complete handoff is verbose. Source links remain candidates.
-- APPROVED NOW: fresh baseline versus current context-assisted repair on the original five tasks
-  091/058/009/114/001. Astra/medium, one attempt per arm, 1800s total per attempt; treatment's
+- APPROVED NOW (supersedes Astra): fresh baseline versus context-assisted repair on the original five
+  tasks 091/058/009/114/001 using GPT-5.6 Luna/xhigh, one attempt per arm, 1800s total; treatment's
   360s model extraction cap and 600s extraction wall allowance are inside that total. Official verification.
   Existing maximum concurrency 2: both arms together, then next task; no method changes or retries.
   Task001's prior private-test diagnostic exposure was disclosed; all five are development cases.
@@ -43,7 +43,12 @@ Language-specific structure extraction must feed the shared representation.
   offline image preserves all objects/annotations with matching host/guest hashes; receipt:
   `results/file-handoff-check-v1.json`. Full graph/sources and readable guide live in repair-container
   files; prompt contains only pointers. No extractor rules, scientific semantics or model budget changed.
-- Active: freeze corrected source and fresh five-task config, launch both arms in parallel per task.
+- Astra v2 STOPPED at user request for the model switch. Its partial results and costs are preserved in
+  `results/workflow-five-v2.json`, `results/workflow-five-v2-token-audit.json`, `docs/WORKFLOW_FIVE_V2.md`.
+  Owned containers stopped; no completed/partial Astra outcomes will be pooled into the Luna run.
+- Active: freeze and launch `configs/workflow-five-luna-v1.json` on the original five, Luna/xhigh in
+  both arms and both treatment stages. Config/TOML checks and 80 relevant runner tests pass.
+  Method remains `dc62db2`; only model/effort change, not scientific method or time budgets.
   Final verification: all ten attempt receipts reconciled, official verifier outcomes and per-stage
   input/cached/output/reasoning tokens audited, generated comparison report; preserve v1 separately.
 - This does not establish repair improvement, state-of-the-art quality or full-benchmark coverage.
@@ -66,7 +71,8 @@ Prior negative comparison remains unchanged in `docs/PROBE_FIRST_PAIRS_V1.md` an
 
 ## Carry forward
 
-- No benchmark runs active. Preserve user-owned PDFs, `.serena/` and `workspace/`.
+- Astra five-task v2 is stopped; do not resume it. Luna original-five launch is next. Preserve user-owned PDFs,
+  `.serena/` and `workspace/`.
 - Docker memory remains temporarily increased; restore `MemoryMiB=4096` only when no longer needed.
   Original setting/receipt: `results/docker-memory-change.json`.
 - All previously used tasks are development-exposed. Task001 has additional posthoc hidden-assertion

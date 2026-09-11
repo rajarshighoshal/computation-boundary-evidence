@@ -1,0 +1,65 @@
+{
+  "method": "Completed-turn usage independently matched to final cumulative exec-session counters; subsets are not added twice",
+  "records": [
+    {
+      "cli_log": "runs/workflow-five-v2/jobs/task-091-baseline/task_091__JfmpBig/agent/repair.jsonl",
+      "cli_sha256": "d74b32da5a015c90a28de5d914e0e66b03397c8e7f480af666efe0666f35551d",
+      "condition": "baseline",
+      "session_file": "runs/workflow-five-v2/jobs/task-091-baseline/task_091__JfmpBig/agent/repair-sessions/2026/09/11/rollout-2026-09-11T11-00-05-01a0901f-e9f9-76f3-8235-518fd8a50d81.jsonl",
+      "session_sha256": "42d5c426a5dfd47f433738906ccac34ba29d21ccd463d3d2bd789576a47653ea",
+      "stage": "repair",
+      "status": "verified",
+      "task_id": "091",
+      "usage": {
+        "cached_input_tokens": 179840,
+        "input_tokens": 212226,
+        "nonreasoning_output_tokens": 2053,
+        "output_tokens": 2110,
+        "reasoning_output_tokens": 57,
+        "total_tokens": 214336,
+        "uncached_input_tokens": 32386
+      }
+    },
+    {
+      "condition": "science",
+      "model_calls": [
+        {
+          "cli_log": "runs/workflow-five-v2/jobs/task-091-science/task_091__ef5B5fJ/agent/extract_draft.jsonl",
+          "cli_sha256": "8b7001e89a86d11507dc32e9b0fe8d24c128ebb7dce4c5eba9a0c93e2259ded4",
+          "session_file": "runs/workflow-five-v2/jobs/task-091-science/task_091__ef5B5fJ/agent/extract_draft-sessions/2026/09/11/rollout-2026-09-11T11-00-18-01a09020-1b1f-7b63-9cd9-d1e8351371c5.jsonl",
+          "session_sha256": "fedcdadb39a0c142439987ca538e94aea5f29a323bef47ff6a35cd1186fb2952",
+          "stage": "extract_draft",
+          "status": "verified",
+          "usage": {
+            "cached_input_tokens": 206720,
+            "input_tokens": 247791,
+            "nonreasoning_output_tokens": 2654,
+            "output_tokens": 2729,
+            "reasoning_output_tokens": 75,
+            "total_tokens": 250520,
+            "uncached_input_tokens": 41071
+          }
+        }
+      ],
+      "stage": "extract",
+      "status": "verified",
+      "task_id": "091",
+      "usage": {
+        "cached_input_tokens": 206720,
+        "input_tokens": 247791,
+        "nonreasoning_output_tokens": 2654,
+        "output_tokens": 2729,
+        "reasoning_output_tokens": 75,
+        "total_tokens": 250520,
+        "uncached_input_tokens": 41071
+      }
+    },
+    {
+      "condition": "science",
+      "stage": "repair",
+      "status": "unknown_incomplete_stage",
+      "task_id": "091"
+    }
+  ],
+  "run_root": "runs/workflow-five-v2"
+}
