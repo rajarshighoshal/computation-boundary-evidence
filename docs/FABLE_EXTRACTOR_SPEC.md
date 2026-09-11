@@ -2,6 +2,17 @@
 
 Third read-only consultation. Full buildable specification for the scientific-meaning extractor. Design principle: every new thing is an object in scientific-objects.json with a new kind, or a link with a new relation — the enrichment schema needs zero changes; loci are annotatable because they have IDs; the LLM still cannot create structure.
 
+## 0. Coverage architecture (the top-level design statement)
+
+The extractor is **two-tier by construction**:
+
+- **Universal tier (floor):** the `/proc` observer + LD_PRELOAD shims operate below the language at the OS process/native-symbol boundary. Every scientific language — Fortran, MATLAB, Octave, R, C, C++, Python, Julia, Haskell, and MPI/threaded programs in any of them — is observed as processes with threads, CPU time, memory growth, file I/O patterns, malloc behavior, communication traffic, exit codes and artifacts. This tier never goes blind; it guarantees the method applies to the full breadth of scientific computing, compiled and parallel included.
+- **Deep tier (graded depth):** the relation layer (repeated-call alignment → invariance/sensitivity/distinctness loci) currently operates at the Python frame level via sys.monitoring. Static source-span binding (tree-sitter frontends) exists for C/C++/Fortran/MATLAB/Cython; the long tail (Octave/R/Julia/Haskell) is process-level only until a grammar is wired.
+
+Capability matrix (stated in the paper as-is): Python = full depth; C/C++/Fortran/MATLAB = process+tools + static spans, process-level relation evidence; long tail = universal tier only. Intra-binary call-level relations in compiled cores (perf/callgrind class) are declared future work — this is a paper-worthy limitation, not a hidden failure.
+
+The HPC-flavored contribution claim follows directly: no LLM4SE repair representation offers language-agnostic reach through process-level observation, and the graded-depth fallback (deep where instruments exist, universal everywhere) is the honest scientific position.
+
 ## 1. Representation schema (extends the graph)
 
 Three new object kinds (IDs via existing `_id(prefix, *parts)`):
