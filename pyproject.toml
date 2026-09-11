@@ -14,7 +14,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-test = ["pytest>=8,<10"]
+test = [
+    "numpy>=2.5.3",
+    "pytest>=8,<10",
+]
 runner = ["datacurve-pier==0.3.0"]
 
 [project.scripts]
