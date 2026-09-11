@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import gzip
 import json
 import os
 import runpy
@@ -20,6 +21,9 @@ from pathlib import Path
 
 TRACER_VERSION = "trace_runtime-1.0"
 MAX_INSTANCES_PER_FUNC = 64
+MAX_VALUE_BYTES = 16 * 1024 * 1024
+MAX_CONTAINER_ITEMS = 1000
+TRACE_ARRAY_BUDGET = 64 * 1024 * 1024
 
 
 def _parse_predicates(script_text: str) -> list:
@@ -101,7 +105,7 @@ class _Tracer:
         self.predicates = _parse_predicates(script.read_text())
         self.predicate_evaluations = []
         self.started = time.monotonic()
-        self.trace_file = (out / "trace.jsonl").open("w")
+        self.trace_file = gzip.open(out / "trace.jsonl.gz", "wt", encoding="utf-8")
         from .fingerprint import fingerprint
         self.fingerprint = fingerprint
         if observe:
@@ -145,6 +149,17 @@ class _Tracer:
         finally:
             self.in_callback = False
 
+    def _guarded_fingerprint(self, value):
+        try:
+            size = sys.getsizeof(value)
+        except TypeError:
+            size = 0
+        if size > MAX_VALUE_BYTES or (isinstance(value, (dict, list, tuple, set, frozenset))
+                                      and len(value) > MAX_CONTAINER_ITEMS):
+            return {"t": "opaque-large", "exact": None, "equiv": None, "multiset": None,
+                    "rev": None, "struct": type(value).__name__, "bytes": size, "truncated": True}
+        return self.fingerprint(value, budget=TRACE_ARRAY_BUDGET)
+
     def _record_inputs(self, frame, record):
         code = frame.f_code
         names = list(code.co_varnames[: code.co_argcount + code.co_kwonlyargcount])
@@ -154,11 +169,12 @@ class _Tracer:
             for name in names:
                 value = frame.f_locals.get(name)
                 if value is not None:
-                    inputs[name] = self.fingerprint(value)
+                    inputs[name] = self._guarded_fingerprint(value)
             if names and names[0] in {"self", "cls"}:
                 value = frame.f_locals.get(names[0])
-                if value is not None and hasattr(value, "__dict__"):
-                    inputs["self.__dict__"] = self.fingerprint(vars(value))
+                state = getattr(value, "__dict__", None)
+                if state is not None and len(state) <= 50 and sys.getsizeof(state) <= MAX_VALUE_BYTES:
+                    inputs["self.__dict__"] = self._guarded_fingerprint(state)
         finally:
             self.in_fingerprint = False
         record["inputs"] = inputs

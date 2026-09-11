@@ -309,4 +309,7 @@ def derive_loci(trace_records: list, predicate_evaluations: list, script_status:
 
 
 def load_trace(trace_path: Path) -> list:
-    return [json.loads(line) for line in trace_path.read_text().splitlines() if line.strip()]
+    import gzip
+    opener = gzip.open if str(trace_path).endswith(".gz") else open
+    with opener(trace_path, "rt", encoding="utf-8") as handle:
+        return [json.loads(line) for line in handle if line.strip()]
