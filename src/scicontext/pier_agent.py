@@ -19,7 +19,6 @@ from pier.models.agent.network import NetworkAllowlist
 from pier.models.trial.paths import TrialPaths
 
 from .assets import prepare_codex, prepare_helpers
-from .annotations import annotation_schema
 from .configuration import codex_config
 from .controller import TrialConfig, read_usage, run_trial, verify_smoke
 from .extraction import extraction_reserve, run_extraction
@@ -56,31 +55,11 @@ async def bounded_call(operation, seconds, pending):
         raise
 
 
-def revision_feedback(feedback, draft):
-    """Remove duplicated source; refuse oversized feedback with an explicit receipt."""
-    value = dict(feedback)
-    for key in ("draft_assembly", "observed_assembly"):
-        summary = value.get(key)
-        if isinstance(summary, dict):
-            value[key] = {**summary, "probes": [
-                {k: v for k, v in probe.items() if k != "source"}
-                for probe in summary.get("probes", [])]}
-    value["feedback_omissions"] = ["Duplicate probe source omitted from assembly summaries; see draft_annotations_text."]
-    if draft.is_file() and draft.stat().st_size <= 65536:
-        value["draft_annotations_text"] = draft.read_text()
-    else:
-        value["draft_annotations_text"] = None
-        value["feedback_omissions"].append("Draft final text unavailable or exceeds the 64 KiB annotation limit; raw artifact retained.")
-    if len(json.dumps(value, ensure_ascii=False).encode()) > 131072:
-        raise ValueError("Revision feedback exceeds 128 KiB; correction skipped rather than omitting binding diagnostics")
-    return value
-
-
 class OutputCodex(Codex):
     """Keep upstream launch/auth/cleanup; add final output and file-backed stdin."""
 
     def __init__(self, *args, stage: str, prompt_path: str | None = None, **kwargs):
-        if stage not in {"extract", "extract_draft", "extract_revision", "repair"}:
+        if stage not in {"extract", "extract_draft", "repair"}:
             raise ValueError("Unknown Codex stage")
         self.stage = stage
         self.prompt_path = prompt_path
@@ -104,9 +83,9 @@ class OutputCodex(Codex):
 
 
 def timeout_launcher(binary: str) -> str:
-    """Use native read-only Codex for extraction and GNU timeout for both stages."""
+    """Use native read-only Codex for extraction and GNU timeout for all stages."""
     return f'''#!/bin/sh
-case "${{SCICONTEXT_STAGE_NAME:-}}" in extract|extract_draft|extract_revision) readonly_extract=1 ;; *) readonly_extract=0 ;; esac
+case "${{SCICONTEXT_STAGE_NAME:-}}" in extract|extract_draft) readonly_extract=1 ;; *) readonly_extract=0 ;; esac
 if [ "$readonly_extract" = 1 ] && [ "${{1:-}}" = exec ] && [ "${{2:-}}" = --dangerously-bypass-approvals-and-sandbox ]; then
   shift 2
   set -- exec --sandbox read-only -c 'approval_policy="never"' "$@"
@@ -127,16 +106,15 @@ class ScientificCodex(BaseAgent):
     def __init__(self, *args, condition="baseline", total_seconds=1800,
                  extraction_seconds=360, reasoning_effort="high", codex_version="0.153.4",
                  workspace=None, auth_file=None, smoke=False, extraction_only=False,
-                 extractor="annotations", extraction_model_seconds=None, **kwargs):
+                 extractor="scientific_objects", extraction_model_seconds=None, **kwargs):
         super().__init__(*args, **kwargs)
         if condition not in {"baseline", "science"}:
             raise ValueError("Unknown experiment condition")
         if codex_version != "0.153.4":
             raise ValueError("This experiment pins Codex 0.153.4")
+        if extractor != "scientific_objects":
+            raise ValueError("Only the scientific-objects extractor is supported")
         self.condition = condition
-        if extractor not in {"annotations", "scientific_objects"}:
-            raise ValueError("Unknown extraction method")
-        self.extraction_mode = extractor
         self.extraction_model_seconds = float(extraction_model_seconds) if extraction_model_seconds is not None else None
         if self.extraction_model_seconds is not None and not (0 < self.extraction_model_seconds < float("inf")):
             raise ValueError("extraction_model_seconds must be finite and positive")
@@ -185,8 +163,7 @@ class ScientificCodex(BaseAgent):
         await environment.upload_dir(self.workspace / "src/scicontext", REMOTE + "/src/scicontext")
         await self._put(environment, "codex-launcher", timeout_launcher(binary), REMOTE + "/bin/codex")
         await self.checked(environment, f"chmod 755 {REMOTE}/bin/codex; command -v timeout")
-        await self._put(environment, "annotation-schema.json", json.dumps(annotation_schema()), CONTROL + "/annotation-schema.json")
-        if getattr(self, "extraction_mode", "annotations") == "scientific_objects":
+        if self.condition == "science":
             from .object_context import enrichment_schema
             await self._put(environment, "object-enrichment.schema.json", json.dumps(enrichment_schema()),
                             CONTROL + "/object-enrichment.schema.json")
@@ -200,7 +177,7 @@ class ScientificCodex(BaseAgent):
             probe += "; from pyscf import lib; print(lib.current_memory())"
         output = await self.checked(environment, shlex.join(["python", "-c", probe]))
         (self.logs_dir / f"runtime-{stage}.log").write_text(output)
-        await self.checked(environment, f"PYTHONPATH={REMOTE}/src:{REMOTE}/deps python -c 'from scicontext.graph import graph_schema; print(graph_schema()[\"type\"])'")
+        await self.checked(environment, f"PYTHONPATH={REMOTE}/src:{REMOTE}/deps python -c 'from scicontext.object_context import enrichment_schema; print(enrichment_schema()[\"type\"])'")
 
     async def setup(self, environment):
         if not isinstance(environment, DockerEnvironment):
@@ -239,21 +216,16 @@ class ScientificCodex(BaseAgent):
             "codex_version": self.config.codex_version, "harness_architecture": "x64",
             "scientific_image_architecture": "amd64", "environment_image": environment.task_env_config.docker_image,
             "execution": "upstream_pier_codex_docker_boundary", "timeout": "GNU timeout foreground process group",
-            "extractor": ("scientific_objects_v1" if getattr(self, "extraction_mode", "annotations") == "scientific_objects"
-                          else "scientific_probe_first_v1"),
-            "claim_cap": None if getattr(self, "extraction_mode", "annotations") == "scientific_objects" else 5,
-            "probe_cap": 0 if getattr(self, "extraction_mode", "annotations") == "scientific_objects" else 2,
-            "extraction_model_call_cap": (1 if getattr(self, "extraction_mode", "annotations") == "scientific_objects" else 2)
-                if self.condition == "science" else 0,
-            "extraction_model_seconds": getattr(self, "extraction_model_seconds", None),
+            "extractor": "scientific_objects_v1",
+            "claim_cap": None, "probe_cap": 0,
+            "extraction_model_call_cap": 1 if self.condition == "science" else 0,
+            "extraction_model_seconds": self.extraction_model_seconds,
             "extraction_harness_architecture": self.extraction_architecture,
             "extraction_access_mode": "read-only" if self.condition == "science" else None,
             "extraction_codex_receipt": read_json(self.extract_codex_package.parent / "receipt.json") if self.extract_codex_package else None,
             "interpretation_cap_seconds": (self.config.extraction_seconds - min(60, self.config.extraction_seconds / 6)
                 - extraction_reserve(self.config.extraction_seconds - min(60, self.config.extraction_seconds / 6))),
-            "revision_policy": ("one_scientific_interpretation_call; no probe/refinement loop"
-                if getattr(self, "extraction_mode", "annotations") == "scientific_objects" else
-                "optional_on_diagnostics_and_remaining_time; no reserved second model call"),
+            "revision_policy": "one_scientific_interpretation_call; no probe/refinement loop",
             "python_minor": pyminor, "baseline_tree": self._baseline_tree,
             "docker_memory_bytes": int(info[0]), "docker_cpus": int(info[1]),
             "task_requested_memory_mb": environment.task_env_config.memory_mb,
@@ -284,108 +256,72 @@ class ScientificCodex(BaseAgent):
         return json.loads(output)
 
     async def prepare(self, seconds):
-        extra = (f" --objects-output {SCRATCH}/scientific-objects.json --enrichment-input {SCRATCH}/scientific-context-input.json"
-                 if getattr(self, "extraction_mode", "annotations") == "scientific_objects" else "")
         return await self._helper(
             f"{HELPER} packet --root {self.root} --context-root {REMOTE}/context --task-id {self.task_id} "
-            f"--output {SCRATCH}/packet.json --catalog {SCRATCH}/catalog.md{extra}", seconds)
+            f"--output {SCRATCH}/packet.json --catalog {SCRATCH}/catalog.md "
+            f"--objects-output {SCRATCH}/scientific-objects.json --enrichment-input {SCRATCH}/scientific-context-input.json",
+            seconds)
 
     async def interpret(self, instruction, seconds):
-        return await self._interpret_call("extract_draft", instruction, seconds)
+        return await self._interpret_call(instruction, seconds)
 
-    async def revise(self, instruction, feedback, seconds):
-        draft = self.logs_dir / "extract_draft-final.txt"
-        try:
-            feedback = revision_feedback(feedback, draft)
-        except ValueError as error:
-            receipt = {"status": "not_run", "model_attempted": False, "reason": str(error)}
-            write_json(self.logs_dir / "revision-feedback.json", receipt)
-            return receipt
-        write_json(self.logs_dir / "revision-feedback.json", feedback)
-        return await self._interpret_call("extract_revision", instruction, seconds, feedback)
-
-    async def _interpret_call(self, name, instruction, seconds, feedback=None):
+    async def _interpret_call(self, instruction, seconds):
         now = datetime.now(timezone.utc)
         clock = lambda duration: (now + timedelta(seconds=max(0, duration))).strftime("%H:%M:%S UTC")
-        prompt_file = ("prompts/enrich_objects.md" if getattr(self, "extraction_mode", "annotations") == "scientific_objects"
-                       else "prompts/extract.md" if name == "extract_draft" else "prompts/extract_revision.md")
-        template = (self.workspace / prompt_file).read_text()
+        template = (self.workspace / "prompts/enrich_objects.md").read_text()
         # Prompt milestones are earlier soft targets, not extra process cutoffs.
         # Allow for the existing CLI collection/termination work when reporting
         # the actual time available to the model, including small test budgets.
         model_seconds = max(0.0, seconds - min(10.0, seconds / 5)
                             - min(3.0, seconds / 10) - min(1.0, seconds / 10))
-        if getattr(self, "extraction_model_seconds", None) is not None:
+        if self.extraction_model_seconds is not None:
             model_seconds = min(model_seconds, self.extraction_model_seconds)
         prompt = template.format(root=self.root, scratch=SCRATCH, runtime=CONTROL,
                                  seconds=max(1, int(model_seconds)), explore_until=clock(model_seconds * .60),
                                  save_by=clock(model_seconds * .80), finish_by=clock(model_seconds * .95),
-                                 instruction=instruction, feedback=json.dumps(feedback, sort_keys=True, ensure_ascii=False))
-        result = await self._run_codex(name, prompt, seconds)
+                                 instruction=instruction)
+        result = await self._run_codex("extract_draft", prompt, seconds)
         if result.get("fatal_model_error"):
             return result
         # Codex returns one compact JSON response; orchestration owns file writes.
         try:
-            final_path = self.logs_dir / f"{name}-final.txt"
+            final_path = self.logs_dir / "extract_draft-final.txt"
             if final_path.stat().st_size > 65536:
                 raise ValueError("Compact annotations exceed 64 KiB")
             annotations = read_json(final_path)
         except (OSError, ValueError) as error:
+            # The prompt directs a first-pass write to the scratch path; on a
+            # timed-out or failed turn, assembly picks that file up if present.
             result.update(annotations_status="no_valid_annotations", annotations_error=str(error))
-            write_json(self.logs_dir / f"{name}-process.json", result)
+            write_json(self.logs_dir / "extract_draft-process.json", result)
             return result
-        # A timed-out revision must not replace the selected usable draft.
-        if name == "extract_draft" or result.get("status") == "completed":
-            self._annotations_remote = SCRATCH + f"/{name}-annotations.json"
-            await self._put(self.extract_environment, f"{name}-annotations.json", json.dumps(annotations),
+        if result.get("status") == "completed":
+            self._annotations_remote = SCRATCH + "/extract_draft-annotations.json"
+            await self._put(self.extract_environment, "extract_draft-annotations.json", json.dumps(annotations),
                             self._annotations_remote)
         result["annotations_status"] = "received"
         return result
 
-    async def assemble(self, outcomes, seconds):
+    async def assemble(self, seconds):
         sequence = getattr(self, "_assembly_sequence", 0) + 1
         self._assembly_sequence = sequence
         target = CONTROL + f"/assembly-{sequence}.json"
-        extra = ""
-        if outcomes is not None:
-            receipts = SCRATCH + f"/assembly-{sequence}-probe-results.json"
-            await self._put(self.extract_environment, f"assembly-{sequence}-probe-results.json", json.dumps({"results": outcomes}), receipts)
-            extra = f" --probe-results {receipts}"
         annotations = getattr(self, "_annotations_remote", SCRATCH + "/extract_draft-annotations.json")
-        if getattr(self, "extraction_mode", "annotations") == "scientific_objects":
-            result = await self._helper(
-                f"{HELPER} assemble-objects --graph {SCRATCH}/scientific-objects.json "
-                f"--annotations {annotations} --context-input {SCRATCH}/scientific-context-input.json --output {target}", seconds)
-        else:
-            result = await self._helper(
-                f"{HELPER} assemble --root {self.root} --context-root {REMOTE}/context --packet {SCRATCH}/packet.json "
-                f"--annotations {annotations} --output {target}{extra}", seconds)
+        result = await self._helper(
+            f"{HELPER} assemble-objects --graph {SCRATCH}/scientific-objects.json "
+            f"--annotations {annotations} --context-input {SCRATCH}/scientific-context-input.json --output {target}", seconds)
         if result.get("usable"):
             self._selected_remote = target
         result["artifact"] = target
         write_json(self.logs_dir / f"assembly-{sequence}.json", result)
         return result
 
-    async def probe(self, specs, seconds):
-        # Each call owns immutable specs/results. The runner saves each inline
-        # script with its receipt, so repeated names cannot overwrite evidence.
-        sequence = getattr(self, "_probe_sequence", 0) + 1
-        self._probe_sequence = sequence
-        name = f"probe-round-{sequence}"
-        await self._put(self.extract_environment, name + "-specs.json", json.dumps({"probes": specs}),
-                        SCRATCH + "/" + name + "-specs.json")
-        result = await self._helper(
-            f"{HELPER} run-probes --root {self.root} --scratch {SCRATCH} --specs {SCRATCH}/{name}-specs.json "
-            f"--seconds {max(.05, seconds - 5)} --output {SCRATCH}/{name}-results.json", seconds)
-        write_json(self.logs_dir / (name + "-results.json"), result)
-        return result["results"]
-
     async def _run_codex(self, name, prompt, seconds):
         started = time.monotonic()
         deadline = started + seconds
         self._pending_codex_io = getattr(self, "_pending_codex_io", set())
         pending = self._pending_codex_io
-        environment = self.extract_environment if name in {"extract", "extract_draft", "extract_revision"} else self.environment
+        environment = self.extract_environment if name in {"extract", "extract_draft"} else self.environment
         collection_reserve = min(10.0, seconds / 5)
         duration = max(0.05, seconds - collection_reserve - min(3.0, seconds / 10) - min(1.0, seconds / 10))
         error = None
@@ -402,7 +338,7 @@ class ScientificCodex(BaseAgent):
             path = (await bounded_call(self.checked(environment, "printenv PATH"),
                                       max(0, deadline - time.monotonic() - collection_reserve), pending)).strip()
             duration = max(0.05, deadline - time.monotonic() - collection_reserve - min(3.0, seconds / 10) - min(1.0, seconds / 10))
-            if name.startswith("extract") and getattr(self, "extraction_model_seconds", None) is not None:
+            if name.startswith("extract") and self.extraction_model_seconds is not None:
                 duration = min(duration, self.extraction_model_seconds)
             stage_agent = OutputCodex(
                 stage=name, prompt_path=prompt_path, logs_dir=self.logs_dir / name, model_name=self.config.model,

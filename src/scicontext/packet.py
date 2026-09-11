@@ -14,7 +14,7 @@ import copy
 from pathlib import Path
 
 from . import evidence
-from .graph import _safe_relative
+from .io import _safe_relative
 from .task_slice import seed_references
 
 MAX_SCAN_FILES = 2000
