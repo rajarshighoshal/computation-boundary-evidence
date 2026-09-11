@@ -1,8 +1,10 @@
 import asyncio
+import hashlib
 import json
 import os
 import subprocess
 import time
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -13,6 +15,38 @@ pytest.importorskip("pier")
 from pier.agents.installed.codex import Codex
 from pier.models.agent.context import AgentContext
 from scicontext.pier_agent import OutputCodex, ScientificCodex, timeout_launcher
+
+
+@pytest.mark.parametrize("stage", ["extract_draft", "repair"])
+def test_large_prompt_uses_byte_exact_stdin_through_upstream_launch(tmp_path, stage):
+    # Larger than host ARG_MAX; includes shell metacharacters and multibyte text.
+    payload = ('science λ\n"quotes" $HOME `not-a-command` \\\n' * 200000).encode()
+    prompt = tmp_path / "prompt with spaces.txt"
+    prompt.write_bytes(payload)
+    binary = tmp_path / "codex"
+    binary.write_text(
+        "#!/usr/bin/env python3\nimport hashlib,json,sys\n"
+        "print(json.dumps({'sha256':hashlib.sha256(sys.stdin.buffer.read()).hexdigest(),'argv':sys.argv[1:]}))\n")
+    binary.chmod(0o755)
+    agent = OutputCodex(stage=stage, prompt_path=str(prompt), logs_dir=tmp_path / "logs",
+                        model_name="gpt-6-astra", extra_env={"PATH": str(tmp_path) + os.pathsep + os.environ["PATH"]})
+    class Environment:
+        default_user = None
+        def agent_process_env(self, env):
+            return env
+        async def exec(self, command, **kwargs):
+            if "codex exec " in command:
+                assert len(command.encode()) < 8192
+                assert "</dev/null" not in command
+                command = command.replace("/logs/agent/" + stage + ".jsonl", str(tmp_path / "events.jsonl"))
+                result = subprocess.run(["/bin/bash", "-c", command], env={**os.environ, **kwargs.get("env", {})},
+                                        text=True, capture_output=True, check=True)
+                self.observed = json.loads(result.stdout)
+            return SimpleNamespace(return_code=0, stdout="", stderr="")
+    environment = Environment()
+    asyncio.run(agent.run("-", environment, AgentContext()))
+    assert environment.observed["sha256"] == hashlib.sha256(payload).hexdigest()
+    assert environment.observed["argv"][-2:] == ["--", "-"]
 
 
 def test_reuses_upstream_run_without_reimplementing_authentication(tmp_path):
@@ -135,6 +169,8 @@ def test_each_call_uses_extraction_environment_distinct_logs_and_sessions(tmp_pa
         def __init__(self):
             self.files = {}
             self.dirs = []
+        async def upload_file(self, local, remote):
+            self.files[remote] = local.read_text()
         async def download_file(self, remote, local):
             local.write_text(self.files[remote])
         async def download_dir(self, remote, local):
@@ -142,6 +178,8 @@ def test_each_call_uses_extraction_environment_distinct_logs_and_sessions(tmp_pa
     environment = Environment()
     async def run(agent, instruction, env, context):
         assert env is environment
+        assert instruction == "-"
+        assert env.files[agent.prompt_path] == ("draft" if agent.stage == "extract_draft" else "revision")
         duration = float(agent._extra_env["SCICONTEXT_STAGE_SECONDS"].removesuffix("s"))
         assert duration == 360 if model_cap is not None else duration > 360
         launched.append((agent.stage, str(agent._REMOTE_CODEX_HOME), agent._OUTPUT_FILENAME))
@@ -181,7 +219,7 @@ def test_upstream_finally_cannot_hold_call_past_deadline(tmp_path, monkeypatch, 
                 # Simulate an upstream artifact/auth cleanup awaiting remote I/O.
                 await release.wait()
         monkeypatch.setattr(Codex, "run", run)
-        env = SimpleNamespace(download_file=AsyncMock(side_effect=OSError("unavailable")),
+        env = SimpleNamespace(upload_file=AsyncMock(), download_file=AsyncMock(side_effect=OSError("unavailable")),
                               download_dir=AsyncMock())
         d = SimpleNamespace(extract_environment=env, environment=env, root="/app/task_058",
                             config=SimpleNamespace(model="gpt-6-astra", reasoning_effort="high", codex_version="0.153.4"),
@@ -214,7 +252,7 @@ def test_artifact_downloads_cannot_hold_call_past_deadline(tmp_path, monkeypatch
         monkeypatch.setattr(Codex, "run", AsyncMock())
         async def stalled(*args):
             await asyncio.sleep(10)
-        env = SimpleNamespace(download_file=stalled, download_dir=stalled)
+        env = SimpleNamespace(upload_file=AsyncMock(), download_file=stalled, download_dir=stalled)
         d = SimpleNamespace(extract_environment=env, environment=env, root="/app/task_058",
                             config=SimpleNamespace(model="gpt-6-astra", reasoning_effort="high", codex_version="0.153.4"),
                             logs_dir=tmp_path, auth_file=tmp_path / "dummy", checked=AsyncMock(return_value="/usr/bin"))
@@ -239,7 +277,7 @@ def test_provider_failure_receipt_is_fatal_for_every_call(tmp_path, monkeypatch,
                 local.write_text('{"type":"error","message":"quota exceeded"}\n')
             else:
                 raise OSError("missing")
-        env = SimpleNamespace(download_file=download, download_dir=AsyncMock())
+        env = SimpleNamespace(upload_file=AsyncMock(), download_file=download, download_dir=AsyncMock())
         d = SimpleNamespace(extract_environment=env, environment=env, root="/app/task_058",
                             config=SimpleNamespace(model="gpt-6-astra", reasoning_effort="high", codex_version="0.153.4"),
                             logs_dir=tmp_path, auth_file=tmp_path / "dummy", checked=AsyncMock(return_value="/usr/bin"))

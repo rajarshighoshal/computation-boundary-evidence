@@ -44,11 +44,10 @@ class Runners:
             polls = 0
             def poll(self):
                 assert self.auth.is_file()
-                assert len(owner.started) >= 2, "Both siblings must be admitted before waiting"
                 self.polls += 1
                 if owner.interrupt:
                     signal.getsignal(signal.SIGTERM)(signal.SIGTERM, None)
-                if self.polls < 2 or (owner.failure and self.pid != 10000 and not owner.finished_peer):
+                if self.polls < 2:
                     return None
                 self.alive = False
                 owner.events.append(("finish", self.name))
@@ -76,7 +75,8 @@ class Runners:
         self.signals.append((pid, sig))
 
     def clean_containers(self, output, item):
-        assert all(not p.alive and p.auth.is_file() for p in self.started)
+        assert all(p.auth.is_file() for p in self.started)
+        assert all(not p.alive for p in self.started if p.name == f"task-{item['task_id']}-{item['condition']}")
         self.cleanup.append((item["task_id"], item["condition"]))
         return {"status": "complete", "containers": []}
 
@@ -117,18 +117,17 @@ def test_parallel_pairs_overlap_and_drain_before_next_task(workspace, monkeypatc
 
 
 @pytest.mark.parametrize("failure", ["runner", "provider"])
-def test_infrastructure_failure_cancels_peer_and_stops_admission(workspace, monkeypatch, failure):
+def test_infrastructure_failure_preserves_peer_and_continues_queue(workspace, monkeypatch, failure):
     runners = Runners(monkeypatch, failure=failure)
-    with pytest.raises(RuntimeError, match="Runner failed"):
-        parallel(workspace)
-    assert len(runners.started) == 2
-    assert runners.signals == [(10000, signal.SIGTERM), (10000, signal.SIGKILL),
-                               (10001, signal.SIGTERM), (10001, signal.SIGKILL)]
-    assert runners.cleanup == [("002", "baseline"), ("002", "science")]
+    parallel(workspace)
+    assert len(runners.started) == len({p.name for p in runners.started}) == 4
+    assert runners.signals == []
+    assert runners.cleanup == [("002", "baseline")]
     plan = read_json(workspace / "output/schedule.json")
-    assert [i["status"] for i in plan["schedule"]] == ["infrastructure_failure", "interrupted", "not_run", "not_run"]
+    assert plan["status"] == "completed_with_failures"
+    assert [i["status"] for i in plan["schedule"]] == ["infrastructure_failure", "completed", "completed", "completed"]
     summary = read_json(workspace / "output/summary/summary.json")
-    assert len(summary["trials"]) == 2
+    assert len(summary["trials"]) == 4
     assert summary["pairs"][0]["outcome"] == "unknown"
     for process in runners.started:
         assert not process.auth.exists()
@@ -153,29 +152,42 @@ def test_interrupt_stops_both_groups_before_auth_cleanup(workspace, monkeypatch)
 
 def test_finished_peer_keeps_its_completed_receipt(workspace, monkeypatch):
     runners = Runners(monkeypatch, failure="provider", finished_peer=True)
-    with pytest.raises(RuntimeError, match="Runner failed"):
-        parallel(workspace)
+    parallel(workspace)
     plan = read_json(workspace / "output/schedule.json")
-    assert [i["status"] for i in plan["schedule"]] == ["infrastructure_failure", "completed", "not_run", "not_run"]
+    assert [i["status"] for i in plan["schedule"]] == ["infrastructure_failure", "completed", "completed", "completed"]
     assert runners.cleanup == [("002", "baseline")]
-    assert all(pid == 10000 for pid, _ in runners.signals)
+    assert runners.signals == []
 
 
-def test_second_spawn_failure_stops_first_and_reconciles_both(workspace, monkeypatch):
+def test_second_spawn_failure_keeps_first_and_next_pair(workspace, monkeypatch):
     runners = Runners(monkeypatch)
     def start(command, **kwargs):
-        if runners.started:
+        if command[command.index("--job-name") + 1] == "task-002-science":
             # The first is still active while the second spawn fails.
-            runners.started[0].poll = lambda: None
             raise OSError("synthetic second spawn failure")
         return runners.start(command, **kwargs)
     monkeypatch.setattr(cli.subprocess, "Popen", start)
-    with pytest.raises(OSError, match="second spawn failure"):
-        parallel(workspace)
+    parallel(workspace)
     plan = read_json(workspace / "output/schedule.json")
-    assert [i["status"] for i in plan["schedule"]] == ["interrupted", "infrastructure_failure", "not_run", "not_run"]
-    assert runners.signals == [(10000, signal.SIGTERM), (10000, signal.SIGKILL)]
-    assert len(read_json(workspace / "output/summary/summary.json")["trials"]) == 2
+    assert [i["status"] for i in plan["schedule"]] == ["completed", "infrastructure_failure", "completed", "completed"]
+    assert runners.signals == []
+    assert len(runners.started) == 3
+    assert len(read_json(workspace / "output/summary/summary.json")["trials"]) == 4
+
+
+def test_preparation_failure_does_not_block_sibling_or_next_pair(workspace, monkeypatch):
+    runners = Runners(monkeypatch)
+    original = cli.shutil.copytree
+    def copy(source, target, **kwargs):
+        if "task-002-baseline" in str(target):
+            raise OSError("one local copy failure")
+        return original(source, target, **kwargs)
+    monkeypatch.setattr(cli.shutil, "copytree", copy)
+    parallel(workspace)
+    plan = read_json(workspace / "output/schedule.json")
+    assert [i["status"] for i in plan["schedule"]] == ["infrastructure_failure", "completed", "completed", "completed"]
+    assert len(runners.started) == 3 and runners.signals == []
+    assert runners.cleanup == [("002", "baseline")]
 
 
 def test_extraction_only_groups_two_tasks(workspace, monkeypatch):

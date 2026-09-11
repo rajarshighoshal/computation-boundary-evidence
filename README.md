@@ -66,7 +66,15 @@ The graph uses evidence IDs, exact source lines/hashes, quantities, claims, assu
 
 ## Run the development pilot
 
-The current extractor uses code-owned indexing, citations, entity bindings, graph assembly and checks. A read-only draft is followed by public-probe feedback and at most one bounded correction. Code saves outputs and keeps call artifacts separate. Preparation overlaps interpretation, and independent probes can run concurrently. The shared extraction allowance includes both model calls, probes, assembly, collection and shutdown. See [the implemented contract](docs/SEMANTIC_FEEDBACK.md).
+The current `scientific_objects` extractor combines code-owned structure and public-workflow
+localization with one read-only scientific interpretation call. The LLM annotates existing object IDs;
+it does not create structure or probes. Repair reads `scientific-guide.md` and selectively queries
+the complete `scientific-graph.json`, with public passages in `scientific-sources.json`. All three are
+durable files under `/opt/scicontext/context/` in the repair container, also preserved in host agent
+artifacts. The prompt carries file pointers, not the full graph. Both arms use the standard
+[Codex stdin prompt route](https://learn.chatgpt.com/docs/non-interactive-mode#use-codex-exec---when-stdin-is-the-prompt)
+through pinned Pier's existing launch/auth lifecycle. Extraction, transfer and shutdown count inside
+the science arm's total budget. Older probe-first configurations below are historical, not this method.
 
 The quota-interrupted initial run was resumed and completed without replacing tasks. Its failed
 launch remains preserved. There is no unfinished initial-task pair to resume. The current
@@ -93,8 +101,22 @@ Use a fresh output directory for every attempt. Existing attempts are never over
 
 Set `concurrency` to `2` for paired parallel execution, or retain `1` for serial. Full comparisons
 drain each task's baseline/treatment pair before the next task; extraction-only checks group two
-tasks. Both share Docker memory and CPU capacity. Provider/infrastructure failure stops further
-admission and interrupts the active peer; a failed scientific test is retained as an outcome.
+tasks. Both share Docker memory and CPU capacity. An attempt's preparation, provider or execution
+failure is recorded without cancelling its sibling or stopping the remaining queue. No automatic
+retry is made. A drained queue with failures is `completed_with_failures`; missing verifier outcomes
+remain unknown. Operator cancellation, invalid global inputs or an unresolved cleanup/integrity
+failure still stop the schedule. A failed scientific test is retained as an ordinary outcome.
+
+The offline [OpenMC handoff check](results/file-handoff-check-v1.json) preserves the original graph
+and all annotations, with identical host/repair-container file hashes. Reproduce it without model
+or verifier calls (use a fresh output directory):
+
+```bash
+uv run --no-sync python scripts/check_file_handoff.py \
+  --bundle runs/workflow-five-v1/jobs/task-058-science/task_058__y56EQiC/graph-bundle.json \
+  --output runs/file-handoff-check-reproduction \
+  --image docker.io/kevinxulearning/swe-bench-science-environment-python-cpp-task-058:v0.1.2@sha256:1b7822c1dbae675f2c32a19ec6cee830f93bd8248e459d3836d962805a3e680b
+```
 
 The proposed next extraction-only check can be inspected without model calls:
 

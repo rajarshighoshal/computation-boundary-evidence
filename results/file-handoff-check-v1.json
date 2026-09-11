@@ -1,0 +1,25 @@
+{
+  "annotations_preserved": 12,
+  "file_pointer_bytes": 432,
+  "graph_sha256": "31e8f017cc83460af6087952f51a4a33a57e674e09387ce62e25702c265d8672",
+  "guest_file_sha256": {
+    "scientific-graph.json": "d1f374ea469d341c0e5740b13d9e656307689854f893954440b7bd63397af680",
+    "scientific-guide.md": "a3051c961fc7d237b2df48185a80e085992cf349dc28cad68e5039ce05e68118",
+    "scientific-sources.json": "8c454a6f6186af09f671677aaabaa1225c57a6b648d62314c10c8f4b4b5ebbb0"
+  },
+  "guide_bytes": 10839,
+  "host_file_sha256": {
+    "scientific-graph.json": "d1f374ea469d341c0e5740b13d9e656307689854f893954440b7bd63397af680",
+    "scientific-guide.md": "a3051c961fc7d237b2df48185a80e085992cf349dc28cad68e5039ce05e68118",
+    "scientific-sources.json": "8c454a6f6186af09f671677aaabaa1225c57a6b648d62314c10c8f4b4b5ebbb0"
+  },
+  "image": "docker.io/kevinxulearning/swe-bench-science-environment-python-cpp-task-058:v0.1.2@sha256:1b7822c1dbae675f2c32a19ec6cee830f93bd8248e459d3836d962805a3e680b",
+  "input_bundle": "runs/workflow-five-v1/jobs/task-058-science/task_058__y56EQiC/graph-bundle.json",
+  "input_bundle_sha256": "29c038cc3c5571824a349936cc740e6295b67c97106567c8662d685b86bf3f2a",
+  "model_calls": 0,
+  "network": "none",
+  "objects": 10892,
+  "previous_inline_bytes": 7737919,
+  "status": "passed",
+  "verifier_calls": 0
+}

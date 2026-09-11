@@ -92,7 +92,7 @@ def test_fatal_repair_provider_failure_is_infrastructure_failure(tmp_path):
         result = await original(name, instruction, seconds)
         return {**result, "status": "failed", "fatal_model_error": True}
     d.run_stage = failed
-    with pytest.raises(RuntimeError, match="schedule must stop"):
+    with pytest.raises(RuntimeError, match="this attempt's receipt"):
         asyncio.run(run_trial(d, TrialConfig(total_seconds=2, extraction_seconds=.5),
                              "synthetic", "baseline", "Inspect", tmp_path))
     assert len(d.calls) == 1

@@ -192,7 +192,10 @@ def render(run_root, summary):
              f"planned attempts without a run receipt: {absent}. Schedule status: `{text(schedule.get('status'))}`.", "",
              "This is an exploratory comparison, not evidence of a general improvement. Unknown outcomes are not failures or successes; "
              "missing cost measurements are not zero. No significance or causal-attribution claim is made.", ""]
-    if absent or schedule.get("status") != "completed":
+    if schedule.get("status") == "completed_with_failures" and not absent:
+        lines += ["The queue drained, but some attempts failed operationally. Missing verifier outcomes remain "
+                  "unknown; receipts, available verifier results and measured costs remain listed.", ""]
+    elif absent or schedule.get("status") != "completed":
         lines += ["**The planned comparison is incomplete.** All selected tasks and arms remain listed below; "
                   "unrun arms are not silently dropped or included as failures in an observed success rate.", ""]
     if schedule.get("error"):

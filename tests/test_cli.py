@@ -110,26 +110,25 @@ def test_bounded_cohort_refuses_duplicate_or_unmaterialized_tasks(workspace):
             cli.pilot(workspace, workspace / "bad-config.json", workspace / "new-output", False, None)
 
 
-def test_pull_failure_retains_attempt_and_unstarted_schedule(workspace, monkeypatch):
+def test_pull_failure_retains_each_attempt_and_continues(workspace, monkeypatch):
     calls = []
     def fail(command, **kwargs):
         calls.append(command)
         raise subprocess.CalledProcessError(3, command)
     monkeypatch.setattr(cli, "_run_owned_process", fail)
-    with pytest.raises(subprocess.CalledProcessError):
-        run_pilot(workspace)
+    run_pilot(workspace)
     output = workspace / "output"
     schedule = read_json(output / "schedule.json")
-    assert schedule["status"] == "runner_failure"
-    assert [item["status"] for item in schedule["schedule"]] == ["infrastructure_failure", "not_run", "not_run", "not_run"]
+    assert schedule["status"] == "completed_with_failures"
+    assert [item["status"] for item in schedule["schedule"]] == ["infrastructure_failure"] * 4
     assert schedule["schedule"][0]["phase"] == "pulling_images"
-    assert schedule["finished_at"] and len(calls) == 1
+    assert schedule["finished_at"] and len(calls) == 4
     row = read_json(output / "jobs/task-002-baseline/setup-failure/run.json")
     assert row["config"] == asdict(TrialConfig())
     assert row["environment_image"] == "env-002@sha256:00"
     assert all(row[key] == value for key, value in PROVENANCE.items())
     summary = read_json(output / "summary/summary.json")
-    assert len(summary["trials"]) == 1
+    assert len(summary["trials"]) == 4
     assert summary["trials"][0]["exact_private_success"] is None
     assert read_json(output / "task-002-baseline-receipt.json")["return_code"] == 3
 
@@ -143,17 +142,16 @@ def test_success_and_setup_failure_still_make_comparable_unknown_pair(workspace,
                 fake_agent_record(command)
         return subprocess.CompletedProcess(command, 0)
     monkeypatch.setattr(cli, "_run_owned_process", execute)
-    with pytest.raises(RuntimeError, match="Runner failed"):
-        run_pilot(workspace)
+    run_pilot(workspace)
     output = workspace / "output"
     summary = read_json(output / "summary/summary.json")
-    assert len(summary["trials"]) == 2
+    assert len(summary["trials"]) == 4
     assert summary["pairs"][0]["outcome"] == "unknown"
     schedule = read_json(output / "schedule.json")
     assert "summary_error" not in schedule
-    assert [item["status"] for item in schedule["schedule"]] == ["completed", "infrastructure_failure", "not_run", "not_run"]
-    assert len(pier_calls) == 2
-    left, right = summary["trials"]
+    assert [item["status"] for item in schedule["schedule"]] == ["completed", "infrastructure_failure", "infrastructure_failure", "infrastructure_failure"]
+    assert len(pier_calls) == 4
+    left, right = summary["trials"][:2]
     assert left["config"] == right["config"]
     assert left["provenance"] == right["provenance"]
 
@@ -235,12 +233,11 @@ def test_preparation_error_is_preserved_without_launch(workspace, monkeypatch):
         raise OSError("synthetic copy failure")
     monkeypatch.setattr(cli.shutil, "copytree", fail)
     monkeypatch.setattr(cli, "_run_owned_process", lambda *a, **k: pytest.fail("No process should launch"))
-    with pytest.raises(OSError, match="copy failure"):
-        run_pilot(workspace)
+    run_pilot(workspace)
     schedule = read_json(workspace / "output/schedule.json")
-    assert schedule["status"] == "runner_failure"
+    assert schedule["status"] == "completed_with_failures"
     assert schedule["schedule"][0]["phase"] == "preparing"
-    assert len(read_json(workspace / "output/summary/summary.json")["trials"]) == 1
+    assert len(read_json(workspace / "output/summary/summary.json")["trials"]) == 4
 
 
 def test_successful_smoke_preserves_actual_budget_and_provenance(workspace, monkeypatch):

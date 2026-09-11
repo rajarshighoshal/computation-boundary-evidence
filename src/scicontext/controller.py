@@ -194,7 +194,7 @@ async def run_trial(driver: Driver, config: TrialConfig, task_id: str, condition
                                "a supported requirement merely to make the current implementation pass.")
             result = await stage("repair", prompt, remaining)
             if result.get("fatal_model_error") or getattr(driver, "_fatal_model_error", False):
-                raise RuntimeError("Repair model execution failed; inspect its receipt. The schedule must stop.")
+                raise RuntimeError("Repair model execution failed; inspect this attempt's receipt.")
             record["status"] = result.get("status", "completed")
         else:
             record["status"] = "timeout"

@@ -35,10 +35,17 @@ Language-specific structure extraction must feed the shared representation.
   091 completed: baseline passed, science failed private checks (both public passed). 058 science
   extraction completed, but repair never launched: host `docker` spawn raised E2BIG on the 7.7MB
   handoff. The runner interrupted 058 baseline; 009/114/001 were not started. No retries performed.
-- Next decision required: compact repair-facing scientific context plus full graph as a file, and
-  documented stdin prompt transport. Presentation changes require a newly frozen comparison;
-  do not restart or pool affected attempts without user approval. Source/prompt method remains a27.
-  Preserve partial results and audit completed stages; interrupted/missing costs remain unknown.
+- APPROVED FIX + FRESH COMPARISON: durable full graph in the repair workspace, concise scientific
+  guidance/file pointers rather than a graph dump, standard stdin prompt input. Isolate failed attempts
+  so siblings and remaining queued tasks continue; no silent retries. Same original five/tasks/budgets.
+- Transport/handoff + attempt-local scheduling VERIFIED: all 630 tests pass, including byte-exact
+  oversized stdin and sibling/queue continuation after failure. Actual OpenMC graph replay in its pinned
+  offline image preserves all objects/annotations with matching host/guest hashes; receipt:
+  `results/file-handoff-check-v1.json`. Full graph/sources and readable guide live in repair-container
+  files; prompt contains only pointers. No extractor rules, scientific semantics or model budget changed.
+- Active: freeze corrected source and fresh five-task config, launch both arms in parallel per task.
+  Final verification: all ten attempt receipts reconciled, official verifier outcomes and per-stage
+  input/cached/output/reasoning tokens audited, generated comparison report; preserve v1 separately.
 - This does not establish repair improvement, state-of-the-art quality or full-benchmark coverage.
 
 ## Latest checkpoint

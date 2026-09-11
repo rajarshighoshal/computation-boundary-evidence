@@ -77,12 +77,13 @@ def revision_feedback(feedback, draft):
 
 
 class OutputCodex(Codex):
-    """Keep upstream launch/auth/cleanup; only add output collection flags."""
+    """Keep upstream launch/auth/cleanup; add final output and file-backed stdin."""
 
-    def __init__(self, *args, stage: str, **kwargs):
+    def __init__(self, *args, stage: str, prompt_path: str | None = None, **kwargs):
         if stage not in {"extract", "extract_draft", "extract_revision", "repair"}:
             raise ValueError("Unknown Codex stage")
         self.stage = stage
+        self.prompt_path = prompt_path
         super().__init__(*args, **kwargs)
         # Upstream copies sessions out and removes this home after each run.
         # Separate homes also prevent leakage after interrupted cleanup.
@@ -91,6 +92,15 @@ class OutputCodex(Codex):
 
     def build_cli_flags(self):
         return super().build_cli_flags() + f" -o /logs/agent/{self.stage}-final.txt"
+
+    async def exec_as_agent(self, environment, command, **kwargs):
+        if self.prompt_path is not None and "codex exec " in command:
+            # Pier 0.3.0 redirects stdin to /dev/null. Keep its launch and auth
+            # lifecycle, changing only that redirection; `codex exec -` reads it.
+            if command.count("</dev/null") != 1:
+                raise RuntimeError("Pinned Pier Codex stdin redirection changed")
+            command = command.replace("</dev/null", "< " + shlex.quote(self.prompt_path))
+        return await super().exec_as_agent(environment, command, **kwargs)
 
 
 def timeout_launcher(binary: str) -> str:
@@ -384,20 +394,25 @@ class ScientificCodex(BaseAgent):
         upstream_pending = False
         collection_errors = []
         try:
+            prompt_file = self.logs_dir / f"{name}-prompt.txt"
+            prompt_file.write_text(prompt, encoding="utf-8")
+            prompt_path = CONTROL + f"/{name}-prompt.txt"
+            await bounded_call(environment.upload_file(prompt_file, prompt_path),
+                               max(0, deadline - time.monotonic() - collection_reserve), pending)
             path = (await bounded_call(self.checked(environment, "printenv PATH"),
                                       max(0, deadline - time.monotonic() - collection_reserve), pending)).strip()
             duration = max(0.05, deadline - time.monotonic() - collection_reserve - min(3.0, seconds / 10) - min(1.0, seconds / 10))
             if name.startswith("extract") and getattr(self, "extraction_model_seconds", None) is not None:
                 duration = min(duration, self.extraction_model_seconds)
             stage_agent = OutputCodex(
-                stage=name, logs_dir=self.logs_dir / name, model_name=self.config.model,
+                stage=name, prompt_path=prompt_path, logs_dir=self.logs_dir / name, model_name=self.config.model,
                 version=self.config.codex_version, reasoning_effort=self.config.reasoning_effort,
                 config_toml=codex_config(self.config.model, self.config.reasoning_effort),
                 extra_env={"CODEX_AUTH_JSON_PATH": str(self.auth_file), "PATH": REMOTE + "/bin:" + path,
                            "PYTHONPATH": self.root + ":" + self.root + "/source", "PYTHONDONTWRITEBYTECODE": "1",
                            "SCICONTEXT_STAGE_SECONDS": str(duration) + "s", "SCICONTEXT_STAGE_NAME": name},
             )
-            await bounded_call(stage_agent.run(prompt, environment, AgentContext()),
+            await bounded_call(stage_agent.run("-", environment, AgentContext()),
                                max(0, deadline - time.monotonic() - collection_reserve), pending)
         except asyncio.TimeoutError:
             timed_out = True
@@ -465,7 +480,32 @@ class ScientificCodex(BaseAgent):
         bundle = read_json(selected)
         if bundle["graph"]["task_id"] != self.task_id:
             return None
-        return bundle if bundle["assembly"]["usable"] else None
+        if not bundle["assembly"]["usable"]:
+            return None
+        if bundle["graph"].get("schema_version") == "scientific-objects-1.0":
+            from .object_context import render_guide
+            from .io import digest_json
+            files = {
+                "scientific-graph.json": json.dumps(bundle["graph"], ensure_ascii=False) + "\n",
+                "scientific-guide.md": render_guide(bundle["graph"]),
+                "scientific-sources.json": json.dumps(bundle.get("context"), ensure_ascii=False) + "\n",
+            }
+            for name, text in files.items():
+                local = self.logs_dir / name
+                local.write_text(text, encoding="utf-8")
+                await self.environment.upload_file(local, REMOTE + "/context/" + name)
+            bundle["handoff_files"] = {name: REMOTE + "/context/" + name for name in files}
+            bundle["handoff"] = (
+                "Read /opt/scicontext/context/scientific-guide.md for the scientific interpretations and source anchors. "
+                "The complete graph is /opt/scicontext/context/scientific-graph.json; use object IDs to query relevant "
+                "objects, operations and links selectively. Public source passages are preserved in "
+                "/opt/scicontext/context/scientific-sources.json. These files are outside the source checkout; "
+                "do not dump the full graph into the conversation.")
+            write_json(self.logs_dir / "handoff-files.json", {
+                "paths": bundle["handoff_files"], "graph_sha256": digest_json(bundle["graph"]),
+                "file_bytes": {name: len(text.encode("utf-8")) for name, text in files.items()},
+            })
+        return bundle
 
     async def finish_extraction(self):
         if self.extract_environment and not self._finished_extraction:

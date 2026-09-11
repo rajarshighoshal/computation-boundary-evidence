@@ -109,10 +109,40 @@ def object_bundle(graph: dict, response: object, context: dict | None = None) ->
     combined = enrich_objects(graph, response)
     usable = bool(combined["objects"])
     return {"graph": combined, "graph_sha256": digest_json(combined),
-            "handoff": render_objects(combined) if usable else "",
+            "handoff": render_guide(combined) if usable else "",
             "context": copy.deepcopy(context),
             "assembly": {"usable": usable, "status": "scientific_objects" if usable else "no_objects",
                          "interpretation_status": "enriched" if combined["enrichment"]["applied_object_ids"] else "code_only",
                          "enrichment": combined["enrichment"]},
             "analysis": {"coverage": combined.get("coverage", {}).get("totals", {})},
             "validation": {"valid": True, "scope": "code_owned_structure_and_anchored_annotation_fields"}}
+
+
+def render_guide(graph: dict) -> str:
+    """Readable annotations; the complete structure stays in the companion JSON file."""
+    lines = ["# Scientific working model", "",
+        "These are contextual interpretations, not mandatory repair rules. Reconcile them with the "
+        "task and public sources; distinguish intended science from possibly buggy implementation.",
+        "The companion scientific-graph.json preserves every object, operation, link, unsupported "
+        "item and coverage record. Use the object IDs below to inspect relevant relationships "
+        "selectively; do not dump the entire graph into the conversation.", ""]
+    for obj in graph["objects"]:
+        interpretation = obj.get("interpretation")
+        if not interpretation:
+            continue
+        span = obj.get("source_span", {})
+        lines += [f"## {obj['id']} — {obj.get('symbol') or obj['kind']}",
+                  f"Source: {obj['path']}:{span.get('start_line', '?')}-{span.get('end_line', '?')}; scope: {obj['scope']}",
+                  "Computational roles: " + ", ".join(obj.get("roles", []))]
+        if interpretation.get("meaning"):
+            lines.append("Scientific meaning: " + interpretation["meaning"])
+        for field in ("conventions", "assumptions"):
+            for statement in interpretation.get(field, []):
+                lines.append(f"- {field}: {statement}")
+        lines.append("")
+    if not any(obj.get("interpretation") for obj in graph["objects"]):
+        lines += ["No scientific annotations were accepted. The graph contains code structure only.", ""]
+    lines += ["## Coverage (not scientific correctness)",
+              json.dumps(graph.get("coverage", {}).get("totals", {}), sort_keys=True),
+              "Unsupported structures and dropped annotations are recorded in the full graph."]
+    return "\n".join(lines) + "\n"

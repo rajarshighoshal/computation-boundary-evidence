@@ -290,6 +290,7 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
         "admission": "serial" if smoke or concurrency == 1 else "two_task_extraction_groups" if extraction_only else "paired_task_barrier",
         "pier_concurrency_per_process": 1,
         "shared_resources": concurrency == 2 and not smoke,
+        "attempt_failure": "record_and_continue_without_retry",
     }
     if not execute:
         return plan
@@ -381,21 +382,30 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
             write_json(output / "schedule.json", plan)
             return command, environment, log
 
-        def finish_attempt(state, code):
+        def finish_attempt(state, code, error=None):
             nonlocal current, task_row, return_code
             item = current = state["item"]
             task_row = state["task_row"]
             return_code = state["return_code"] = code
             if state.get("stream") is not None:
                 state["stream"].close()
-            item["status"] = _reconcile_trial(output, item, actual_budget, task_row, config, plan, code)
+            item["status"] = _reconcile_trial(
+                output, item, actual_budget, task_row, config, plan, code,
+                **({"forced_status": "infrastructure_failure", "error": f"{type(error).__name__}: {error}"}
+                   if error is not None else {}))
             item["finished_at"] = utc_now()
             write_json(output / "schedule.json", plan)
             if item["status"] != "completed":
-                raise RuntimeError(f"Runner failed; retained {state['log']}. Remaining schedule has not been executed.")
-            item["phase"] = "finished"
+                cleanup = _cleanup_owned_containers(output, item)
+                plan.setdefault("container_cleanups", {})[f"task-{item['task_id']}-{item['condition']}"] = cleanup
+                if cleanup["status"] != "complete":
+                    raise RuntimeError("Failed attempt's containers could not be stopped; inspect cleanup receipt")
+                print(f"Recorded {item['task_id']}/{item['condition']}: {item['status']}; continuing without retry.", flush=True)
+            else:
+                item["phase"] = "finished"
             state["finalized"] = True
             current = None
+            write_json(output / "schedule.json", plan)
 
         width = plan["execution_policy"]["concurrency"]
         for offset in range(0, len(schedule), width):
@@ -406,21 +416,34 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
             for item in schedule[offset:offset + width]:
                 state = {"item": item, "task_row": available[item["task_id"]], "return_code": None}
                 active.append(state)
-                command, environment, log = prepare_attempt(item)
-                state.update(command=command, environment=environment, log=log)
+                try:
+                    command, environment, log = prepare_attempt(item)
+                    state.update(command=command, environment=environment, log=log)
+                except Exception as error:
+                    finish_attempt(state, error.returncode if isinstance(error, subprocess.CalledProcessError) else None, error)
             if width == 1:
                 state = active[0]
-                with state["log"].open("w") as stream:
-                    result = _run_owned_process(state["command"], env=state["environment"], stdout=stream,
-                                                stderr=subprocess.STDOUT, cwd=workspace)
-                finish_attempt(state, result.returncode)
+                if not state.get("finalized"):
+                    try:
+                        with state["log"].open("w") as stream:
+                            result = _run_owned_process(state["command"], env=state["environment"], stdout=stream,
+                                                        stderr=subprocess.STDOUT, cwd=workspace)
+                    except Exception as error:
+                        finish_attempt(state, error.returncode if isinstance(error, subprocess.CalledProcessError) else None, error)
+                    else:
+                        finish_attempt(state, result.returncode)
             else:
                 for state in active:
+                    if state.get("finalized"):
+                        continue
                     current = state["item"]
-                    state["stream"] = state["log"].open("w")
-                    state["process"] = subprocess.Popen(
-                        state["command"], start_new_session=True, env=state["environment"],
-                        stdout=state["stream"], stderr=subprocess.STDOUT, cwd=workspace)
+                    try:
+                        state["stream"] = state["log"].open("w")
+                        state["process"] = subprocess.Popen(
+                            state["command"], start_new_session=True, env=state["environment"],
+                            stdout=state["stream"], stderr=subprocess.STDOUT, cwd=workspace)
+                    except Exception as error:
+                        finish_attempt(state, None, error)
                 while any(not state.get("finalized") for state in active):
                     for state in active:
                         if not state.get("finalized"):
@@ -430,7 +453,7 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
                     if any(not state.get("finalized") for state in active):
                         time.sleep(0.05)
             active = []
-        plan["status"] = "completed"
+        plan["status"] = "completed" if all(item["status"] == "completed" for item in schedule) else "completed_with_failures"
     except BaseException as error:
         interrupted = isinstance(error, (KeyboardInterrupt, SystemExit))
         plan["status"] = "interrupted" if interrupted else "runner_failure"
@@ -511,7 +534,7 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
             except Exception as error:
                 plan["summary_error"] = f"{type(error).__name__}: {error}"
                 write_json(output / "schedule.json", plan)
-        if plan["status"] == "completed" and summary is None:
+        if plan["status"] in {"completed", "completed_with_failures"} and summary is None:
             raise RuntimeError("Schedule completed, but summary generation failed; inspect schedule.json")
     return summary
 

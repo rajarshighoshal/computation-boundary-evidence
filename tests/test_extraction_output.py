@@ -12,6 +12,7 @@ pytest.importorskip("pier")
 from scicontext.annotations import assemble_annotations
 from scicontext.extraction import run_extraction
 from scicontext.pier_agent import REMOTE, SCRATCH, ScientificCodex, revision_feedback
+from scicontext.io import digest_json
 
 
 class Environment:
@@ -45,6 +46,33 @@ def driver(tmp_path):
     for name in ("_put", "checked", "interpret", "_interpret_call", "probe", "collect_graph", "assemble"):
         setattr(d, name, getattr(ScientificCodex, name).__get__(d))
     return d
+
+
+def test_full_graph_and_all_meanings_survive_durable_repair_handoff(driver):
+    graph = {"schema_version": "scientific-objects-1.0", "task_id": "058", "objects": [
+        {"id": "o1", "symbol": "field", "kind": "value", "path": "model.py", "scope": "solve",
+         "source_span": {"start_line": 3, "end_line": 4}, "properties": {"source": "x" * 2000000},
+         "interpretation": {"meaning": "Potential field", "conventions": ["Zero at infinity"], "assumptions": ["Static domain"]}}],
+        "operations": [{"id": "op1", "kind": "uninterpreted_expression"}],
+        "links": [], "unsupported": [{"reason": "unknown"}], "coverage": {"totals": {"objects": 1}}}
+    bundle = {"graph": graph, "graph_sha256": digest_json(graph), "handoff": "OLD GIANT DUMP",
+              "assembly": {"usable": True}, "context": {"scientific_passages": ["public source"]}}
+    driver._selected_remote = SCRATCH + "/bundle.json"
+    driver.extract_environment.files[driver._selected_remote] = json.dumps(bundle)
+    driver.environment = Environment()  # distinct repair environment
+    result = asyncio.run(driver.collect_graph(30))
+    # Removing the extractor cannot remove the repair's copies.
+    driver.extract_environment.files.clear()
+    files = driver.environment.files
+    assert json.loads(files[REMOTE + "/context/scientific-graph.json"]) == graph
+    guide = files[REMOTE + "/context/scientific-guide.md"]
+    assert all(value in guide for value in ("o1", "model.py:3-4", "Potential field", "Zero at infinity", "Static domain"))
+    assert len(guide.encode()) < 2000
+    assert len(result["handoff"].encode()) < 1000
+    assert "OLD GIANT DUMP" not in result["handoff"] and "Potential field" not in result["handoff"]
+    assert result["graph_sha256"] == digest_json(json.loads(files[result["handoff_files"]["scientific-graph.json"]]))
+    assert json.loads(files[result["handoff_files"]["scientific-sources.json"]]) == bundle["context"]
+    assert (driver.logs_dir / "handoff-files.json").is_file()
 
 
 def test_final_json_is_saved_by_code_and_inline_probe_is_saved_after_assembly(driver):

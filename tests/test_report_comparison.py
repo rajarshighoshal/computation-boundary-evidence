@@ -81,6 +81,18 @@ def generate(root, summary=None):
     return output.read_text()
 
 
+def test_drained_schedule_with_failure_does_not_claim_tasks_were_unrun(tmp_path):
+    plan = schedule(tmp_path, tasks=("010",), status="completed_with_failures")
+    plan["schedule"][0]["status"] = "infrastructure_failure"
+    plan["schedule"][1]["status"] = "completed"
+    dump(tmp_path / "schedule.json", plan)
+    trial(tmp_path, "010", "baseline", infrastructure=True)
+    trial(tmp_path, "010", "science")
+    text = generate(tmp_path)
+    assert "The queue drained" in text
+    assert "The planned comparison is incomplete" not in text
+
+
 def test_complete_comparison_includes_counts_resources_phases_and_provenance(tmp_path):
     schedule(tmp_path)
     for task in ("010", "011"):
