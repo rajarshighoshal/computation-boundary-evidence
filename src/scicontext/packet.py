@@ -190,6 +190,16 @@ def build_packet(root: Path, context_root: Path | None = None, *, multilingual=F
     refs, retrieval = seed_references(root, paths,
         task_paths | {p for p in paths if _reproducer(p) and p.endswith('.py')}, context[1] if context else '')
     coverage['task_local_retrieval'] = retrieval
+    workflow_refs = []
+    if multilingual:
+        from .workflow_retrieval import retrieve
+        workflow_refs, workflow = retrieve(root, paths,
+            task_paths | repro_paths | {p for p in paths if _reproducer(p)}, context[1] if context else '')
+        caller_refs = [{"path": c["path"], "start_line": c["start_line"],
+                        "end_line": c["start_line"], "via": "workflow_call_site", "depth": max(0, r["depth"] - 1),
+                        "priority": 0} for r in workflow_refs for c in r.get("callers", [])]
+        refs = workflow_refs + caller_refs + refs
+        coverage["workflow_retrieval"] = workflow
     focus_paths = {ref['path'] for ref in refs}
     focus_order = {path: index for index, path in enumerate(dict.fromkeys(ref['path'] for ref in refs))}
     ordered.sort(key=lambda p: (0 if p in focus_paths else 1, focus_order.get(p, len(refs)),
@@ -197,7 +207,8 @@ def build_packet(root: Path, context_root: Path | None = None, *, multilingual=F
     if multilingual:
         from .language_frontends import source_language, extract_native_evidence
         all_sources = [p for p in ordered if source_language(p) is not None]
-        explicit = [p for p in all_sources if p in task_paths]
+        explicit = list(dict.fromkeys([r["path"] for r in workflow_refs] +
+            [r["path"] for r in caller_refs] + [p for p in all_sources if p in task_paths]))
         groups = {}
         for path in all_sources:
             if path not in explicit:
@@ -211,7 +222,7 @@ def build_packet(root: Path, context_root: Path | None = None, *, multilingual=F
                     sources.append(groups[language].pop(0))
         if source_paths:
             sources = [p for p in sources if p in source_paths]
-        coverage["source_selection"] = "explicit_paths_then_language_balanced_task_ranking"
+        coverage["source_selection"] = "workflow_references_then_explicit_paths_then_language_fallback"
     else:
         sources = [p for p in ordered if Path(p).suffix.casefold() == ".py"]
     document_paths = [p for p in ordered if Path(p).suffix.casefold() in _DOCUMENT_SUFFIXES]
@@ -224,15 +235,22 @@ def build_packet(root: Path, context_root: Path | None = None, *, multilingual=F
         coverage["skipped"].append({"path": path, "reason": "source_file_limit"})
     coverage["selected_source_paths"] = sources[:MAX_SOURCE_FILES]
     entries = []
+    allocations = {}
+    if workflow_refs:
+        weights = {p: 1 / (1 + min((r.get("depth", 0) for r in workflow_refs + caller_refs if r["path"] == p), default=MAX_SOURCE_FILES))
+                   for p in coverage["selected_source_paths"]}
+        allocations = {p: min(MAX_ENTRIES_PER_FILE, max(1, int(MAX_ENTRIES * w / sum(weights.values())))) for p, w in weights.items()}
+        coverage["entry_allocations"] = allocations
     for path in coverage["selected_source_paths"]:
         if len(entries) >= MAX_ENTRIES:
             coverage["entries_truncated"] = True
             coverage["skipped"].append({"path": path, "reason": "entry_limit"})
             continue
+        limit = min(allocations.get(path, MAX_ENTRIES_PER_FILE), MAX_ENTRIES - len(entries))
         if multilingual and source_language(path) != "python":
-            result = extract_native_evidence(root, [path], max_entries=min(MAX_ENTRIES_PER_FILE, MAX_ENTRIES - len(entries)), references=refs)
+            result = extract_native_evidence(root, [path], max_entries=limit, references=refs)
         else:
-            result = evidence.extract_evidence(root, [path], max_files=1, max_entries=min(MAX_ENTRIES_PER_FILE, MAX_ENTRIES - len(entries)), references=refs,
+            result = evidence.extract_evidence(root, [path], max_files=1, max_entries=limit, references=refs,
                                                **({"preserve_interfaces": True} if multilingual else {}))
         entries.extend(result["entries"])
         for key in ("files_considered", "files_parsed", "entries", "expressions", "supported_expressions"):

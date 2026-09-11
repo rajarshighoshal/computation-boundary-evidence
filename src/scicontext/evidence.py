@@ -430,6 +430,8 @@ def _file_entries(path: str, raw: bytes, source: str, tree: ast.AST, limit: int,
               and isinstance(node.value.func, ast.Attribute)
               and node.value.func.attr in {"append", "extend", "insert", "update", "add", "discard", "remove", "pop", "clear", "setdefault"}):
             kind = "container_mutation"
+        elif preserve_interfaces and isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
+            kind, expression_node = "call", node.value
         elif isinstance(node, ast.Assert):
             kind, expression_node = "assertion", node.test
         elif isinstance(node, ast.Compare):

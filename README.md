@@ -1,36 +1,25 @@
 # Scientific context for Codex repair
 
-An experimental preparation stage for SWE-bench Science. It combines source-backed expression alignment, conditional scientific operation interpretation, and dimension/scale/shape analysis before a fresh Codex repair session.
+An experimental preparation stage for SWE-bench Science. Code extracts objects, operation syntax,
+interfaces and source references; a scientific-reading LLM attaches meanings, conventions and
+assumptions to those same objects before a fresh repair session.
 
 The research comparison is ordinary Codex versus extraction followed by repair under the same total agent allowance. Current initial checks use GPT-6 Astra/medium; earlier checks used high. These are exploratory feasibility checks, not a locked experiment. This implementation is a research prototype, not a scientific-correctness prover.
 
-The runner reuses Pier's Codex launch and subscription authentication. Extraction uses Codex's built-in read-only mode; code saves its returned annotations and probe scripts. Repair retains standard container execution. There is no custom Git source-change guard. See [initial high-effort results](docs/RANDOM_FIVE_HIGH_RESULTS.md), [qualitative notes](docs/RANDOM_FIVE_NOTES.md), and [runtime status](docs/RUNTIME_STATUS.md). Historical development results remain separate.
+The runner reuses Pier/Codex and subscription authentication. The current scientific-object mode
+uses one read-only interpretation call, with no probe/refinement loop. Code joins anchored output;
+repair retains normal execution. See the [method](docs/METHOD.md) and
+[enrichment contract](docs/OBJECT_ENRICHMENT.md).
 
-The current approved revision adds [scientific-object bindings and a bounded feedback correction](docs/SEMANTIC_FEEDBACK.md).
-Local tests check the implementation. The [first live extractor-only check](docs/SEMANTIC_FEEDBACK_CHECK_V1.md)
-produced a revised geometry handoff and a storage draft timeout; [quality notes](docs/SEMANTIC_FEEDBACK_CHECK_V1_NOTES.md)
-explain why it does not establish an overall improvement. Repair performance is unmeasured for this
-revision. Earlier results below evaluate their recorded versions.
-The [local verification](docs/SEMANTIC_FEEDBACK_VERIFICATION.md) is complete, including a preserved-source
-regression and its fix. Parallel mode now supports two simultaneous attempts with separate receipts.
+[Live scientific-reading checks](docs/SCIENTIFIC_READING_V1.md) recovered substantive documented
+science but exposed [poor implementation grounding](docs/SCIENTIFIC_READING_V1_NOTES.md).
+The subsequent offline retrieval change follows public workflow references into implementation
+functions and retains candidate call links. Coverage remains partial; neither a valid graph nor
+scientific prose demonstrates improved repair. Compiler IR is not in scope for this checkpoint.
 
-The original random-five checks are complete: [outcomes and token accounting](docs/INITIAL_FIVE_OVERVIEW.md).
-The task-local redesign is now implemented and has separate [extraction-only results](docs/EXTRACTOR_TASK_LOCAL_CHECK.md).
-It improves source retrieval and binding coverage on the development examples. The restarted
-[end-to-end comparison and stage-token accounting](docs/TASK_LOCAL_FIVE_V2_RESULTS.md) are complete;
-they do not demonstrate a repair-success improvement. See the [paired qualitative review](docs/TASK_LOCAL_FIVE_V2_NOTES.md)
-for scientific ambiguities and remaining mechanical limitations.
-The later [task001 failure diagnosis](docs/TASK001_FAILURE_DIAGNOSIS.md) inspects the saved assertion
-and reproduces a candidate axis-boundary mechanism on a separate public counterexample, without
-new benchmark-agent attempts or method changes.
-
-The later end-to-end comparison was stopped by the user after an assembly sub-limit failure;
-[partial records](docs/TASK_LOCAL_FIVE_INTERRUPTED.md) remain separate. That premature cap is now
-[fixed and replay-tested](docs/ASSEMBLY_TIMEOUT_FIX.md), and a
-[single full extraction check](docs/ASSEMBLY_BUDGET_CHECK.md) passed its timing/artifact criteria.
-The user-authorized comparison in `runs/task-local-five-v2` completed with the frozen
-`configs/task-local-five-v1.json`. See `WORK_LOG.md` for verification receipts. These are previously inspected
-development tasks; useful scientific content is not guaranteed merely by timely output.
+Historical methods/results remain separate: [initial five](docs/INITIAL_FIVE_OVERVIEW.md),
+[task-local comparison](docs/TASK_LOCAL_FIVE_V2_RESULTS.md), and
+[probe-first comparison](docs/PROBE_FIRST_PAIRS_V1.md). Current status is in `WORK_LOG.md`.
 
 ## Layout
 

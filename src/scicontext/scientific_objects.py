@@ -179,6 +179,11 @@ class _Extractor:
             "output_ids": [output] if output else [], "properties": {"source_branch": entry.get("branch", []), **(properties or {})},
             "assumptions": ["Standard documented library/operator behaviour; runtime overrides are not checked.", *(assumptions or [])],
             "documentation_url": _DOCS.get(api)}
+        expression_span = entry.get("expression_span")
+        if expression_span and isinstance(node, ast.Call):
+            self.operations[key]["call_site"] = {
+                "start_line": expression_span["start_line"] + node.lineno - 1,
+                "start_col": node.col_offset + (expression_span["start_col"] if node.lineno == 1 else 0)}
         for role, oid in inputs:
             self.role(oid, role)
             self.link(oid, key, "input:" + role)
@@ -281,7 +286,7 @@ class _Extractor:
                               properties={"signature": entry["text"], "runtime_type": "not_inferred"})
         elif entry["kind"] == "parameter":
             output = self.obj(entry, "binding", symbol=symbols[0], properties={"binding": "parameter", "runtime_type": "unknown"})
-        elif entry.get("expression_text") is not None and entry["kind"] in {"assignment", "return", "augmented_assignment"}:
+        elif entry.get("expression_text") is not None and entry["kind"] in {"assignment", "return", "augmented_assignment", "call", "comparison", "assertion"}:
             try:
                 node = ast.parse(entry["expression_text"], mode="eval").body
             except (SyntaxError, ValueError, RecursionError):
@@ -290,6 +295,12 @@ class _Extractor:
                 if entry["kind"] == "augmented_assignment" or (entry["kind"] == "assignment" and
                         (len(entry.get("targets", [])) != 1 or not entry["targets"][0].isidentifier())):
                     self.problem(entry, "unsupported_assignment_binding")
+                    # Keep the actual statement as an interpretation anchor,
+                    # but return no binding: unpacked/mutated targets are not
+                    # interchangeable with the whole RHS value.
+                    self.obj(entry, "statement", kind="source_statement", properties={
+                        "source_expression": entry["expression_text"], "targets": entry.get("targets", []),
+                        "binding": "not_resolved", "scientific_semantics": "unknown"})
                 else:
                     value = self.value(entry, node)
                     output = self.obj(entry, "binding", symbol=symbols[0] if symbols else None,
@@ -312,6 +323,14 @@ class _Extractor:
                 return self.obj(entry, tag, kind="literal", properties=properties)
         if isinstance(node, ast.Call):
             return self.call(entry, node)
+        if isinstance(node, ast.Compare):
+            output = self.obj(entry, tag, kind="source_predicate", properties={"runtime_type": "not_inferred"})
+            return self.operation(entry, node, "source_comparison", None,
+                [("left_operand", self.value(entry, node.left))] +
+                [(f"comparator_{i}", self.value(entry, value)) for i, value in enumerate(node.comparators)], output,
+                {"operators": [type(op).__name__ for op in node.ops], "expression": ast.unparse(node),
+                 "scientific_semantics": "unknown"},
+                ["Source condition only; overloaded comparison behavior and intended scientific validity are not established."])
         if isinstance(node, ast.BinOp):
             left, right = self.value(entry, node.left), self.value(entry, node.right)
             quantity = any(o and self.objects[o]["kind"] == "quantity" for o in (left, right))
@@ -563,6 +582,63 @@ class _Extractor:
                 "unsupported": self.unsupported, "coverage": self.coverage}
 
 
+def _link_workflow_references(graph, packet):
+    """Attach retrieved source candidates; never substitute arguments or infer call results."""
+    entries = {e["id"]: e for e in packet["entries"]}
+    interfaces = [o for o in graph["objects"] if o["kind"] == "code_interface"]
+    references = packet.get("coverage", {}).get("workflow_retrieval", {}).get("references", [])
+    added = []
+    for ref in references:
+        targets = [o for o in interfaces if o["path"] == ref["path"] and o["source_span"]["start_line"] == ref["start_line"]]
+        if len(targets) != 1:
+            continue
+        target = targets[0]
+        target_entry = entries[target["source_entry_ids"][0]]
+        for caller in ref.get("callers", []):
+            if caller.get("embedded_string"):
+                # Program text is not a call executed by its Python host.
+                continue
+            candidates = []
+            for operation in graph["operations"]:
+                entry = entries[operation["source_entry_id"]]
+                if operation["kind"] != "uninterpreted_call" or entry["path"] != caller["path"]:
+                    continue
+                properties = operation["properties"]
+                callee = properties.get("callee") or properties.get("wrapper", {}).get("function")
+                normal = str.casefold if entry.get("language") == "fortran" else str
+                if not callee or normal(callee) != normal(caller["callee"]):
+                    continue
+                site = operation.get("call_site")
+                if site is not None:
+                    matches = site["start_line"] == caller["start_line"] and site["start_col"] == caller["start_col"]
+                else:
+                    matches = entry["start_line"] == caller["start_line"] and entry["start_col"] == caller["start_col"]
+                if matches:
+                    candidates.append(operation)
+            if len(candidates) != 1:
+                continue
+            operation = candidates[0]
+            evidence = {"object_id": target["id"], "path": ref["path"], "start_line": ref["start_line"],
+                "symbol": ref["symbol"], "via": ref["via"], "caller": caller,
+                "status": "source_reference_only", "runtime_invocation": "not_established",
+                "argument_and_return_equivalence": "not_derived"}
+            operation["properties"].setdefault("retrieved_targets", [])
+            if evidence not in operation["properties"]["retrieved_targets"]:
+                operation["properties"]["retrieved_targets"].append(evidence)
+            added.append({"source": operation["id"], "target": target["id"], "relation": "possible_callee_interface"})
+            if not target_entry.get("native", {}).get("declaration_only"):
+                body = [o for o in graph["operations"] if o["source"]["path"] == target["path"] and
+                        (entries[o["source_entry_id"]].get("function_scope") or o["source"]["scope"]) == target["scope"]]
+                for body_op in body:
+                    added.append({"source": operation["id"], "target": body_op["id"], "relation": "possible_callee_body"})
+    for link in added:
+        if link not in graph["links"]:
+            graph["links"].append(link)
+    graph["coverage"]["workflow_reference_links"] = sum(l["relation"] == "possible_callee_interface" for l in graph["links"])
+    if added:
+        graph["coverage"]["limitations"].append("Possible callee links are retrieval evidence, not dispatch/value-flow proofs; excluded from API-connected object counts.")
+
+
 def extract_objects(root: Path, packet: dict) -> dict:
     """Lift supported, source-backed API uses into a compositional object graph.
 
@@ -610,4 +686,5 @@ def extract_objects(root: Path, packet: dict) -> dict:
         result["coverage"]["unsupported_cases"] = len(result["unsupported"])
         result["coverage"]["totals"]["unsupported_cases"] = sum(r["unsupported_cases"] for r in rows.values())
     result["coverage"]["source_frontend_issues"] = len(source_issues)
+    _link_workflow_references(result, packet)
     return result

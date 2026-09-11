@@ -179,6 +179,12 @@ def _tree_sitter_entries(path, raw, language):
             entry = add(signature, "signature", symbol=name, scope_node=node,
                 native={"function_name": name, "interface_only": True,
                         "return_type": _text(node.child_by_field_name("type"))})
+            ancestor = node.parent
+            while ancestor is not None:
+                if language == "fortran" and ancestor.type == "interface":
+                    entry["native"]["declaration_only"] = True
+                    break
+                ancestor = ancestor.parent
             if language == "matlab" and body:
                 entry["text"] = raw[node.start_byte:body.start_byte].decode("utf-8").rstrip()
                 entry["end_line"] = entry["start_line"] + len(entry["text"].splitlines()) - 1
@@ -234,7 +240,7 @@ def _tree_sitter_entries(path, raw, language):
             add(node, "return", expression=_expression(node.named_children[0], language) if node.named_children else None)
         elif node.type in {"call_expression", "function_call", "subroutine_call"}:
             # Calls embedded in another expression are already represented there.
-            if node.parent and node.parent.type in {"expression_statement", "block", "subroutine", "function", "translation_unit", "source_file"}:
+            if node.parent and node.parent.type in {"expression_statement", "block", "subroutine", "function", "program", "translation_unit", "source_file"}:
                 add(node, "call", expression=_expression(node, language))
     declarations = [e for e in entries if e["kind"] in {"parameter", "declaration"} or e["native"].get("declaration")]
     for entry in entries:
@@ -295,11 +301,13 @@ def _select_entries(entries, limit, refs):
         target = entry.get("native", {}).get("writes_root", "")
         if entry["language"] == "fortran":
             target = target.casefold()
-        if entry["kind"] == "return":
+        if any(r.get("via") == "workflow_call_site" and entry["start_line"] <= r["start_line"] <= entry["end_line"] for r in refs):
             return 0
-        if (entry.get("function_scope"), target) in outputs:
+        if entry["kind"] == "return":
             return 1
-        return 2
+        if (entry.get("function_scope"), target) in outputs:
+            return 2
+        return 3
     for entry in entries:
         category = ("interface" if entry["kind"] in {"signature", "parameter"} else
                     "documentation" if entry["kind"] == "docstring" else

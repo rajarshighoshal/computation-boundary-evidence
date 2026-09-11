@@ -24,10 +24,19 @@ Language-specific structure extraction must feed the shared representation. No r
   selection misses the scientific bodies; annotations cite them as prose while anchoring elsewhere.
   Next justified work is task-directed source/operation selection, not new API rules or guardrails.
   No further model attempts or repair comparisons are authorized.
+- Offline retrieval/linking checkpoint COMPLETE: public workflow references reach implementation
+  functions, with candidate call links and comparison/statement anchors. Legacy selection unchanged.
+  Final verification: 618 tests pass; all three pinned-image helpers finish within the existing cap.
+  Receipts/region excerpts: `runs/workflow-retrieval-verified/`, `results/workflow-retrieval-v1.json`.
+- Coverage is intentionally partial: Osprey timing/scaling regions and the uncalled gravitational
+  counterpart remain gaps. Interface/operation counts are not scientific correctness or repair gains.
+- User confirmed: no compiler IR or exhaustive reconstruction; deliver a usable research prototype.
+  Next is a separately approved combined-context check of this revision; no model budget remains approved.
 - This does not establish repair improvement, state-of-the-art quality or full-benchmark coverage.
 
 ## Latest checkpoint
 
+Latest offline source hashes and target/guest-check results: `results/workflow-retrieval-v1.json`.
 Live check: `runs/scientific-reading-v1/`, `results/scientific-reading-v1.json` and
 `results/scientific-reading-v1-token-audit.json`. Public source review copies are inside the run.
 Earlier preflight: `6954048`, `runs/scientific-input-preflight/`; multilingual checkpoint `4fd7130`.
