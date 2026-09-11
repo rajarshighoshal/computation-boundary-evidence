@@ -35,6 +35,22 @@ def _implementation_provenance(workspace: Path) -> dict:
                               for path in sorted((workspace / "prompts").glob("*.md"))}}
 
 
+def _snapshot_frozen_source(workspace: Path, output: Path) -> dict:
+    """Copy the method source and prompts into the run directory so every
+    attempt uploads identical bytes regardless of later workspace changes."""
+    destination = output / "frozen-source"
+    shutil.copytree(workspace / "src/scicontext", destination / "scicontext")
+    shutil.copytree(workspace / "prompts", destination / "prompts")
+    file_hashes = {path.relative_to(destination).as_posix(): digest_file(path)
+                   for path in sorted(destination.rglob("*")) if path.is_file()}
+    # The snapshot must match the provenance recorded in the schedule.
+    live_prompts = _implementation_provenance(workspace)["prompt_sha256"]
+    for rel, expected in live_prompts.items():
+        if file_hashes.get(rel) != expected:
+            raise ValueError(f"Frozen prompt drift after snapshot: {rel}")
+    return {"dir": str(destination.resolve()), "file_hashes": file_hashes}
+
+
 def _run_owned_process(command: list[str], *, check: bool = False, **kwargs) -> subprocess.CompletedProcess:
     """Own a separate process group and stop it before unwinding private auth.
 
@@ -246,8 +262,8 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
     budget = TrialConfig(config["model"], config["reasoning_effort"], config["codex_version"],
                          config["total_seconds"], config["extraction_seconds"])
     concurrency = config.get("concurrency")
-    if config.get("attempts") != 1 or type(concurrency) is not int or concurrency not in (1, 2):
-        raise ValueError("Pilot supports exactly one attempt and concurrency 1 or 2")
+    if config.get("attempts") != 1 or type(concurrency) is not int or concurrency not in (1, 2, 3):
+        raise ValueError("Pilot supports exactly one attempt and concurrency 1..3")
     if config.get("allow_restricted_licenses"):
         raise ValueError("Development pilot does not opt into restricted licenses")
     ids = config["task_ids"]
@@ -287,9 +303,9 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
     plan.update(_implementation_provenance(workspace))
     plan["execution_policy"] = {
         "concurrency": 1 if smoke else concurrency,
-        "admission": "serial" if smoke or concurrency == 1 else "two_task_extraction_groups" if extraction_only else "paired_task_barrier",
+        "admission": "serial" if smoke or concurrency == 1 else f"{concurrency}_attempt_barrier",
         "pier_concurrency_per_process": 1,
-        "shared_resources": concurrency == 2 and not smoke,
+        "shared_resources": concurrency >= 2 and not smoke,
         "attempt_failure": "record_and_continue_without_retry",
     }
     if not execute:
@@ -308,6 +324,8 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
         raise ValueError("Expected a saved ChatGPT token cache")
     del auth_mode
     output.mkdir(parents=True)
+    frozen_source = _snapshot_frozen_source(workspace, output)
+    plan["frozen_source"] = frozen_source
     plan["started_at"] = utc_now()
     plan["status"] = "running"
     write_json(output / "schedule.json", plan)
@@ -332,6 +350,12 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
             nonlocal current, task_row, return_code
             current = item
             item.update({"status": "running", "phase": "preparing", "started_at": utc_now()})
+            if (workspace / ".git").is_dir():
+                revision = subprocess.run(["git", "rev-parse", "HEAD"], cwd=workspace, check=True,
+                                          capture_output=True, text=True).stdout.strip()
+                if revision != plan["implementation_revision"]:
+                    raise RuntimeError("Implementation moved during the run; attempts are frozen to "
+                                       f"{plan['implementation_revision'][:12]} but HEAD is {revision[:12]}")
             write_json(output / "schedule.json", plan)
             return_code = None
             task, condition = item["task_id"], item["condition"]
@@ -361,6 +385,7 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
                                "reasoning_effort": budget.reasoning_effort, "codex_version": budget.codex_version,
                                "workspace": str(workspace), "auth_file": str(private_auth), "smoke": smoke,
                                "extraction_only": extraction_only,
+                               "frozen_source_dir": frozen_source["dir"],
                                "extractor": config.get("extractor", "scientific_objects")}.items():
                 command += ["--agent-kwarg", f"{key}={str(value).lower() if isinstance(value, bool) else value}"]
             if config.get("extraction_model_seconds") is not None:

@@ -106,7 +106,7 @@ class ScientificCodex(BaseAgent):
     def __init__(self, *args, condition="baseline", total_seconds=1800,
                  extraction_seconds=360, reasoning_effort="high", codex_version="0.153.4",
                  workspace=None, auth_file=None, smoke=False, extraction_only=False,
-                 extractor="scientific_objects", extraction_model_seconds=None, **kwargs):
+                 extractor="scientific_objects", extraction_model_seconds=None, frozen_source_dir=None, **kwargs):
         super().__init__(*args, **kwargs)
         if condition not in {"baseline", "science"}:
             raise ValueError("Unknown experiment condition")
@@ -118,6 +118,7 @@ class ScientificCodex(BaseAgent):
         self.extraction_model_seconds = float(extraction_model_seconds) if extraction_model_seconds is not None else None
         if self.extraction_model_seconds is not None and not (0 < self.extraction_model_seconds < float("inf")):
             raise ValueError("extraction_model_seconds must be finite and positive")
+        self.frozen_source = (Path(frozen_source_dir).resolve() if frozen_source_dir else None)
         self.config = TrialConfig(self.model_name or "gpt-6-astra", reasoning_effort,
                                   codex_version, float(total_seconds), float(extraction_seconds))
         self.workspace = Path(workspace or Path.cwd()).resolve()
@@ -160,7 +161,8 @@ class ScientificCodex(BaseAgent):
         await self.checked(environment, f"mkdir -p {CONTROL} {REMOTE}/bin {REMOTE}/src {REMOTE}/context {SCRATCH}/checkpoints {self.root}/outputs")
         await environment.upload_dir(package, REMOTE + "/codex")
         await environment.upload_dir(self.helper_deps, REMOTE + "/deps")
-        await environment.upload_dir(self.workspace / "src/scicontext", REMOTE + "/src/scicontext")
+        source_root = self.frozen_source / "scicontext" if self.frozen_source else self.workspace / "src/scicontext"
+        await environment.upload_dir(source_root, REMOTE + "/src/scicontext")
         await self._put(environment, "codex-launcher", timeout_launcher(binary), REMOTE + "/bin/codex")
         await self.checked(environment, f"chmod 755 {REMOTE}/bin/codex; command -v timeout")
         if self.condition == "science":
@@ -217,6 +219,7 @@ class ScientificCodex(BaseAgent):
             "scientific_image_architecture": "amd64", "environment_image": environment.task_env_config.docker_image,
             "execution": "upstream_pier_codex_docker_boundary", "timeout": "GNU timeout foreground process group",
             "extractor": "scientific_objects_v1",
+            "frozen_source": self.frozen_source is not None,
             "claim_cap": None, "probe_cap": 0,
             "extraction_model_call_cap": 1 if self.condition == "science" else 0,
             "extraction_model_seconds": self.extraction_model_seconds,
@@ -268,7 +271,8 @@ class ScientificCodex(BaseAgent):
     async def _interpret_call(self, instruction, seconds):
         now = datetime.now(timezone.utc)
         clock = lambda duration: (now + timedelta(seconds=max(0, duration))).strftime("%H:%M:%S UTC")
-        template = (self.workspace / "prompts/enrich_objects.md").read_text()
+        prompt_file = (self.frozen_source / "prompts" / "enrich_objects.md") if self.frozen_source else (self.workspace / "prompts/enrich_objects.md")
+        template = prompt_file.read_text()
         # Prompt milestones are earlier soft targets, not extra process cutoffs.
         # Allow for the existing CLI collection/termination work when reporting
         # the actual time available to the model, including small test budgets.
@@ -431,9 +435,10 @@ class ScientificCodex(BaseAgent):
                 local.write_text(text, encoding="utf-8")
                 await self.environment.upload_file(local, REMOTE + "/context/" + name)
             bundle["handoff_files"] = {name: REMOTE + "/context/" + name for name in files}
+            bundle["guide_markdown"] = files["scientific-guide.md"]
             bundle["handoff"] = (
-                "Read /opt/scicontext/context/scientific-guide.md for the scientific interpretations and source anchors. "
-                "The complete graph is /opt/scicontext/context/scientific-graph.json; use object IDs to query relevant "
+                "The scientific interpretations are embedded above. The complete graph is "
+                "/opt/scicontext/context/scientific-graph.json; use object IDs to query relevant "
                 "objects, operations and links selectively. Public source passages are preserved in "
                 "/opt/scicontext/context/scientific-sources.json. These files are outside the source checkout; "
                 "do not dump the full graph into the conversation.")

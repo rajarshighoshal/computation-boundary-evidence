@@ -9,7 +9,7 @@ import pytest
 from scicontext.cli import main
 from scicontext.controller import TrialConfig, run_trial
 from scicontext.extraction import run_extraction
-from scicontext.object_context import enrichment_input, enrich_objects, object_bundle, render_objects
+from scicontext.object_context import enrichment_input, enrich_objects, object_bundle, render_guide, render_objects
 from scicontext.packet import build_packet
 from scicontext.scientific_objects import extract_objects
 from scicontext.tool_cli import main as helper_main
@@ -134,7 +134,7 @@ def test_code_first_interpretation_reaches_normal_repair_without_probe_loop(scie
             self.repair_prompt = instruction
             return {"status": "completed", "usage": {"input_tokens": 20, "output_tokens": 5}}
         async def collect_graph(self, seconds):
-            return self.bundle
+            return {**self.bundle, "guide_markdown": render_guide(graph)}
         async def finish_extraction(self):
             pass
         async def cleanup(self):
@@ -147,8 +147,12 @@ def test_code_first_interpretation_reaches_normal_repair_without_probe_loop(scie
     assert len(extraction["model_calls"]) == 1 and "probe_rounds" not in extraction
     assert extraction["selected_model_call"] == "extract_draft"
     assert extraction["usable_checkpoint"] is True
+    assert "SCIENTIFIC WORKING MODEL FOR THIS REPOSITORY" in driver.repair_prompt
     assert "Stiffness operator" in driver.repair_prompt
     assert "Fixed boundary conditions" in driver.repair_prompt
+    assert "not mandatory repair rules" in driver.repair_prompt
+    assert "cite its object ID" in driver.repair_prompt
+    assert "reconcile them with the task and public sources" in driver.repair_prompt
     assert "not mandatory repair rules" in driver.repair_prompt
     assert "Rerun applicable supplied public probes" not in driver.repair_prompt
     assert driver.bundle["context"]["scientific_passages"]

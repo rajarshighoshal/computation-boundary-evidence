@@ -143,7 +143,7 @@ def test_setup_uses_native_extractor_asset_and_keeps_x64_repair(tmp_path, monkey
     monkeypatch.setattr(module, "DockerEnvironment", Docker)
     d = SimpleNamespace(logs_dir=tmp_path / "logs", condition="science", workspace=tmp_path,
                         config=SimpleNamespace(codex_version="0.153.4", extraction_seconds=360),
-                        extraction_model_seconds=None, network_allowlist=lambda: None)
+                        extraction_model_seconds=None, frozen_source=None, network_allowlist=lambda: None)
     d.checked = AsyncMock(side_effect=["312", "base-commit"])
     staged = []
     async def setup_stage(environment, stage):

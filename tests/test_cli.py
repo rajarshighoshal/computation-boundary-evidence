@@ -42,7 +42,17 @@ def workspace(tmp_path, monkeypatch):
                           "verifier_image": f"verifier-{task}@sha256:00"} for task in config["task_ids"]]}
     write_json(root / "data/release-receipt.json", receipt)
     write_json(root / "synthetic-auth.json", {"tokens": {"synthetic": "not-a-credential"}})
-    monkeypatch.setattr(cli, "_implementation_provenance", lambda _: dict(PROVENANCE))
+    (root / "src/scicontext").mkdir(parents=True)
+    (root / "src/scicontext/__init__.py").write_text("# synthetic method source\n")
+    (root / "prompts").mkdir()
+    prompts = {"enrich_objects.md": "enrich", "repair.md": "repair"}
+    for name, text in prompts.items():
+        (root / "prompts" / name).write_text(text)
+    provenance = {"implementation_revision": "a" * 40, "implementation_dirty": False,
+                  "uv_lock_sha256": "b" * 64,
+                  "prompt_sha256": {f"prompts/{name}": digest_file(root / "prompts" / name)
+                                    for name in prompts}}
+    monkeypatch.setattr(cli, "_implementation_provenance", lambda _: dict(provenance))
     return root
 
 
@@ -126,7 +136,8 @@ def test_pull_failure_retains_each_attempt_and_continues(workspace, monkeypatch)
     row = read_json(output / "jobs/task-002-baseline/setup-failure/run.json")
     assert row["config"] == asdict(TrialConfig())
     assert row["environment_image"] == "env-002@sha256:00"
-    assert all(row[key] == value for key, value in PROVENANCE.items())
+    provenance = cli._implementation_provenance(workspace)
+    assert all(row[key] == provenance[key] for key in PROVENANCE)
     summary = read_json(output / "summary/summary.json")
     assert len(summary["trials"]) == 4
     assert summary["trials"][0]["exact_private_success"] is None
@@ -229,8 +240,16 @@ def test_interrupt_finalizes_running_agent_record(workspace, monkeypatch):
 
 
 def test_preparation_error_is_preserved_without_launch(workspace, monkeypatch):
+    calls = {"count": 0}
+    real_copytree = cli.shutil.copytree
+
     def fail(*args, **kwargs):
-        raise OSError("synthetic copy failure")
+        # The frozen-source snapshot (2 copytree calls) must succeed; the task
+        # materialization copy fails.
+        calls["count"] += 1
+        if calls["count"] > 2:
+            raise OSError("synthetic copy failure")
+        return real_copytree(*args, **kwargs)
     monkeypatch.setattr(cli.shutil, "copytree", fail)
     monkeypatch.setattr(cli, "_run_owned_process", lambda *a, **k: pytest.fail("No process should launch"))
     run_pilot(workspace)
@@ -255,7 +274,10 @@ def test_successful_smoke_preserves_actual_budget_and_provenance(workspace, monk
     assert schedule["status"] == "completed"
     assert schedule["schedule"][0]["status"] == "completed"
     assert schedule["schedule"][0]["phase"] == "finished"
-    assert all(schedule[key] == value for key, value in PROVENANCE.items())
+    provenance = cli._implementation_provenance(workspace)
+    assert all(schedule[key] == provenance[key] for key in PROVENANCE)
+    assert schedule["frozen_source"]["dir"].endswith("/frozen-source")
+    assert "prompts/enrich_objects.md" in schedule["frozen_source"]["file_hashes"]
 
 
 def test_reconciliation_never_rewrites_scientific_scratch_named_run_json(workspace):
