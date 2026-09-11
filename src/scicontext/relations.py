@@ -43,13 +43,19 @@ def _round9(value) -> float:
 
 
 def _same(a, b):
-    """Structural equality: content digest when present, else struct + stats."""
+    """Equality evidence, strongest first: content digest, byte-exact, array
+    stats, otherwise unknown (never equal on struct alone)."""
     if not a or not b:
         return False
     left, right = a.get("content"), b.get("content")
     if left is not None and right is not None:
-        return left == right and a.get("struct") == b.get("struct")
-    return a.get("struct") == b.get("struct") and _stats_equal(a.get("stats"), b.get("stats"))
+        return left == right
+    left, right = a.get("exact"), b.get("exact")
+    if left is not None and right is not None:
+        return left == right
+    if a.get("t") == b.get("t") == "ndarray":
+        return a.get("struct") == b.get("struct") and _stats_equal(a.get("stats"), b.get("stats"))
+    return False
 
 
 def _normalized(stats: dict) -> tuple:
