@@ -6,7 +6,7 @@ Build the missing hybrid scientific-object extractor for scientific bug repair a
 Code derives objects and computational relationships; LLM interpretation enriches that structure.
 Probes support the representation, not replace it. Working window: one–two days (interpreting
 the user's “1/2 days”). Full-benchmark execution is the target; samples are development only.
-Language-specific structure extraction must feed the shared representation. No repair comparisons now.
+Language-specific structure extraction must feed the shared representation.
 
 ## Active work
 
@@ -26,8 +26,14 @@ Language-specific structure extraction must feed the shared representation. No r
   intersection statement and a SHTOOLS pole assignment. Much scientific content was already in v1;
   this is not new scientific discovery. Osprey mathematical chains remain partly absent, some citation
   ranges are imprecise, and the complete handoff is verbose. Source links remain candidates.
-- Prototype checkpoint is ready for a bounded matched repair comparison, not further blanket expansion.
-  No repair or additional model-run budget is approved. See `docs/SCIENTIFIC_READING_V2_NOTES.md`.
+- APPROVED NOW: fresh baseline versus current context-assisted repair on the original five tasks
+  091/058/009/114/001. Astra/medium, one attempt per arm, 1800s total per attempt; treatment's
+  360s model extraction cap and 600s extraction wall allowance are inside that total. Official verification.
+  Existing maximum concurrency 2: both arms together, then next task; no method changes or retries.
+  Task001's prior private-test diagnostic exposure was disclosed; all five are development cases.
+- Active: freeze configuration, launch pairs, monitor exact runner handle and retain every result.
+  Final verification: paired official outcomes, patches, extraction/repair costs including reasoning,
+  runtime settings, source/prompt freeze and independent token/summary audits.
 - This does not establish repair improvement, state-of-the-art quality or full-benchmark coverage.
 
 ## Latest checkpoint
