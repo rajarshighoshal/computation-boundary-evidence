@@ -108,6 +108,7 @@ def test_adapter_keeps_separate_draft_and_revision_probe_receipts(driver):
 def test_object_mode_uses_scientific_reader_and_object_assembly(driver):
     async def check():
         driver.extraction_mode = "scientific_objects"
+        driver.extraction_model_seconds = 360
         driver.prepare = ScientificCodex.prepare.__get__(driver)
         driver._helper = AsyncMock(return_value={"status": "ready"})
         await driver.prepare(30)
@@ -115,6 +116,7 @@ def test_object_mode_uses_scientific_reader_and_object_assembly(driver):
         assert "--objects-output" in command and "--enrichment-input" in command
         async def model(name, prompt, seconds):
             assert "scientific working model" in prompt
+            assert "at most 360 seconds" in prompt
             assert "scientific-context-input.json" in prompt
             assert "object-enrichment.schema.json" in prompt
             assert "Do not repair code or design tests" in prompt
@@ -122,7 +124,7 @@ def test_object_mode_uses_scientific_reader_and_object_assembly(driver):
                 "schema_version": "object-enrichment-1.0", "annotations": []}))
             return {"status": "completed", "usage": {"input_tokens": 1}}
         driver._run_codex = AsyncMock(side_effect=model)
-        await driver.interpret("Scientific task", 120)
+        await driver.interpret("Scientific task", 600)
         driver._helper = AsyncMock(return_value={"usable": True})
         await driver.assemble(None, 50)
         assert "assemble-objects" in driver._helper.await_args.args[0]

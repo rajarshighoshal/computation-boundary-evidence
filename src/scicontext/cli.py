@@ -362,6 +362,8 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
                                "extraction_only": extraction_only,
                                "extractor": config.get("extractor", "annotations")}.items():
                 command += ["--agent-kwarg", f"{key}={str(value).lower() if isinstance(value, bool) else value}"]
+            if config.get("extraction_model_seconds") is not None:
+                command += ["--agent-kwarg", f"extraction_model_seconds={config['extraction_model_seconds']}"]
             log = output / f"task-{task}-{condition}-runner.log"
             write_json(output / f"task-{task}-{condition}-launch.json", {
                 **item, "command": ["auth_file=<private>" if arg.startswith("auth_file=") else arg for arg in command],

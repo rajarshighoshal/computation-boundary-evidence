@@ -117,7 +117,7 @@ class ScientificCodex(BaseAgent):
     def __init__(self, *args, condition="baseline", total_seconds=1800,
                  extraction_seconds=360, reasoning_effort="high", codex_version="0.153.4",
                  workspace=None, auth_file=None, smoke=False, extraction_only=False,
-                 extractor="annotations", **kwargs):
+                 extractor="annotations", extraction_model_seconds=None, **kwargs):
         super().__init__(*args, **kwargs)
         if condition not in {"baseline", "science"}:
             raise ValueError("Unknown experiment condition")
@@ -127,6 +127,9 @@ class ScientificCodex(BaseAgent):
         if extractor not in {"annotations", "scientific_objects"}:
             raise ValueError("Unknown extraction method")
         self.extraction_mode = extractor
+        self.extraction_model_seconds = float(extraction_model_seconds) if extraction_model_seconds is not None else None
+        if self.extraction_model_seconds is not None and not (0 < self.extraction_model_seconds < float("inf")):
+            raise ValueError("extraction_model_seconds must be finite and positive")
         self.config = TrialConfig(self.model_name or "gpt-6-astra", reasoning_effort,
                                   codex_version, float(total_seconds), float(extraction_seconds))
         self.workspace = Path(workspace or Path.cwd()).resolve()
@@ -232,6 +235,7 @@ class ScientificCodex(BaseAgent):
             "probe_cap": 0 if getattr(self, "extraction_mode", "annotations") == "scientific_objects" else 2,
             "extraction_model_call_cap": (1 if getattr(self, "extraction_mode", "annotations") == "scientific_objects" else 2)
                 if self.condition == "science" else 0,
+            "extraction_model_seconds": getattr(self, "extraction_model_seconds", None),
             "extraction_harness_architecture": self.extraction_architecture,
             "extraction_access_mode": "read-only" if self.condition == "science" else None,
             "extraction_codex_receipt": read_json(self.extract_codex_package.parent / "receipt.json") if self.extract_codex_package else None,
@@ -301,6 +305,8 @@ class ScientificCodex(BaseAgent):
         # the actual time available to the model, including small test budgets.
         model_seconds = max(0.0, seconds - min(10.0, seconds / 5)
                             - min(3.0, seconds / 10) - min(1.0, seconds / 10))
+        if getattr(self, "extraction_model_seconds", None) is not None:
+            model_seconds = min(model_seconds, self.extraction_model_seconds)
         prompt = template.format(root=self.root, scratch=SCRATCH, runtime=CONTROL,
                                  seconds=max(1, int(model_seconds)), explore_until=clock(model_seconds * .60),
                                  save_by=clock(model_seconds * .80), finish_by=clock(model_seconds * .95),
@@ -381,6 +387,8 @@ class ScientificCodex(BaseAgent):
             path = (await bounded_call(self.checked(environment, "printenv PATH"),
                                       max(0, deadline - time.monotonic() - collection_reserve), pending)).strip()
             duration = max(0.05, deadline - time.monotonic() - collection_reserve - min(3.0, seconds / 10) - min(1.0, seconds / 10))
+            if name.startswith("extract") and getattr(self, "extraction_model_seconds", None) is not None:
+                duration = min(duration, self.extraction_model_seconds)
             stage_agent = OutputCodex(
                 stage=name, logs_dir=self.logs_dir / name, model_name=self.config.model,
                 version=self.config.codex_version, reasoning_effort=self.config.reasoning_effort,

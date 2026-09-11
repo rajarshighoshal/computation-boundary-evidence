@@ -6,7 +6,7 @@ Build the missing hybrid scientific-object extractor for scientific bug repair a
 Code derives objects and computational relationships; LLM interpretation enriches that structure.
 Probes support the representation, not replace it. Working window: one–two days (interpreting
 the user's “1/2 days”). Full-benchmark execution is the target; samples are development only.
-Language-specific structure extraction must feed the shared representation. No benchmark runs now.
+Language-specific structure extraction must feed the shared representation. No repair comparisons now.
 
 ## Active work
 
@@ -14,8 +14,14 @@ Language-specific structure extraction must feed the shared representation. No b
   same representation; native scope/write/omission regressions tested. No API-rule expansion.
 - Root remains the only writer in main; no extra worktrees. Read-only review findings were addressed
   with regression tests; the implementation is ready for external review.
-- Next: a separately approved live scientific-quality check (exact tasks/attempts/budget), not another
-  parser expansion. No new model, Docker or benchmark runs were made in this continuation.
+- Approved now: extraction-only checks on full public workspaces for 051/SHTOOLS, 025/Osprey,
+  016/MACS; Astra/medium, one attempt each, six minutes per model call. No repairs or verifiers.
+- Active: verify the existing extraction-only command and workspace preparation, then launch the
+  approved calls in parallel where feasible. Final verification: preserve inputs/outputs and stage
+  token usage; inspect scientific meanings against public evidence and report failures honestly.
+- Launch configuration: `configs/scientific-reading-v1.json`; three pinned unrestricted environments
+  downloaded, separate release receipt prepared. Explicit model cap 360s; full extraction wall budget
+  600s includes preparation/handoff/cleanup. Existing runner concurrency 2; 599 local tests pass.
 - Component preflight complete: purpose/convention evidence exists, but selected-file artifacts are
   not task-complete (MACS omits refinement; Osprey omits the other report problem). See METHOD.md.
 - Fixed Python interface/docstring reservation and native per-function allocation; MATLAB outputs

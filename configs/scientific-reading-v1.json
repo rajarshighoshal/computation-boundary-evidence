@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0",
+  "study_kind": "scientific_object_reading_development_check",
+  "purpose": "Approved extraction-only scientific-quality checks on full public workspaces. One model call per task, at most 360 model seconds; no repair, probes, verifier or retry. Preparation/assembly/cleanup have separate wall-clock allowance.",
+  "model": "gpt-6-astra",
+  "reasoning_effort": "medium",
+  "codex_version": "0.153.4",
+  "pier_version": "0.3.0",
+  "release_commit": "42e7e97915ff7d73436a5d37b5cbe6b77e9c2a00",
+  "dataset_revision": "d8bdbcb4ecb2b565686382459c815d2b6291fd31",
+  "release_receipt": "data/scientific-reading-v1-release.json",
+  "task_ids": ["051", "025", "016"],
+  "development_task_ids": ["051", "025", "016"],
+  "extractor": "scientific_objects",
+  "total_seconds": 900,
+  "extraction_seconds": 600,
+  "extraction_model_seconds": 360,
+  "attempts": 1,
+  "concurrency": 2,
+  "allow_restricted_licenses": false
+}

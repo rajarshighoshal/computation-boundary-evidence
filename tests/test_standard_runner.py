@@ -127,7 +127,8 @@ def test_setup_uses_native_extractor_asset_and_keeps_x64_repair(tmp_path, monkey
     assert receipt["extractor"] == "scientific_probe_first_v1"
 
 
-def test_each_call_uses_extraction_environment_distinct_logs_and_sessions(tmp_path, monkeypatch):
+@pytest.mark.parametrize("model_cap", [None, 360])
+def test_each_call_uses_extraction_environment_distinct_logs_and_sessions(tmp_path, monkeypatch, model_cap):
     import scicontext.pier_agent as module
     launched = []
     class Environment:
@@ -141,6 +142,8 @@ def test_each_call_uses_extraction_environment_distinct_logs_and_sessions(tmp_pa
     environment = Environment()
     async def run(agent, instruction, env, context):
         assert env is environment
+        duration = float(agent._extra_env["SCICONTEXT_STAGE_SECONDS"].removesuffix("s"))
+        assert duration == 360 if model_cap is not None else duration > 360
         launched.append((agent.stage, str(agent._REMOTE_CODEX_HOME), agent._OUTPUT_FILENAME))
         env.files[f"/logs/agent/{agent.stage}.jsonl"] = json.dumps({"type": "turn.completed", "usage": {
             "input_tokens": 3, "cached_input_tokens": 1, "output_tokens": 2}}) + "\n"
@@ -148,12 +151,13 @@ def test_each_call_uses_extraction_environment_distinct_logs_and_sessions(tmp_pa
         env.files[f"/logs/agent/{agent.stage}-final.txt"] = "{}"
     monkeypatch.setattr(Codex, "run", run)
     d = SimpleNamespace(extract_environment=environment, environment=object(), root="/app/task_058",
+                        extraction_model_seconds=model_cap,
                         config=SimpleNamespace(model="gpt-6-astra", reasoning_effort="high", codex_version="0.153.4"),
                         logs_dir=tmp_path, auth_file=tmp_path / "dummy-auth.json")
     d.checked = AsyncMock(return_value="/usr/bin")
     async def check():
-        first = await ScientificCodex._run_codex(d, "extract_draft", "draft", 30)
-        second = await ScientificCodex._run_codex(d, "extract_revision", "revision", 30)
+        first = await ScientificCodex._run_codex(d, "extract_draft", "draft", 600)
+        second = await ScientificCodex._run_codex(d, "extract_revision", "revision", 600)
         assert first["status"] == "completed" and second["status"] == "failed"
         assert first["usage"]["input_tokens"] == second["usage"]["input_tokens"] == 3
     asyncio.run(check())
