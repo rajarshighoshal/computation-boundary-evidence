@@ -1,8 +1,8 @@
-"""Fingerprint semantics: exactness, scale-free equivalence, key-agnostic, reversal, structure."""
+"""Structure-fingerprint semantics: structure + stats, not data contents."""
 import numpy as np
-import pytest
 
-from scicontext.fingerprint import FINGERPRINT_BYTE_BUDGET, fingerprint
+from scicontext.fingerprint import SMALL_HASH_BYTES, fingerprint
+from scicontext.relations import _scale_free_equal, _same
 
 
 def test_scalars_are_typed_and_deterministic():
@@ -16,30 +16,39 @@ def test_float_equiv_rounds_scale_free():
     a = fingerprint(1.0 + 1e-13)
     b = fingerprint(1.0 + 2e-13)
     c = fingerprint(2.0)
-    assert a["equiv"] == b["equiv"]
-    assert a["equiv"] != c["equiv"]
+    assert _scale_free_equal(a, b)
+    assert not _scale_free_equal(a, c)
     assert a["exact"] != b["exact"]
 
 
-def test_ndarray_exact_equiv_multiset_rev():
+def test_ndarray_is_structure_plus_stats_plus_small_exact():
     a = np.array([[1.0, 2.0], [3.0, 4.0]])
     b = np.array([[1.0, 2.0], [3.0, 4.0]])
-    c = np.array([[1000.0, 2000.0], [3000.0, 4000.0]])  # scale-free equivalent
-    d = np.array([[4.0, 3.0], [2.0, 1.0]])              # reversed flat order
+    c = np.array([[1000.0, 2000.0], [3000.0, 4000.0]])
+    d = np.array([[4.0, 3.0], [2.0, 1.0]])
     fa, fb, fc, fd = (fingerprint(x) for x in (a, b, c, d))
-    assert fa["exact"] == fb["exact"]
-    assert fa["equiv"] == fc["equiv"]
-    assert fa["exact"] != fc["exact"]
-    assert fa["multiset"] == fd["multiset"]             # sorted values equal
-    assert fa["rev"] != fa["exact"]
-    assert fa["struct"] == fc["struct"] == fd["struct"]
+    assert fa["struct"] == "ndarray:[2, 2]:float64"
+    assert fa["exact"] == fb["exact"] and _same(fa, fb)
+    assert _scale_free_equal(fa, fc)      # scale-free via normalized stats
+    assert not _same(fa, fc)              # values differ, content digest differs
+    assert not _same(fa, fd)
+    assert fa["stats"]["n"] == 4 and fa["stats"]["min"] == 1.0
+    assert fa["multiset"] is None and fa["rev"] is None  # arrays: structure only
+
+
+def test_large_arrays_never_hash_contents():
+    big = np.ones((SMALL_HASH_BYTES // 8 + 1,), dtype=np.float64)
+    fp = fingerprint(big)
+    assert fp["exact"] is None
+    assert fp["content"] is not None      # stats-based digest, no byte hashing
+    assert fp["struct"] is not None
 
 
 def test_dict_key_agnostic_multiset():
     d1 = {"a": 1.0, "b": 2.0}
-    d2 = {"x": 1.0, "y": 2.0}  # different keys, same values
+    d2 = {"x": 1.0, "y": 2.0}
     assert fingerprint(d1)["multiset"] == fingerprint(d2)["multiset"]
-    assert fingerprint(d1)["exact"] != fingerprint(d2)["exact"]
+    assert not _same(fingerprint(d1), fingerprint(d2))
 
 
 def test_sequence_reversal():
@@ -47,27 +56,16 @@ def test_sequence_reversal():
     assert fingerprint([1, 2, 3])["multiset"] == fingerprint([3, 2, 1])["multiset"]
 
 
-def test_object_via_dict_depth_cap():
-    class M:
-        def __init__(self):
-            self.gain = 0.15
-    assert fingerprint(M())["t"] == "obj"
-    assert fingerprint(M())["exact"] == fingerprint(M())["exact"]
-
-
-def test_byte_budget_truncates_large_arrays():
-    big = np.ones((FINGERPRINT_BYTE_BUDGET // 8 + 1,), dtype=np.float64)
-    fp = fingerprint(big)
-    assert fp["truncated"] is True
-    assert fp["exact"] is None
-    assert fp["struct"] is not None
-    small = np.ones(10)
-    assert fingerprint(small)["truncated"] is False
-
-
-def test_opaque_values_are_typed_not_id_based():
+def test_object_third_party_is_opaque():
     class A:
-        __slots__ = ()
-    assert fingerprint(A())["exact"] == fingerprint(A())["exact"]
-    assert fingerprint(A())["struct"] == "A"
-    assert fingerprint(object())["struct"] == "object"
+        pass
+    fp = fingerprint(A())
+    assert fp["t"] == "opaque" and fp["struct"] == "A"
+    assert fp["exact"] is None
+
+
+def test_nan_stats_recorded_without_hashing():
+    a = np.array([np.nan, 1.0, np.inf])
+    fp = fingerprint(a)
+    assert fp["stats"]["n_nan"] == 1 and fp["stats"]["n_inf"] == 1
+    assert fp["stats"]["min"] == 1.0

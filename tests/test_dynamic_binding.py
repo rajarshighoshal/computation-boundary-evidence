@@ -19,7 +19,7 @@ def test_quantity_graph_deduplicates_states_and_links_transitions():
     graph = build_quantity_graph(records)
     assert len(graph["quantities"]) == 4  # 1.0, 10.0 (dedup), 20.0, plus None-return excluded
     assert len(graph["transitions"]) == 4
-    produced_10 = [q for q in graph["quantities"] if q["fingerprint_exact"] == graph["transitions"][1]["produced"][0].removeprefix("q_")]
+    produced_10 = [q for q in graph["quantities"] if q["fingerprint_content"] == graph["transitions"][1]["produced"][0].removeprefix("q_")]
     # the produced quantity id of seq2 equals the consumed one of seq3
     assert graph["transitions"][1]["produced"][0] == graph["transitions"][2]["consumed"][0]["quantity"]
 

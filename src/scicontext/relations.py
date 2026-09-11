@@ -19,7 +19,56 @@ _TRIVIAL_SCALARS = {"bool", "int", "NoneType"}
 def _fp_equal(a, b, field="exact"):
     if not a or not b:
         return False
-    return a.get(field) == b.get(field) and a.get(field) is not None
+    value = a.get(field)
+    return value == b.get(field) and value is not None
+
+
+def _stats_equal(a, b):
+    if a is None or b is None:
+        return a == b
+    keys = {"n", "min", "max", "sum", "n_nan", "n_inf"}
+    for key in keys:
+        left, right = a.get(key), b.get(key)
+        if left is None and right is None:
+            continue
+        if left is None or right is None:
+            return False
+        if abs(float(left) - float(right)) > 1e-9 * max(1.0, abs(float(left)), abs(float(right))):
+            return False
+    return True
+
+
+def _round9(value) -> float:
+    return float(f"{value:.9g}")
+
+
+def _same(a, b):
+    """Structural equality: content digest when present, else struct + stats."""
+    if not a or not b:
+        return False
+    left, right = a.get("content"), b.get("content")
+    if left is not None and right is not None:
+        return left == right and a.get("struct") == b.get("struct")
+    return a.get("struct") == b.get("struct") and _stats_equal(a.get("stats"), b.get("stats"))
+
+
+def _normalized(stats: dict) -> tuple:
+    if not stats:
+        return ()
+    scale = max(1.0, abs(float(stats.get("min") or 0)), abs(float(stats.get("max") or 0)))
+    return tuple(_round9(float(stats[key]) / scale) for key in ("min", "max", "sum")
+                 if stats.get(key) is not None)
+
+
+def _scale_free_equal(a, b):
+    """Scale-free equivalence: each stats tuple normalized by its own scale."""
+    if not a or not b:
+        return False
+    if a.get("t") == b.get("t") == "scalar" and a.get("equiv") is not None:
+        return a["equiv"] == b["equiv"]
+    if a.get("t") == b.get("t") == "ndarray" and a.get("struct") == b.get("struct"):
+        return _normalized(a.get("stats")) == _normalized(b.get("stats"))
+    return False
 
 
 def _is_trivial(fp) -> bool:
@@ -32,18 +81,18 @@ def _input_relation(a, b) -> tuple[str, dict | None]:
     keys = set(a.get("inputs", {})) | set(b.get("inputs", {}))
     if set(a.get("inputs", {})) != set(b.get("inputs", {})):
         return ("different", None)
-    all_exact = all(_fp_equal(a["inputs"].get(k), b["inputs"].get(k)) for k in keys)
+    all_exact = all(_same(a["inputs"].get(k), b["inputs"].get(k)) for k in keys)
     if all_exact:
         return ("identical", None)
-    all_equiv = all(_fp_equal(a["inputs"].get(k), b["inputs"].get(k), "equiv")
-                    or _fp_equal(a["inputs"].get(k), b["inputs"].get(k)) for k in keys)
+    all_equiv = all(_scale_free_equal(a["inputs"].get(k), b["inputs"].get(k))
+                    or _same(a["inputs"].get(k), b["inputs"].get(k)) for k in keys)
     if all_equiv:
         return ("equivalent", None)
     deltas = []
     rest_identical = True
     for key in keys:
         fa, fb = a["inputs"].get(key), b["inputs"].get(key)
-        if not _fp_equal(fa, fb):
+        if not _same(fa, fb):
             if (fa and fb and fa.get("t") == fb.get("t") == "scalar"
                     and fa.get("struct") in {"float", "int"}):
                 deltas.append((key, fa["exact"], fb["exact"]))
@@ -54,12 +103,12 @@ def _input_relation(a, b) -> tuple[str, dict | None]:
         return ("param_delta", {"name": name, "a": va, "b": vb})
     for key in keys:
         fa, fb = a["inputs"].get(key), b["inputs"].get(key)
-        if fa and fb and fa.get("t") in {"seq", "series", "ndarray"} and _fp_equal(fa, fb, "rev"):
+        if fa and fb and fa.get("t") in {"seq", "dict"} and _fp_equal(fa, fb, "rev"):
             others = keys - {key}
-            if all(_fp_equal(a["inputs"].get(k), b["inputs"].get(k)) for k in others):
+            if all(_same(a["inputs"].get(k), b["inputs"].get(k)) for k in others):
                 return ("reversed", None)
     all_multiset = all((fa and fb and fa.get("multiset") == fb.get("multiset") and fa.get("multiset") is not None)
-                       or _fp_equal(fa, fb) for fa, fb in ((a["inputs"].get(k), b["inputs"].get(k)) for k in keys))
+                       or _same(fa, fb) for fa, fb in ((a["inputs"].get(k), b["inputs"].get(k)) for k in keys))
     if all_multiset:
         return ("relabeled", None)
     all_struct = all(fa and fb and fa.get("struct") == fb.get("struct") and fa.get("struct") is not None
@@ -71,9 +120,9 @@ def _input_relation(a, b) -> tuple[str, dict | None]:
 
 def _output_relation(a, b) -> str:
     fa, fb = a.get("return_fp"), b.get("return_fp")
-    if _fp_equal(fa, fb):
+    if _same(fa, fb):
         return "identical"
-    if _fp_equal(fa, fb, "equiv"):
+    if _scale_free_equal(fa, fb):
         return "equivalent"
     if fa and fb and fa.get("multiset") == fb.get("multiset") and fa.get("multiset") is not None:
         return "relabeled"
@@ -163,7 +212,8 @@ def _first_divergence(a, b, instances, children) -> int:
 def _provenance_chain(fp_exact: str, instances, children) -> list:
     chain = []
     for seq, instance in instances.items():
-        if instance.get("return_fp", {}).get("exact") == fp_exact:
+        return_fp = instance.get("return_fp") or {}
+        if (return_fp.get("content") or return_fp.get("exact")) == fp_exact:
             chain.append(seq)
     return chain[:3]
 
@@ -256,7 +306,8 @@ def derive_loci(trace_records: list, predicate_evaluations: list, script_status:
         if instance.get("parent_seq") is not None and instance.get("return_fp"):
             parent = instances.get(instance["parent_seq"])
             if parent and parent.get("name") == "<module>":
-                script_observable_producers.setdefault(instance["return_fp"]["exact"], seq)
+                fp = instance["return_fp"]
+                script_observable_producers.setdefault(fp.get("content") or fp.get("exact"), seq)
     for evaluation in predicate_evaluations:
         # The failing reproducer names its own violated predicate: match the
         # assertion text against the recorded failure before claiming violation.

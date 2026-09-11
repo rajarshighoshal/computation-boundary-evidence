@@ -23,7 +23,6 @@ TRACER_VERSION = "trace_runtime-1.0"
 MAX_INSTANCES_PER_FUNC = 64
 MAX_VALUE_BYTES = 16 * 1024 * 1024
 MAX_CONTAINER_ITEMS = 1000
-TRACE_ARRAY_BUDGET = 64 * 1024 * 1024
 
 
 def _parse_predicates(script_text: str) -> list:
@@ -158,7 +157,7 @@ class _Tracer:
                                       and len(value) > MAX_CONTAINER_ITEMS) or not self._safe_to_recurse(value):
             return {"t": "opaque", "exact": None, "equiv": None, "multiset": None,
                     "rev": None, "struct": type(value).__name__, "bytes": size, "truncated": True}
-        return self.fingerprint(value, budget=TRACE_ARRAY_BUDGET)
+        return self.fingerprint(value)
 
     def _log_return_size(self, record, value):
         try:

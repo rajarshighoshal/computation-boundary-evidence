@@ -22,11 +22,13 @@ def build_quantity_graph(trace_records: list) -> dict:
     producers: dict[str, list[int]] = defaultdict(list)
 
     def quantity_id(fp) -> str | None:
-        if not fp or not fp.get("exact"):
+        if not fp:
             return None
-        identifier = fp["exact"]
+        identifier = fp.get("content") or fp.get("exact")
+        if identifier is None:
+            return None
         if identifier not in quantities:
-            quantities[identifier] = {"id": f"q_{identifier[:16]}", "fingerprint_exact": identifier,
+            quantities[identifier] = {"id": f"q_{identifier[:16]}", "fingerprint_content": identifier,
                                       "type": fp.get("t"), "struct": fp.get("struct"),
                                       "stats": fp.get("stats"), "bytes": fp.get("bytes")}
         return identifier
