@@ -232,7 +232,8 @@ def build_packet(root: Path, context_root: Path | None = None, *, multilingual=F
         if multilingual and source_language(path) != "python":
             result = extract_native_evidence(root, [path], max_entries=min(MAX_ENTRIES_PER_FILE, MAX_ENTRIES - len(entries)), references=refs)
         else:
-            result = evidence.extract_evidence(root, [path], max_files=1, max_entries=min(MAX_ENTRIES_PER_FILE, MAX_ENTRIES - len(entries)), references=refs)
+            result = evidence.extract_evidence(root, [path], max_files=1, max_entries=min(MAX_ENTRIES_PER_FILE, MAX_ENTRIES - len(entries)), references=refs,
+                                               **({"preserve_interfaces": True} if multilingual else {}))
         entries.extend(result["entries"])
         for key in ("files_considered", "files_parsed", "entries", "expressions", "supported_expressions"):
             coverage[key] += result["coverage"][key]

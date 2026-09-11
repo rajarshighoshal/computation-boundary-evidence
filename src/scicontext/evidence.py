@@ -400,7 +400,7 @@ def _has_unknown(expression: dict | None) -> bool:
 
 
 def _file_entries(path: str, raw: bytes, source: str, tree: ast.AST, limit: int,
-                  references: list[dict] | None = None) -> tuple[list[dict], bool]:
+                  references: list[dict] | None = None, preserve_interfaces: bool = False) -> tuple[list[dict], bool]:
     digest = hashlib.sha256(raw).hexdigest()
     index = _ScopeIndex(tree)
     entries = []
@@ -486,8 +486,25 @@ def _file_entries(path: str, raw: bytes, source: str, tree: ast.AST, limit: int,
             return (0 if direct and item[1] != "signature" else 1 if nearby else 2,
                     node.lineno, node.col_offset, item[1])
         candidates.sort(key=priority)
+    selected = candidates[:limit]
+    if preserve_interfaces and len(candidates) > limit:
+        # A scientific body excerpt needs its defining interface and scientific
+        # docstrings. Admit that bundle together rather than dropping all headers
+        # behind a full allocation of direct body statements.
+        context = [item for item in candidates if item[1] in {"signature", "docstring"}]
+        selected, seen = [], set()
+        for item in candidates:
+            scope = index.scopes[id(item[0])].name
+            required = [c for c in context if scope == index.scopes[id(c[0])].name or
+                        scope.startswith(index.scopes[id(c[0])].name + ".")]
+            bundle = [c for c in [*required, item] if id(c[0]) not in seen]
+            # The item can itself be a signature/docstring already in required.
+            unique = {id(c[0]): c for c in bundle}
+            if len(selected) + len(unique) <= limit:
+                selected.extend(unique.values())
+                seen.update(unique)
     entry_nodes = {}
-    for node, kind, expression_node in candidates[:limit]:
+    for node, kind, expression_node in selected:
         scope = index.scopes[id(node)]
         line = node.lineno
         source_text = _span_text(source, node)
@@ -643,7 +660,7 @@ def _file_entries(path: str, raw: bytes, source: str, tree: ast.AST, limit: int,
 
 def extract_evidence(
     root: Path, paths: list[str] | None = None, *, max_files: int = 200, max_entries: int = 2000,
-    references: list[dict] | None = None
+    references: list[dict] | None = None, preserve_interfaces: bool = False
 ) -> dict:
     """Index bounded Python evidence without following symlinks or executing code."""
     _valid_limit(max_files, "max_files")
@@ -718,7 +735,8 @@ def extract_evidence(
             if not _ast_within_limits(tree):
                 coverage["skipped"].append({"path": relative, "reason": "ast_size_or_depth_limit"})
                 continue
-            file_entries, truncated = _file_entries(relative, raw, source, tree, max_entries - len(entries), references)
+            file_entries, truncated = _file_entries(relative, raw, source, tree, max_entries - len(entries), references,
+                                                    preserve_interfaces=preserve_interfaces)
         except _FileTooLarge:
             coverage["skipped"].append({"path": relative, "reason": "file_size_limit"})
             continue

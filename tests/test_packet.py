@@ -58,6 +58,34 @@ def test_capped_reference_allocation_preserves_later_body_and_parameters(tmp_pat
     assert [e["id"] for e in repeated["entries"]] == [e["id"] for e in entries]
 
 
+def test_scientific_packet_retains_defining_interfaces_and_scientific_docstrings(tmp_path, monkeypatch):
+    import ast
+    from scicontext.object_context import enrichment_input
+    from scicontext.scientific_objects import extract_objects
+
+    source = '"""Scientific storage model."""\nclass Model:\n    """Positive flow leaves the reservoir."""\n'
+    for name in ("advance", "report"):
+        source += f'    def {name}(self, volume):\n        """Volume is stored water, not flow rate."""\n'
+        source += "".join(f"        temp{i} = volume * {i}\n" for i in range(60))
+        source += "        return temp59\n"
+    write(tmp_path, "model.py", source)
+    methods = [n for n in ast.walk(ast.parse(source)) if isinstance(n, ast.FunctionDef)]
+    refs = [{"path": "model.py", "start_line": f.lineno, "end_line": f.end_lineno} for f in methods]
+    monkeypatch.setattr(packet, "seed_references", lambda *args: (refs, {"references": refs}))
+    monkeypatch.setattr(packet, "MAX_ENTRIES_PER_FILE", 20)
+    legacy = build_packet(tmp_path)
+    assert not any(e["kind"] == "signature" for e in legacy["entries"])
+    scientific = build_packet(tmp_path, multilingual=True)
+    assert len(scientific["entries"]) <= 20 and scientific["coverage"]["entries_truncated"]
+    graph = extract_objects(tmp_path, scientific)
+    for method in methods:
+        assert any(o["kind"] == "code_interface" and o["scope"].endswith(f".{method.name}@{method.lineno}") for o in graph["objects"])
+    payload = str(enrichment_input(graph, scientific))
+    assert "Positive flow leaves" in payload and "stored water, not flow rate" in payload
+    assert build_packet(tmp_path) == legacy  # The scientific opt-in does not change historical selection.
+    assert build_packet(tmp_path, multilingual=True) == scientific
+
+
 def test_documents_validate_exact_lines_hashes_and_explicit_context(tmp_path):
     root, context = tmp_path / "root", tmp_path / "context"
     root.mkdir()

@@ -16,6 +16,10 @@ Language-specific structure extraction must feed the shared representation. No b
   with regression tests; the implementation is ready for external review.
 - Next: a separately approved live scientific-quality check (exact tasks/attempts/budget), not another
   parser expansion. No new model, Docker or benchmark runs were made in this continuation.
+- Component preflight complete: purpose/convention evidence exists, but selected-file artifacts are
+  not task-complete (MACS omits refinement; Osprey omits the other report problem). See METHOD.md.
+- Fixed Python interface/docstring reservation and native per-function allocation; MATLAB outputs
+  now use function-exit binding instead of whole-body return excerpts. Legacy selection unchanged.
 - Review target: scientific meanings must connect to code objects/interfaces, not merely rename
   APIs. Current offline annotations are fixtures, not demonstrated LLM scientific understanding.
 - Final local check passed: inspect generated representations, full local tests and helper-wheel
@@ -24,8 +28,9 @@ Language-specific structure extraction must feed the shared representation. No b
 
 ## Latest checkpoint
 
-Current multilingual checkpoint: `runs/multilingual-object-checkpoint-reviewed/pytest.xml` (595 tests),
-`runs/multilingual-public-source-reviewed/receipt.json` (pinned selected files; implementation hashes).
+Current preflight: `runs/scientific-input-preflight/pytest.xml` (598 tests), with pinned selected-file
+artifacts and implementation hashes in that directory's `receipt.json`. Earlier committed multilingual
+checkpoint: `4fd7130`, `runs/multilingual-object-checkpoint-reviewed/receipt.json`.
 Native C/C++/Fortran/MATLAB/Cython feed shared objects; unsupported syntax is explicit. The MACS
 file is Python syntax at its pinned revision, not evidence of a real `.pyx` source check. Earlier
 failed source checks remain preserved. Helper-wheel receipts: `.cache/multilingual-fit/assets/`;

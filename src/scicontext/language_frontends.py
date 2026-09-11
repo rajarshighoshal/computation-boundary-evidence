@@ -189,11 +189,12 @@ def _tree_sitter_entries(path, raw, language):
                     add(param, "parameter", symbol=symbol, scope_node=param,
                         native={"declaration_text": _text(param)})
             if outputs:
-                end = node.named_children[-1]
+                end = _child(node, "function_output") if language == "matlab" else node.named_children[-1]
                 for symbol in outputs:
                     add(end, "return", expression={"kind": "name", "name": symbol, "text": symbol,
                         "span": [end.start_byte, end.end_byte]}, scope_node=node,
-                        native={"implicit_output": symbol})
+                        native={"implicit_output": symbol, "binding_at": "function_exit",
+                                "order_start": [node.end_point.row + 1, node.end_point.column]})
             continue
         if node.type in {"comment", "comment_block"}:
             add(node, "docstring")
@@ -288,6 +289,8 @@ def _select_entries(entries, limit, refs):
                for e in entries if e["kind"] == "parameter" and any(
                    q.replace(" ", "").casefold() in {"intent(out)", "intent(inout)"}
                    for q in e.get("native", {}).get("type_qualifiers", [])) for n in e["entity_symbols"]}
+    outputs.update((e.get("function_scope"), e["native"]["implicit_output"].casefold() if e["language"] == "fortran" else e["native"]["implicit_output"])
+                   for e in entries if e.get("native", {}).get("implicit_output"))
     def computational_priority(entry):
         target = entry.get("native", {}).get("writes_root", "")
         if entry["language"] == "fortran":
@@ -305,6 +308,16 @@ def _select_entries(entries, limit, refs):
         queues[(focus, category)].append(entry)
     for focus in (0, 1):
         queues[(focus, "computation")] = deque(sorted(queues[(focus, "computation")], key=computational_priority))
+        for category in ("interface", "documentation", "computation", "declaration"):
+            by_scope = defaultdict(deque)
+            for entry in queues[(focus, category)]:
+                by_scope[entry.get("function_scope") or entry["scope"]].append(entry)
+            balanced = deque()
+            while any(by_scope.values()):
+                for group in by_scope.values():
+                    if group:
+                        balanced.append(group.popleft())
+            queues[(focus, category)] = balanced
     selected = []
     for focus in (0, 1):
         # Uninitialised declarations cannot consume the entire computational slice.

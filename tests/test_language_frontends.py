@@ -307,3 +307,27 @@ def test_cython_method_body_does_not_lexically_inherit_class_namespace(tmp_path)
     graph = extract_objects(tmp_path, build_packet(tmp_path, multilingual=True))
     call = next(o for o in graph["operations"] if o["kind"] == "uninterpreted_call")
     assert call["properties"]["wrapper"]["status"] == "unresolved"
+
+
+def test_matlab_implicit_output_uses_function_exit_binding_not_whole_body_as_return(tmp_path):
+    source = "function y=scale(x)\ny=x*2;\nend\n"
+    (tmp_path / "model.m").write_text(source)
+    packet = extract_native_evidence(tmp_path, ["model.m"])
+    returned = next(e for e in packet["entries"] if e["kind"] == "return")
+    assert "x*2" not in returned["text"]
+    assert returned["native"]["binding_at"] == "function_exit"
+    assert returned["native"]["order_start"][0] >= 3
+    graph = extract_objects(tmp_path, packet)
+    assignment = next(o for o in graph["objects"] if o["symbol"] == "y")
+    assert any(l["source"] == assignment["id"] and l["relation"] == "returned_as" for l in graph["links"])
+
+
+def test_native_budget_retains_calculations_in_later_scientific_components(tmp_path):
+    (tmp_path / "model.m").write_text("function y=setup(x)\n" + "padding=0;\n" * 100 +
+        "y=x;\nend\nfunction y=quantify(x)\n% x is a measured amplitude; convert using a reference scale.\ny=x*2;\nend\n")
+    packet = extract_native_evidence(tmp_path, ["model.m"], max_entries=14)
+    assert packet["coverage"]["entries_truncated"]
+    graph = extract_objects(tmp_path, packet)
+    multiply = next(o for o in graph["operations"] if o["kind"] == "source_binary")
+    assert ".quantify@" in multiply["source"]["scope"]
+    assert all(i["object_id"] for i in multiply["inputs"])

@@ -1,6 +1,6 @@
 # Scientific-object enrichment contract
 
-Checkpoint for review before integration. This restores the original division of work:
+The implemented enrichment interface preserves the original division of work:
 code derives scientific objects and computational relationships; the LLM relates that structure
 to the task's scientific meaning. It does not generate a replacement graph or a test oracle.
 

@@ -102,9 +102,12 @@ omissions are exposed. C headers use a C++-compatible parse with dialect ambigui
 overloads, dynamic dispatch and MATLAB/Fortran call-versus-index ambiguity remain unresolved.
 
 Bounded native packets group contiguous comments and balance documentation, interfaces and
-computation. Returns and explicit Fortran output-parameter writes receive priority. Omitted prior
+computation across functions. Returns and writes to explicit output parameters receive priority. Omitted prior
 definitions prevent stale bindings from being presented as dataflow. Parameter declarations retain
 Fortran dimensions/intent as source text. These selection heuristics are not complete slicing.
+Scientific-mode Python selection retains the enclosing interfaces and docstrings with selected
+body statements; the legacy selector is unchanged. MATLAB implicit outputs refer to header-declared
+outputs evaluated at function exit, not whole bodies labelled as return statements.
 
 Pinned public-source checks are in `runs/multilingual-public-source-reviewed`: selected files from
 bedtools, Osprey, MACS, SHTOOLS and htslib. They establish artifact generation, not complete parsing
@@ -112,6 +115,24 @@ or scientific understanding; htslib macro-related parse errors and packet limits
 The initially requested MACS `.pyx` file was absent: its pinned version is `BedGraph.py`, parsed as
 Python. Earlier failed receipts are preserved; native Cython is covered by synthetic tests here,
 not claimed as a successful real `.pyx` benchmark-source check.
+
+### Scientific-input preflight
+
+Follow-up artifacts in `runs/scientific-input-preflight` expose a distinction between component
+interpretation and task-complete understanding. No model output was generated or scored.
+
+| Public component | Scientific information available | Missing task coverage |
+| --- | --- | --- |
+| SHTOOLS magnetic tensor | Source comments state the north-west-up frame, coefficient normalization, output units and zero-trace condition; interfaces and tensor-output writes provide anchors. | One routine cannot establish equivalence across the other tensor implementations, coefficient data and complete public workflow. |
+| Osprey quantification | Interfaces and sampled calculations distinguish uncorrected tCr ratios, water scaling and tissue correction; their assumptions are documented locally. | The public task also concerns a model-derived contribution and cross-protocol behavior outside this selected file. |
+| MACS sparse signal track | Class/interface anchors retain zero-based, right-open transition conventions and the public task's evidence-attribution requirement. | The packet still omits `bedGraphTrackI.refine_peaks` even though that method exists in the file; the public reproducer and remaining repository are absent from this selected-file check. |
+
+These are source-backed reading targets, not verified scientific truth or intended patches. The
+initial Python packet had dropped every interface; interface/docstring reservation fixes that
+specific defect. Balancing native entries across functions also exposes Osprey's later calculations
+as objects rather than relying on accidental whole-body excerpts. Neither fix establishes task
+localization. A component-only reading trial must be labelled accordingly; a task-level test needs
+the complete public workspace and must inspect whether its relevant computation is actually indexed.
 
 Broader scientific-source recovery and cross-file argument/return relations remain work.
 The finite rule set does not establish full scientific coverage. Interpretation can still be
