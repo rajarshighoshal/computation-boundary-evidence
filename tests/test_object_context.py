@@ -38,11 +38,12 @@ def scientific_case(tmp_path):
 def test_scientific_input_includes_source_material_and_real_code_relations(scientific_case):
     _, packet, graph, _ = scientific_case
     payload = enrichment_input(graph, packet)
-    assert set(payload) == {"objects", "operations", "links", "unsupported", "context"}
+    assert set(payload) == {"objects", "operations", "links", "unsupported", "context", "selection"}
     assert "stiffness matrix" in json.dumps(payload["context"]["scientific_passages"])
     assert "np.linalg.solve" in json.dumps(payload["context"]["code_passages"])
     assert any(op["kind"] == "linear_solve" for op in payload["operations"])
     assert payload["links"] == graph["links"]
+    assert payload["selection"]["truncated"] is False
 
 
 def test_enrichment_adds_meaning_without_overwriting_any_structural_fact(scientific_case):
@@ -120,7 +121,7 @@ def test_code_first_interpretation_reaches_normal_repair_without_probe_loop(scie
             self.response = response
             return {"status": "completed", "usage": {"input_tokens": 10, "cached_input_tokens": 0,
                                                      "output_tokens": 5, "reasoning_output_tokens": 1}}
-        async def assemble(self, outcomes, seconds):
+        async def assemble(self, seconds):
             self.bundle = object_bundle(graph, self.response, self.payload["context"])
             return {**self.bundle["assembly"], "probes": []}
         async def probe(self, *args):
@@ -143,8 +144,9 @@ def test_code_first_interpretation_reaches_normal_repair_without_probe_loop(scie
                                   "fixture", "science", "Repair this scientific model", root / "trial"))
     assert result["status"] == "completed"
     extraction = result["stages"][0]
-    assert len(extraction["model_calls"]) == 1 and extraction["probe_rounds"] == []
-    assert extraction["revision"]["reason"] == "not_part_of_scientific_object_enrichment"
+    assert len(extraction["model_calls"]) == 1 and "probe_rounds" not in extraction
+    assert extraction["selected_model_call"] == "extract_draft"
+    assert extraction["usable_checkpoint"] is True
     assert "Stiffness operator" in driver.repair_prompt
     assert "Fixed boundary conditions" in driver.repair_prompt
     assert "not mandatory repair rules" in driver.repair_prompt
@@ -194,3 +196,97 @@ def test_real_packet_and_assembly_helpers_preserve_scientific_context(scientific
     assert bundle["assembly"]["interpretation_status"] == "enriched"
     assert "Stiffness operator" in bundle["handoff"]
     assert "Repair the scientific displacement" in json.dumps(bundle["context"])
+
+
+def _large_graph(interfaces=5, literals=400):
+    objects, operations, links = [], [], []
+    for i in range(interfaces):
+        objects.append({"id": f"so_iface_{i}", "kind": "code_interface", "symbol": f"f{i}",
+                        "scope": "module", "path": "model.py", "source_entry_ids": [f"e_iface_{i}"],
+                        "properties": {}, "roles": []})
+    for i in range(literals):
+        objects.append({"id": f"so_lit_{i}", "kind": "literal", "symbol": None,
+                        "scope": "module", "path": "model.py", "source_entry_ids": [f"e_lit_{i}"],
+                        "properties": {"shape": [1]}, "roles": []})
+    for i in range(interfaces):
+        operations.append({"id": f"sop_call_{i}", "kind": "uninterpreted_call",
+                           "source_entry_id": f"e_lit_{i}",
+                           "inputs": [{"role": "receiver", "object_id": f"so_lit_{i}"}],
+                           "output_ids": [f"so_iface_{i}"],
+                           "properties": {"retrieved_targets": [{"object_id": f"so_iface_{i}"}]}})
+        links.append({"source": f"so_lit_{i}", "target": f"sop_call_{i}", "relation": "input:receiver"})
+        links.append({"source": f"sop_call_{i}", "target": f"so_iface_{i}", "relation": "produces"})
+    for i in range(interfaces, literals):
+        operations.append({"id": f"sop_call_{i}", "kind": "uninterpreted_call",
+                           "source_entry_id": f"e_lit_{i}", "inputs": [],
+                           "output_ids": [f"so_lit_{i}"], "properties": {}})
+        links.append({"source": f"sop_call_{i}", "target": f"so_lit_{i}", "relation": "produces"})
+    graph = {"objects": objects, "operations": operations, "links": links,
+             "unsupported": [{"source_entry_id": f"e_lit_{i}", "path": "model.py", "reason": "x"}
+                             for i in range(literals + interfaces)]}
+    packet = {"documents": [{"text": "public scientific doc"}], "entries": [
+        {"id": f"e_iface_{i}", "kind": "signature", "path": "model.py", "sha256": "a",
+         "start_line": 1, "end_line": 1, "scope": "module", "text": "def f", "language": "python",
+         "native": {}} for i in range(interfaces)] + [
+        {"id": f"e_lit_{i}", "kind": "assignment", "path": "model.py", "sha256": "b",
+         "start_line": 2, "end_line": 2, "scope": "module", "text": f"x{i}=1", "language": "python",
+         "native": {}} for i in range(literals)]}
+    return graph, packet
+
+
+def test_enrichment_input_selects_workflow_relevant_objects_first():
+    graph, packet = _large_graph()
+    payload = enrichment_input(graph, packet)
+    selection = payload["selection"]
+    assert selection["truncated"] is True
+    assert selection["kept_objects"] <= 300
+    assert selection["kept_unsupported"] <= 200
+    kept_ids = {o["id"] for o in payload["objects"]}
+    assert {f"so_iface_{i}" for i in range(5)} <= kept_ids
+    assert all(f"so_lit_{i}" in kept_ids for i in range(5))  # dataflow neighbors kept
+    assert {o["id"] for o in payload["objects"][:5]} == {f"so_iface_{i}" for i in range(5)}
+    endpoint_ids = kept_ids | {op["id"] for op in payload["operations"]}
+    assert all(link["source"] in endpoint_ids and link["target"] in endpoint_ids
+               for link in payload["links"])
+    assert payload["context"]["scientific_passages"] == [{"text": "public scientific doc"}]
+    assert any(entry["id"].startswith("e_iface_") for entry in payload["context"]["code_passages"])
+
+
+def test_enrichment_input_size_cap_drops_lowest_priority():
+    objects = [{"id": f"so_{i}", "kind": "literal", "symbol": None, "scope": "m",
+                "path": "m.py", "source_entry_ids": [f"e_{i}"],
+                "properties": {"shape": [1]}, "roles": []} for i in range(60)]
+    entries = [{"id": f"e_{i}", "kind": "assignment", "path": "m.py", "sha256": "c",
+                "start_line": 1, "end_line": 1, "scope": "m", "text": "y" * 60_000,
+                "language": "python", "native": {}} for i in range(60)]
+    graph = {"objects": objects, "operations": [], "links": [], "unsupported": []}
+    payload = enrichment_input(graph, {"documents": [], "entries": entries})
+    selection = payload["selection"]
+    size = len(json.dumps(payload, ensure_ascii=False).encode())
+    assert selection["truncated"] is True
+    assert 25 <= selection["kept_objects"] < 60
+    # Either inside the byte budget or pinned at the hard object floor.
+    assert size <= 1_500_000 or selection["kept_objects"] == 25
+    # Measured on the receipt-bearing payload; tiny self-reference drift is fine.
+    assert abs(selection["serialized_bytes"] - size) <= 64
+
+
+def test_enrichment_input_prioritizes_interfaces_even_without_retrieved_targets():
+    objects = [{"id": "so_iface", "kind": "code_interface", "symbol": "step", "scope": "module",
+                "path": "model.py", "source_entry_ids": ["e_iface"], "properties": {}, "roles": []},
+               *[{"id": f"so_lit_{i}", "kind": "literal", "symbol": None, "scope": "module",
+                  "path": "model.py", "source_entry_ids": [f"e_{i}"],
+                  "properties": {"shape": [1]}, "roles": []} for i in range(400)]]
+    graph = {"objects": objects, "operations": [], "links": [], "unsupported": []}
+    packet = {"documents": [], "entries": []}
+    payload = enrichment_input(graph, packet)
+    kept = payload["objects"]
+    assert kept[0]["id"] == "so_iface"
+    assert payload["selection"]["kept_objects"] <= 300
+
+
+def test_enrichment_prompt_directs_early_scratch_write():
+    prompt = (Path(__file__).resolve().parent.parent / "prompts/enrich_objects.md").read_text()
+    assert "{scratch}/extract_draft-annotations.json" in prompt
+    assert "even if the turn later times out" in prompt
+    assert "Annotate the most task-relevant" in prompt

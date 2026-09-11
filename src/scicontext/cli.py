@@ -16,7 +16,7 @@ from dataclasses import asdict, replace
 from pathlib import Path
 
 from .controller import TrialConfig
-from .io import digest_file, digest_json, read_json, utc_now, write_json
+from .io import digest_file, read_json, utc_now, write_json
 
 
 def _workspace() -> Path:
@@ -241,7 +241,7 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
     if smoke and extraction_only:
         raise ValueError("Choose subscription smoke or extraction-only verification, not both")
     config = read_json(config_path)
-    if config.get("extractor", "annotations") not in {"annotations", "scientific_objects"}:
+    if config.get("extractor", "scientific_objects") != "scientific_objects":
         raise ValueError("Unknown extraction method")
     budget = TrialConfig(config["model"], config["reasoning_effort"], config["codex_version"],
                          config["total_seconds"], config["extraction_seconds"])
@@ -361,7 +361,7 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
                                "reasoning_effort": budget.reasoning_effort, "codex_version": budget.codex_version,
                                "workspace": str(workspace), "auth_file": str(private_auth), "smoke": smoke,
                                "extraction_only": extraction_only,
-                               "extractor": config.get("extractor", "annotations")}.items():
+                               "extractor": config.get("extractor", "scientific_objects")}.items():
                 command += ["--agent-kwarg", f"{key}={str(value).lower() if isinstance(value, bool) else value}"]
             if config.get("extraction_model_seconds") is not None:
                 command += ["--agent-kwarg", f"extraction_model_seconds={config['extraction_model_seconds']}"]
@@ -541,21 +541,15 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
 
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
-    if argv and argv[0] in {"index", "cite", "expression", "checkpoint", "packet", "assemble", "assemble-objects", "run-probes"}:
+    if argv and argv[0] in {"packet", "assemble-objects"}:
         from .tool_cli import main as helper_main
         return helper_main(argv)
     parser = argparse.ArgumentParser(description=__doc__)
     subs = parser.add_subparsers(dest="command", required=True)
-    schema = subs.add_parser("schema", help="Export strict extraction output schema")
-    schema.add_argument("--output", type=Path)
     prepare = subs.add_parser("prepare", help="Restore pinned release and development selection")
     prepare.add_argument("--workspace", type=Path, default=_workspace())
     prepare.add_argument("--task-id", default="002,077")
     prepare.add_argument("--receipt", type=Path, help="Save a separate selection receipt, preserving the development selection")
-    analyze = subs.add_parser("analyze", help="Validate and analyze a graph against its public sources")
-    analyze.add_argument("--root", type=Path, required=True)
-    analyze.add_argument("--graph", type=Path, required=True)
-    analyze.add_argument("--output", type=Path, required=True)
     summaries = subs.add_parser("summarize", help="Generate paired results from raw artifacts")
     summaries.add_argument("root", type=Path)
     summaries.add_argument("--output", type=Path, required=True)
@@ -575,20 +569,12 @@ def main(argv: list[str] | None = None) -> int:
     run.add_argument("--execute", action="store_true")
     run.add_argument("--smoke", action="store_true")
     run.add_argument("--extract-only", action="store_true", help="Verify only extraction on configured development tasks; no repair or private verifier")
-    for name in ("index", "cite", "expression", "checkpoint", "packet", "assemble", "assemble-objects", "run-probes"):
+    for name in ("packet", "assemble-objects"):
         subs.add_parser(name, help="Offline extraction helper; use command --help")
     args = parser.parse_args(argv)
-    if args.command == "schema":
-        from .graph import graph_schema
-        result = graph_schema()
-        if args.output:
-            write_json(args.output, result)
-    elif args.command == "prepare":
+    if args.command == "prepare":
         from .release import prepare as prepare_release
         result = prepare_release(args.workspace, args.task_id.split(","), receipt_path=args.receipt)
-    elif args.command == "analyze":
-        from .tool_cli import checkpoint
-        result = checkpoint(args.graph, args.root, args.output)
     elif args.command == "summarize":
         from .results import write_summary
         result = write_summary(args.root, args.output)

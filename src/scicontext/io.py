@@ -4,9 +4,31 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import tempfile
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PurePosixPath
+
+_DENIED_COMPONENTS = {
+    "auth", "credentials", "secrets", "private", "private_tests", "verifier",
+    "verifiers", "gold", "gold_patch", "gold_patches", "answers",
+}
+_DENIED_FILES = {"auth.json", "credentials.json", "credentials", "id_rsa", "id_ed25519", "secrets.json"}
+
+
+def _safe_relative(path: str) -> str | None:
+    """Reject absolute, hidden, traversal, or verifier/credential-adjacent paths."""
+    if not path or "\\" in path or "\x00" in path or ":" in path:
+        return "invalid relative path"
+    parts = PurePosixPath(path).parts
+    if PurePosixPath(path).is_absolute() or any(p in {".", ".."} or p.startswith(".") for p in parts):
+        return "absolute, hidden, or traversal path"
+    if not parts or any(p.lower() in _DENIED_COMPONENTS for p in parts):
+        return "private, verifier, or credential path"
+    name = parts[-1].lower()
+    if name in _DENIED_FILES or name.endswith((".pem", ".key")) or re.search(r"(?:^|[_-])(private|verifier|credentials|secret)(?:[_-]|\.)", name):
+        return "private, verifier, or credential file"
+    return None
 
 
 def utc_now() -> str:
