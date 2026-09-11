@@ -16,7 +16,9 @@ from .io import digest_file, digest_json, read_json, write_json
 
 CODEX_VERSION = "0.153.4"
 HELPER_PACKAGES = ["jsonschema==4.26.0", "attrs==26.1.0", "jsonschema-specifications==2025.9.1", "referencing==0.37.0", "rpds-py==2026.6.3", "typing-extensions==4.16.0",
-                   "pint==0.24.4", "flexcache==0.3", "flexparser==0.4", "platformdirs==4.11.8"]
+                   "pint==0.24.4", "flexcache==0.3", "flexparser==0.4", "platformdirs==4.11.8",
+                   "tree-sitter==0.25.2", "tree-sitter-c==0.24.2", "tree-sitter-cpp==0.23.4",
+                   "tree-sitter-fortran==0.6.0", "tree-sitter-matlab==1.3.1", "Cython==3.3.0"]
 
 
 def _locked_asset(builder):
@@ -78,7 +80,11 @@ def prepare_helpers(cache: Path, python_minor: str) -> Path:
     # pip's cross-platform download still evaluates some dependency markers
     # against its host interpreter. Pin the complete helper closure explicitly,
     # including typing-extensions needed by the scientific guests' Python 3.11.
-    identity = digest_json(HELPER_PACKAGES)[:12]
+    # rpds' calendar-version release dropped Python 3.10 wheels. Keep the
+    # supported 3.10 guest on its compatible release, without changing 3.11+.
+    packages = ["rpds-py==0.30.0" if python_minor == "310" and p.startswith("rpds-py==") else p
+                for p in HELPER_PACKAGES]
+    identity = digest_json(packages)[:12]
     destination = cache / f"helper-deps-cp{python_minor}-{identity}"
     receipt = destination / "receipt.json"
     if receipt.is_file():
@@ -90,7 +96,7 @@ def prepare_helpers(cache: Path, python_minor: str) -> Path:
     wheels.mkdir(parents=True, exist_ok=True)
     subprocess.run(["uvx", "--from", "pip", "pip", "download", "--dest", str(wheels), "--only-binary=:all:", "--no-deps",
                     "--platform", "manylinux2014_x86_64", "--python-version", python_minor,
-                    "--implementation", "cp", "--abi", f"cp{python_minor}", *HELPER_PACKAGES], check=True)
+                    "--implementation", "cp", "--abi", f"cp{python_minor}", *packages], check=True)
     destination.mkdir(parents=True, exist_ok=True)
     for wheel in sorted(wheels.glob("*.whl")):
         with zipfile.ZipFile(wheel) as archive:
@@ -100,5 +106,5 @@ def prepare_helpers(cache: Path, python_minor: str) -> Path:
                     raise ValueError("Unsafe wheel path")
             archive.extractall(destination)
     files = {str(p.relative_to(destination)): digest_file(p) for p in sorted(destination.rglob("*")) if p.is_file() and p != receipt}
-    write_json(receipt, {"python": python_minor, "packages": HELPER_PACKAGES, "wheels": {p.name: digest_file(p) for p in wheels.glob("*.whl")}, "files": files})
+    write_json(receipt, {"python": python_minor, "packages": packages, "wheels": {p.name: digest_file(p) for p in wheels.glob("*.whl")}, "files": files})
     return destination

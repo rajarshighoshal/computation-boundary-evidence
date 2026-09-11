@@ -10,21 +10,28 @@ Language-specific structure extraction must feed the shared representation. No b
 
 ## Active work
 
-- Core merged as `ef3e62c`; all extra worktrees removed, commits retained. Unique old source checks
-  preserved in `runs/archived-semantic-bindings-source-checks`. Root is the only writer.
-- Next: other-language structure frontends for the shared representation and a separately approved
-  live scientific-quality check after review. No API-rule expansion or benchmark calls yet.
+- Local multilingual milestone verified: scientific passages, interfaces and computations reach the
+  same representation; native scope/write/omission regressions tested. No API-rule expansion.
+- Root remains the only writer in main; no extra worktrees. Read-only review findings were addressed
+  with regression tests; the implementation is ready for external review.
+- Next: a separately approved live scientific-quality check (exact tasks/attempts/budget), not another
+  parser expansion. No new model, Docker or benchmark runs were made in this continuation.
 - Review target: scientific meanings must connect to code objects/interfaces, not merely rename
   APIs. Current offline annotations are fixtures, not demonstrated LLM scientific understanding.
-- Final check: inspect generated representations, run local tests, and state unsupported cases.
+- Final local check passed: inspect generated representations, full local tests and helper-wheel
+  availability. Native Cython real-source quality and guest runtime imports remain unverified.
   This does not establish repair improvement or authorize another experiment.
 
 ## Latest checkpoint
 
-`27705a3`: anchored scientific reading is integrated with the existing runner; Pint and custom-code
-anchors included. Full tests passed from this commit (`runs/scientific-object-checkpoint-v1/pytest.xml`).
-Offline examples: `runs/scientific-object-demo-v2`; real public-source extraction:
-`runs/scientific-object-public-source-v1`. PyCG fit failures: `runs/tool-fit-pycg/RECEIPT.md`.
+Current multilingual checkpoint: `runs/multilingual-object-checkpoint-reviewed/pytest.xml` (595 tests),
+`runs/multilingual-public-source-reviewed/receipt.json` (pinned selected files; implementation hashes).
+Native C/C++/Fortran/MATLAB/Cython feed shared objects; unsupported syntax is explicit. The MACS
+file is Python syntax at its pinned revision, not evidence of a real `.pyx` source check. Earlier
+failed source checks remain preserved. Helper-wheel receipts: `.cache/multilingual-fit/assets/`;
+Python 3.10 needs rpds-py 0.30.0, while 3.11–3.13 retain the existing pin.
+Earlier Python/LLM integration: `27705a3`; offline fixtures `runs/scientific-object-demo-v2` are
+hand-authored interpretations. PyCG fit failures: `runs/tool-fit-pycg/RECEIPT.md`.
 Prior negative comparison remains unchanged in `docs/PROBE_FIRST_PAIRS_V1.md` and `_NOTES.md`.
 
 ## Carry forward

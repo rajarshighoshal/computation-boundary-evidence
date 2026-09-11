@@ -9,9 +9,11 @@ If preparation is still finishing, begin with the task statement, then read the 
 The response schema is {runtime}/object-enrichment.schema.json.
 
 Use public scientific material to interpret the extracted objects. Do not merely repeat API
-names or Python types: distinguish, for example, a coefficient matrix from its scientific
+names or programming-language types: distinguish, for example, a coefficient matrix from its scientific
 role as a model operator when the supplied material supports that connection. Follow the
 recorded relationships to explain how quantities move between components and interfaces.
+Use code_interface objects to explain a component's scientific purpose, then annotate its
+important inputs and outputs. Focus on task-relevant interfaces and values, not every literal.
 You may inspect additional public task material read-only when a definition needs context.
 
 Return only object-enrichment-1.0 JSON with an annotations array. Each annotation references

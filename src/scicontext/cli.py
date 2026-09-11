@@ -571,9 +571,7 @@ def main(argv: list[str] | None = None) -> int:
         from .scientific_objects import extract_objects
         from .object_context import enrich_objects, enrichment_input, render_objects
         from .packet import build_packet
-        from .evidence import extract_evidence
-        packet = (extract_evidence(args.root, args.paths) if args.paths
-                  else build_packet(args.root, args.context_root))
+        packet = build_packet(args.root, args.context_root, multilingual=True, source_paths=args.paths or None)
         result = extract_objects(args.root, packet)
         if args.llm_input:
             write_json(args.llm_input, enrichment_input(result, packet))

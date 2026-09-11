@@ -171,8 +171,8 @@ class _Extractor:
         if source and target and item not in self.links:
             self.links.append(item)
 
-    def operation(self, entry, node, kind, api, inputs, output, properties=None, assumptions=None, scientific=False):
-        key = _id("sop_", entry["id"], ast.dump(node, include_attributes=True), kind)
+    def operation(self, entry, node, kind, api, inputs, output, properties=None, assumptions=None, scientific=False, identity=None):
+        key = _id("sop_", entry["id"], identity if identity is not None else ast.dump(node, include_attributes=True), kind)
         self.operations[key] = {"id": key, "kind": kind, "api": api,
             "source_entry_id": entry["id"], "inputs": [{"role": r, "object_id": o} for r, o in inputs],
             "source": {k: entry[k] for k in ("path", "scope", "start_line", "end_line")},
@@ -276,7 +276,10 @@ class _Extractor:
         self.active.add(key)
         symbols = entry.get("entity_symbols", [])
         output = None
-        if entry["kind"] == "parameter":
+        if entry["kind"] == "signature":
+            output = self.obj(entry, "interface", kind="code_interface",
+                              properties={"signature": entry["text"], "runtime_type": "not_inferred"})
+        elif entry["kind"] == "parameter":
             output = self.obj(entry, "binding", symbol=symbols[0], properties={"binding": "parameter", "runtime_type": "unknown"})
         elif entry.get("expression_text") is not None and entry["kind"] in {"assignment", "return", "augmented_assignment"}:
             try:
@@ -488,6 +491,8 @@ class _Extractor:
         self.problem(entry, "uninterpreted_wrapper_call" if wrapper["status"] == "lexical_target_only" else "unrecognized_or_shadowed_call",
                      expression=ast.unparse(node.func), resolved_api=api, wrapper=wrapper)
         inputs = [(f"argument_{i}", self.value(entry, a)) for i, a in enumerate(node.args)]
+        if wrapper.get("source_entry_id") in self.entries:
+            inputs.insert(0, ("callee_interface", self.statement(self.entries[wrapper["source_entry_id"]])))
         inputs.extend(("keyword:" + (k.arg or "**"), self.value(entry, k.value)) for k in node.keywords)
         if api is None and isinstance(node.func, ast.Attribute):
             inputs.insert(0, ("receiver", self.value(entry, node.func.value)))
@@ -498,6 +503,13 @@ class _Extractor:
     def finish(self):
         for entry in sorted(self.entries.values(), key=lambda e: (e["path"], e["start_line"], e.get("start_col", 0), e["id"])):
             self.statement(entry)
+        interfaces = {(e["path"], e["scope"]): self.done.get(e["id"]) for e in self.entries.values()
+                      if e["kind"] == "signature" and not e.get("native", {}).get("declaration_only")}
+        for entry in self.entries.values():
+            owner = interfaces.get((entry["path"], entry.get("function_scope") or entry["scope"]))
+            value = self.done.get(entry["id"])
+            if owner and value and entry["kind"] in {"parameter", "return"}:
+                self.link(value, owner, "parameter_of" if entry["kind"] == "parameter" else "returns_from")
         # Finite call-site links, never a recursive semantic summary or claim
         # that caller arguments equal callee parameters. Wrapper chains remain
         # visible when their bodies were already selected into the packet.
@@ -507,7 +519,7 @@ class _Extractor:
                 continue
             body = [o["id"] for o in self.operations.values() if
                     self.entries[o["source_entry_id"]]["path"] == wrapper["path"] and
-                    self.entries[o["source_entry_id"]]["scope"] == wrapper["body_scope"]]
+                    self.entries[o["source_entry_id"]].get("function_scope", self.entries[o["source_entry_id"]]["scope"]) == wrapper["body_scope"]]
             wrapper["indexed_body_operation_ids"] = body
             for oid in body:
                 self.link(operation["id"], oid, "may_invoke_body")
@@ -558,4 +570,44 @@ def extract_objects(root: Path, packet: dict) -> dict:
     Input is a packet from :func:`scicontext.packet.build_packet` or the existing
     evidence index. Properties marked unknown are intentionally not completed.
     """
-    return _Extractor(Path(root).resolve(strict=True), packet).finish()
+    root = Path(root).resolve(strict=True)
+    python_entries = [e for e in packet["entries"] if e.get("language", "python") == "python"]
+    native_entries = [e for e in packet["entries"] if e.get("language", "python") != "python"]
+    result = _Extractor(root, {**packet, "entries": python_entries}).finish()
+    if native_entries:
+        from .native_objects import NativeExtractor
+        native = NativeExtractor(root, {**packet, "entries": native_entries}).finish()
+        for key in ("objects", "operations", "links", "unsupported"):
+            result[key].extend(native[key])
+        coverage = result["coverage"]
+        for key in ("input_entries", "valid_source_entries", "objects", "operations", "unsupported_cases",
+                    "unresolved_inputs", "code_only_objects", "api_connected_objects", "recognized_scientific_operations"):
+            coverage[key] += native["coverage"][key]
+        coverage["source_files"] = sorted(set(coverage["source_files"]) | set(native["coverage"]["source_files"]))
+        coverage["per_file"] = sorted(coverage["per_file"] + native["coverage"]["per_file"], key=lambda r: r["path"])
+        for key in coverage["totals"]:
+            if key != "scientific_call_fraction":
+                coverage["totals"][key] += native["coverage"]["totals"][key]
+        totals = coverage["totals"]
+        totals["scientific_call_fraction"] = totals["scientific_api_calls"] / totals["inspected_calls"] if totals["inspected_calls"] else None
+        coverage["limitations"].append("Native-language operators are source syntax, not inferred scientific or runtime semantics.")
+    result["coverage"]["languages"] = sorted({e.get("language", "python") for e in packet["entries"]})
+    source_issues = [s for s in packet.get("coverage", {}).get("skipped", []) if
+                     s.get("reason") in {"parse_error", "partial_parse", "parse_or_read_failure", "native_entry_limit",
+                         "cython_parse_error", "cython_parse_diagnostic", "cython_lexical_diagnostic",
+                         "cython_compile_time_region_not_evaluated"}]
+    rows = {r["path"]: r for r in result["coverage"]["per_file"]}
+    for issue in source_issues:
+        result["unsupported"].append({"source_entry_id": None, **issue})
+        path = issue.get("path")
+        if path not in rows:
+            rows[path] = {"path": path, "inspected_calls": 0, "scientific_operations": 0,
+                "scientific_api_calls": 0, "uninterpreted_calls": 0, "support_operations": 0,
+                "unsupported_cases": 0, "scientific_call_fraction": None}
+        rows[path]["unsupported_cases"] += 1
+    if source_issues:
+        result["coverage"]["per_file"] = [rows[p] for p in sorted(rows)]
+        result["coverage"]["unsupported_cases"] = len(result["unsupported"])
+        result["coverage"]["totals"]["unsupported_cases"] = sum(r["unsupported_cases"] for r in rows.values())
+    result["coverage"]["source_frontend_issues"] = len(source_issues)
+    return result

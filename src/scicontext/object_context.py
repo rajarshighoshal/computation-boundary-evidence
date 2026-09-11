@@ -18,12 +18,14 @@ def enrichment_input(graph: dict, packet: dict) -> dict:
     ids = {identifier for obj in graph["objects"] for identifier in obj["source_entry_ids"]}
     ids.update(op["source_entry_id"] for op in graph["operations"])
     scopes = {(obj["path"], obj["scope"]) for obj in graph["objects"]}
+    source_paths = {obj["path"] for obj in graph["objects"]}
     payload["context"] = {
         "scientific_passages": copy.deepcopy(packet.get("documents", [])),
         "code_passages": [{key: entry.get(key) for key in
-            ("id", "path", "sha256", "start_line", "end_line", "scope", "text")}
+            ("id", "path", "sha256", "start_line", "end_line", "scope", "text", "language", "native")}
             for entry in packet.get("entries", []) if entry["id"] in ids or
-            entry["kind"] in {"signature", "docstring"} and (entry["path"], entry["scope"]) in scopes],
+            entry["kind"] == "docstring" and entry["path"] in source_paths or
+            entry["kind"] == "signature" and (entry["path"], entry["scope"]) in scopes],
     }
     return payload
 

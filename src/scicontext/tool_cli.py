@@ -153,7 +153,7 @@ def main(argv: list[str] | None = None) -> int:
         result = checkpoint(args.graph, args.root, args.output, Path(context) if context else None)
     elif args.command == "packet":
         from .packet import build_packet, render_catalog
-        value = build_packet(args.root, args.context_root)
+        value = build_packet(args.root, args.context_root, multilingual=bool(args.objects_output))
         value["task_id"] = args.task_id
         write_json(args.output, value)
         args.catalog.parent.mkdir(parents=True, exist_ok=True)

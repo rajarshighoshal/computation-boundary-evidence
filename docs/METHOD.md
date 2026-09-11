@@ -50,11 +50,16 @@ For offline inspection, without candidate imports or model calls:
 ```sh
 .venv/bin/scicontext scientific-objects --root PATH --output objects.json --llm-input reader-input.json --markdown objects.md
 .venv/bin/python scripts/demo_scientific_objects.py --output runs/scientific-object-demo-v1
+.venv/bin/python scripts/check_multilingual_sources.py --output runs/multilingual-public-source-new
 ```
 
 The demo uses hand-authored interpretation fixtures. It tests representation/enrichment plumbing,
 not LLM discovery or benchmark performance. Real scientific quality needs a separately approved
 live check. Per-file coverage and its denominator are recorded in the graph.
+
+Pinned Linux/x86-64 helper wheels were downloaded for Python 3.10–3.13; this verifies wheel
+availability, not imports inside every benchmark image. The 3.10 helper uses rpds-py 0.30.0 because
+the existing newer pin lacks a compatible wheel; other guest versions retain that newer pin.
 
 ## Research basis and what is not implemented
 
@@ -89,8 +94,26 @@ that distinction helps is still an empirical question, not an established SOTA o
 
 ## Current limits
 
-Python is the implemented frontend; the full release is multilingual. Other language frontends,
-broader scientific-source recovery and cross-file argument/return relations remain work.
+Python AST and Cython's parser, plus Tree-sitter C/C++/Fortran/MATLAB frontends, feed the shared
+representation in scientific-object mode. Legacy packet mode remains Python-only. Native syntax
+adds interfaces, declarations, expressions, local call targets and source documentation—not new
+scientific API rules or inferred physical laws. Cython compile-time evaluation/includes are disabled;
+omissions are exposed. C headers use a C++-compatible parse with dialect ambiguity stated. Macros,
+overloads, dynamic dispatch and MATLAB/Fortran call-versus-index ambiguity remain unresolved.
+
+Bounded native packets group contiguous comments and balance documentation, interfaces and
+computation. Returns and explicit Fortran output-parameter writes receive priority. Omitted prior
+definitions prevent stale bindings from being presented as dataflow. Parameter declarations retain
+Fortran dimensions/intent as source text. These selection heuristics are not complete slicing.
+
+Pinned public-source checks are in `runs/multilingual-public-source-reviewed`: selected files from
+bedtools, Osprey, MACS, SHTOOLS and htslib. They establish artifact generation, not complete parsing
+or scientific understanding; htslib macro-related parse errors and packet limits remain visible.
+The initially requested MACS `.pyx` file was absent: its pinned version is `BedGraph.py`, parsed as
+Python. Earlier failed receipts are preserved; native Cython is covered by synthetic tests here,
+not claimed as a successful real `.pyx` benchmark-source check.
+
+Broader scientific-source recovery and cross-file argument/return relations remain work.
 The finite rule set does not establish full scientific coverage. Interpretation can still be
 incorrect despite source anchors. Whole-benchmark effectiveness is untested for this method.
 

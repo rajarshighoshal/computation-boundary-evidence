@@ -50,3 +50,18 @@ def test_two_processes_build_helper_cache_once(tmp_path, monkeypatch):
                 process.terminate()
                 process.join(timeout=5)
         result.close()
+
+
+def test_helper_wheel_recipe_retains_python310_without_changing_newer_guests(tmp_path, monkeypatch):
+    commands = []
+    def download(command, **kwargs):
+        commands.append(command)
+        return subprocess.CompletedProcess(command, 0)
+    monkeypatch.setattr(assets.subprocess, "run", download)
+    older = assets.prepare_helpers(tmp_path, "310")
+    newer = assets.prepare_helpers(tmp_path, "311")
+    assert "rpds-py==0.30.0" in commands[0]
+    assert "rpds-py==2026.6.3" in commands[1]
+    assert read_json(older / "receipt.json")["packages"] != read_json(newer / "receipt.json")["packages"]
+    for package in ("tree-sitter-fortran==0.6.0", "tree-sitter-matlab==1.3.1", "Cython==3.3.0"):
+        assert package in commands[0] and package in commands[1]

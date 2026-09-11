@@ -26,13 +26,16 @@ See `docs/OBJECT_ENRICHMENT.md` for the current interface and `docs/METHOD.md` f
 ## Current implementation and remaining work
 
 The Python path has code-first extraction, conservative wrapper-body links, unit analysis using
-Pint, source-context input, anchored enrichment and an existing-runner integration. Offline fixtures
-and model doubles test mechanisms; they do not establish autonomous scientific interpretation.
+Pint, source-context input, anchored enrichment and an existing-runner integration. Native parser
+frontends now feed source/interface/expression evidence into the same representation; their
+scientific semantics remain unknown until interpreted. Offline fixtures and model doubles test
+mechanisms; they do not establish autonomous scientific interpretation.
 
 Next, inspect the scientific-reading outputs on actual public tasks with an approved bounded
-budget, and implement other language frontends for the shared representation. Do not expand the
+budget, after checking guest helper compatibility. Do not expand the
 API rule catalogue merely to make demonstrations look complete. Unsupported structure and missing
-scientific definitions must remain explicit. Python support is not whole-benchmark coverage.
+scientific definitions must remain explicit. Having a parser for a language is not whole-repository
+coverage, and neither parser coverage nor annotation validity establishes scientific understanding.
 
 ## Evaluation
 

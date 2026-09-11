@@ -31,12 +31,13 @@ MAX_CATALOG_CHARS = 24000
 MAX_CATALOG_ROWS = 120
 _DOCUMENT_SUFFIXES = {".md", ".rst", ".txt"}
 _PATH_MENTION = re.compile(r"[A-Za-z0-9_./-]+\.(?:py|md|rst|txt)\b", re.IGNORECASE)
+_MULTILINGUAL_MENTION = re.compile(r"[A-Za-z0-9_./-]+\.(?:py|pyx|pxd|pxi|cpp|cxx|cc|c|hpp|hxx|hh|h|f90|f95|f03|f08|f77|for|f|m|md|rst|txt)\b", re.IGNORECASE)
 
 
-def _mentions(text: str) -> set[str]:
+def _mentions(text: str, multilingual: bool = False) -> set[str]:
     # The bound also applies when a task statement contains huge generated text.
     paths = set()
-    for match in _PATH_MENTION.finditer(text[:65536]):
+    for match in (_MULTILINGUAL_MENTION if multilingual else _PATH_MENTION).finditer(text[:65536]):
         path = match.group().removeprefix("./")
         if not evidence._blocked(Path(path)) and _safe_relative(path) is None:
             paths.add(path)
@@ -146,7 +147,8 @@ def _documents(path: str, raw: bytes, text: str, remaining: int, coverage: dict)
     return records
 
 
-def build_packet(root: Path, context_root: Path | None = None) -> dict:
+def build_packet(root: Path, context_root: Path | None = None, *, multilingual=False,
+                 source_paths: list[str] | None = None) -> dict:
     """Return original syntactic entries and graph-compatible document spans."""
     root = Path(root).resolve(strict=True)
     if not root.is_dir():
@@ -163,7 +165,8 @@ def build_packet(root: Path, context_root: Path | None = None) -> dict:
     context = None
     if context_root is not None:
         context = _read_text(Path(context_root).resolve(), "task_statement.md", coverage, "@context/task_statement.md")
-    task_paths = _mentions(context[1]) if context else set()
+    task_paths = _mentions(context[1], multilingual) if context else set()
+    task_paths.update(source_paths or [])
     paths = _discover(root, coverage)
     # Explicit task paths remain eligible even if traversal exhausts its budget.
     for path in sorted(task_paths - paths):
@@ -176,7 +179,7 @@ def build_packet(root: Path, context_root: Path | None = None) -> dict:
     for path in sorted((p for p in paths if _reproducer(p) and Path(p).suffix.casefold() == ".py"), key=lambda p: (len(Path(p).parts), p))[:4]:
         source = _read_text(root, path, coverage)
         if source:
-            repro_paths.update(_mentions(source[1]))
+            repro_paths.update(_mentions(source[1], multilingual))
     for path in sorted(repro_paths - paths):
         _, problem = evidence._safe_file(root, path)
         if problem is None and not path.startswith("@context/"):
@@ -191,11 +194,32 @@ def build_packet(root: Path, context_root: Path | None = None) -> dict:
     focus_order = {path: index for index, path in enumerate(dict.fromkeys(ref['path'] for ref in refs))}
     ordered.sort(key=lambda p: (0 if p in focus_paths else 1, focus_order.get(p, len(refs)),
                                _rank(p, task_paths, repro_paths)))
-    sources = [p for p in ordered if Path(p).suffix.casefold() == ".py"]
+    if multilingual:
+        from .language_frontends import source_language, extract_native_evidence
+        all_sources = [p for p in ordered if source_language(p) is not None]
+        explicit = [p for p in all_sources if p in task_paths]
+        groups = {}
+        for path in all_sources:
+            if path not in explicit:
+                groups.setdefault(source_language(path), []).append(path)
+        # A Python reproduction wrapper must not crowd every native implementation
+        # out of the packet. Balance source languages without excluding mixed repos.
+        sources = list(explicit)
+        while any(groups.values()):
+            for language in sorted(groups):
+                if groups[language]:
+                    sources.append(groups[language].pop(0))
+        if source_paths:
+            sources = [p for p in sources if p in source_paths]
+        coverage["source_selection"] = "explicit_paths_then_language_balanced_task_ranking"
+    else:
+        sources = [p for p in ordered if Path(p).suffix.casefold() == ".py"]
     document_paths = [p for p in ordered if Path(p).suffix.casefold() in _DOCUMENT_SUFFIXES]
     for path in ordered:
         if path not in sources and path not in document_paths:
-            coverage["skipped"].append({"path": path, "reason": "unsupported_language"})
+            reason = ("not_selected_by_explicit_paths" if multilingual and source_paths and source_language(path)
+                      else "unsupported_language")
+            coverage["skipped"].append({"path": path, "reason": reason})
     for path in sources[MAX_SOURCE_FILES:]:
         coverage["skipped"].append({"path": path, "reason": "source_file_limit"})
     coverage["selected_source_paths"] = sources[:MAX_SOURCE_FILES]
@@ -205,7 +229,10 @@ def build_packet(root: Path, context_root: Path | None = None) -> dict:
             coverage["entries_truncated"] = True
             coverage["skipped"].append({"path": path, "reason": "entry_limit"})
             continue
-        result = evidence.extract_evidence(root, [path], max_files=1, max_entries=min(MAX_ENTRIES_PER_FILE, MAX_ENTRIES - len(entries)), references=refs)
+        if multilingual and source_language(path) != "python":
+            result = extract_native_evidence(root, [path], max_entries=min(MAX_ENTRIES_PER_FILE, MAX_ENTRIES - len(entries)), references=refs)
+        else:
+            result = evidence.extract_evidence(root, [path], max_files=1, max_entries=min(MAX_ENTRIES_PER_FILE, MAX_ENTRIES - len(entries)), references=refs)
         entries.extend(result["entries"])
         for key in ("files_considered", "files_parsed", "entries", "expressions", "supported_expressions"):
             coverage[key] += result["coverage"][key]
