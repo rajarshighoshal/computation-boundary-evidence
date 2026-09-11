@@ -52,8 +52,18 @@ def _ndarray_fp(value, budget: int, depth: int) -> dict:
     flat = np.sort(contiguous.ravel())
     multiset = _hash_bytes(f"{shape}|{dtype}|", np.ascontiguousarray(flat).tobytes()) if not truncated else None
     rev = _hash_bytes(f"{shape}|{dtype}|", np.ascontiguousarray(array[::-1]).tobytes()) if not truncated else None
+    try:
+        numeric = array[np.isfinite(array)] if array.dtype.kind in "fc" else array
+        stats = {"n": int(array.size), "n_nan": int(np.isnan(array).sum()) if array.dtype.kind in "fc" else 0,
+                 "n_inf": int(np.isinf(array).sum()) if array.dtype.kind in "fc" else 0,
+                 "min": float(numeric.min()) if numeric.size else None,
+                 "max": float(numeric.max()) if numeric.size else None,
+                 "sum": float(numeric.sum()) if numeric.size else 0.0}
+    except Exception:
+        stats = None
     return {"t": "ndarray", "exact": exact, "equiv": equiv, "multiset": multiset, "rev": rev,
-            "struct": _hash_bytes(f"{shape}|{dtype}|struct"), "bytes": size_bytes, "truncated": truncated}
+            "struct": _hash_bytes(f"{shape}|{dtype}|struct"), "bytes": size_bytes, "truncated": truncated,
+            "stats": stats}
 
 
 def _series_fp(value, budget: int, depth: int) -> dict:

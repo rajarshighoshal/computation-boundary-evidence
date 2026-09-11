@@ -246,6 +246,7 @@ class _Tracer:
         self.deadline = self.started + seconds
         if self.observer:
             self.observer.start()
+        script_error = None
         try:
             use_monitoring = hasattr(sys, "monitoring")
             if use_monitoring:
@@ -272,6 +273,8 @@ class _Tracer:
                     sys.setprofile(None)
         except SystemExit:
             pass
+        except Exception as error:
+            script_error = f"{type(error).__name__}: {error}"
         finally:
             self.trace_file.close()
             (self.out / "script_predicates.json").write_text(
@@ -279,7 +282,8 @@ class _Tracer:
                            indent=2, default=str) + "\n")
             if self.observer:
                 self.observer.stop()
-            run = {"status": "completed", "wall_seconds": round(time.monotonic() - self.started, 3),
+            run = {"status": "completed", "script_status": script_error,
+                   "wall_seconds": round(time.monotonic() - self.started, 3),
                    "instances": self.seq, "func_keys": len(self.func_counts),
                    "pythonhashseed": os.environ.get("PYTHONHASHSEED"),
                    "tracer_version": TRACER_VERSION, "seconds_bound": seconds,
