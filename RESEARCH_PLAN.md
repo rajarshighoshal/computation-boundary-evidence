@@ -35,8 +35,9 @@ Approved live extraction-only checks now exist for SHTOOLS, Osprey and MACS; see
 `docs/SCIENTIFIC_READING_V1.md` and `_NOTES.md`. They recovered substantive documented scientific
 meaning, but the graph often missed the corresponding implementation bodies. Task-directed
 source retrieval and candidate call links are now implemented and checked offline; scientific-body
-coverage remains partial. Next is a separately approved combined-context check, not exhaustive
-reconstruction. Compiler IR is deferred by the user. Do not expand the
+coverage remains partial. The combined-context v2 check now shows improved implementation anchoring
+of reviewed scientific explanations. Next is a separately approved matched repair comparison, not
+exhaustive reconstruction. Compiler IR is deferred by the user. Do not expand the
 API rule catalogue merely to make demonstrations look complete. Unsupported structure and missing
 scientific definitions must remain explicit. Having a parser for a language is not whole-repository
 coverage, and neither parser coverage nor annotation validity establishes scientific understanding.

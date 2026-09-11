@@ -10,20 +10,8 @@ Language-specific structure extraction must feed the shared representation. No r
 
 ## Active work
 
-- Local multilingual milestone verified: scientific passages, interfaces and computations reach the
-  same representation; native scope/write/omission regressions tested. No API-rule expansion.
 - Root remains the only writer in main; no extra worktrees. Read-only review findings were addressed
   with regression tests; the implementation is ready for external review.
-- Approved extraction check COMPLETE: full public workspaces 051/SHTOOLS, 025/Osprey, 016/MACS;
-  Astra/medium, one call each, all returned under the 360s model cap. No repairs/verifiers/retries.
-  Code/config frozen at `2aafb20`; model time separate from 600s extraction wall allowance.
-- Final verification passed: outputs/graphs preserved, all session token counters audited, runtime
-  model/effort/read-only settings confirmed, selected scientific claims checked against public sources.
-  No task containers remain running. Report: `docs/SCIENTIFIC_READING_V1.md` and `_NOTES.md`.
-- Main finding: meaningful scientific interpretation, inadequate implementation grounding. Graph
-  selection misses the scientific bodies; annotations cite them as prose while anchoring elsewhere.
-  Next justified work is task-directed source/operation selection, not new API rules or guardrails.
-  No further model attempts or repair comparisons are authorized.
 - Offline retrieval/linking checkpoint COMPLETE: public workflow references reach implementation
   functions, with candidate call links and comparison/statement anchors. Legacy selection unchanged.
   Final verification: 618 tests pass; all three pinned-image helpers finish within the existing cap.
@@ -31,16 +19,22 @@ Language-specific structure extraction must feed the shared representation. No r
 - Coverage is intentionally partial: Osprey timing/scaling regions and the uncalled gravitational
   counterpart remain gaps. Interface/operation counts are not scientific correctness or repair gains.
 - User confirmed: no compiler IR or exhaustive reconstruction; deliver a usable research prototype.
-- APPROVED NOW: one combined-context extraction call each on 051/025/016, Astra/medium, 360 model
-  seconds, no repairs/verifiers/retries. Freeze the source/prompt implementation at `a27cc93`.
-  Use a fresh v2 run directory; compare scientific implementation anchoring, public-source support,
-  readability and token costs with v1. Driver-only explanations/function-name paraphrases do not
-  satisfy the scientific-content criterion. Final check: artifact/token/protocol audit and source review.
+- Combined-context v2 check COMPLETE: same three tasks, one Astra/medium call each, 360s model cap,
+  no repairs/verifiers/retries. Method source/prompts/dependencies stayed at `a27cc93`; control-only
+  commit `084718b`. Final artifact/token/runtime-setting audits pass; all task containers stopped.
+- V2 improves implementation anchoring of substantive scientific explanations, including MACS's
+  intersection statement and a SHTOOLS pole assignment. Much scientific content was already in v1;
+  this is not new scientific discovery. Osprey mathematical chains remain partly absent, some citation
+  ranges are imprecise, and the complete handoff is verbose. Source links remain candidates.
+- Prototype checkpoint is ready for a bounded matched repair comparison, not further blanket expansion.
+  No repair or additional model-run budget is approved. See `docs/SCIENTIFIC_READING_V2_NOTES.md`.
 - This does not establish repair improvement, state-of-the-art quality or full-benchmark coverage.
 
 ## Latest checkpoint
 
 Latest offline source hashes and target/guest-check results: `results/workflow-retrieval-v1.json`.
+Latest live results: `results/scientific-reading-v2.json`, `results/scientific-reading-v2-token-audit.json`,
+and `results/scientific-reading-v1-v2.json`; raw outputs and verification in `runs/scientific-reading-v2/`.
 Live check: `runs/scientific-reading-v1/`, `results/scientific-reading-v1.json` and
 `results/scientific-reading-v1-token-audit.json`. Public source review copies are inside the run.
 Earlier preflight: `6954048`, `runs/scientific-input-preflight/`; multilingual checkpoint `4fd7130`.

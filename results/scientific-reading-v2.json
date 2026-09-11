@@ -1,0 +1,1954 @@
+{
+  "kind": "development_extraction_quality",
+  "public_review_source_hashes": {},
+  "records": [
+    {
+      "accepted_claims": null,
+      "analysis": {
+        "coverage": {
+          "inspected_calls": 82,
+          "scientific_api_calls": 0,
+          "scientific_call_fraction": 0.0,
+          "scientific_operations": 0,
+          "support_operations": 65,
+          "uninterpreted_calls": 82,
+          "unsupported_cases": 242
+        }
+      },
+      "annotation_schema_version": "object-enrichment-1.0",
+      "annotations_status": "available",
+      "assembly": {
+        "enrichment": {
+          "applied_object_ids": [
+            "so_65a9d362129d65953b1d4097",
+            "so_7fe5d0b2a0056fa119513595",
+            "so_cb21c6487ed22f13a8d9308e",
+            "so_8b49c8a9766dff0a91ec6e46",
+            "so_a497b7b1a5a651142496b6d0",
+            "so_cbfd001558408ec414e23861",
+            "so_9f9547fa5667bd6aa0f830e8",
+            "so_4818e0de9625203d5374764a",
+            "so_011163f38b03a14e75b61ae0",
+            "so_3f7247a1a5f793ccd4309723",
+            "so_6aaf75ff1db0f1cba6d7944c",
+            "so_59d22768e66549aa90f0fffb",
+            "so_8a53b104d78e8c3791b4923c",
+            "so_ae5768f9311dfe5de6197f97",
+            "so_41dd49285f6c075b379094ef",
+            "so_96b14eda148739e586b1782c",
+            "so_57bc4fd0c578fb5f3a21f435",
+            "so_3019d3e72c83f6e1c6a251bb",
+            "so_47f19032a3f345b419355fca",
+            "so_e84d2afdad5fddcdc998a5df",
+            "so_1ecd89884f7729b869a6b048",
+            "so_676c7c2267f8a70465cf0eab",
+            "so_04abddba8752c987f8500f0c",
+            "so_602846ad6877823dd05fef00",
+            "so_c343408a4bc1226b73a1a61b",
+            "so_813fa04349a045aba8c84774",
+            "so_d1317cbe82f7b76379856874"
+          ],
+          "dropped": []
+        },
+        "interpretation_status": "enriched",
+        "status": "scientific_objects",
+        "usable": true
+      },
+      "completed": true,
+      "declared_probes": null,
+      "extraction_status": "usable_graph",
+      "graph_sha256": "96109194bef025dfc54f5329e2b7d96a589c5929c0b9d8a1f52f8f537a441103",
+      "graph_status": "verified",
+      "interpretation_status": "enriched",
+      "matched_quantity_bindings": null,
+      "model_calls": [
+        {
+          "duration_seconds": 181.8910711669887,
+          "name": "extract_draft",
+          "status": "completed",
+          "timeout_seconds": 360.0,
+          "tokens": {
+            "cached_input_tokens": 295296,
+            "input_tokens": 356525,
+            "nonreasoning_output_tokens": 4897,
+            "output_tokens": 5032,
+            "reasoning_output_tokens": 135,
+            "total_tokens": 361557,
+            "uncached_input_tokens": 61229
+          }
+        }
+      ],
+      "phases": [
+        {
+          "allowance_seconds": 30.0,
+          "duration_seconds": 1.6942117500002496,
+          "name": "prepare",
+          "started_offset_seconds": 7.608399027958512e-05,
+          "status": "ready"
+        },
+        {
+          "allowance_seconds": 463.30513433297165,
+          "duration_seconds": 181.8910711669887,
+          "name": "extract_draft",
+          "started_offset_seconds": 1.694327917008195,
+          "status": "completed"
+        },
+        {
+          "allowance_seconds": 356.4139919159934,
+          "duration_seconds": 0.8173969159834087,
+          "name": "assemble_initial",
+          "started_offset_seconds": 183.5854699590127,
+          "status": "scientific_objects"
+        }
+      ],
+      "probe_delivery": {
+        "accepted_ids": [],
+        "executed_ids": [],
+        "status": "none_retained"
+      },
+      "probe_receipt_status": "missing",
+      "probe_results": null,
+      "probe_rounds": [],
+      "provenance": {
+        "benchmark_revision": "42e7e97915ff7d73436a5d37b5cbe6b77e9c2a00",
+        "codex_version": "0.153.4",
+        "config": {
+          "codex_version": "0.153.4",
+          "extraction_seconds": 600.0,
+          "model": "gpt-6-astra",
+          "reasoning_effort": "medium",
+          "total_seconds": 900.0
+        },
+        "dataset_revision": "d8bdbcb4ecb2b565686382459c815d2b6291fd31",
+        "environment_image": "docker.io/kevinxulearning/swe-bench-science-environment-fortran-task-051:v0.1.2@sha256:914f6a785eeb3753ebdf16fc5ed577533a88977cddcfb92d9565d3d8d35541da",
+        "implementation_revision": "084718bac5c430a20958ff171d1cf361da37eeab",
+        "model": "gpt-6-astra",
+        "prompt_sha256": {
+          "prompts/enrich_objects.md": "9818342f007556db278fd178e4fb8ff0d61d3bd4675e227e1a8ff1bf7c43811b",
+          "prompts/extract.md": "8391ec931305b71b406c74e7784f66c969e28035b14034c98d9b5628977cdfce",
+          "prompts/extract_revision.md": "3b726cbd85feaea31f8d08e7af4fdfdda5691cc2177b603d8b73b5be4d0422a2",
+          "prompts/repair.md": "9b9bd47560b889414d5b5b4fcb05c0dd6ba406856a6ce7fdee9c59102115066b"
+        },
+        "reasoning_effort": "medium",
+        "selection_sha256": "1111eec628b43c2657ea83c13009d1b26580b8ce9c25ed10ce0c5ca9cfbd527e"
+      },
+      "schedule_status": "completed",
+      "scientific_objects": {
+        "coverage": {
+          "api_connected_objects": 0,
+          "code_only_objects": 552,
+          "fraction_definition": "scientific_api_calls / inspected_calls; includes array/support and rejected calls in denominator, excludes arithmetic from numerator; packet-local, not scientific completeness",
+          "input_entries": 356,
+          "languages": [
+            "cpp",
+            "fortran",
+            "python"
+          ],
+          "limitations": [
+            "Finite API rules and packet-local dataflow; absence is not scientific irrelevance.",
+            "Contracts and inferred shapes/units are conditional on documented library semantics, not runtime proofs.",
+            "Wrapper links identify lexical function bodies only: no argument substitution, return-value equivalence, cross-file linking or runtime call proof.",
+            "Runtime monkey-patching, mutation analysis and domain meaning inferred from names are not modelled.",
+            "Graph topology is constructor evidence only; later mutations and execution are not established.",
+            "Native-language operators are source syntax, not inferred scientific or runtime semantics.",
+            "Possible callee links are retrieval evidence, not dispatch/value-flow proofs; excluded from API-connected object counts."
+          ],
+          "objects": 552,
+          "operations": 147,
+          "packet_truncation": {
+            "entries_truncated": true,
+            "files_truncated": true,
+            "scan_files_truncated": false
+          },
+          "per_file": [
+            {
+              "inspected_calls": 32,
+              "path": "fixtures/mars_field_study.f95",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 22,
+              "uninterpreted_calls": 32,
+              "unsupported_cases": 51
+            },
+            {
+              "inspected_calls": 31,
+              "path": "reproduce.py",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 22,
+              "uninterpreted_calls": 31,
+              "unsupported_cases": 78
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/include/shtools.h",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 29
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/src/BAtoHilm.f95",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 2
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/src/BAtoHilmRhoH.f95",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 2
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/src/CilmMinus.f95",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 2
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/src/CilmMinusRhoH.f95",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 2
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/src/CilmPlus.f95",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 2
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/src/CilmPlusRhoH.f95",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 2
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/src/ComputeDG82.f95",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 1
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/src/ComputeDMap.f95",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 1
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/src/ComputeDm.f95",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 1
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/src/Curve2Mask.f95",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 1
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/src/DHaj.f95",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 1
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/src/DownContFilter.f95",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 2
+            },
+            {
+              "inspected_calls": 7,
+              "path": "source/src/MakeMagGradGridDH.f95",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 9,
+              "uninterpreted_calls": 7,
+              "unsupported_cases": 31
+            },
+            {
+              "inspected_calls": 4,
+              "path": "source/src/MakeMagGridDH.f95",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 12,
+              "uninterpreted_calls": 4,
+              "unsupported_cases": 22
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/src/create_c_header.py",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 0
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/src/create_cbind_wrapper.py",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 0
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/src/create_signature.py",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 0
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/src/create_wrapper.py",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 0
+            },
+            {
+              "inspected_calls": 2,
+              "path": "source/src/fdoc/make_www_doc.py",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 2,
+              "unsupported_cases": 3
+            },
+            {
+              "inspected_calls": 4,
+              "path": "source/src/pydoc/doc2md.py",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 4,
+              "unsupported_cases": 6
+            },
+            {
+              "inspected_calls": 2,
+              "path": "source/src/pydoc/make_www_doc.py",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 2,
+              "unsupported_cases": 3
+            }
+          ],
+          "recognized_scientific_operations": 0,
+          "rule_families": [],
+          "source_files": [
+            "fixtures/mars_field_study.f95",
+            "reproduce.py",
+            "source/include/shtools.h",
+            "source/src/BAtoHilm.f95",
+            "source/src/BAtoHilmRhoH.f95",
+            "source/src/CilmMinus.f95",
+            "source/src/CilmMinusRhoH.f95",
+            "source/src/CilmPlus.f95",
+            "source/src/CilmPlusRhoH.f95",
+            "source/src/ComputeDG82.f95",
+            "source/src/ComputeDMap.f95",
+            "source/src/ComputeDm.f95",
+            "source/src/Curve2Mask.f95",
+            "source/src/DHaj.f95",
+            "source/src/DownContFilter.f95",
+            "source/src/MakeMagGradGridDH.f95",
+            "source/src/MakeMagGridDH.f95",
+            "source/src/create_c_header.py",
+            "source/src/create_cbind_wrapper.py",
+            "source/src/create_signature.py",
+            "source/src/create_wrapper.py",
+            "source/src/fdoc/make_www_doc.py",
+            "source/src/pydoc/doc2md.py",
+            "source/src/pydoc/make_www_doc.py"
+          ],
+          "source_frontend_issues": 43,
+          "totals": {
+            "inspected_calls": 82,
+            "scientific_api_calls": 0,
+            "scientific_call_fraction": 0.0,
+            "scientific_operations": 0,
+            "support_operations": 65,
+            "uninterpreted_calls": 82,
+            "unsupported_cases": 242
+          },
+          "unresolved_inputs": 76,
+          "unsupported_cases": 242,
+          "valid_source_entries": 356,
+          "workflow_reference_links": 9
+        },
+        "enrichment": {
+          "applied_object_ids": [
+            "so_65a9d362129d65953b1d4097",
+            "so_7fe5d0b2a0056fa119513595",
+            "so_cb21c6487ed22f13a8d9308e",
+            "so_8b49c8a9766dff0a91ec6e46",
+            "so_a497b7b1a5a651142496b6d0",
+            "so_cbfd001558408ec414e23861",
+            "so_9f9547fa5667bd6aa0f830e8",
+            "so_4818e0de9625203d5374764a",
+            "so_011163f38b03a14e75b61ae0",
+            "so_3f7247a1a5f793ccd4309723",
+            "so_6aaf75ff1db0f1cba6d7944c",
+            "so_59d22768e66549aa90f0fffb",
+            "so_8a53b104d78e8c3791b4923c",
+            "so_ae5768f9311dfe5de6197f97",
+            "so_41dd49285f6c075b379094ef",
+            "so_96b14eda148739e586b1782c",
+            "so_57bc4fd0c578fb5f3a21f435",
+            "so_3019d3e72c83f6e1c6a251bb",
+            "so_47f19032a3f345b419355fca",
+            "so_e84d2afdad5fddcdc998a5df",
+            "so_1ecd89884f7729b869a6b048",
+            "so_676c7c2267f8a70465cf0eab",
+            "so_04abddba8752c987f8500f0c",
+            "so_602846ad6877823dd05fef00",
+            "so_c343408a4bc1226b73a1a61b",
+            "so_813fa04349a045aba8c84774",
+            "so_d1317cbe82f7b76379856874"
+          ],
+          "dropped": []
+        },
+        "interfaces": 34,
+        "interpreted_interfaces": 4,
+        "interpreted_objects": 27,
+        "interpreted_source_paths": [
+          "fixtures/mars_field_study.f95",
+          "reproduce.py",
+          "source/src/MakeMagGradGridDH.f95",
+          "source/src/MakeMagGridDH.f95"
+        ],
+        "objects": 552,
+        "source_paths": [
+          "fixtures/mars_field_study.f95",
+          "reproduce.py",
+          "source/include/shtools.h",
+          "source/src/BAtoHilm.f95",
+          "source/src/BAtoHilmRhoH.f95",
+          "source/src/CilmMinus.f95",
+          "source/src/CilmMinusRhoH.f95",
+          "source/src/CilmPlus.f95",
+          "source/src/CilmPlusRhoH.f95",
+          "source/src/ComputeDG82.f95",
+          "source/src/ComputeDMap.f95",
+          "source/src/ComputeDm.f95",
+          "source/src/Curve2Mask.f95",
+          "source/src/DHaj.f95",
+          "source/src/DownContFilter.f95",
+          "source/src/MakeMagGradGridDH.f95",
+          "source/src/MakeMagGridDH.f95",
+          "source/src/create_c_header.py",
+          "source/src/create_signature.py",
+          "source/src/create_wrapper.py",
+          "source/src/fdoc/make_www_doc.py",
+          "source/src/pydoc/doc2md.py",
+          "source/src/pydoc/make_www_doc.py"
+        ]
+      },
+      "seconds": 200.67949924999266,
+      "selected_model_call": "extract_draft",
+      "selected_probe_results": null,
+      "selected_probe_specs": null,
+      "session_metadata": [
+        {
+          "cli_version": "0.153.4",
+          "cwd": "/app/task_051",
+          "id": "01a08ed5-6cc6-7530-b890-ef45d652b1eb",
+          "model_provider": "openai",
+          "path": "agent/extract_draft-sessions/2026/09/11/rollout-2026-09-11T04-59-06-01a08ed5-6cc6-7530-b890-ef45d652b1eb.jsonl",
+          "source": "exec"
+        }
+      ],
+      "setup": {
+        "baseline_tree": "f9ccf11d53e5065e851df5e3c36c73d047a493de",
+        "claim_cap": null,
+        "codex_receipt": {
+          "architecture": "x64",
+          "files": {
+            "package/README.md": "ba4e1f69ff48386e72a9c5e1edaf76aad64a475c2d51af79ccba6d1128261ba7",
+            "package/package.json": "7faa8bf27c4647662dae29b7e429b3dc394d718d273af0045e1aa99d2fb1bb37",
+            "package/vendor/x86_64-unknown-linux-musl/bin/codex": "56ef98ab4032d317ab26e9b5e5a175650717351edb16ed9cde0cb6d1734d62da",
+            "package/vendor/x86_64-unknown-linux-musl/bin/codex-code-mode-host": "3e85d67471825f73d02ff5f7e047ca1f6ca8caa3f59e4c6e8d9ca6ca7302cb45",
+            "package/vendor/x86_64-unknown-linux-musl/codex-package.json": "43f8735a93a7947c6dc082c550d2ff2d795fccfd1c7eb27c93aa91cbead1e3f4",
+            "package/vendor/x86_64-unknown-linux-musl/codex-path/rg": "e62198eb19b136b88c330af83647b5a962cb99b6b1f066758568f12de1974849",
+            "package/vendor/x86_64-unknown-linux-musl/codex-resources/bwrap": "77360cb751ccedc5971391444ac86a8a33c15b04d6b4a6fe45f5d25496e62c4c",
+            "package/vendor/x86_64-unknown-linux-musl/codex-resources/zsh/bin/zsh": "67faaaa89242c4a332e16e508a1977cffc24bf7fca31d4411cdfd101f3831ef3"
+          },
+          "integrity": "sha512-x1EcwBlY3AObM1VTUHNM2AzAJQsyreGdagpF+qFiYi/Oa30VBktvvG0C6tLtCzqW6hjZNWkGZQWmeVk7MuJKWg==",
+          "url": "https://registry.npmjs.org/@openai/codex/-/codex-0.153.4-linux-x64.tgz",
+          "version": "0.153.4"
+        },
+        "codex_version": "0.153.4",
+        "docker_cpus": 4,
+        "docker_memory_bytes": 9365356544,
+        "environment_image": "docker.io/kevinxulearning/swe-bench-science-environment-fortran-task-051:v0.1.2@sha256:914f6a785eeb3753ebdf16fc5ed577533a88977cddcfb92d9565d3d8d35541da",
+        "execution": "upstream_pier_codex_docker_boundary",
+        "extraction_access_mode": "read-only",
+        "extraction_codex_receipt": {
+          "architecture": "arm64",
+          "files": {
+            "package/README.md": "ba4e1f69ff48386e72a9c5e1edaf76aad64a475c2d51af79ccba6d1128261ba7",
+            "package/package.json": "5f21885cb53e91738ad62d47401934bac0cde912f4dbb9ea939a79ec64355e45",
+            "package/vendor/aarch64-unknown-linux-musl/bin/codex": "4d76e542c222ea8c75861d8c4ade60a1a332a63255ce1c60bdaebf7c2a2869e6",
+            "package/vendor/aarch64-unknown-linux-musl/bin/codex-code-mode-host": "d677dedf8179ca28ceb869a2e0b60d3ffad3d26f6e7738f7617d34500128a369",
+            "package/vendor/aarch64-unknown-linux-musl/codex-package.json": "a3c985c334a13f6168900d9aa900d875797e4c7a8a6432768bd1d64740f53f54",
+            "package/vendor/aarch64-unknown-linux-musl/codex-path/rg": "e36d0eb52e70696bdf1781392722e05a21bb91d3b7b762ef5ec20e5df2ec687b",
+            "package/vendor/aarch64-unknown-linux-musl/codex-resources/bwrap": "c547cbdc762a70ed216789ffaa4c6c0e7d2beabe32245a498f8e365a9fc8dab4",
+            "package/vendor/aarch64-unknown-linux-musl/codex-resources/zsh/bin/zsh": "7feeacd883e1dc749847936948c378653c80a69ec4a9542f0f126b411882c179"
+          },
+          "integrity": "sha512-QKdjYLYV4hXIuUQDP3P6F4NXuWFoKo9WUoV4nAREIx55kiUyi8UsYdsVobkeXir5n/maEQgYMCKLHVma4rNPiw==",
+          "url": "https://registry.npmjs.org/@openai/codex/-/codex-0.153.4-linux-arm64.tgz",
+          "version": "0.153.4"
+        },
+        "extraction_harness_architecture": "arm64",
+        "extraction_model_call_cap": 1,
+        "extraction_model_seconds": 360.0,
+        "extractor": "scientific_objects_v1",
+        "harness_architecture": "x64",
+        "helper_hashes": {
+          "__init__.py": "0aba189477c461f271a3c65dec90fc54ff805cfac439bee79d9974423da193ae",
+          "annotations.py": "002c32a4eae5ecb185ad0ac3b93cc90d490daac20323fa67691e399e942e033d",
+          "assets.py": "601bfb15c241346c80cb3186d360676d2a54140bb27521ccc185e05cd1f242e7",
+          "cli.py": "65a60502dd0df8515cf830721ceb9c245da8b6250990bbf2872f4e89ed2a67cf",
+          "configuration.py": "42aec6f7932572a2cfaeebe07b8f8438bc583450cc6fc1225d059bde4a6d6848",
+          "controller.py": "b9d3dd300b6be1abce0d65e43beb422e1b76c3f794e126a1a43e914bc360c969",
+          "cython_frontend.py": "3dd0a5522ed672cf66d31669c8e19bccff351a2e59970d442de7dac099515c3d",
+          "evidence.py": "12cf8a6479c474e13b2f25392be0a46b5f4834779f4819c22ffedd4967c2244c",
+          "expressions.py": "954d51c6f0c11cb0a37ce92d51e9e670721c300a34af6a98b9de3ab90faecf8c",
+          "extraction.py": "62f57a7de3f61804f76cda9f5e935675dde54640939167e58f16669a866206d6",
+          "graph.py": "7e2d806215fd9b091f52eef66555542ab31be7a0a85e6e0460ea796cf10ca26f",
+          "io.py": "db29f23b97b8efd5a4fdaaa082b90dc494a6e99e18d61df58b14094ace36e29a",
+          "language_frontends.py": "af02ac1f1e12347e7bc990ccceaf7bbe45ac6f0a90ae4e30c89c9a8849bc3a3b",
+          "native_objects.py": "0344ed80e2cffaad4bda3026f056d62be51bc890fd051945e50394f3c38f14e0",
+          "object_context.py": "19cdab01fad3eef0ad44c94d12bfe81ca3238cb212996dc40f6ccd5b75968b4f",
+          "packet.py": "81bf8843099ba4af3e3aa0f256fa3f8cf6718195821c668303c2812bb17af700",
+          "pier_agent.py": "08d252e3ef354f6e24a9b27cced06a1235530dc25ce748100cba22281680f3b0",
+          "probes.py": "eb6ddb23f0f0204e501ea7ebf7f0f739d41ec426e952b5bbb2a268548752901d",
+          "release.py": "36b3a348069bdfb26e25dd420a73a371a0ac31dfaac3a2f245f7cbec673b19a8",
+          "results.py": "4ce5780de79b43318793da8bf715ca79ce473d2149205c9054dd7e403d53a051",
+          "sampling.py": "99ba9291592876d73e2311873a109b64559e7fd62a9bdbe645fbe1a1c242507d",
+          "scientific_objects.py": "f68f4c58516c0376dc851b143951ba488b77a63a3dd6ca28e6c186a98bfdea3f",
+          "semantics.py": "d8586c2af98c9cadbd6825f92e1b251f2ace0d1609286084f649cbc8876cd9cc",
+          "task_slice.py": "be37448aa472c9fe4133e151d1f28110740316ee587b8e1e2b04b603c6d10afc",
+          "tool_cli.py": "713b0829e84fba52c569aacd8f1e6db3ff268ea4ff9996dd719692543999eb37",
+          "workflow_retrieval.py": "1fbad51494eec1c7eb199dc61648056889752a5295ded253b022aa6347cf88ca"
+        },
+        "host_memory_below_task_request": false,
+        "interpretation_cap_seconds": 465.0,
+        "probe_cap": 0,
+        "python_minor": "311",
+        "revision_policy": "one_scientific_interpretation_call; no probe/refinement loop",
+        "scientific_image_architecture": "amd64",
+        "task_requested_memory_mb": 8192,
+        "timeout": "GNU timeout foreground process group"
+      },
+      "setup_status": "available",
+      "source_matched_implementations": null,
+      "stage_status": "completed",
+      "status": "completed",
+      "task_id": "051",
+      "tokens": {
+        "cached_input_tokens": 295296,
+        "input_tokens": 356525,
+        "nonreasoning_output_tokens": 4897,
+        "output_tokens": 5032,
+        "reasoning_output_tokens": 135,
+        "total_tokens": 361557,
+        "uncached_input_tokens": 61229
+      },
+      "trial_path": "jobs/task-051-science/task_051__3hWAHCW",
+      "unknown_alignments": null,
+      "unmatched_supplied_probe_results": null,
+      "usable_graph": true
+    },
+    {
+      "accepted_claims": null,
+      "analysis": {
+        "coverage": {
+          "inspected_calls": 231,
+          "scientific_api_calls": 0,
+          "scientific_call_fraction": 0.0,
+          "scientific_operations": 0,
+          "support_operations": 154,
+          "uninterpreted_calls": 231,
+          "unsupported_cases": 842
+        }
+      },
+      "annotation_schema_version": "object-enrichment-1.0",
+      "annotations_status": "available",
+      "assembly": {
+        "enrichment": {
+          "applied_object_ids": [
+            "so_effc191fece132cdc7cb4b3a",
+            "so_e3adb1711623995487246ba2",
+            "so_6cde0d448f8d141142764464",
+            "so_1f2611561370e7735b740f31",
+            "so_e24bdfaf5715df73eabd2db7",
+            "so_902b120fafc00b9aaa58d6b1",
+            "so_17f4d2c005d9eb2ce5277e28",
+            "so_fd8dbd54aaa38bd9a3323697",
+            "so_122cdf4221351bb86e7541d7",
+            "so_7a4ad04d7ddbbbccf9beb873",
+            "so_33c39eb736fa023c6442e9ae",
+            "so_4c15fcec78fab7527c6a01d1",
+            "so_ba89ba747d87ea74895d1422",
+            "so_346af0e4db296d02ac2ae018",
+            "so_4405300fa9d0e4e2c6ef2bd5",
+            "so_78d349a96220bf6cdb6e224d",
+            "so_8fdd2fb1b6630bec0a462410",
+            "so_aa1d4f2444adc90389df992f",
+            "so_3901b4b2c1f9c74a6418a033"
+          ],
+          "dropped": []
+        },
+        "interpretation_status": "enriched",
+        "status": "scientific_objects",
+        "usable": true
+      },
+      "completed": true,
+      "declared_probes": null,
+      "extraction_status": "usable_graph",
+      "graph_sha256": "f5fc2a391dce0415e371ae1654c6c14869879e89445257edb0446e6852ec308f",
+      "graph_status": "verified",
+      "interpretation_status": "enriched",
+      "matched_quantity_bindings": null,
+      "model_calls": [
+        {
+          "duration_seconds": 188.50983804100542,
+          "name": "extract_draft",
+          "status": "completed",
+          "timeout_seconds": 360.0,
+          "tokens": {
+            "cached_input_tokens": 329344,
+            "input_tokens": 402671,
+            "nonreasoning_output_tokens": 4900,
+            "output_tokens": 5058,
+            "reasoning_output_tokens": 158,
+            "total_tokens": 407729,
+            "uncached_input_tokens": 73327
+          }
+        }
+      ],
+      "phases": [
+        {
+          "allowance_seconds": 30.0,
+          "duration_seconds": 8.168102458002977,
+          "name": "prepare",
+          "started_offset_seconds": 6.904199835844338e-05,
+          "status": "ready"
+        },
+        {
+          "allowance_seconds": 456.8308288739936,
+          "duration_seconds": 188.50983804100542,
+          "name": "extract_draft",
+          "started_offset_seconds": 8.168327541992767,
+          "status": "completed"
+        },
+        {
+          "allowance_seconds": 343.3209234160022,
+          "duration_seconds": 0.9157356670184527,
+          "name": "assemble_initial",
+          "started_offset_seconds": 196.678228957986,
+          "status": "scientific_objects"
+        }
+      ],
+      "probe_delivery": {
+        "accepted_ids": [],
+        "executed_ids": [],
+        "status": "none_retained"
+      },
+      "probe_receipt_status": "missing",
+      "probe_results": null,
+      "probe_rounds": [],
+      "provenance": {
+        "benchmark_revision": "42e7e97915ff7d73436a5d37b5cbe6b77e9c2a00",
+        "codex_version": "0.153.4",
+        "config": {
+          "codex_version": "0.153.4",
+          "extraction_seconds": 600.0,
+          "model": "gpt-6-astra",
+          "reasoning_effort": "medium",
+          "total_seconds": 900.0
+        },
+        "dataset_revision": "d8bdbcb4ecb2b565686382459c815d2b6291fd31",
+        "environment_image": "docker.io/kevinxulearning/swe-bench-science-environment-matlab-octave-task-025:v0.1.0@sha256:eebf7a8137f4a36b5d7f27d49bf52596cf342700ca016f003c723f1affab8626",
+        "implementation_revision": "084718bac5c430a20958ff171d1cf361da37eeab",
+        "model": "gpt-6-astra",
+        "prompt_sha256": {
+          "prompts/enrich_objects.md": "9818342f007556db278fd178e4fb8ff0d61d3bd4675e227e1a8ff1bf7c43811b",
+          "prompts/extract.md": "8391ec931305b71b406c74e7784f66c969e28035b14034c98d9b5628977cdfce",
+          "prompts/extract_revision.md": "3b726cbd85feaea31f8d08e7af4fdfdda5691cc2177b603d8b73b5be4d0422a2",
+          "prompts/repair.md": "9b9bd47560b889414d5b5b4fcb05c0dd6ba406856a6ce7fdee9c59102115066b"
+        },
+        "reasoning_effort": "medium",
+        "selection_sha256": "1111eec628b43c2657ea83c13009d1b26580b8ce9c25ed10ce0c5ca9cfbd527e"
+      },
+      "schedule_status": "completed",
+      "scientific_objects": {
+        "coverage": {
+          "api_connected_objects": 0,
+          "code_only_objects": 809,
+          "fraction_definition": "scientific_api_calls / inspected_calls; includes array/support and rejected calls in denominator, excludes arithmetic from numerator; packet-local, not scientific completeness",
+          "input_entries": 484,
+          "languages": [
+            "matlab"
+          ],
+          "limitations": [
+            "Finite API rules and packet-local dataflow; absence is not scientific irrelevance.",
+            "Contracts and inferred shapes/units are conditional on documented library semantics, not runtime proofs.",
+            "Wrapper links identify lexical function bodies only: no argument substitution, return-value equivalence, cross-file linking or runtime call proof.",
+            "Runtime monkey-patching, mutation analysis and domain meaning inferred from names are not modelled.",
+            "Graph topology is constructor evidence only; later mutations and execution are not established.",
+            "Native-language operators are source syntax, not inferred scientific or runtime semantics.",
+            "Possible callee links are retrieval evidence, not dispatch/value-flow proofs; excluded from API-connected object counts."
+          ],
+          "objects": 809,
+          "operations": 385,
+          "packet_truncation": {
+            "entries_truncated": true,
+            "files_truncated": true,
+            "scan_files_truncated": false
+          },
+          "per_file": [
+            {
+              "inspected_calls": 0,
+              "path": "source/GUI/osp_Toolbox_Check.m",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 1
+            },
+            {
+              "inspected_calls": 9,
+              "path": "source/coreg/OspreyCoreg.m",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 8,
+              "uninterpreted_calls": 9,
+              "unsupported_cases": 56
+            },
+            {
+              "inspected_calls": 13,
+              "path": "source/fit/OspreyFit.m",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 10,
+              "uninterpreted_calls": 13,
+              "unsupported_cases": 69
+            },
+            {
+              "inspected_calls": 26,
+              "path": "source/fit/osp_fitHERCULES.m",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 19,
+              "uninterpreted_calls": 26,
+              "unsupported_cases": 86
+            },
+            {
+              "inspected_calls": 26,
+              "path": "source/fit/osp_fitHERMES.m",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 19,
+              "uninterpreted_calls": 26,
+              "unsupported_cases": 86
+            },
+            {
+              "inspected_calls": 6,
+              "path": "source/fit/osp_fitInitialise.m",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 2,
+              "uninterpreted_calls": 6,
+              "unsupported_cases": 23
+            },
+            {
+              "inspected_calls": 17,
+              "path": "source/fit/osp_fitMEGA.m",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 9,
+              "uninterpreted_calls": 17,
+              "unsupported_cases": 54
+            },
+            {
+              "inspected_calls": 5,
+              "path": "source/fit/osp_fitUnEdited.m",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 7,
+              "uninterpreted_calls": 5,
+              "unsupported_cases": 29
+            },
+            {
+              "inspected_calls": 20,
+              "path": "source/fit/osp_fitWater.m",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 22,
+              "uninterpreted_calls": 20,
+              "unsupported_cases": 86
+            },
+            {
+              "inspected_calls": 8,
+              "path": "source/fit/osp_writelcm_control.m",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 7,
+              "uninterpreted_calls": 8,
+              "unsupported_cases": 20
+            },
+            {
+              "inspected_calls": 1,
+              "path": "source/job/OspreyJob.m",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 1,
+              "uninterpreted_calls": 1,
+              "unsupported_cases": 8
+            },
+            {
+              "inspected_calls": 1,
+              "path": "source/libraries/FID-A/fitTools/fitModels/Osprey/fit_OspreyReferencingMM.m",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 1,
+              "unsupported_cases": 6
+            },
+            {
+              "inspected_calls": 2,
+              "path": "source/libraries/FID-A/fitTools/fitModels/Osprey/fit_Osprey_SplineOnly.m",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 2,
+              "uninterpreted_calls": 2,
+              "unsupported_cases": 15
+            },
+            {
+              "inspected_calls": 1,
+              "path": "source/libraries/FID-A/fitTools/fitModels/Osprey/osp_addDiffMMPeaks.m",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 1,
+              "unsupported_cases": 6
+            },
+            {
+              "inspected_calls": 7,
+              "path": "source/load/OspreyLoad.m",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 3,
+              "uninterpreted_calls": 7,
+              "unsupported_cases": 32
+            },
+            {
+              "inspected_calls": 19,
+              "path": "source/overview/OspreyOverview.m",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 9,
+              "uninterpreted_calls": 19,
+              "unsupported_cases": 67
+            },
+            {
+              "inspected_calls": 17,
+              "path": "source/plot/OspreyHTMLReport.m",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 5,
+              "uninterpreted_calls": 17,
+              "unsupported_cases": 38
+            },
+            {
+              "inspected_calls": 7,
+              "path": "source/plot/osp_plotAllPDF.m",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 13,
+              "uninterpreted_calls": 7,
+              "unsupported_cases": 40
+            },
+            {
+              "inspected_calls": 9,
+              "path": "source/process/OspreyProcess.m",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 3,
+              "uninterpreted_calls": 9,
+              "unsupported_cases": 25
+            },
+            {
+              "inspected_calls": 7,
+              "path": "source/quantify/OspreyQuantify.m",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 1,
+              "uninterpreted_calls": 7,
+              "unsupported_cases": 28
+            },
+            {
+              "inspected_calls": 9,
+              "path": "source/seg/OspreySeg.m",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 7,
+              "uninterpreted_calls": 9,
+              "unsupported_cases": 30
+            },
+            {
+              "inspected_calls": 15,
+              "path": "source/utilities/RunOspreyJob.m",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 5,
+              "uninterpreted_calls": 15,
+              "unsupported_cases": 24
+            },
+            {
+              "inspected_calls": 2,
+              "path": "source/utilities/osp_platform.m",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 2,
+              "uninterpreted_calls": 2,
+              "unsupported_cases": 7
+            },
+            {
+              "inspected_calls": 4,
+              "path": "source/utilities/printLog.m",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 4,
+              "unsupported_cases": 6
+            }
+          ],
+          "recognized_scientific_operations": 0,
+          "rule_families": [],
+          "source_files": [
+            "source/GUI/osp_Toolbox_Check.m",
+            "source/coreg/OspreyCoreg.m",
+            "source/fit/OspreyFit.m",
+            "source/fit/osp_fitHERCULES.m",
+            "source/fit/osp_fitHERMES.m",
+            "source/fit/osp_fitInitialise.m",
+            "source/fit/osp_fitMEGA.m",
+            "source/fit/osp_fitUnEdited.m",
+            "source/fit/osp_fitWater.m",
+            "source/fit/osp_writelcm_control.m",
+            "source/job/OspreyJob.m",
+            "source/libraries/FID-A/fitTools/fitModels/Osprey/fit_OspreyReferencingMM.m",
+            "source/libraries/FID-A/fitTools/fitModels/Osprey/fit_Osprey_SplineOnly.m",
+            "source/libraries/FID-A/fitTools/fitModels/Osprey/osp_addDiffMMPeaks.m",
+            "source/load/OspreyLoad.m",
+            "source/overview/OspreyOverview.m",
+            "source/plot/OspreyHTMLReport.m",
+            "source/plot/osp_plotAllPDF.m",
+            "source/process/OspreyProcess.m",
+            "source/quantify/OspreyQuantify.m",
+            "source/seg/OspreySeg.m",
+            "source/utilities/RunOspreyJob.m",
+            "source/utilities/osp_platform.m",
+            "source/utilities/printLog.m"
+          ],
+          "source_frontend_issues": 27,
+          "totals": {
+            "inspected_calls": 231,
+            "scientific_api_calls": 0,
+            "scientific_call_fraction": 0.0,
+            "scientific_operations": 0,
+            "support_operations": 154,
+            "uninterpreted_calls": 231,
+            "unsupported_cases": 842
+          },
+          "unresolved_inputs": 399,
+          "unsupported_cases": 842,
+          "valid_source_entries": 479,
+          "workflow_reference_links": 45
+        },
+        "enrichment": {
+          "applied_object_ids": [
+            "so_effc191fece132cdc7cb4b3a",
+            "so_e3adb1711623995487246ba2",
+            "so_6cde0d448f8d141142764464",
+            "so_1f2611561370e7735b740f31",
+            "so_e24bdfaf5715df73eabd2db7",
+            "so_902b120fafc00b9aaa58d6b1",
+            "so_17f4d2c005d9eb2ce5277e28",
+            "so_fd8dbd54aaa38bd9a3323697",
+            "so_122cdf4221351bb86e7541d7",
+            "so_7a4ad04d7ddbbbccf9beb873",
+            "so_33c39eb736fa023c6442e9ae",
+            "so_4c15fcec78fab7527c6a01d1",
+            "so_ba89ba747d87ea74895d1422",
+            "so_346af0e4db296d02ac2ae018",
+            "so_4405300fa9d0e4e2c6ef2bd5",
+            "so_78d349a96220bf6cdb6e224d",
+            "so_8fdd2fb1b6630bec0a462410",
+            "so_aa1d4f2444adc90389df992f",
+            "so_3901b4b2c1f9c74a6418a033"
+          ],
+          "dropped": []
+        },
+        "interfaces": 44,
+        "interpreted_interfaces": 14,
+        "interpreted_objects": 19,
+        "interpreted_source_paths": [
+          "source/fit/OspreyFit.m",
+          "source/fit/osp_fitHERCULES.m",
+          "source/fit/osp_fitHERMES.m",
+          "source/fit/osp_fitMEGA.m",
+          "source/libraries/FID-A/fitTools/fitModels/Osprey/osp_addDiffMMPeaks.m",
+          "source/quantify/OspreyQuantify.m",
+          "source/utilities/RunOspreyJob.m"
+        ],
+        "objects": 809,
+        "source_paths": [
+          "source/GUI/osp_Toolbox_Check.m",
+          "source/coreg/OspreyCoreg.m",
+          "source/fit/OspreyFit.m",
+          "source/fit/osp_fitHERCULES.m",
+          "source/fit/osp_fitHERMES.m",
+          "source/fit/osp_fitInitialise.m",
+          "source/fit/osp_fitMEGA.m",
+          "source/fit/osp_fitUnEdited.m",
+          "source/fit/osp_fitWater.m",
+          "source/fit/osp_writelcm_control.m",
+          "source/job/OspreyJob.m",
+          "source/libraries/FID-A/fitTools/fitModels/Osprey/fit_OspreyReferencingMM.m",
+          "source/libraries/FID-A/fitTools/fitModels/Osprey/fit_Osprey_SplineOnly.m",
+          "source/libraries/FID-A/fitTools/fitModels/Osprey/osp_addDiffMMPeaks.m",
+          "source/load/OspreyLoad.m",
+          "source/overview/OspreyOverview.m",
+          "source/plot/OspreyHTMLReport.m",
+          "source/plot/osp_plotAllPDF.m",
+          "source/process/OspreyProcess.m",
+          "source/quantify/OspreyQuantify.m",
+          "source/seg/OspreySeg.m",
+          "source/utilities/RunOspreyJob.m",
+          "source/utilities/osp_platform.m",
+          "source/utilities/printLog.m"
+        ]
+      },
+      "seconds": 213.9510195000039,
+      "selected_model_call": "extract_draft",
+      "selected_probe_results": null,
+      "selected_probe_specs": null,
+      "session_metadata": [
+        {
+          "cli_version": "0.153.4",
+          "cwd": "/app/task_025",
+          "id": "01a08ed5-8668-79e3-b226-9fd6f5334539",
+          "model_provider": "openai",
+          "path": "agent/extract_draft-sessions/2026/09/11/rollout-2026-09-11T04-59-13-01a08ed5-8668-79e3-b226-9fd6f5334539.jsonl",
+          "source": "exec"
+        }
+      ],
+      "setup": {
+        "baseline_tree": "b00787caa60efc83bf2e1e52365bf44c3278a612",
+        "claim_cap": null,
+        "codex_receipt": {
+          "architecture": "x64",
+          "files": {
+            "package/README.md": "ba4e1f69ff48386e72a9c5e1edaf76aad64a475c2d51af79ccba6d1128261ba7",
+            "package/package.json": "7faa8bf27c4647662dae29b7e429b3dc394d718d273af0045e1aa99d2fb1bb37",
+            "package/vendor/x86_64-unknown-linux-musl/bin/codex": "56ef98ab4032d317ab26e9b5e5a175650717351edb16ed9cde0cb6d1734d62da",
+            "package/vendor/x86_64-unknown-linux-musl/bin/codex-code-mode-host": "3e85d67471825f73d02ff5f7e047ca1f6ca8caa3f59e4c6e8d9ca6ca7302cb45",
+            "package/vendor/x86_64-unknown-linux-musl/codex-package.json": "43f8735a93a7947c6dc082c550d2ff2d795fccfd1c7eb27c93aa91cbead1e3f4",
+            "package/vendor/x86_64-unknown-linux-musl/codex-path/rg": "e62198eb19b136b88c330af83647b5a962cb99b6b1f066758568f12de1974849",
+            "package/vendor/x86_64-unknown-linux-musl/codex-resources/bwrap": "77360cb751ccedc5971391444ac86a8a33c15b04d6b4a6fe45f5d25496e62c4c",
+            "package/vendor/x86_64-unknown-linux-musl/codex-resources/zsh/bin/zsh": "67faaaa89242c4a332e16e508a1977cffc24bf7fca31d4411cdfd101f3831ef3"
+          },
+          "integrity": "sha512-x1EcwBlY3AObM1VTUHNM2AzAJQsyreGdagpF+qFiYi/Oa30VBktvvG0C6tLtCzqW6hjZNWkGZQWmeVk7MuJKWg==",
+          "url": "https://registry.npmjs.org/@openai/codex/-/codex-0.153.4-linux-x64.tgz",
+          "version": "0.153.4"
+        },
+        "codex_version": "0.153.4",
+        "docker_cpus": 4,
+        "docker_memory_bytes": 9365356544,
+        "environment_image": "docker.io/kevinxulearning/swe-bench-science-environment-matlab-octave-task-025:v0.1.0@sha256:eebf7a8137f4a36b5d7f27d49bf52596cf342700ca016f003c723f1affab8626",
+        "execution": "upstream_pier_codex_docker_boundary",
+        "extraction_access_mode": "read-only",
+        "extraction_codex_receipt": {
+          "architecture": "arm64",
+          "files": {
+            "package/README.md": "ba4e1f69ff48386e72a9c5e1edaf76aad64a475c2d51af79ccba6d1128261ba7",
+            "package/package.json": "5f21885cb53e91738ad62d47401934bac0cde912f4dbb9ea939a79ec64355e45",
+            "package/vendor/aarch64-unknown-linux-musl/bin/codex": "4d76e542c222ea8c75861d8c4ade60a1a332a63255ce1c60bdaebf7c2a2869e6",
+            "package/vendor/aarch64-unknown-linux-musl/bin/codex-code-mode-host": "d677dedf8179ca28ceb869a2e0b60d3ffad3d26f6e7738f7617d34500128a369",
+            "package/vendor/aarch64-unknown-linux-musl/codex-package.json": "a3c985c334a13f6168900d9aa900d875797e4c7a8a6432768bd1d64740f53f54",
+            "package/vendor/aarch64-unknown-linux-musl/codex-path/rg": "e36d0eb52e70696bdf1781392722e05a21bb91d3b7b762ef5ec20e5df2ec687b",
+            "package/vendor/aarch64-unknown-linux-musl/codex-resources/bwrap": "c547cbdc762a70ed216789ffaa4c6c0e7d2beabe32245a498f8e365a9fc8dab4",
+            "package/vendor/aarch64-unknown-linux-musl/codex-resources/zsh/bin/zsh": "7feeacd883e1dc749847936948c378653c80a69ec4a9542f0f126b411882c179"
+          },
+          "integrity": "sha512-QKdjYLYV4hXIuUQDP3P6F4NXuWFoKo9WUoV4nAREIx55kiUyi8UsYdsVobkeXir5n/maEQgYMCKLHVma4rNPiw==",
+          "url": "https://registry.npmjs.org/@openai/codex/-/codex-0.153.4-linux-arm64.tgz",
+          "version": "0.153.4"
+        },
+        "extraction_harness_architecture": "arm64",
+        "extraction_model_call_cap": 1,
+        "extraction_model_seconds": 360.0,
+        "extractor": "scientific_objects_v1",
+        "harness_architecture": "x64",
+        "helper_hashes": {
+          "__init__.py": "0aba189477c461f271a3c65dec90fc54ff805cfac439bee79d9974423da193ae",
+          "annotations.py": "002c32a4eae5ecb185ad0ac3b93cc90d490daac20323fa67691e399e942e033d",
+          "assets.py": "601bfb15c241346c80cb3186d360676d2a54140bb27521ccc185e05cd1f242e7",
+          "cli.py": "65a60502dd0df8515cf830721ceb9c245da8b6250990bbf2872f4e89ed2a67cf",
+          "configuration.py": "42aec6f7932572a2cfaeebe07b8f8438bc583450cc6fc1225d059bde4a6d6848",
+          "controller.py": "b9d3dd300b6be1abce0d65e43beb422e1b76c3f794e126a1a43e914bc360c969",
+          "cython_frontend.py": "3dd0a5522ed672cf66d31669c8e19bccff351a2e59970d442de7dac099515c3d",
+          "evidence.py": "12cf8a6479c474e13b2f25392be0a46b5f4834779f4819c22ffedd4967c2244c",
+          "expressions.py": "954d51c6f0c11cb0a37ce92d51e9e670721c300a34af6a98b9de3ab90faecf8c",
+          "extraction.py": "62f57a7de3f61804f76cda9f5e935675dde54640939167e58f16669a866206d6",
+          "graph.py": "7e2d806215fd9b091f52eef66555542ab31be7a0a85e6e0460ea796cf10ca26f",
+          "io.py": "db29f23b97b8efd5a4fdaaa082b90dc494a6e99e18d61df58b14094ace36e29a",
+          "language_frontends.py": "af02ac1f1e12347e7bc990ccceaf7bbe45ac6f0a90ae4e30c89c9a8849bc3a3b",
+          "native_objects.py": "0344ed80e2cffaad4bda3026f056d62be51bc890fd051945e50394f3c38f14e0",
+          "object_context.py": "19cdab01fad3eef0ad44c94d12bfe81ca3238cb212996dc40f6ccd5b75968b4f",
+          "packet.py": "81bf8843099ba4af3e3aa0f256fa3f8cf6718195821c668303c2812bb17af700",
+          "pier_agent.py": "08d252e3ef354f6e24a9b27cced06a1235530dc25ce748100cba22281680f3b0",
+          "probes.py": "eb6ddb23f0f0204e501ea7ebf7f0f739d41ec426e952b5bbb2a268548752901d",
+          "release.py": "36b3a348069bdfb26e25dd420a73a371a0ac31dfaac3a2f245f7cbec673b19a8",
+          "results.py": "4ce5780de79b43318793da8bf715ca79ce473d2149205c9054dd7e403d53a051",
+          "sampling.py": "99ba9291592876d73e2311873a109b64559e7fd62a9bdbe645fbe1a1c242507d",
+          "scientific_objects.py": "f68f4c58516c0376dc851b143951ba488b77a63a3dd6ca28e6c186a98bfdea3f",
+          "semantics.py": "d8586c2af98c9cadbd6825f92e1b251f2ace0d1609286084f649cbc8876cd9cc",
+          "task_slice.py": "be37448aa472c9fe4133e151d1f28110740316ee587b8e1e2b04b603c6d10afc",
+          "tool_cli.py": "713b0829e84fba52c569aacd8f1e6db3ff268ea4ff9996dd719692543999eb37",
+          "workflow_retrieval.py": "1fbad51494eec1c7eb199dc61648056889752a5295ded253b022aa6347cf88ca"
+        },
+        "host_memory_below_task_request": false,
+        "interpretation_cap_seconds": 465.0,
+        "probe_cap": 0,
+        "python_minor": "311",
+        "revision_policy": "one_scientific_interpretation_call; no probe/refinement loop",
+        "scientific_image_architecture": "amd64",
+        "task_requested_memory_mb": 8192,
+        "timeout": "GNU timeout foreground process group"
+      },
+      "setup_status": "available",
+      "source_matched_implementations": null,
+      "stage_status": "completed",
+      "status": "completed",
+      "task_id": "025",
+      "tokens": {
+        "cached_input_tokens": 329344,
+        "input_tokens": 402671,
+        "nonreasoning_output_tokens": 4900,
+        "output_tokens": 5058,
+        "reasoning_output_tokens": 158,
+        "total_tokens": 407729,
+        "uncached_input_tokens": 73327
+      },
+      "trial_path": "jobs/task-025-science/task_025__dEaRLiP",
+      "unknown_alignments": null,
+      "unmatched_supplied_probe_results": null,
+      "usable_graph": true
+    },
+    {
+      "accepted_claims": null,
+      "analysis": {
+        "coverage": {
+          "inspected_calls": 81,
+          "scientific_api_calls": 0,
+          "scientific_call_fraction": 0.0,
+          "scientific_operations": 0,
+          "support_operations": 69,
+          "uninterpreted_calls": 81,
+          "unsupported_cases": 274
+        }
+      },
+      "annotation_schema_version": "object-enrichment-1.0",
+      "annotations_status": "available",
+      "assembly": {
+        "enrichment": {
+          "applied_object_ids": [
+            "so_8956ea76da6923163e77af85",
+            "so_c0e825978172898e446e2f43",
+            "so_4b0f0c73c62b9f2258ea52cb",
+            "so_d9a8d8428e9fde579d8d6b1d",
+            "so_0e4563a0ef322937530fb62e",
+            "so_cb4f5c7fdd4ece478ae9b4bb",
+            "so_236b8c30cbe462808f5534cd",
+            "so_404c71050d06cc6937bb5aef",
+            "so_64cd0dd9af3076c42922ac99",
+            "so_b1e5ee1b118503a0331492ce",
+            "so_a944e4cfbaf931dd27c62ffd",
+            "so_d1f45c14a494a893e96e2d2b",
+            "so_98d7158cfc15135b388d236b",
+            "so_abf881aabe86e5d3cd38f73a",
+            "so_ebbc558bf5d4aa991284049b",
+            "so_ded2ef1e4c50e11fd9f849f6"
+          ],
+          "dropped": []
+        },
+        "interpretation_status": "enriched",
+        "status": "scientific_objects",
+        "usable": true
+      },
+      "completed": true,
+      "declared_probes": null,
+      "extraction_status": "usable_graph",
+      "graph_sha256": "f961fd132cdd26b226b338655733e1840cdad574a33719419df05ef5ade887fc",
+      "graph_status": "verified",
+      "interpretation_status": "enriched",
+      "matched_quantity_bindings": null,
+      "model_calls": [
+        {
+          "duration_seconds": 146.02048595799715,
+          "name": "extract_draft",
+          "status": "completed",
+          "timeout_seconds": 360.0,
+          "tokens": {
+            "cached_input_tokens": 228864,
+            "input_tokens": 283117,
+            "nonreasoning_output_tokens": 3809,
+            "output_tokens": 3876,
+            "reasoning_output_tokens": 67,
+            "total_tokens": 286993,
+            "uncached_input_tokens": 54253
+          }
+        }
+      ],
+      "phases": [
+        {
+          "allowance_seconds": 30.0,
+          "duration_seconds": 3.775080000021262,
+          "name": "prepare",
+          "started_offset_seconds": 7.545799599029124e-05,
+          "status": "ready"
+        },
+        {
+          "allowance_seconds": 461.22408624898526,
+          "duration_seconds": 146.02048595799715,
+          "name": "extract_draft",
+          "started_offset_seconds": 3.7752777920104563,
+          "status": "completed"
+        },
+        {
+          "allowance_seconds": 390.2035261239798,
+          "duration_seconds": 0.8684323749912437,
+          "name": "assemble_initial",
+          "started_offset_seconds": 149.79583704200923,
+          "status": "scientific_objects"
+        }
+      ],
+      "probe_delivery": {
+        "accepted_ids": [],
+        "executed_ids": [],
+        "status": "none_retained"
+      },
+      "probe_receipt_status": "missing",
+      "probe_results": null,
+      "probe_rounds": [],
+      "provenance": {
+        "benchmark_revision": "42e7e97915ff7d73436a5d37b5cbe6b77e9c2a00",
+        "codex_version": "0.153.4",
+        "config": {
+          "codex_version": "0.153.4",
+          "extraction_seconds": 600.0,
+          "model": "gpt-6-astra",
+          "reasoning_effort": "medium",
+          "total_seconds": 900.0
+        },
+        "dataset_revision": "d8bdbcb4ecb2b565686382459c815d2b6291fd31",
+        "environment_image": "docker.io/kevinxulearning/swe-bench-science-environment-python-cython-task-016:v0.1.2@sha256:7ecc99a79a168dd6e0af31158840cb3f21df04a153ec9283c44ff951ec3a16b0",
+        "implementation_revision": "084718bac5c430a20958ff171d1cf361da37eeab",
+        "model": "gpt-6-astra",
+        "prompt_sha256": {
+          "prompts/enrich_objects.md": "9818342f007556db278fd178e4fb8ff0d61d3bd4675e227e1a8ff1bf7c43811b",
+          "prompts/extract.md": "8391ec931305b71b406c74e7784f66c969e28035b14034c98d9b5628977cdfce",
+          "prompts/extract_revision.md": "3b726cbd85feaea31f8d08e7af4fdfdda5691cc2177b603d8b73b5be4d0422a2",
+          "prompts/repair.md": "9b9bd47560b889414d5b5b4fcb05c0dd6ba406856a6ce7fdee9c59102115066b"
+        },
+        "reasoning_effort": "medium",
+        "selection_sha256": "1111eec628b43c2657ea83c13009d1b26580b8ce9c25ed10ce0c5ca9cfbd527e"
+      },
+      "schedule_status": "completed",
+      "scientific_objects": {
+        "coverage": {
+          "api_connected_objects": 0,
+          "code_only_objects": 490,
+          "fraction_definition": "scientific_api_calls / inspected_calls; includes array/support and rejected calls in denominator, excludes arithmetic from numerator; packet-local, not scientific completeness",
+          "input_entries": 395,
+          "languages": [
+            "cpp",
+            "cython",
+            "python"
+          ],
+          "limitations": [
+            "Finite API rules and packet-local dataflow; absence is not scientific irrelevance.",
+            "Contracts and inferred shapes/units are conditional on documented library semantics, not runtime proofs.",
+            "Wrapper links identify lexical function bodies only: no argument substitution, return-value equivalence, cross-file linking or runtime call proof.",
+            "Runtime monkey-patching, mutation analysis and domain meaning inferred from names are not modelled.",
+            "Graph topology is constructor evidence only; later mutations and execution are not established.",
+            "Native-language operators are source syntax, not inferred scientific or runtime semantics.",
+            "Possible callee links are retrieval evidence, not dispatch/value-flow proofs; excluded from API-connected object counts."
+          ],
+          "objects": 490,
+          "operations": 150,
+          "packet_truncation": {
+            "entries_truncated": true,
+            "files_truncated": true,
+            "scan_files_truncated": false
+          },
+          "per_file": [
+            {
+              "inspected_calls": 31,
+              "path": "reproduce.py",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 19,
+              "uninterpreted_calls": 31,
+              "unsupported_cases": 67
+            },
+            {
+              "inspected_calls": 1,
+              "path": "source/MACS3/IO/OutputWriter.py",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 1,
+              "unsupported_cases": 3
+            },
+            {
+              "inspected_calls": 14,
+              "path": "source/MACS3/IO/PeakIO.py",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 10,
+              "uninterpreted_calls": 14,
+              "unsupported_cases": 43
+            },
+            {
+              "inspected_calls": 30,
+              "path": "source/MACS3/Signal/BedGraph.py",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 17,
+              "uninterpreted_calls": 30,
+              "unsupported_cases": 90
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/MACS3/Signal/CallPeakUnit.py",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 0
+            },
+            {
+              "inspected_calls": 5,
+              "path": "source/MACS3/Signal/PeakDetect.py",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": 0.0,
+              "scientific_operations": 0,
+              "support_operations": 6,
+              "uninterpreted_calls": 5,
+              "unsupported_cases": 7
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/MACS3/Signal/PeakModel.py",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 2,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 3
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/MACS3/Signal/PeakVariants.py",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 0
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/MACS3/Signal/Pileup.py",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 0
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/MACS3/Signal/Prob.py",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 0
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/MACS3/Signal/RACollection.pxd",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 1
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/MACS3/Signal/SignalProcessing.py",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 0
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/MACS3/Signal/cPosValCalculation.h",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 1
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/MACS3/Signal/cPosValCalculation.pxd",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 2,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 3
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/MACS3/Signal/swalign.h",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 1
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/MACS3/Utilities/OptValidator.py",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 0
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/MACS3/fermi-lite/fml.h",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 2
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/MACS3/fermi-lite/htab.h",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 1
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/MACS3/fermi-lite/internal.h",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 1
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/MACS3/fermi-lite/khash.h",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 15
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/MACS3/fermi-lite/kmer.h",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 2
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/MACS3/fermi-lite/kseq.h",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 13,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 24
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/MACS3/fermi-lite/ksort.h",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 5
+            },
+            {
+              "inspected_calls": 0,
+              "path": "source/MACS3/fermi-lite/kstring.h",
+              "scientific_api_calls": 0,
+              "scientific_call_fraction": null,
+              "scientific_operations": 0,
+              "support_operations": 0,
+              "uninterpreted_calls": 0,
+              "unsupported_cases": 5
+            }
+          ],
+          "recognized_scientific_operations": 0,
+          "rule_families": [],
+          "source_files": [
+            "reproduce.py",
+            "source/MACS3/IO/OutputWriter.py",
+            "source/MACS3/IO/PeakIO.py",
+            "source/MACS3/Signal/BedGraph.py",
+            "source/MACS3/Signal/CallPeakUnit.py",
+            "source/MACS3/Signal/PeakDetect.py",
+            "source/MACS3/Signal/PeakModel.py",
+            "source/MACS3/Signal/PeakVariants.py",
+            "source/MACS3/Signal/Pileup.py",
+            "source/MACS3/Signal/Prob.py",
+            "source/MACS3/Signal/RACollection.pxd",
+            "source/MACS3/Signal/SignalProcessing.py",
+            "source/MACS3/Signal/cPosValCalculation.h",
+            "source/MACS3/Signal/cPosValCalculation.pxd",
+            "source/MACS3/Signal/swalign.h",
+            "source/MACS3/Utilities/OptValidator.py",
+            "source/MACS3/fermi-lite/fml.h",
+            "source/MACS3/fermi-lite/htab.h",
+            "source/MACS3/fermi-lite/internal.h",
+            "source/MACS3/fermi-lite/khash.h",
+            "source/MACS3/fermi-lite/kmer.h",
+            "source/MACS3/fermi-lite/kseq.h",
+            "source/MACS3/fermi-lite/ksort.h",
+            "source/MACS3/fermi-lite/kstring.h"
+          ],
+          "source_frontend_issues": 38,
+          "totals": {
+            "inspected_calls": 81,
+            "scientific_api_calls": 0,
+            "scientific_call_fraction": 0.0,
+            "scientific_operations": 0,
+            "support_operations": 69,
+            "uninterpreted_calls": 81,
+            "unsupported_cases": 274
+          },
+          "unresolved_inputs": 100,
+          "unsupported_cases": 274,
+          "valid_source_entries": 395,
+          "workflow_reference_links": 10
+        },
+        "enrichment": {
+          "applied_object_ids": [
+            "so_8956ea76da6923163e77af85",
+            "so_c0e825978172898e446e2f43",
+            "so_4b0f0c73c62b9f2258ea52cb",
+            "so_d9a8d8428e9fde579d8d6b1d",
+            "so_0e4563a0ef322937530fb62e",
+            "so_cb4f5c7fdd4ece478ae9b4bb",
+            "so_236b8c30cbe462808f5534cd",
+            "so_404c71050d06cc6937bb5aef",
+            "so_64cd0dd9af3076c42922ac99",
+            "so_b1e5ee1b118503a0331492ce",
+            "so_a944e4cfbaf931dd27c62ffd",
+            "so_d1f45c14a494a893e96e2d2b",
+            "so_98d7158cfc15135b388d236b",
+            "so_abf881aabe86e5d3cd38f73a",
+            "so_ebbc558bf5d4aa991284049b",
+            "so_ded2ef1e4c50e11fd9f849f6"
+          ],
+          "dropped": []
+        },
+        "interfaces": 70,
+        "interpreted_interfaces": 7,
+        "interpreted_objects": 16,
+        "interpreted_source_paths": [
+          "reproduce.py",
+          "source/MACS3/IO/PeakIO.py",
+          "source/MACS3/Signal/BedGraph.py"
+        ],
+        "objects": 490,
+        "source_paths": [
+          "reproduce.py",
+          "source/MACS3/IO/OutputWriter.py",
+          "source/MACS3/IO/PeakIO.py",
+          "source/MACS3/Signal/BedGraph.py",
+          "source/MACS3/Signal/CallPeakUnit.py",
+          "source/MACS3/Signal/PeakDetect.py",
+          "source/MACS3/Signal/PeakModel.py",
+          "source/MACS3/Signal/PeakVariants.py",
+          "source/MACS3/Signal/Pileup.py",
+          "source/MACS3/Signal/Prob.py",
+          "source/MACS3/Signal/RACollection.pxd",
+          "source/MACS3/Signal/SignalProcessing.py",
+          "source/MACS3/Signal/cPosValCalculation.h",
+          "source/MACS3/Signal/cPosValCalculation.pxd",
+          "source/MACS3/Signal/swalign.h",
+          "source/MACS3/Utilities/OptValidator.py",
+          "source/MACS3/fermi-lite/fml.h",
+          "source/MACS3/fermi-lite/htab.h",
+          "source/MACS3/fermi-lite/internal.h",
+          "source/MACS3/fermi-lite/khash.h",
+          "source/MACS3/fermi-lite/kmer.h",
+          "source/MACS3/fermi-lite/kseq.h",
+          "source/MACS3/fermi-lite/ksort.h",
+          "source/MACS3/fermi-lite/kstring.h"
+        ]
+      },
+      "seconds": 166.33602583399625,
+      "selected_model_call": "extract_draft",
+      "selected_probe_results": null,
+      "selected_probe_specs": null,
+      "session_metadata": [
+        {
+          "cli_version": "0.153.4",
+          "cwd": "/app/task_016",
+          "id": "01a08ed9-602f-7da1-b8fc-f71d2c469fe9",
+          "model_provider": "openai",
+          "path": "agent/extract_draft-sessions/2026/09/11/rollout-2026-09-11T05-03-25-01a08ed9-602f-7da1-b8fc-f71d2c469fe9.jsonl",
+          "source": "exec"
+        }
+      ],
+      "setup": {
+        "baseline_tree": "51773d48a9f1b3066e36125739059a81e79e9ec1",
+        "claim_cap": null,
+        "codex_receipt": {
+          "architecture": "x64",
+          "files": {
+            "package/README.md": "ba4e1f69ff48386e72a9c5e1edaf76aad64a475c2d51af79ccba6d1128261ba7",
+            "package/package.json": "7faa8bf27c4647662dae29b7e429b3dc394d718d273af0045e1aa99d2fb1bb37",
+            "package/vendor/x86_64-unknown-linux-musl/bin/codex": "56ef98ab4032d317ab26e9b5e5a175650717351edb16ed9cde0cb6d1734d62da",
+            "package/vendor/x86_64-unknown-linux-musl/bin/codex-code-mode-host": "3e85d67471825f73d02ff5f7e047ca1f6ca8caa3f59e4c6e8d9ca6ca7302cb45",
+            "package/vendor/x86_64-unknown-linux-musl/codex-package.json": "43f8735a93a7947c6dc082c550d2ff2d795fccfd1c7eb27c93aa91cbead1e3f4",
+            "package/vendor/x86_64-unknown-linux-musl/codex-path/rg": "e62198eb19b136b88c330af83647b5a962cb99b6b1f066758568f12de1974849",
+            "package/vendor/x86_64-unknown-linux-musl/codex-resources/bwrap": "77360cb751ccedc5971391444ac86a8a33c15b04d6b4a6fe45f5d25496e62c4c",
+            "package/vendor/x86_64-unknown-linux-musl/codex-resources/zsh/bin/zsh": "67faaaa89242c4a332e16e508a1977cffc24bf7fca31d4411cdfd101f3831ef3"
+          },
+          "integrity": "sha512-x1EcwBlY3AObM1VTUHNM2AzAJQsyreGdagpF+qFiYi/Oa30VBktvvG0C6tLtCzqW6hjZNWkGZQWmeVk7MuJKWg==",
+          "url": "https://registry.npmjs.org/@openai/codex/-/codex-0.153.4-linux-x64.tgz",
+          "version": "0.153.4"
+        },
+        "codex_version": "0.153.4",
+        "docker_cpus": 4,
+        "docker_memory_bytes": 9365356544,
+        "environment_image": "docker.io/kevinxulearning/swe-bench-science-environment-python-cython-task-016:v0.1.2@sha256:7ecc99a79a168dd6e0af31158840cb3f21df04a153ec9283c44ff951ec3a16b0",
+        "execution": "upstream_pier_codex_docker_boundary",
+        "extraction_access_mode": "read-only",
+        "extraction_codex_receipt": {
+          "architecture": "arm64",
+          "files": {
+            "package/README.md": "ba4e1f69ff48386e72a9c5e1edaf76aad64a475c2d51af79ccba6d1128261ba7",
+            "package/package.json": "5f21885cb53e91738ad62d47401934bac0cde912f4dbb9ea939a79ec64355e45",
+            "package/vendor/aarch64-unknown-linux-musl/bin/codex": "4d76e542c222ea8c75861d8c4ade60a1a332a63255ce1c60bdaebf7c2a2869e6",
+            "package/vendor/aarch64-unknown-linux-musl/bin/codex-code-mode-host": "d677dedf8179ca28ceb869a2e0b60d3ffad3d26f6e7738f7617d34500128a369",
+            "package/vendor/aarch64-unknown-linux-musl/codex-package.json": "a3c985c334a13f6168900d9aa900d875797e4c7a8a6432768bd1d64740f53f54",
+            "package/vendor/aarch64-unknown-linux-musl/codex-path/rg": "e36d0eb52e70696bdf1781392722e05a21bb91d3b7b762ef5ec20e5df2ec687b",
+            "package/vendor/aarch64-unknown-linux-musl/codex-resources/bwrap": "c547cbdc762a70ed216789ffaa4c6c0e7d2beabe32245a498f8e365a9fc8dab4",
+            "package/vendor/aarch64-unknown-linux-musl/codex-resources/zsh/bin/zsh": "7feeacd883e1dc749847936948c378653c80a69ec4a9542f0f126b411882c179"
+          },
+          "integrity": "sha512-QKdjYLYV4hXIuUQDP3P6F4NXuWFoKo9WUoV4nAREIx55kiUyi8UsYdsVobkeXir5n/maEQgYMCKLHVma4rNPiw==",
+          "url": "https://registry.npmjs.org/@openai/codex/-/codex-0.153.4-linux-arm64.tgz",
+          "version": "0.153.4"
+        },
+        "extraction_harness_architecture": "arm64",
+        "extraction_model_call_cap": 1,
+        "extraction_model_seconds": 360.0,
+        "extractor": "scientific_objects_v1",
+        "harness_architecture": "x64",
+        "helper_hashes": {
+          "__init__.py": "0aba189477c461f271a3c65dec90fc54ff805cfac439bee79d9974423da193ae",
+          "annotations.py": "002c32a4eae5ecb185ad0ac3b93cc90d490daac20323fa67691e399e942e033d",
+          "assets.py": "601bfb15c241346c80cb3186d360676d2a54140bb27521ccc185e05cd1f242e7",
+          "cli.py": "65a60502dd0df8515cf830721ceb9c245da8b6250990bbf2872f4e89ed2a67cf",
+          "configuration.py": "42aec6f7932572a2cfaeebe07b8f8438bc583450cc6fc1225d059bde4a6d6848",
+          "controller.py": "b9d3dd300b6be1abce0d65e43beb422e1b76c3f794e126a1a43e914bc360c969",
+          "cython_frontend.py": "3dd0a5522ed672cf66d31669c8e19bccff351a2e59970d442de7dac099515c3d",
+          "evidence.py": "12cf8a6479c474e13b2f25392be0a46b5f4834779f4819c22ffedd4967c2244c",
+          "expressions.py": "954d51c6f0c11cb0a37ce92d51e9e670721c300a34af6a98b9de3ab90faecf8c",
+          "extraction.py": "62f57a7de3f61804f76cda9f5e935675dde54640939167e58f16669a866206d6",
+          "graph.py": "7e2d806215fd9b091f52eef66555542ab31be7a0a85e6e0460ea796cf10ca26f",
+          "io.py": "db29f23b97b8efd5a4fdaaa082b90dc494a6e99e18d61df58b14094ace36e29a",
+          "language_frontends.py": "af02ac1f1e12347e7bc990ccceaf7bbe45ac6f0a90ae4e30c89c9a8849bc3a3b",
+          "native_objects.py": "0344ed80e2cffaad4bda3026f056d62be51bc890fd051945e50394f3c38f14e0",
+          "object_context.py": "19cdab01fad3eef0ad44c94d12bfe81ca3238cb212996dc40f6ccd5b75968b4f",
+          "packet.py": "81bf8843099ba4af3e3aa0f256fa3f8cf6718195821c668303c2812bb17af700",
+          "pier_agent.py": "08d252e3ef354f6e24a9b27cced06a1235530dc25ce748100cba22281680f3b0",
+          "probes.py": "eb6ddb23f0f0204e501ea7ebf7f0f739d41ec426e952b5bbb2a268548752901d",
+          "release.py": "36b3a348069bdfb26e25dd420a73a371a0ac31dfaac3a2f245f7cbec673b19a8",
+          "results.py": "4ce5780de79b43318793da8bf715ca79ce473d2149205c9054dd7e403d53a051",
+          "sampling.py": "99ba9291592876d73e2311873a109b64559e7fd62a9bdbe645fbe1a1c242507d",
+          "scientific_objects.py": "f68f4c58516c0376dc851b143951ba488b77a63a3dd6ca28e6c186a98bfdea3f",
+          "semantics.py": "d8586c2af98c9cadbd6825f92e1b251f2ace0d1609286084f649cbc8876cd9cc",
+          "task_slice.py": "be37448aa472c9fe4133e151d1f28110740316ee587b8e1e2b04b603c6d10afc",
+          "tool_cli.py": "713b0829e84fba52c569aacd8f1e6db3ff268ea4ff9996dd719692543999eb37",
+          "workflow_retrieval.py": "1fbad51494eec1c7eb199dc61648056889752a5295ded253b022aa6347cf88ca"
+        },
+        "host_memory_below_task_request": false,
+        "interpretation_cap_seconds": 465.0,
+        "probe_cap": 0,
+        "python_minor": "312",
+        "revision_policy": "one_scientific_interpretation_call; no probe/refinement loop",
+        "scientific_image_architecture": "amd64",
+        "task_requested_memory_mb": 8192,
+        "timeout": "GNU timeout foreground process group"
+      },
+      "setup_status": "available",
+      "source_matched_implementations": null,
+      "stage_status": "completed",
+      "status": "completed",
+      "task_id": "016",
+      "tokens": {
+        "cached_input_tokens": 228864,
+        "input_tokens": 283117,
+        "nonreasoning_output_tokens": 3809,
+        "output_tokens": 3876,
+        "reasoning_output_tokens": 67,
+        "total_tokens": 286993,
+        "uncached_input_tokens": 54253
+      },
+      "trial_path": "jobs/task-016-science/task_016__94f98Yj",
+      "unknown_alignments": null,
+      "unmatched_supplied_probe_results": null,
+      "usable_graph": true
+    }
+  ],
+  "schedule": {
+    "config": {
+      "allow_restricted_licenses": false,
+      "attempts": 1,
+      "codex_version": "0.153.4",
+      "comparison_run": "runs/scientific-reading-v1",
+      "concurrency": 2,
+      "criteria": [
+        "Scientific explanations attach to relevant implementation objects, including parameters and predicates, rather than only reproduction wrappers.",
+        "Nontrivial scientific claims have supporting public sources; uncertain interpretations remain explicit.",
+        "Compare scientific content, implementation links, omissions and token costs against v1; finding function names alone is not success."
+      ],
+      "dataset_revision": "d8bdbcb4ecb2b565686382459c815d2b6291fd31",
+      "development_task_ids": [
+        "051",
+        "025",
+        "016"
+      ],
+      "extraction_model_seconds": 360,
+      "extraction_seconds": 600,
+      "extractor": "scientific_objects",
+      "method_revision": "a27cc93d94bb90eb7adfc078f093be62195dc1b9",
+      "model": "gpt-6-astra",
+      "pier_version": "0.3.0",
+      "purpose": "User-approved before/after extraction-only check on the same full public workspaces as scientific-reading-v1. No method changes between calls; no repairs, probes, verifiers or retries.",
+      "reasoning_effort": "medium",
+      "release_commit": "42e7e97915ff7d73436a5d37b5cbe6b77e9c2a00",
+      "release_receipt": "data/scientific-reading-v1-release.json",
+      "schema_version": "1.0",
+      "study_kind": "workflow_localized_scientific_reading_check",
+      "task_ids": [
+        "051",
+        "025",
+        "016"
+      ],
+      "total_seconds": 900
+    },
+    "config_sha256": "b1e648d31c4b5ffd248361a709ea8b619d138d0747bcde4901e974184a0092d1",
+    "execute": true,
+    "execution_policy": {
+      "admission": "two_task_extraction_groups",
+      "concurrency": 2,
+      "pier_concurrency_per_process": 1,
+      "shared_resources": true
+    },
+    "finished_at": "2026-09-11T05:06:20.760211+00:00",
+    "implementation_dirty": false,
+    "implementation_revision": "084718bac5c430a20958ff171d1cf361da37eeab",
+    "kind": "extraction_verification",
+    "output": "/Users/rajarshighoshal/Projects/TUg_research_task/runs/scientific-reading-v2",
+    "prompt_sha256": {
+      "prompts/enrich_objects.md": "9818342f007556db278fd178e4fb8ff0d61d3bd4675e227e1a8ff1bf7c43811b",
+      "prompts/extract.md": "8391ec931305b71b406c74e7784f66c969e28035b14034c98d9b5628977cdfce",
+      "prompts/extract_revision.md": "3b726cbd85feaea31f8d08e7af4fdfdda5691cc2177b603d8b73b5be4d0422a2",
+      "prompts/repair.md": "9b9bd47560b889414d5b5b4fcb05c0dd6ba406856a6ce7fdee9c59102115066b"
+    },
+    "schedule": [
+      {
+        "condition": "science",
+        "finished_at": "2026-09-11T05:02:38.735285+00:00",
+        "phase": "finished",
+        "started_at": "2026-09-11T04:58:30.849746+00:00",
+        "status": "completed",
+        "task_id": "051"
+      },
+      {
+        "condition": "science",
+        "finished_at": "2026-09-11T05:02:52.029743+00:00",
+        "phase": "finished",
+        "started_at": "2026-09-11T04:58:32.354781+00:00",
+        "status": "completed",
+        "task_id": "025"
+      },
+      {
+        "condition": "science",
+        "finished_at": "2026-09-11T05:06:20.759624+00:00",
+        "phase": "finished",
+        "started_at": "2026-09-11T05:02:52.030006+00:00",
+        "status": "completed",
+        "task_id": "016"
+      }
+    ],
+    "schema_version": "1.0",
+    "selection_sha256": "1111eec628b43c2657ea83c13009d1b26580b8ce9c25ed10ce0c5ca9cfbd527e",
+    "started_at": "2026-09-11T04:58:30.848745+00:00",
+    "status": "completed",
+    "uv_lock_sha256": "d54b54352b038f3237f140916e33f447d9fb01d1f26547e70746c580ff17973f"
+  },
+  "schedule_wall_seconds": 469.911466,
+  "source_run_root": "runs/scientific-reading-v2",
+  "summary_audit": "verified",
+  "task_ids": [
+    "051",
+    "025",
+    "016"
+  ],
+  "token_totals": {
+    "cached_input_tokens": 853504,
+    "input_tokens": 1042313,
+    "output_tokens": 13966,
+    "reasoning_output_tokens": 360,
+    "total_tokens": 1056279
+  }
+}

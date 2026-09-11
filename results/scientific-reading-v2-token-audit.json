@@ -1,0 +1,108 @@
+{
+  "method": "Completed-turn usage independently matched to final cumulative exec-session counters; subsets are not added twice",
+  "records": [
+    {
+      "condition": "science",
+      "model_calls": [
+        {
+          "cli_log": "runs/scientific-reading-v2/jobs/task-016-science/task_016__94f98Yj/agent/extract_draft.jsonl",
+          "cli_sha256": "45065c1d95a84da55cc97fcfc7b9b4564d33fccec41ed79d7b204d6a61862e5a",
+          "session_file": "runs/scientific-reading-v2/jobs/task-016-science/task_016__94f98Yj/agent/extract_draft-sessions/2026/09/11/rollout-2026-09-11T05-03-25-01a08ed9-602f-7da1-b8fc-f71d2c469fe9.jsonl",
+          "session_sha256": "51e69531c7c1f66fce60f711995e6bebb8f97595466608c88745f07093a85af5",
+          "stage": "extract_draft",
+          "status": "verified",
+          "usage": {
+            "cached_input_tokens": 228864,
+            "input_tokens": 283117,
+            "nonreasoning_output_tokens": 3809,
+            "output_tokens": 3876,
+            "reasoning_output_tokens": 67,
+            "total_tokens": 286993,
+            "uncached_input_tokens": 54253
+          }
+        }
+      ],
+      "stage": "extract",
+      "status": "verified",
+      "task_id": "016",
+      "usage": {
+        "cached_input_tokens": 228864,
+        "input_tokens": 283117,
+        "nonreasoning_output_tokens": 3809,
+        "output_tokens": 3876,
+        "reasoning_output_tokens": 67,
+        "total_tokens": 286993,
+        "uncached_input_tokens": 54253
+      }
+    },
+    {
+      "condition": "science",
+      "model_calls": [
+        {
+          "cli_log": "runs/scientific-reading-v2/jobs/task-025-science/task_025__dEaRLiP/agent/extract_draft.jsonl",
+          "cli_sha256": "309e14c3e5ec14fcd5030f2d8aa8e30ceeca65fd2f4694952d1b1bdc7a9788a4",
+          "session_file": "runs/scientific-reading-v2/jobs/task-025-science/task_025__dEaRLiP/agent/extract_draft-sessions/2026/09/11/rollout-2026-09-11T04-59-13-01a08ed5-8668-79e3-b226-9fd6f5334539.jsonl",
+          "session_sha256": "d99686860a32b9b476328f621ad5170665b74637660425f0b5f0f79005a9097c",
+          "stage": "extract_draft",
+          "status": "verified",
+          "usage": {
+            "cached_input_tokens": 329344,
+            "input_tokens": 402671,
+            "nonreasoning_output_tokens": 4900,
+            "output_tokens": 5058,
+            "reasoning_output_tokens": 158,
+            "total_tokens": 407729,
+            "uncached_input_tokens": 73327
+          }
+        }
+      ],
+      "stage": "extract",
+      "status": "verified",
+      "task_id": "025",
+      "usage": {
+        "cached_input_tokens": 329344,
+        "input_tokens": 402671,
+        "nonreasoning_output_tokens": 4900,
+        "output_tokens": 5058,
+        "reasoning_output_tokens": 158,
+        "total_tokens": 407729,
+        "uncached_input_tokens": 73327
+      }
+    },
+    {
+      "condition": "science",
+      "model_calls": [
+        {
+          "cli_log": "runs/scientific-reading-v2/jobs/task-051-science/task_051__3hWAHCW/agent/extract_draft.jsonl",
+          "cli_sha256": "7b34b46af67decc7400b65ebcd6598df750e353c340ebd487919a9a22aa0c1be",
+          "session_file": "runs/scientific-reading-v2/jobs/task-051-science/task_051__3hWAHCW/agent/extract_draft-sessions/2026/09/11/rollout-2026-09-11T04-59-06-01a08ed5-6cc6-7530-b890-ef45d652b1eb.jsonl",
+          "session_sha256": "5678954dd91cf49a550409ce3c8db81c19ad29e58c5db216b6861e1e3d9dbe25",
+          "stage": "extract_draft",
+          "status": "verified",
+          "usage": {
+            "cached_input_tokens": 295296,
+            "input_tokens": 356525,
+            "nonreasoning_output_tokens": 4897,
+            "output_tokens": 5032,
+            "reasoning_output_tokens": 135,
+            "total_tokens": 361557,
+            "uncached_input_tokens": 61229
+          }
+        }
+      ],
+      "stage": "extract",
+      "status": "verified",
+      "task_id": "051",
+      "usage": {
+        "cached_input_tokens": 295296,
+        "input_tokens": 356525,
+        "nonreasoning_output_tokens": 4897,
+        "output_tokens": 5032,
+        "reasoning_output_tokens": 135,
+        "total_tokens": 361557,
+        "uncached_input_tokens": 61229
+      }
+    }
+  ],
+  "run_root": "runs/scientific-reading-v2"
+}

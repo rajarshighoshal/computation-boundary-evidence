@@ -13,9 +13,10 @@ repair retains normal execution. See the [method](docs/METHOD.md) and
 
 [Live scientific-reading checks](docs/SCIENTIFIC_READING_V1.md) recovered substantive documented
 science but exposed [poor implementation grounding](docs/SCIENTIFIC_READING_V1_NOTES.md).
-The subsequent offline retrieval change follows public workflow references into implementation
-functions and retains candidate call links. Coverage remains partial; neither a valid graph nor
-scientific prose demonstrates improved repair. Compiler IR is not in scope for this checkpoint.
+The subsequent retrieval change follows public workflow references into implementation functions
+and retains candidate call links. Its [live before/after check](docs/SCIENTIFIC_READING_V1_V2.md)
+shows improved scientific implementation anchoring, with [documented limitations](docs/SCIENTIFIC_READING_V2_NOTES.md).
+Neither a valid graph nor scientific prose demonstrates improved repair. Compiler IR is not in scope.
 
 Historical methods/results remain separate: [initial five](docs/INITIAL_FIVE_OVERVIEW.md),
 [task-local comparison](docs/TASK_LOCAL_FIVE_V2_RESULTS.md), and
