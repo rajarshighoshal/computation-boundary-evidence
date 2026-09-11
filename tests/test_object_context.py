@@ -121,7 +121,7 @@ def test_code_first_interpretation_reaches_normal_repair_without_probe_loop(scie
             self.response = response
             return {"status": "completed", "usage": {"input_tokens": 10, "cached_input_tokens": 0,
                                                      "output_tokens": 5, "reasoning_output_tokens": 1}}
-        async def assemble(self, outcomes, seconds):
+        async def assemble(self, seconds):
             self.bundle = object_bundle(graph, self.response, self.payload["context"])
             return {**self.bundle["assembly"], "probes": []}
         async def probe(self, *args):
@@ -144,8 +144,9 @@ def test_code_first_interpretation_reaches_normal_repair_without_probe_loop(scie
                                   "fixture", "science", "Repair this scientific model", root / "trial"))
     assert result["status"] == "completed"
     extraction = result["stages"][0]
-    assert len(extraction["model_calls"]) == 1 and extraction["probe_rounds"] == []
-    assert extraction["revision"]["reason"] == "not_part_of_scientific_object_enrichment"
+    assert len(extraction["model_calls"]) == 1 and "probe_rounds" not in extraction
+    assert extraction["selected_model_call"] == "extract_draft"
+    assert extraction["usable_checkpoint"] is True
     assert "Stiffness operator" in driver.repair_prompt
     assert "Fixed boundary conditions" in driver.repair_prompt
     assert "not mandatory repair rules" in driver.repair_prompt

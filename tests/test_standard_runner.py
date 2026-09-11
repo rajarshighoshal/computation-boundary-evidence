@@ -81,7 +81,7 @@ def test_reuses_upstream_run_without_reimplementing_authentication(tmp_path):
     assert all("--permission-profile" not in command for command in environment.commands)
 
 
-@pytest.mark.parametrize("stage", ["extract", "extract_draft", "extract_revision", "repair"])
+@pytest.mark.parametrize("stage", ["extract", "extract_draft", "repair"])
 def test_both_stages_use_plain_final_files(tmp_path, stage):
     agent = OutputCodex(stage=stage, logs_dir=tmp_path, model_name="gpt-6-astra")
     assert "--output-schema" not in agent.build_cli_flags()
@@ -96,7 +96,7 @@ def test_deadline_uses_standard_timeout_not_custom_supervisor():
     assert "scicontext.supervise" not in script and "/proc" not in script
 
 
-@pytest.mark.parametrize("stage", ["extract", "extract_draft", "extract_revision", "repair"])
+@pytest.mark.parametrize("stage", ["extract", "extract_draft", "repair"])
 def test_launcher_replaces_pier_bypass_only_for_extraction(tmp_path, stage):
     binary = tmp_path / "codex"
     binary.write_text('#!/bin/sh\nprintf "%s\\n" "$@"\n')
@@ -158,7 +158,7 @@ def test_setup_uses_native_extractor_asset_and_keeps_x64_repair(tmp_path, monkey
     assert receipt["extraction_access_mode"] == "read-only"
     assert receipt["extraction_codex_receipt"]["architecture"] == expected
     assert receipt["interpretation_cap_seconds"] == 225
-    assert receipt["extractor"] == "scientific_probe_first_v1"
+    assert receipt["extractor"] == "scientific_objects_v1"
 
 
 @pytest.mark.parametrize("model_cap", [None, 360])
@@ -179,13 +179,13 @@ def test_each_call_uses_extraction_environment_distinct_logs_and_sessions(tmp_pa
     async def run(agent, instruction, env, context):
         assert env is environment
         assert instruction == "-"
-        assert env.files[agent.prompt_path] == ("draft" if agent.stage == "extract_draft" else "revision")
+        assert env.files[agent.prompt_path] == "draft"
         duration = float(agent._extra_env["SCICONTEXT_STAGE_SECONDS"].removesuffix("s"))
         assert duration == 360 if model_cap is not None else duration > 360
         launched.append((agent.stage, str(agent._REMOTE_CODEX_HOME), agent._OUTPUT_FILENAME))
         env.files[f"/logs/agent/{agent.stage}.jsonl"] = json.dumps({"type": "turn.completed", "usage": {
             "input_tokens": 3, "cached_input_tokens": 1, "output_tokens": 2}}) + "\n"
-        env.files[f"/logs/agent/{agent.stage}-exit.txt"] = "1" if agent.stage == "extract_revision" else "0"
+        env.files[f"/logs/agent/{agent.stage}-exit.txt"] = "0"
         env.files[f"/logs/agent/{agent.stage}-final.txt"] = "{}"
     monkeypatch.setattr(Codex, "run", run)
     d = SimpleNamespace(extract_environment=environment, environment=object(), root="/app/task_058",
@@ -195,13 +195,13 @@ def test_each_call_uses_extraction_environment_distinct_logs_and_sessions(tmp_pa
     d.checked = AsyncMock(return_value="/usr/bin")
     async def check():
         first = await ScientificCodex._run_codex(d, "extract_draft", "draft", 600)
-        second = await ScientificCodex._run_codex(d, "extract_revision", "revision", 600)
-        assert first["status"] == "completed" and second["status"] == "failed"
+        second = await ScientificCodex._run_codex(d, "extract_draft", "draft", 600)
+        assert first["status"] == "completed" and second["status"] == "completed"
         assert first["usage"]["input_tokens"] == second["usage"]["input_tokens"] == 3
     asyncio.run(check())
     assert len({home for _, home, _ in launched}) == 2
-    assert [filename for _, _, filename in launched] == ["extract_draft.jsonl", "extract_revision.jsonl"]
-    assert environment.dirs == ["/logs/agent/extract_draft-sessions", "/logs/agent/extract_revision-sessions"]
+    assert [filename for _, _, filename in launched] == ["extract_draft.jsonl", "extract_draft.jsonl"]
+    assert environment.dirs == ["/logs/agent/extract_draft-sessions", "/logs/agent/extract_draft-sessions"]
     assert all((tmp_path / f"{name}-process.json").is_file() for name, _, _ in launched)
     assert all("rm -rf /logs/agent" not in c.args[1] for c in d.checked.await_args_list)
 
@@ -257,14 +257,14 @@ def test_artifact_downloads_cannot_hold_call_past_deadline(tmp_path, monkeypatch
                             config=SimpleNamespace(model="gpt-6-astra", reasoning_effort="high", codex_version="0.153.4"),
                             logs_dir=tmp_path, auth_file=tmp_path / "dummy", checked=AsyncMock(return_value="/usr/bin"))
         started = time.monotonic()
-        result = await ScientificCodex._run_codex(d, "extract_revision", "task", .1)
+        result = await ScientificCodex._run_codex(d, "extract_draft", "task", .1)
         assert time.monotonic() - started < .3
         assert "collection deadline exceeded" in result["artifact_collection_errors"]
         assert result["fatal_model_error"] and result["usage"]["input_tokens"] is None
     asyncio.run(check())
 
 
-@pytest.mark.parametrize("stage", ["extract_draft", "extract_revision", "repair"])
+@pytest.mark.parametrize("stage", ["extract_draft", "repair"])
 def test_provider_failure_receipt_is_fatal_for_every_call(tmp_path, monkeypatch, stage):
     async def check():
         async def run(*args):

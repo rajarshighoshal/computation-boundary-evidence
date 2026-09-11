@@ -2,7 +2,6 @@ import hashlib
 
 from scicontext import packet
 from scicontext.evidence import extract_evidence
-from scicontext.graph import validate_graph
 from scicontext.packet import build_packet, render_catalog
 
 
@@ -97,9 +96,6 @@ def test_documents_validate_exact_lines_hashes_and_explicit_context(tmp_path):
     cited = next(d for d in result["documents"] if d["path"].startswith("@context/"))
     assert cited["sha256"] == hashlib.sha256(target.read_bytes()).hexdigest()
     assert cited["quote"] == "Required units: kg / m^3.\nKeep the return shape."
-    graph = {"schema_version": "1.0", "task_id": "test", "quantities": [], "claims": [],
-             "evidence": result["documents"], "observations": [], "unresolved": []}
-    assert validate_graph(graph, root, context_root=context)["valid"]
     assert not any(d["path"].startswith("@context/") for d in build_packet(root)["documents"])
     old_id = cited["id"]
     target.write_text("Changed statement\n", encoding="utf-8")

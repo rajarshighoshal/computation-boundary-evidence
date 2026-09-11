@@ -16,7 +16,7 @@ from scicontext.io import digest_file, read_json, write_json
 
 
 PROVENANCE = {"implementation_revision": "a" * 40, "implementation_dirty": False,
-              "uv_lock_sha256": "b" * 64, "prompt_sha256": {"prompts/extract.md": "c" * 64}}
+              "uv_lock_sha256": "b" * 64, "prompt_sha256": {"prompts/enrich_objects.md": "c" * 64}}
 
 
 @pytest.fixture
@@ -275,7 +275,7 @@ def test_reconciliation_never_rewrites_scientific_scratch_named_run_json(workspa
 
 def test_provenance_is_shared_prompt_bundle_not_stage_input(tmp_path, monkeypatch):
     (tmp_path / "prompts").mkdir()
-    (tmp_path / "prompts/extract.md").write_text("extract")
+    (tmp_path / "prompts/enrich_objects.md").write_text("enrich")
     (tmp_path / "prompts/repair.md").write_text("repair")
     (tmp_path / "uv.lock").write_text("lock")
     calls = []
@@ -288,7 +288,7 @@ def test_provenance_is_shared_prompt_bundle_not_stage_input(tmp_path, monkeypatc
     assert result["implementation_revision"] == "abc123"
     assert result["implementation_dirty"] is True
     assert result["uv_lock_sha256"] == digest_file(tmp_path / "uv.lock")
-    assert set(result["prompt_sha256"]) == {"prompts/extract.md", "prompts/repair.md"}
+    assert set(result["prompt_sha256"]) == {"prompts/enrich_objects.md", "prompts/repair.md"}
     assert "--untracked-files=no" in calls[-1]
 
 
