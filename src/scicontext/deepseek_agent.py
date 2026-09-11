@@ -26,8 +26,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from .assets import prepare_helpers
-from .extraction import run_extraction
-from .io import read_json, write_json
+from .extraction import extraction_reserve, run_extraction
+from .io import digest_file, read_json, write_json
 from .pier_agent import CONTROL, HELPER, REMOTE, SCRATCH, ScientificCodex, bounded_call
 
 API = "https://api.deepseek.com/chat/completions"
@@ -35,6 +35,8 @@ MAX_OUTPUT_TOKENS = 65536
 MAX_TOOL_OUTPUT_CHARS = 60_000
 MAX_TOOL_SECONDS = 120
 MAX_LOOP_ITERATIONS = 60
+MAX_CONVERSATION_TOOL_CHARS = 300_000
+MAX_ANNOTATION_CHARS = 65_536
 
 
 async def _api_completion(api_key: str, model: str, messages: list, *,
@@ -53,6 +55,19 @@ async def _api_completion(api_key: str, model: str, messages: list, *,
             return json.load(response)
 
     return await asyncio.to_thread(send)
+
+
+def _compact_tools(messages: list) -> None:
+    """Replace oldest tool outputs once cumulative tool text exceeds the budget."""
+    total = sum(len(m.get("content", "")) for m in messages if m.get("role") == "tool")
+    for message in messages:
+        if total <= MAX_CONVERSATION_TOOL_CHARS:
+            return
+        if message.get("role") == "tool":
+            content = message["content"]
+            dropped = len(content)
+            message["content"] = "[earlier output omitted to stay within context budget]"
+            total -= dropped
 
 
 class DeepSeekAgent(ScientificCodex):
@@ -123,17 +138,45 @@ class DeepSeekAgent(ScientificCodex):
             await self.extract_environment.start(force_build=False)
             await self._setup_environment(self.extract_environment, "extract")
         write_json(self.logs_dir / "setup.json", {
-            "harness_architecture": "x64", "extractor": "scientific_objects_v1",
-            "agent": "deepseek", "model": self.model, "frozen_source": self.frozen_source is not None,
-            "max_output_tokens": MAX_OUTPUT_TOKENS, "environment_image": environment.task_env_config.docker_image,
+            "agent": "deepseek", "model": self.model,
+            "harness_architecture": "x64", "scientific_image_architecture": "amd64",
+            "environment_image": environment.task_env_config.docker_image,
+            "execution": "host_side_deepseek_api_with_in_container_shell_tools",
+            "extractor": "scientific_objects_v1", "frozen_source": self.frozen_source is not None,
+            "claim_cap": None, "probe_cap": 0,
             "extraction_model_call_cap": 1 if self.condition == "science" else 0,
+            "extraction_model_seconds": self.extraction_model_seconds,
+            "extraction_harness_architecture": "host_api",
+            "extraction_access_mode": "read-only" if self.condition == "science" else None,
+            "interpretation_cap_seconds": (self.config.extraction_seconds - min(60, self.config.extraction_seconds / 6)
+                - extraction_reserve(self.config.extraction_seconds - min(60, self.config.extraction_seconds / 6))),
             "revision_policy": "one_scientific_interpretation_call; no probe/refinement loop",
+            "python_minor": pyminor, "baseline_tree": self._baseline_tree,
+            "docker_memory_bytes": int(info[0]), "docker_cpus": int(info[1]),
             "task_requested_memory_mb": environment.task_env_config.memory_mb,
+            "host_memory_below_task_request": int(info[0]) < environment.task_env_config.memory_mb * 1024 * 1024,
+            "helper_hashes": {p.name: digest_file(p) for p in sorted((self.workspace / "src/scicontext").glob("*.py"))},
+            "max_output_tokens": MAX_OUTPUT_TOKENS, "temperature": 0.0,
         })
         if self.smoke:
             check = await self.checked(environment, "python -c 'from pyscf import lib; print(7*6)'")
             if check.strip() != "42":
                 raise RuntimeError("Smoke dependency check failed")
+
+    async def run_stage(self, name, instruction, seconds):
+        if name == "extract":
+            self._selected_remote = None
+            try:
+                result = await run_extraction(self, instruction, seconds)
+            except asyncio.CancelledError:
+                write_json(self.logs_dir / "extraction-phases.json", {
+                    "status": "interrupted", "model_calls": getattr(self, "extraction_model_calls", []),
+                    "phases": getattr(self, "extraction_phases", [])})
+                raise
+            write_json(self.logs_dir / "extraction-phases.json", result)
+            return result
+        prompt = instruction + f"\n\nTime allowance remaining: at most {max(1, int(seconds))} seconds."
+        return await self._run_deepseek_repair(prompt, seconds)
 
     async def _interpret_call(self, instruction, seconds):
         template = ((self.frozen_source / "prompts" / "enrich_objects.md") if self.frozen_source
@@ -150,12 +193,9 @@ class DeepSeekAgent(ScientificCodex):
         local_scratch = self.logs_dir / "extract-scratch"
         local_scratch.mkdir(parents=True, exist_ok=True)
         payload_path = local_scratch / "scientific-context-input.json"
-        graph_path = local_scratch / "scientific-objects.json"
         try:
             await bounded_call(self.extract_environment.download_file(
                 SCRATCH + "/scientific-context-input.json", payload_path), 30, set())
-            await bounded_call(self.extract_environment.download_file(
-                SCRATCH + "/scientific-objects.json", graph_path), 30, set())
         except Exception as error:
             result = {"status": "failed", "fatal_model_error": True,
                       "error": f"payload download failed: {error}", "usage": {}}
@@ -178,6 +218,7 @@ class DeepSeekAgent(ScientificCodex):
             write_json(self.logs_dir / "extract_draft-process.json", result)
             return result
         usage = completion.get("usage", {})
+        content = completion["choices"][0]["message"].get("content") or ""
         result = {"status": "completed", "usage": {"input_tokens": usage.get("prompt_tokens"),
                                                    "cached_input_tokens": None,
                                                    "output_tokens": usage.get("completion_tokens"),
@@ -185,8 +226,12 @@ class DeepSeekAgent(ScientificCodex):
                   "duration_seconds": time.monotonic() - started,
                   "finish_reason": completion["choices"][0].get("finish_reason"),
                   "prompt_chars": len(prompt)}
-        content = completion["choices"][0]["message"].get("content") or ""
         (self.logs_dir / "extract_draft-final.txt").write_text(content)
+        if len(content.encode()) > MAX_ANNOTATION_CHARS:
+            result.update(annotations_status="no_valid_annotations",
+                          annotations_error="Compact annotations exceed 64 KiB")
+            write_json(self.logs_dir / "extract_draft-process.json", result)
+            return result
         try:
             annotations = json.loads(content)
         except ValueError as error:
@@ -197,19 +242,15 @@ class DeepSeekAgent(ScientificCodex):
         await self._put(self.extract_environment, "extract_draft-annotations.json", json.dumps(annotations),
                         self._annotations_remote)
         result["annotations_status"] = "received"
+        write_json(self.logs_dir / "extract_draft-process.json", result)
         return result
-
-    async def run_stage(self, name, instruction, seconds):
-        if name == "extract":
-            return await run_extraction(self, instruction, seconds)
-        return await self._run_deepseek_repair(instruction, seconds)
 
     async def _run_deepseek_repair(self, prompt, seconds):
         deadline = time.monotonic() + seconds
         messages = [{"role": "user", "content": prompt}]
         usage = {"input_tokens": 0, "output_tokens": 0}
         events = []
-        result = {"status": "timeout", "usage": usage}
+        result = {"status": "timeout", "usage": usage, "cleanup_complete": None}
         try:
             for _ in range(MAX_LOOP_ITERATIONS):
                 remaining = deadline - time.monotonic()
@@ -224,31 +265,53 @@ class DeepSeekAgent(ScientificCodex):
                 events.append({"type": "turn.started"})
                 if message.get("tool_calls"):
                     for call in message["tool_calls"]:
-                        arguments = json.loads(call["function"].get("arguments") or "{}")
-                        command = arguments.get("command", "")
-                        if not command:
-                            output = "Empty shell command refused."
-                        else:
+                        tool_remaining = max(0.0, deadline - time.monotonic())
+                        if tool_remaining <= 0:
+                            break
+                        output = "Tool budget exhausted."
+                        command = ""
+                        exit_code = 1
+                        arguments = {}
+                        try:
+                            arguments = json.loads(call["function"].get("arguments") or "{}")
+                            command = arguments.get("command", "")
+                        except ValueError as error:
+                            output = f"Malformed tool arguments refused: {error}"
+                        if arguments and command:
                             try:
                                 output = await bounded_call(self.checked(
                                     self.environment, command, cwd=self.root,
-                                    timeout_sec=min(MAX_TOOL_SECONDS, max(1.0, remaining))),
-                                    min(MAX_TOOL_SECONDS + 5, max(2.0, remaining)), set())
+                                    timeout_sec=min(MAX_TOOL_SECONDS, max(0.05, tool_remaining))),
+                                    min(MAX_TOOL_SECONDS, max(1.0, tool_remaining)), set())
+                                exit_code = 0
                             except Exception as error:
                                 output = f"Command failed: {type(error).__name__}: {error}"
+                                exit_code = 1
+                        elif arguments and not command:
+                            output = "Empty shell command refused."
+                        events.append({"type": "item.completed", "item": {
+                            "id": call["id"], "type": "command_execution", "command": command,
+                            "exit_code": exit_code,
+                            "aggregated_output": output[-MAX_TOOL_OUTPUT_CHARS:]}})
                         messages.append({"role": "tool", "tool_call_id": call["id"],
                                          "content": output[-MAX_TOOL_OUTPUT_CHARS:]})
+                    _compact_tools(messages)
                     continue
                 content = message.get("content") or ""
                 (self.logs_dir / "repair-final.txt").write_text(content)
                 events.append({"type": "turn.completed", "usage": {
-                    "input_tokens": usage["input_tokens"], "cached_input_tokens": None,
+                    "input_tokens": usage["input_tokens"], "cached_input_tokens": 0,
                     "output_tokens": usage["output_tokens"], "reasoning_output_tokens": None}})
                 result.update(status="completed", finish_reason=completion["choices"][0].get("finish_reason"))
                 break
         except (urllib.error.URLError, TimeoutError, OSError) as error:
             result.update(status="failed", fatal_model_error=True, error=f"DeepSeek transport failure: {error}")
             self._fatal_model_error = True
-        write_json(self.logs_dir / "repair-process.json", result)
-        (self.logs_dir / "repair.jsonl").write_text("\n".join(json.dumps(e, ensure_ascii=False) for e in events) + "\n")
+        finally:
+            if "usage" in result and events and events[-1]["type"] != "turn.completed":
+                events.append({"type": "turn.completed", "usage": {
+                    "input_tokens": usage["input_tokens"], "cached_input_tokens": 0,
+                    "output_tokens": usage["output_tokens"], "reasoning_output_tokens": None}})
+            write_json(self.logs_dir / "repair-process.json", result)
+            (self.logs_dir / "repair.jsonl").write_text("\n".join(json.dumps(e, ensure_ascii=False) for e in events) + "\n")
         return result

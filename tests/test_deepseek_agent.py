@@ -139,3 +139,84 @@ def test_repair_transport_failure_is_fatal(tmp_path, monkeypatch):
 def test_agent_requires_key_file(tmp_path):
     with pytest.raises(ValueError, match="deepseek_key_file"):
         DeepSeekAgent(logs_dir=tmp_path, model_name="deepseek-flash", workspace=tmp_path)
+
+
+def test_repair_events_are_counted_by_controller_read_usage(tmp_path, monkeypatch):
+    from scicontext.controller import read_usage
+    agent = make_agent(tmp_path, condition="baseline")
+    agent.environment = FakeEnvironment(tmp_path, {}, {})
+    agent.root = "/app/task_058"
+    agent.logs_dir.mkdir(parents=True, exist_ok=True)
+    async def fake_api(*args, **kwargs):
+        return {"choices": [{"message": {"content": "READY", "tool_calls": None}, "finish_reason": "stop"}],
+                "usage": {"prompt_tokens": 40, "completion_tokens": 7}}
+    monkeypatch.setattr(module, "_api_completion", fake_api)
+    result = asyncio.run(agent._run_deepseek_repair("Fix", 60))
+    assert result["status"] == "completed"
+    usage = read_usage(tmp_path / "logs/repair.jsonl")
+    assert usage["completed_turns"] == 1
+    assert usage["input_tokens"] == 40 and usage["output_tokens"] == 7
+    assert json.loads((tmp_path / "logs/repair-process.json").read_text())["status"] == "completed"
+
+
+def test_repair_malformed_tool_arguments_become_tool_error_not_crash(tmp_path, monkeypatch):
+    agent = make_agent(tmp_path, condition="baseline")
+    agent.environment = FakeEnvironment(tmp_path, {}, {})
+    agent.root = "/app/task_058"
+    agent.logs_dir.mkdir(parents=True, exist_ok=True)
+    responses = [
+        {"choices": [{"message": {"content": None, "tool_calls": [
+            {"id": "c1", "function": {"name": "shell", "arguments": "not json{"}}]},
+            "finish_reason": "tool_calls"}], "usage": {"prompt_tokens": 5, "completion_tokens": 2}},
+        {"choices": [{"message": {"content": "DONE", "tool_calls": None}, "finish_reason": "stop"}],
+         "usage": {"prompt_tokens": 5, "completion_tokens": 2}},
+    ]
+    async def fake_api(*args, **kwargs):
+        return responses.pop(0)
+    monkeypatch.setattr(module, "_api_completion", fake_api)
+    result = asyncio.run(agent._run_deepseek_repair("Fix", 60))
+    assert result["status"] == "completed"
+    events = [json.loads(l) for l in (tmp_path / "logs/repair.jsonl").read_text().splitlines()]
+    item = next(e for e in events if e["type"] == "item.completed")
+    assert item["item"]["exit_code"] == 1
+    assert "Malformed tool arguments" in item["item"]["aggregated_output"]
+
+
+def test_repair_tool_exec_never_runs_past_deadline(tmp_path, monkeypatch):
+    agent = make_agent(tmp_path, condition="baseline")
+    env = FakeEnvironment(tmp_path, {}, {})
+    agent.environment = env
+    agent.root = "/app/task_058"
+    agent.logs_dir.mkdir(parents=True, exist_ok=True)
+    async def slow_exec(command, **kwargs):
+        assert kwargs["timeout_sec"] <= 2.0, kwargs["timeout_sec"]
+        return "slow"
+    env.exec = slow_exec
+    async def slow_api(*args, **kwargs):
+        await asyncio.sleep(1.2)  # leaves < 2s of a 3s budget
+        return {"choices": [{"message": {"content": None, "tool_calls": [
+            {"id": "c1", "function": {"name": "shell", "arguments": json.dumps({"command": "true"})}}]},
+            "finish_reason": "tool_calls"}], "usage": {"prompt_tokens": 5, "completion_tokens": 2}}
+    monkeypatch.setattr(module, "_api_completion", slow_api)
+    result = asyncio.run(agent._run_deepseek_repair("Fix", 3))
+    assert result["status"] == "timeout"
+    # Receipts must exist even on timeout.
+    assert (tmp_path / "logs/repair-process.json").is_file()
+    assert (tmp_path / "logs/repair.jsonl").is_file()
+
+
+def test_interpret_success_writes_process_receipt(tmp_path, monkeypatch):
+    graph, payload = graph_and_payload()
+    agent = make_agent(tmp_path)
+    env = FakeEnvironment(tmp_path, payload, graph)
+    agent.extract_environment = env
+    agent.root = "/app/task_058"
+    agent.logs_dir.mkdir(parents=True, exist_ok=True)
+    async def fake_api(*args, **kwargs):
+        return {"choices": [{"message": {"content": json.dumps(
+            {"object_id": "so_a", "meaning": "step"})}, "finish_reason": "stop"}],
+            "usage": {"prompt_tokens": 3, "completion_tokens": 1}}
+    monkeypatch.setattr(module, "_api_completion", fake_api)
+    asyncio.run(agent._interpret_call("Inspect", 300))
+    receipt = json.loads((tmp_path / "logs/extract_draft-process.json").read_text())
+    assert receipt["status"] == "completed" and receipt["annotations_status"] == "received"
