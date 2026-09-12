@@ -76,17 +76,24 @@ def evaluate_task(trace_dir: Path, config: dict) -> dict:
             if not re.search(r"PRECISION|EPS|TOLERANCE|_TOL|_EPS", text):
                 continue
             static_candidates.setdefault(entry.get("path"), []).append(entry.get("start_line"))
-    # Direct static inspection fallback (labeled): scan preserved source files
-    # for the same comparison-vs-named-constant pattern. The in-pipeline
-    # native frontend is not yet wired for these files.
+    # Native comparison entries via the multilingual frontend (host-side,
+    # tree-sitter): comparison-vs-named-constant candidates from preserved
+    # source files. The packet path above covers indexed files; this covers
+    # files the packet's entry caps drop.
     import re as _re
     for spec in config.get("static_files", []):
         local = Path(spec["local"])
-        if not local.is_file():
+        if not local.is_file() or not spec.get("language"):
             continue
-        for line_number, line in enumerate(local.read_text(errors="replace").splitlines(), start=1):
-            if _re.search(r"<|>|==|<=|>=", line) and _re.search(r"PRECISION|EPS|TOLERANCE|_TOL|_EPS", line):
-                static_candidates.setdefault(spec["path"], []).append(line_number)
+        try:
+            from scicontext.language_frontends import _tree_sitter_entries
+            entries, _issues, _partial = _tree_sitter_entries(spec["path"], local.read_bytes(), spec["language"])
+            for entry in entries:
+                text = entry.get("text") or ""
+                if entry.get("kind") == "comparison" and _re.search(r"PRECISION|EPS|TOLERANCE|_TOL|_EPS", text):
+                    static_candidates.setdefault(spec["path"], []).append(entry.get("start_line"))
+        except Exception:
+            continue
     quantity_graph = build_quantity_graph(records)
     signatures = dependence_signatures(records)
     touched_functions = set(config.get("fix_touched_functions", []))

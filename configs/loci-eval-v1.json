@@ -52,7 +52,8 @@
     {
      "path": "source/src/lattice.cpp",
      "local": "runs/loci-eval-v1/task-058/lattice.cpp",
-     "label": "direct static inspection; native frontend not wired in-pipeline"
+     "language": "cpp",
+     "label": "tree-sitter comparison entries from preserved source"
     }
    ]
   },

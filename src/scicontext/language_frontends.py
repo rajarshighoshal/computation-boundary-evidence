@@ -204,6 +204,10 @@ def _tree_sitter_entries(path, raw, language):
             continue
         if node.type in {"comment", "comment_block"}:
             add(node, "docstring")
+        elif node.type == "if_statement" and node.child_by_field_name("condition") is not None:
+            condition = node.child_by_field_name("condition")
+            add(condition, "comparison", native={"parent": "if_statement", "condition": True,
+                "body_start_line": node.start_point.row + 1})
         elif node.type in {"init_declarator", "variable_declaration"} or node.type == "declaration" and language in {"c", "cpp"}:
             declarators = ([node.child_by_field_name("declarator")] if node.type == "init_declarator" else
                            node.children_by_field_name("declarator"))
