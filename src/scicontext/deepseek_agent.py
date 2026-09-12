@@ -17,6 +17,7 @@ no provider credential ever enters a task container.
 from __future__ import annotations
 
 import asyncio
+import http.client
 import json
 import subprocess
 import time
@@ -58,7 +59,8 @@ async def _api_completion(api_key: str, model: str, messages: list, *,
                 # contexts can legitimately take minutes.
                 with urllib.request.urlopen(request, timeout=max(60.0, timeout_sec)) as response:
                     return json.load(response)
-            except (urllib.error.URLError, TimeoutError, OSError) as error:
+            except (urllib.error.URLError, TimeoutError, OSError,
+                    http.client.HTTPException, ConnectionError) as error:
                 last_error = error
                 time.sleep(2)
         raise last_error
