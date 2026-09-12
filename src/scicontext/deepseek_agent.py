@@ -35,7 +35,7 @@ API = "https://api.deepseek.com/chat/completions"
 MAX_OUTPUT_TOKENS = 65536
 MAX_TOOL_OUTPUT_CHARS = 60_000
 MAX_TOOL_SECONDS = 600
-MAX_LOOP_ITERATIONS = 100
+MAX_LOOP_ITERATIONS = 200
 MAX_CONVERSATION_TOOL_CHARS = 300_000
 MAX_ANNOTATION_CHARS = 65_536
 
@@ -276,11 +276,13 @@ class DeepSeekAgent(ScientificCodex):
         events = []
         session_log = []
         session_stream = (self.logs_dir / "repair-session.jsonl").open("a")
-        result = {"status": "timeout", "usage": usage, "cleanup_complete": None}
+        result = {"status": "timeout", "usage": usage, "cleanup_complete": None,
+                  "loop_exit": "iteration_cap"}
         try:
-            for _ in range(MAX_LOOP_ITERATIONS):
+            for iteration in range(MAX_LOOP_ITERATIONS):
                 remaining = deadline - time.monotonic()
                 if remaining <= 1:
+                    result["loop_exit"] = "time_cap"
                     break
                 completion = await _api_completion(self.deepseek_key, self.model, messages,
                                                    tools=self.shell_tools, timeout_sec=remaining)
@@ -337,7 +339,8 @@ class DeepSeekAgent(ScientificCodex):
                 events.append({"type": "turn.completed", "usage": {
                     "input_tokens": usage["input_tokens"], "cached_input_tokens": 0,
                     "output_tokens": usage["output_tokens"], "reasoning_output_tokens": None}})
-                result.update(status="completed", finish_reason=completion["choices"][0].get("finish_reason"))
+                result.update(status="completed", loop_exit="final_message",
+                              finish_reason=completion["choices"][0].get("finish_reason"))
                 break
         except (urllib.error.URLError, TimeoutError, OSError) as error:
             result.update(status="failed", fatal_model_error=True, error=f"DeepSeek transport failure: {error}")

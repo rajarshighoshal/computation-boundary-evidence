@@ -83,6 +83,16 @@ Language-specific structure extraction must feed the shared representation.
 
 **Six delivery bugs found and fixed (each silently made the treatment a no-op):** trace sys.path for task-local packages; prompt `.format` brace collision; enrichment envelope schema_version + string-vs-array normalization; merge-dynamic missing the script report; prepare missing --observe/--shims; packet caps excluding native files (bounded direct native scan added).
 
+
+**Iteration 2 (dev-five-v4, concurrency 6, 90-min ceiling, convention evidence):** all 10 attempts completed, zero infrastructure failures.
+- 091: baseline 3/3 PASS; science 0/3 - hit the 100-iteration loop cap (8.76M tokens, no patch written). Mechanical; cap raised to 200 with recorded exit reasons in the working tree.
+- 058: both 9/9 (tie).
+- 009: both 9/9 (tie) - **science recovered from 6/9**: with sibling implementations in the finding, the science arm consulted `_scaled_wall_arrays`/`rspvi` (9 tool calls, 3.2M input) and produced a passing radial-convention fix.
+- 114: both 13/15 (tie, fail).
+- 001: both 1/3 (tie, task ceiling - no known patch passes).
+
+**Convention-evidence iteration verdict:** the fix works where the mechanism predicted (009), ties elsewhere, and the only loss (091) was iteration exhaustion, not wrongness. Iteration 3 tests the raised cap.
+
 Suite: 474 passed.
 ## Carry forward
 
