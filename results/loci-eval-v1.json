@@ -1,0 +1,677 @@
+{
+  "config": "configs/loci-eval-v1.json",
+  "stop_rules": [
+    "If fewer than 2 of {009, 001, 091} show a function- or file-level hit, do not launch any repair comparison.",
+    "Rule changes after seeing outcomes are recorded as a new eval version and never pooled."
+  ],
+  "tasks": {
+    "001": {
+      "flip_status": "n/a: no passing patch (best 1/3)",
+      "func_keys": 350,
+      "hit": false,
+      "hit_level": null,
+      "hit_loci": [],
+      "instances": 912877,
+      "loci_total": 9,
+      "loci_violated": 6,
+      "no_effect_arguments": [
+        {
+          "args": [
+            "key"
+          ],
+          "func": "layer_parser"
+        },
+        {
+          "args": [
+            "symbs_first"
+          ],
+          "func": "argsort_symbols"
+        },
+        {
+          "args": [
+            "gra"
+          ],
+          "func": "add_atom_explicit_hydrogens"
+        },
+        {
+          "args": [
+            "symb_dct"
+          ],
+          "func": "add_atoms"
+        },
+        {
+          "args": [
+            "bond_order"
+          ],
+          "func": "atom_bond_counts"
+        },
+        {
+          "args": [
+            "gra"
+          ],
+          "func": "atom_neighborhood"
+        },
+        {
+          "args": [
+            "gra"
+          ],
+          "func": "atom_sorted_neighbor_atom_keys"
+        },
+        {
+          "args": [
+            "bond_order",
+            "gra"
+          ],
+          "func": "atom_unpaired_electrons"
+        },
+        {
+          "args": [
+            "hkey"
+          ],
+          "func": "backbone_and_nonbackbone_hydrogen_keys.<locals>._is_backbone"
+        },
+        {
+          "args": [
+            "bnd_keys"
+          ],
+          "func": "bond_induced_subgraph"
+        },
+        {
+          "args": [
+            "gra"
+          ],
+          "func": "bond_unpaired_electrons"
+        },
+        {
+          "args": [
+            "gra"
+          ],
+          "func": "change_implicit_hydrogens"
+        },
+        {
+          "args": [
+            "bnd_dct"
+          ],
+          "func": "from_atoms_and_bonds"
+        },
+        {
+          "args": [
+            "bnd_ord_dct",
+            "bnd_ste_par_dct"
+          ],
+          "func": "from_data"
+        },
+        {
+          "args": [
+            "s"
+          ],
+          "func": "from_data.<locals>.<lambda>"
+        },
+        {
+          "args": [
+            "gra"
+          ],
+          "func": "remove_atoms"
+        },
+        {
+          "args": [
+            "gra"
+          ],
+          "func": "set_bond_orders"
+        },
+        {
+          "args": [
+            "atm_keys"
+          ],
+          "func": "subgraph"
+        },
+        {
+          "args": [
+            "tsg"
+          ],
+          "func": "ts_reacting_bond_keys"
+        },
+        {
+          "args": [
+            "prod"
+          ],
+          "func": "ts_reagents_graph_without_stereo"
+        },
+        {
+          "args": [
+            "gra"
+          ],
+          "func": "without_bonds_by_orders"
+        },
+        {
+          "args": [
+            "gra"
+          ],
+          "func": "atom_shortest_paths"
+        },
+        {
+          "args": [
+            "gra"
+          ],
+          "func": "connected_components"
+        },
+        {
+          "args": [
+            "gra"
+          ],
+          "func": "connected_components_atom_keys"
+        },
+        {
+          "args": [
+            "gra"
+          ],
+          "func": "rings_bond_keys"
+        },
+        {
+          "args": [
+            "gra"
+          ],
+          "func": "atom_hybridizations"
+        },
+        {
+          "args": [
+            "gra"
+          ],
+          "func": "atom_hybridizations_from_kekule"
+        },
+        {
+          "args": [
+            "gra"
+          ],
+          "func": "kekules_bond_orders"
+        },
+        {
+          "args": [
+            "gra"
+          ],
+          "func": "linear_atom_keys"
+        },
+        {
+          "args": [
+            "gra"
+          ],
+          "func": "nonresonant_radical_atom_keys"
+        },
+        {
+          "args": [
+            "gra"
+          ],
+          "func": "pi_system_kekules_bond_orders_brute_force"
+        },
+        {
+          "args": [
+            "gra"
+          ],
+          "func": "sigma_radical_atom_bond_keys"
+        },
+        {
+          "args": [
+            "dct"
+          ],
+          "func": "keys_by_value"
+        },
+        {
+          "args": [
+            "mdct",
+            "pos"
+          ],
+          "func": "by_key_by_position"
+        },
+        {
+          "args": [
+            "mdct"
+          ],
+          "func": "is_multidict"
+        },
+        {
+          "args": [
+            "dct",
+            "mdct"
+          ],
+          "func": "set_by_key_by_position"
+        },
+        {
+          "args": [
+            "count"
+          ],
+          "func": "cycle"
+        },
+        {
+          "args": [
+            "strang"
+          ],
+          "func": "parse_Mathematica"
+        }
+      ],
+      "nondeterministic": 7,
+      "observer": {
+        "files": 5,
+        "processes": 1,
+        "stall": null
+      },
+      "precision": 0.0,
+      "quantities": 654,
+      "script_status": null,
+      "signatures": 154,
+      "transitions": 912877,
+      "wall_seconds": 20.819
+    },
+    "009": {
+      "flip_status": "yes: workflow flips to workflow_completed; 5 collapse loci disappear",
+      "func_keys": 39,
+      "hit": true,
+      "hit_level": [
+        "file",
+        "function"
+      ],
+      "hit_loci": [
+        {
+          "id": "cl_afae1042b036bd76f937ee98",
+          "path": "source/desc/stability/terpsichore/vacuum.py",
+          "rule": "R4",
+          "symbol": "distinctness@build_vacmet_inputs"
+        },
+        {
+          "id": "cl_3077f5da9b1961d0b35e0b43",
+          "path": "source/desc/stability/terpsichore/vacuum.py",
+          "rule": "R1",
+          "symbol": "sensitivity@build_vacmet_inputs"
+        },
+        {
+          "id": "cl_98a3519dd1a50d9ace023ab4",
+          "path": "source/desc/stability/terpsichore/vacuum.py",
+          "rule": "R1",
+          "symbol": "sensitivity@build_projection_wall"
+        }
+      ],
+      "instances": 299,
+      "loci_total": 6,
+      "loci_violated": 6,
+      "no_effect_arguments": [
+        {
+          "args": [
+            "projection_gain"
+          ],
+          "func": "vacmet_inputs_from_equilibrium_data"
+        },
+        {
+          "args": [
+            "projection_gain"
+          ],
+          "func": "build_external_region_payload"
+        },
+        {
+          "args": [
+            "name"
+          ],
+          "func": "_as_vector"
+        },
+        {
+          "args": [
+            "projection_gain"
+          ],
+          "func": "build_projection_wall"
+        },
+        {
+          "args": [
+            "projection_gain"
+          ],
+          "func": "build_vacmet_inputs"
+        },
+        {
+          "args": [
+            "name"
+          ],
+          "func": "vacmet_boundary_from_geometry.<locals>.boundary"
+        }
+      ],
+      "nondeterministic": 1,
+      "observer": {
+        "files": 5,
+        "processes": 0,
+        "stall": null
+      },
+      "precision": 0.5,
+      "quantities": 121,
+      "script_status": null,
+      "signatures": 21,
+      "transitions": 299,
+      "wall_seconds": 0.26
+    },
+    "058": {
+      "flip_status": "yes: report flips to post_fix_success (process level)",
+      "func_keys": 11,
+      "hit": false,
+      "hit_level": null,
+      "hit_loci": [],
+      "instances": 14,
+      "loci_total": 0,
+      "loci_violated": 0,
+      "no_effect_arguments": [
+        {
+          "args": [
+            "fixture_name"
+          ],
+          "func": "_run_fixture"
+        }
+      ],
+      "nondeterministic": 0,
+      "observer": {
+        "files": 5,
+        "processes": 0,
+        "stall": null
+      },
+      "precision": null,
+      "quantities": 6,
+      "script_status": null,
+      "signatures": 3,
+      "transitions": 14,
+      "wall_seconds": 113.109
+    },
+    "091": {
+      "flip_status": "yes: report flips pre_fix_expected_failure -> post_fix_success",
+      "func_keys": 126,
+      "hit": false,
+      "hit_level": null,
+      "hit_loci": [],
+      "instances": 20562,
+      "loci_total": 3,
+      "loci_violated": 2,
+      "no_effect_arguments": [
+        {
+          "args": [
+            "symbol"
+          ],
+          "func": "ElementBase.__init__"
+        },
+        {
+          "args": [
+            "species_string"
+          ],
+          "func": "Species.from_str"
+        },
+        {
+          "args": [
+            "obj"
+          ],
+          "func": "get_el_sp"
+        },
+        {
+          "args": [
+            "coords"
+          ],
+          "func": "Site.__init__"
+        },
+        {
+          "args": [
+            "value"
+          ],
+          "func": "Site.__setattr__"
+        },
+        {
+          "args": [
+            "val"
+          ],
+          "func": "FloatWithUnit.__init__"
+        },
+        {
+          "args": [
+            "val"
+          ],
+          "func": "FloatWithUnit.__new__"
+        },
+        {
+          "args": [
+            "unit_def"
+          ],
+          "func": "Unit.__init__"
+        }
+      ],
+      "nondeterministic": 0,
+      "observer": {
+        "files": 5,
+        "processes": 0,
+        "stall": null
+      },
+      "precision": 0.0,
+      "quantities": 527,
+      "script_status": null,
+      "signatures": 40,
+      "transitions": 20562,
+      "wall_seconds": 1.471
+    },
+    "114": {
+      "flip_status": "n/a: no passing patch (best 13/15)",
+      "func_keys": 370,
+      "hit": false,
+      "hit_level": null,
+      "hit_loci": [],
+      "instances": 6257,
+      "loci_total": 2,
+      "loci_violated": 2,
+      "no_effect_arguments": [
+        {
+          "args": [
+            "docs"
+          ],
+          "func": "Option.__init__"
+        },
+        {
+          "args": [
+            "name"
+          ],
+          "func": "OptionsNode.__init__"
+        },
+        {
+          "args": [
+            "value"
+          ],
+          "func": "OptionsNode.__setattr__"
+        },
+        {
+          "args": [
+            "func"
+          ],
+          "func": "MethodHandlerWrapper.__call__"
+        },
+        {
+          "args": [
+            "func"
+          ],
+          "func": "_scenarios_not_implemented"
+        },
+        {
+          "args": [
+            "details"
+          ],
+          "func": "deprecated_in_next_major"
+        },
+        {
+          "args": [
+            "deprecated_in"
+          ],
+          "func": "deprecated_kwargs"
+        },
+        {
+          "args": [
+            "f"
+          ],
+          "func": "deprecated_kwargs.<locals>.deco"
+        },
+        {
+          "args": [
+            "component_name"
+          ],
+          "func": "create_docstring_parameters"
+        },
+        {
+          "args": [
+            "name"
+          ],
+          "func": "patch_add_docstring.<locals>._camel_to_snake"
+        },
+        {
+          "args": [
+            "value"
+          ],
+          "func": "as_components"
+        },
+        {
+          "args": [
+            "key"
+          ],
+          "func": "Components.__getitem__"
+        },
+        {
+          "args": [
+            "investment_period"
+          ],
+          "func": "ComponentsDescriptorsMixin.get_active_assets"
+        },
+        {
+          "args": [
+            "item"
+          ],
+          "func": "ComponentsStore.__getattr__"
+        },
+        {
+          "args": [
+            "item"
+          ],
+          "func": "ComponentsStore.__getitem__"
+        },
+        {
+          "args": [
+            "name"
+          ],
+          "func": "get"
+        },
+        {
+          "args": [
+            "name"
+          ],
+          "func": "Dict.__setattr__"
+        },
+        {
+          "args": [
+            "cls_name"
+          ],
+          "func": "NetworkIOMixin._import_components_from_df"
+        },
+        {
+          "args": [
+            "class_name"
+          ],
+          "func": "NetworkTransformMixin.add"
+        },
+        {
+          "args": [
+            "skip_isolated_buses"
+          ],
+          "func": "Network.determine_network_topology"
+        },
+        {
+          "args": [
+            "attr",
+            "component"
+          ],
+          "func": "_set_dynamic_data"
+        },
+        {
+          "args": [
+            "component"
+          ],
+          "func": "define_fixed_nominal_constraints"
+        },
+        {
+          "args": [
+            "attr",
+            "component"
+          ],
+          "func": "define_fixed_operation_constraints"
+        },
+        {
+          "args": [
+            "component"
+          ],
+          "func": "define_modular_constraints"
+        },
+        {
+          "args": [
+            "component"
+          ],
+          "func": "define_nominal_constraints_for_extendables"
+        },
+        {
+          "args": [
+            "attr",
+            "component"
+          ],
+          "func": "define_operational_constraints_for_extendables"
+        },
+        {
+          "args": [
+            "attr",
+            "component"
+          ],
+          "func": "define_operational_constraints_for_non_extendables"
+        },
+        {
+          "args": [
+            "attr",
+            "component"
+          ],
+          "func": "define_ramp_limit_constraints"
+        },
+        {
+          "args": [
+            "c"
+          ],
+          "func": "OptimizationAccessor.post_processing.<locals>.sign"
+        },
+        {
+          "args": [
+            "exprs"
+          ],
+          "func": "define_objective.<locals>._expected"
+        },
+        {
+          "args": [
+            "c_name"
+          ],
+          "func": "define_modular_variables"
+        },
+        {
+          "args": [
+            "c_name"
+          ],
+          "func": "define_nominal_variables"
+        },
+        {
+          "args": [
+            "attr",
+            "c_name"
+          ],
+          "func": "define_operational_variables"
+        }
+      ],
+      "nondeterministic": 4,
+      "observer": {
+        "files": 6,
+        "processes": 1,
+        "stall": null
+      },
+      "precision": 0.0,
+      "quantities": 345,
+      "script_status": null,
+      "signatures": 129,
+      "transitions": 6257,
+      "wall_seconds": 5.415
+    }
+  }
+}
