@@ -70,31 +70,20 @@ Language-specific structure extraction must feed the shared representation.
 
 ## Latest checkpoint
 
-## Latest checkpoint
+**Dev loop status (2026-09-12):** five-task development base running the complete pipeline (execution trace -> constraint loci -> bounded anchored enrichment -> sharp guide with measured findings, sibling-implementation convention evidence, and static candidates). Both arms DeepSeek-flash, uniform ceiling, counterbalanced, official verifier. Every attempt fully instrumented: streamed session JSONL (content/reasoning/tool calls/usage), uncapped tool outputs, assembled prompts, repair-context copies, extraction-phase timeline.
 
-Method: execution-derived scientific-meaning extractor (docs/FABLE_EXTRACTOR_SPEC.md). The science arm observes the public reproduce script in the pinned image (trace_runtime + /proc observer), derives constraint structure with predeclared rules R1-R9 (relations.py), learns quantity graphs and per-function dependence signatures from the full trace (dynamic_binding.py), and merges constraint loci into the object graph before anchored LLM enrichment. Structure fingerprints, not data contents: arrays carry shape/dtype/stats + content digest, scalars keep exact values, third-party types are opaque. Two-tier language coverage: Python frames via sys.monitoring/setprofile; compiled/multi-process code at the OS level via the /proc observer and (planned) LD_PRELOAD shims.
+**Latest five-task iteration results and mechanisms:**
+- 091: science 3/3 PASS vs baseline 0/3 FAIL. Mechanism: the constraint-locus annotation carried the coordinate-frame convention; the science patch subtracts the cube grid origin (Bohr->Angstrom); the baseline wrapped coordinates cosmetically (`to_unit_cell=True`).
+- 058: both arms 9/9. Mechanism: relative-tolerance fix via the repo's own `coincident` helper; guide carried the completion finding + C++ interface annotations.
+- 009: baseline 9/9 PASS vs science 6/9 FAIL. Mechanism: premature convergence - the guide localized the bug (R1 at `build_projection_wall`) but not the intended construction convention; the science arm explored 42 steps/1.9M tokens versus baseline's 79/8.0M and invented a poloidal-tangent normal instead of the radial-derivative convention. Fix applied: findings now list sibling implementations (convention carriers).
+- 114: baseline 13/15 fail; science extraction died on a transport `IncompleteRead` (retry now added).
+- 001: treatment delivered (invariance finding + annotations); both arms fail on the task where no patch passes (best 1/3).
 
-Offline loci eval v1 (strengthened, docs/LOCI_EVAL_V1.md, results/loci-eval-v1.json): localization hits 009 (function+file, precision 0.50, R1/R4 in the vacuum chain) and 058 (file, precision 1.00, static candidates at lattice.cpp 274/276/279 = the exact RectLattice::distance comparisons the patch rescales). Flips: 009/091/058. 114/001 carry script-declared constraint loci (boundary jump 1.5; signature_agreement false) without function binding. Predeclared gate (>=2 of {009,001,091}): 1/3 - stop rule stands, no repair comparison launched. Remaining strengthening: native frontend wiring, solver-boundary provenance, presentation producer binding.
+**Infrastructure findings:** Docker's predefined address pools exhaust after many runs (each attempt creates networks) - fixed with auto-prune at run start plus stagger launches and a warm egress-proxy build cache. Concurrency raised to 6 after measuring actual container memory (~30 MiB; the 8 GiB is a limit, not usage); host has 14 cores.
 
-Suite: 469 passed. Traces: runs/loci-eval-v1/. Results: results/loci-eval-v1.json.
+**Six delivery bugs found and fixed (each silently made the treatment a no-op):** trace sys.path for task-local packages; prompt `.format` brace collision; enrichment envelope schema_version + string-vs-array normalization; merge-dynamic missing the script report; prepare missing --observe/--shims; packet caps excluding native files (bounded direct native scan added).
 
-
-
-Latest offline source hashes and target/guest-check results: `results/workflow-retrieval-v1.json`.
-Latest live comparison: `results/workflow-five-luna-v1.json` and `results/workflow-five-luna-v1-token-audit.json`.
-Earlier extraction results: `results/scientific-reading-v2.json`, `results/scientific-reading-v2-token-audit.json`,
-and `results/scientific-reading-v1-v2.json`; raw outputs and verification in `runs/scientific-reading-v2/`.
-Live check: `runs/scientific-reading-v1/`, `results/scientific-reading-v1.json` and
-`results/scientific-reading-v1-token-audit.json`. Public source review copies are inside the run.
-Earlier preflight: `6954048`, `runs/scientific-input-preflight/`; multilingual checkpoint `4fd7130`.
-Native C/C++/Fortran/MATLAB/Cython feed shared objects; unsupported syntax is explicit. The MACS
-file is Python syntax at its pinned revision, not evidence of a real `.pyx` source check. Earlier
-failed source checks remain preserved. Helper-wheel receipts: `.cache/multilingual-fit/assets/`;
-Python 3.10 needs rpds-py 0.30.0, while 3.11–3.13 retain the existing pin.
-Earlier Python/LLM integration: `27705a3`; offline fixtures `runs/scientific-object-demo-v2` are
-hand-authored interpretations. PyCG fit failures: `runs/tool-fit-pycg/RECEIPT.md`.
-Prior negative comparison remains unchanged in `docs/PROBE_FIRST_PAIRS_V1.md` and `_NOTES.md`.
-
+Suite: 474 passed.
 ## Carry forward
 
 - Astra v2 stopped; Luna original-five finished. No active runs or automatic retries. Preserve user-owned PDFs,

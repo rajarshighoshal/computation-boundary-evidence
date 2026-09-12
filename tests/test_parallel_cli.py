@@ -30,6 +30,20 @@ class Runners:
         return subprocess.CompletedProcess(command, 0)
 
     def start(self, command, **kwargs):
+        if command[:2] == ["docker", "network"] or command[:2] == ["docker", "container"]:
+            class PruneDone:
+                args = command
+                def poll(self):
+                    return 0
+                def communicate(self, input=None, timeout=None):
+                    return (b"", b"")
+                def wait(self, timeout=None):
+                    return 0
+                def __enter__(self):
+                    return self
+                def __exit__(self, *args):
+                    return False
+            return PruneDone()
         assert kwargs["start_new_session"]
         assert command[command.index("--n-concurrent") + 1] == "1"
         assert command[command.index("--n-attempts") + 1] == "1"
@@ -162,6 +176,8 @@ def test_finished_peer_keeps_its_completed_receipt(workspace, monkeypatch):
 def test_second_spawn_failure_keeps_first_and_next_pair(workspace, monkeypatch):
     runners = Runners(monkeypatch)
     def start(command, **kwargs):
+        if command[0] == "docker":
+            return runners.start(command, **kwargs)
         if command[command.index("--job-name") + 1] == "task-002-science":
             # The first is still active while the second spawn fails.
             raise OSError("synthetic second spawn failure")
@@ -209,6 +225,20 @@ def test_local_dummy_subprocesses_really_overlap_with_pair_barrier(workspace, mo
     real_popen = subprocess.Popen
     processes = []
     def start(command, **kwargs):
+        if command[0] == "docker":
+            class PruneDone:
+                args = command
+                def poll(self):
+                    return 0
+                def communicate(self, input=None, timeout=None):
+                    return (b"", b"")
+                def wait(self, timeout=None):
+                    return 0
+                def __enter__(self):
+                    return self
+                def __exit__(self, *args):
+                    return False
+            return PruneDone()
         path = fake_agent_record(command)
         script = (
             "import json, pathlib, sys, time; "

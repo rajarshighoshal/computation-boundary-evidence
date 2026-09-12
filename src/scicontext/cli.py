@@ -334,6 +334,12 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
         if not deepseek_key:
             raise ValueError("DEEPSEEK_API_KEY is not set for the deepseek agent route")
     output.mkdir(parents=True)
+    # Docker's predefined address pools exhaust after many runs (each attempt
+    # creates fresh networks). Prune unused networks and stopped containers;
+    # running attempts are unaffected.
+    if not smoke:
+        subprocess.run(["docker", "network", "prune", "-f"], capture_output=True, check=False)
+        subprocess.run(["docker", "container", "prune", "-f"], capture_output=True, check=False)
     frozen_source = _snapshot_frozen_source(workspace, output)
     plan["frozen_source"] = frozen_source
     plan["started_at"] = utc_now()

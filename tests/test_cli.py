@@ -181,12 +181,34 @@ def test_interrupt_stops_only_owned_group_before_private_auth_cleanup(workspace,
     class SyntheticProcess:
         pid = 314159
         def __init__(self, command, **kwargs):
+            self.is_prune = command[0] == "docker" and command[1:2] in (["network"], ["container"])
+            if self.is_prune:
+                self.is_pier = False
+                self.first = False
+                return
             assert kwargs["start_new_session"] is True
             self.is_pier = command[0] != "docker"
             self.first = True
             if self.is_pier:
                 auth_paths.append(Path(next(arg.split("=", 1)[1] for arg in command if arg.startswith("auth_file="))))
                 assert auth_paths[-1].is_file()
+        def communicate(self, input=None, timeout=None):
+            return (b"", b"")
+
+        def kill(self):
+            pass
+
+        def poll(self):
+            return 0
+
+        args: list = []
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
         def wait(self, timeout=None):
             if not self.is_pier:
                 return 0
