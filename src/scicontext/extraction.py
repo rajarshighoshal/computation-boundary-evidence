@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import time
 
 
@@ -61,6 +62,13 @@ async def run_extraction(driver, instruction: str, seconds: float) -> dict:
             record.update(status="failed", error=f"{type(error).__name__}: {error}")
         finally:
             record["duration_seconds"] = time.monotonic() - beginning
+            logs_dir = getattr(driver, "logs_dir", None)
+            if logs_dir is not None:
+                try:
+                    with open(logs_dir / "extraction-phases.jsonl", "a") as timeline:
+                        timeline.write(json.dumps(record, ensure_ascii=False) + "\n")
+                except OSError:
+                    pass
             if model:
                 receipt.update(name=name, status=record["status"], duration_seconds=record["duration_seconds"])
                 receipt.setdefault("usage", {})

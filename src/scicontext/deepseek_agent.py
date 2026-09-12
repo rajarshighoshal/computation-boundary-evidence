@@ -228,7 +228,12 @@ class DeepSeekAgent(ScientificCodex):
             write_json(self.logs_dir / "extract_draft-process.json", result)
             return result
         usage = completion.get("usage", {})
-        content = completion["choices"][0]["message"].get("content") or ""
+        message = completion["choices"][0]["message"]
+        content = message.get("content") or ""
+        (self.logs_dir / "extract-session.json").write_text(json.dumps(
+            {"reasoning": message.get("reasoning_content"),
+             "finish_reason": completion["choices"][0].get("finish_reason"),
+             "usage": usage}, ensure_ascii=False))
         result = {"status": "completed", "usage": {"input_tokens": usage.get("prompt_tokens"),
                                                    "cached_input_tokens": None,
                                                    "output_tokens": usage.get("completion_tokens"),
@@ -257,11 +262,18 @@ class DeepSeekAgent(ScientificCodex):
 
     async def _run_deepseek_repair(self, prompt, seconds):
         (self.logs_dir / "repair-prompt.txt").write_text(prompt)
+        for name in ("scientific-graph.json", "scientific-sources.json", "scientific-guide.md"):
+            try:
+                await bounded_call(self.environment.download_file(
+                    "/opt/scicontext/context/" + name, self.logs_dir / ("repair-context-" + name)), 20, set())
+            except Exception:
+                pass
         deadline = time.monotonic() + seconds
         messages = [{"role": "user", "content": prompt}]
         usage = {"input_tokens": 0, "output_tokens": 0}
         events = []
         session_log = []
+        session_stream = (self.logs_dir / "repair-session.jsonl").open("a")
         result = {"status": "timeout", "usage": usage, "cleanup_complete": None}
         try:
             for _ in range(MAX_LOOP_ITERATIONS):
@@ -274,12 +286,15 @@ class DeepSeekAgent(ScientificCodex):
                 usage["output_tokens"] += completion.get("usage", {}).get("completion_tokens", 0)
                 message = completion["choices"][0]["message"]
                 messages.append(message)
-                session_log.append({"step": len(session_log) + 1,
-                                    "content": message.get("content"),
-                                    "reasoning": message.get("reasoning_content"),
-                                    "tool_calls": message.get("tool_calls"),
-                                    "finish_reason": completion["choices"][0].get("finish_reason"),
-                                    "usage": completion.get("usage", {})})
+                step_record = {"step": len(session_log) + 1,
+                               "content": message.get("content"),
+                               "reasoning": message.get("reasoning_content"),
+                               "tool_calls": message.get("tool_calls"),
+                               "finish_reason": completion["choices"][0].get("finish_reason"),
+                               "usage": completion.get("usage", {})}
+                session_log.append(step_record)
+                session_stream.write(json.dumps(step_record, ensure_ascii=False) + "\n")
+                session_stream.flush()
                 events.append({"type": "turn.started"})
                 if message.get("tool_calls"):
                     for call in message["tool_calls"]:
@@ -330,6 +345,7 @@ class DeepSeekAgent(ScientificCodex):
                 events.append({"type": "turn.completed", "usage": {
                     "input_tokens": usage["input_tokens"], "cached_input_tokens": 0,
                     "output_tokens": usage["output_tokens"], "reasoning_output_tokens": None}})
+            session_stream.close()
             write_json(self.logs_dir / "repair-process.json", result)
             (self.logs_dir / "repair.jsonl").write_text("\n".join(json.dumps(e, ensure_ascii=False) for e in events) + "\n")
             write_json(self.logs_dir / "repair-session.json", {"messages": session_log,

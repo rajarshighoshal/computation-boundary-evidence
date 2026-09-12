@@ -150,7 +150,7 @@ def test_code_first_interpretation_reaches_normal_repair_without_probe_loop(scie
     assert "# Scientific working model" in driver.repair_prompt
     assert "Stiffness operator" in driver.repair_prompt
     assert "Fixed boundary conditions" in driver.repair_prompt
-    assert "Interpretations are anchored to object IDs and public source passages." in driver.repair_prompt
+    assert "Interpretations are anchored to object IDs and public source passages" in driver.repair_prompt
     assert "Rerun applicable supplied public probes" not in driver.repair_prompt
     assert driver.bundle["context"]["scientific_passages"]
 
@@ -293,3 +293,48 @@ def test_enrichment_prompt_directs_early_scratch_write():
     assert "Annotate the most task-relevant" in prompt
     assert "at most 40 annotations" in prompt
     assert "annotate it, do not extend it" in prompt
+
+
+def _locus(rule, symbol, path="m.py", line=10, pairs=1, delta=None, measures=None, status="violated"):
+    properties = {"constraint_type": {"R1": "sensitivity", "R4": "distinctness"}.get(rule, "continuity"),
+                  "status": status, "rule_id": rule,
+                  "locus_transitions": [], "static_candidates": [],
+                  "evidence": {"pairs": [{"delta_param": delta}] if delta else [{}] * pairs,
+                               "measures": measures or {}}}
+    return {"id": f"cl_{rule}_{symbol}", "kind": "constraint_locus", "symbol": symbol,
+            "path": path, "scope": symbol, "source_entry_ids": [], "roles": [],
+            "source_span": {"start_line": line, "end_line": line}, "properties": properties}
+
+
+def test_guide_ranks_findings_and_caps_at_five():
+    graph = {"objects": [
+        _locus("R4", "f4", pairs=2),
+        _locus("R1", "f1", delta={"name": "gain", "a": "0.15", "b": "0.55"}),
+        _locus("R4", "f5"), _locus("R4", "f6"), _locus("R4", "f7"), _locus("R4", "f8"),
+    ], "coverage": {"totals": {}}}
+    guide = render_guide(graph)
+    findings = [line for line in guide.splitlines() if line.startswith("- ")]
+    assert len(findings) <= 5
+    assert "gain" in findings[0] and "0.15" in findings[0] and "0.55" in findings[0]
+    assert "identical" in findings[0]
+    assert "observations, not intent" not in guide
+    assert "fallible" not in guide
+
+
+def test_guide_statement_uses_measured_evidence():
+    graph = {"objects": [_locus("R1", "wall", delta={"name": "projection_gain", "a": "0.15", "b": "0.55"})],
+             "coverage": {"totals": {}}}
+    guide = render_guide(graph)
+    assert "changing projection_gain from 0.15 to 0.55 leaves the output of wall (m.py:10) identical" in guide
+    assert "Executed evidence from the public reproducer" in guide
+
+
+def test_guide_drops_weak_findings_in_favor_of_strong_ones():
+    weak = [_locus("R4", f"w{i}") for i in range(8)]
+    strong = _locus("R1", "hot", delta={"name": "x", "a": "1.0", "b": "2.0"})
+    graph = {"objects": [*weak, strong], "coverage": {"totals": {}}}
+    guide = render_guide(graph)
+    findings = [line for line in guide.splitlines() if line.startswith("- ")]
+    assert len(findings) == 5
+    assert "hot" in findings[0]
+    assert all("hot" not in line for line in findings[1:])

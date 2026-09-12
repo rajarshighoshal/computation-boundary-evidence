@@ -232,29 +232,65 @@ def object_bundle(graph: dict, response: object, context: dict | None = None) ->
             "validation": {"valid": True, "scope": "code_owned_structure_and_anchored_annotation_fields"}}
 
 
+MAX_GUIDE_FINDINGS = 5
+MAX_GUIDE_ANNOTATIONS = 8
+_RULE_STRENGTH = {"R1": 0, "R2": 1, "R6s": 2, "R6": 3, "R6p": 4, "R4": 5, "R5": 6, "R8": 7}
+
+
+def _finding_statement(locus: dict) -> str:
+    properties = locus.get("properties", {})
+    evidence = properties.get("evidence", {})
+    rule = properties.get("rule_id")
+    symbol = locus.get("symbol")
+    path = locus.get("path")
+    line = locus.get("source_span", {}).get("start_line")
+    site = f"{symbol} ({path}:{line})" if line else f"{symbol} ({path})"
+    pairs = evidence.get("pairs", [])
+    measures = evidence.get("measures", {})
+    if rule == "R1":
+        delta = next((p.get("delta_param") for p in pairs if p.get("delta_param")), None)
+        if delta:
+            return (f"changing {delta['name']} from {delta['a']} to {delta['b']} leaves the output "
+                    f"of {site} identical across {len(pairs)} observed pair(s)")
+    if rule == "R2":
+        return f"related inputs (relabeled or reversed) produce different outputs at {site}"
+    if rule == "R4":
+        return f"distinct inputs produce identical outputs at {site} ({len(pairs)} observed pair(s))"
+    if rule in {"R6", "R6s", "R6p"}:
+        measure_text = ", ".join(f"{field} = {value}" for field, value in measures.items())
+        kind = properties.get("constraint_type")
+        if measure_text:
+            return f"the workflow reports {measure_text} ({kind} violated)"
+        return f"the workflow fails its {kind} check"
+    if rule == "R5":
+        return f"computed quantities at {site} contain nan/inf values"
+    return f"{properties.get('constraint_type')} finding at {site}"
+
+
 def render_guide(graph: dict) -> str:
-    """Readable annotations; the complete structure stays in the companion JSON file."""
+    """Readable guide: the strongest executed findings, stated as measurements."""
     lines = ["# Scientific working model", ""]
     loci = [obj for obj in graph.get("objects", []) if obj.get("kind") == "constraint_locus"
             and obj.get("properties", {}).get("status") == "violated"]
+    loci.sort(key=lambda locus: (_RULE_STRENGTH.get(locus["properties"].get("rule_id"), 9),
+                                 -len(locus["properties"].get("evidence", {}).get("pairs", [])),
+                                 locus["id"]))
     if loci:
-        lines += ["## Constraint findings from executing the public reproducer (observations, not intent)", ""]
-        for locus in loci:
-            properties = locus.get("properties", {})
-            evidence = properties.get("evidence", {})
-            delta = next((p.get("delta_param") for p in evidence.get("pairs", []) if p.get("delta_param")), None)
-            detail = (f"param {delta['name']} ({delta['a']} vs {delta['b']})" if delta
-                      else f"{len(evidence.get('pairs', []))} relation pair(s)")
-            lines.append(f"- {locus['id']} [{properties.get('rule_id')}] {properties.get('constraint_type')} "
-                         f"{properties.get('status')} @ {locus['symbol']} "
-                         f"({locus.get('path')}:{locus.get('source_span', {}).get('start_line')}) — {detail}")
+        lines += ["## Executed evidence from the public reproducer", ""]
+        for locus in loci[:MAX_GUIDE_FINDINGS]:
+            lines.append("- " + _finding_statement(locus))
         lines.append("")
-    lines += ["",
-        "Interpretations are anchored to object IDs and public source passages.",
-        "The companion scientific-graph.json preserves every object, operation, link, unsupported "
-        "item and coverage record. Use the object IDs below to inspect relevant relationships "
-        "selectively; do not dump the entire graph into the conversation.", ""]
-    for obj in graph["objects"]:
+    lines += ["Interpretations are anchored to object IDs and public source passages; "
+              "the complete object graph is in scientific-graph.json.", ""]
+    loci_paths = {locus.get("path") for locus in loci[:MAX_GUIDE_FINDINGS]}
+    annotated = [obj for obj in graph["objects"] if obj.get("interpretation")]
+    if loci_paths:
+        annotated.sort(key=lambda obj: (obj.get("path") not in loci_paths,
+                                        obj.get("kind") != "code_interface",
+                                        obj["id"]))
+    else:
+        annotated.sort(key=lambda obj: (obj.get("kind") != "code_interface", obj["id"]))
+    for obj in annotated[:MAX_GUIDE_ANNOTATIONS]:
         interpretation = obj.get("interpretation")
         if not interpretation:
             continue
@@ -268,7 +304,7 @@ def render_guide(graph: dict) -> str:
             for statement in interpretation.get(field, []):
                 lines.append(f"- {field}: {statement}")
         lines.append("")
-    if not any(obj.get("interpretation") for obj in graph["objects"]):
+    if not annotated:
         lines += ["No scientific annotations were accepted. The graph contains code structure only.", ""]
     lines += ["## Coverage (not scientific correctness)",
               json.dumps(graph.get("coverage", {}).get("totals", {}), sort_keys=True),
