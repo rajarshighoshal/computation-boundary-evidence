@@ -325,6 +325,15 @@ class _Tracer:
         except Exception as error:
             script_error = f"{type(error).__name__}: {error}"
         finally:
+            for candidate in ("outputs/reproduction_report.json", "outputs/report.json"):
+                report = self.script.parent / candidate
+                if report.is_file():
+                    try:
+                        import shutil
+                        shutil.copyfile(report, self.out / "script_report.json")
+                        break
+                    except OSError:
+                        pass
             self.trace_file.close()
             (self.out / "script_predicates.json").write_text(
                 json.dumps({"declared": self.predicates, "evaluations": self.predicate_evaluations},

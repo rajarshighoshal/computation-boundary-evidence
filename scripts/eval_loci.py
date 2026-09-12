@@ -23,8 +23,15 @@ def evaluate_task(trace_dir: Path, config: dict) -> dict:
     observer = None
     if (trace_dir / "observer_summary.json").is_file():
         observer = read_json(trace_dir / "observer_summary.json")
+    script_report = None
+    if (trace_dir / "script_report.json").is_file():
+        try:
+            script_report = read_json(trace_dir / "script_report.json")
+        except (OSError, ValueError):
+            pass
     derived = derive_loci(records, predicates["evaluations"], script_status=run.get("script_status"),
-                          observer_summary=observer, script_file="reproduce.py")
+                          observer_summary=observer, script_file="reproduce.py",
+                          script_report=script_report)
     quantity_graph = build_quantity_graph(records)
     signatures = dependence_signatures(records)
     violated = [locus for locus in derived["loci"]

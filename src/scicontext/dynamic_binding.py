@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from collections import defaultdict
 
+MAX_SIGNATURE_INSTANCES = 64
+
 
 def build_quantity_graph(trace_records: list) -> dict:
     """State/transition graph over all instances.
@@ -64,6 +66,7 @@ def dependence_signatures(trace_records: list) -> list:
     for func_key, records in sorted(groups.items()):
         if len(records) < 2:
             continue
+        records = records[:MAX_SIGNATURE_INSTANCES]  # predeclared cap; the rest stay in the trace
         argument_names = set()
         for record in records:
             argument_names.update((record.get("inputs") or {}).keys())
