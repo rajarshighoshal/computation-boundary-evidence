@@ -266,6 +266,14 @@ def derive_loci(trace_records: list, predicate_evaluations: list, script_status:
                     nondeterministic.append(func_key)
                     continue
                 pair_key = (min(a, b), max(a, b))
+                differing_inputs = [k for k in set(ia.get("inputs", {})) | set(ib.get("inputs", {}))
+                                    if not _same(ia.get("inputs", {}).get(k), ib.get("inputs", {}).get(k))]
+                scientific_pair = (relation in {"relabeled", "reversed"}
+                                   or pair_key in declared_equivalent
+                                   or any(
+                    (ia.get("inputs", {}).get(k) or {}).get("t") in {"scalar", "ndarray"}
+                    or (ib.get("inputs", {}).get(k) or {}).get("t") in {"scalar", "ndarray"}
+                    for k in differing_inputs))
                 if relation == "param_delta" and output in {"identical", "equivalent"} \
                         and not _is_trivial(ia.get("return_fp")):
                     locus = _cl(func_key, "R1", func_key, "sensitivity")
@@ -273,7 +281,7 @@ def derive_loci(trace_records: list, predicate_evaluations: list, script_status:
                     locus["properties"]["evidence"]["pairs"] = [{"a": a, "b": b, "input_relation": relation,
                                                                  "output_relation": output, "delta_param": delta}]
                     loci.append(locus)
-                elif pair_key in declared_equivalent or relation in {"relabeled", "reversed"}:
+                elif scientific_pair and (pair_key in declared_equivalent or relation in {"relabeled", "reversed"}):
                     if output == "different":
                         deepest = _first_divergence(a, b, instances, children)
                         locus = _cl(func_key, "R2", func_key, "invariance")
@@ -287,7 +295,7 @@ def derive_loci(trace_records: list, predicate_evaluations: list, script_status:
                         locus["properties"]["status"] = "holds"
                         locus["properties"]["locus_transitions"] = [a, b]
                         loci.append(locus)
-                elif relation not in {"equivalent", "param_delta"} and output == "identical" \
+                elif scientific_pair and relation not in {"equivalent", "param_delta"} and output == "identical" \
                         and not _is_trivial(ia.get("return_fp")):
                     distinct_pairs = sum(1 for x in seqs if x != a
                                          and _input_relation(instances[x], ia)[0] not in {"equivalent", "param_delta"}

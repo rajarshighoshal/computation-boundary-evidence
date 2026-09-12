@@ -325,13 +325,15 @@ class _Tracer:
         except Exception as error:
             script_error = f"{type(error).__name__}: {error}"
         finally:
-            for candidate in ("outputs/reproduction_report.json", "outputs/report.json"):
-                report = self.script.parent / candidate
-                if report.is_file():
+            outputs_dir = self.script.parent / "outputs"
+            if outputs_dir.is_dir():
+                candidates = [candidate for candidate in outputs_dir.glob("*.json")
+                              if candidate.stat().st_mtime >= self.started - 1]
+                if candidates:
+                    newest = max(candidates, key=lambda c: c.stat().st_mtime)
                     try:
                         import shutil
-                        shutil.copyfile(report, self.out / "script_report.json")
-                        break
+                        shutil.copyfile(newest, self.out / "script_report.json")
                     except OSError:
                         pass
             if not (self.out / "script_report.json").exists():
@@ -374,7 +376,7 @@ class _Tracer:
             self._capture_script_globals(globals_dict)
         finally:
             os.chdir(previous)
-        self._captured_stdout = buffer.getvalue()
+            self._captured_stdout = buffer.getvalue()
 
     def _legacy_hook(self, frame, event, arg):
         try:
