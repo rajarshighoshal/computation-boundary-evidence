@@ -70,6 +70,16 @@ Language-specific structure extraction must feed the shared representation.
 
 ## Latest checkpoint
 
+## Latest checkpoint
+
+Method: execution-derived scientific-meaning extractor (docs/FABLE_EXTRACTOR_SPEC.md). The science arm observes the public reproduce script in the pinned image (trace_runtime + /proc observer), derives constraint structure with predeclared rules R1-R9 (relations.py), learns quantity graphs and per-function dependence signatures from the full trace (dynamic_binding.py), and merges constraint loci into the object graph before anchored LLM enrichment. Structure fingerprints, not data contents: arrays carry shape/dtype/stats + content digest, scalars keep exact values, third-party types are opaque. Two-tier language coverage: Python frames via sys.monitoring/setprofile; compiled/multi-process code at the OS level via the /proc observer and (planned) LD_PRELOAD shims.
+
+Offline eval on the five development tasks (configs/loci-eval-v1.json, scripts/eval_loci.py): task 009 HIT (function+file, precision 0.83, R1 sensitivity at build_projection_wall; workflow flips to workflow_completed under the verified patch and 5 collapse loci disappear), task 001 HIT (function level, precision 0.014 - noisy), 091/114/058 no hit (091 R6 report layer just wired, rerun pending; 114 continuity locus sits in data-heavy linopy code; 058 compiled core behind a subprocess - declared boundary miss). Stop rule: 2/3 of {009,001,091} hit - passes, but the comparison run waits until the rerun with report capture settles.
+
+Suite: 469 passed. Traces: runs/loci-eval-v1/. Results: results/loci-eval-v1.json.
+
+
+
 Latest offline source hashes and target/guest-check results: `results/workflow-retrieval-v1.json`.
 Latest live comparison: `results/workflow-five-luna-v1.json` and `results/workflow-five-luna-v1-token-audit.json`.
 Earlier extraction results: `results/scientific-reading-v2.json`, `results/scientific-reading-v2-token-audit.json`,

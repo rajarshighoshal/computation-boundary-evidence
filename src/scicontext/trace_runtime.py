@@ -334,6 +334,18 @@ class _Tracer:
                         break
                     except OSError:
                         pass
+            if not (self.out / "script_report.json").exists():
+                captured = getattr(self, "_captured_stdout", "") or ""
+                try:
+                    start = captured.rindex("{")
+                    end = captured.rindex("}")
+                    if end > start:
+                        blob = json.loads(captured[start:end + 1])
+                        if isinstance(blob, dict) and "status" in blob:
+                            (self.out / "script_report.json").write_text(
+                                json.dumps(blob, indent=2) + "\n")
+                except (ValueError, json.JSONDecodeError):
+                    pass
             self.trace_file.close()
             (self.out / "script_predicates.json").write_text(
                 json.dumps({"declared": self.predicates, "evaluations": self.predicate_evaluations},
@@ -350,14 +362,19 @@ class _Tracer:
             (self.out / "run.json").write_text(json.dumps(run, indent=2) + "\n")
 
     def _run_script(self):
+        import contextlib
+        import io
         sys.argv = [str(self.script)]
         previous = os.getcwd()
         os.chdir(self.script.parent)
+        buffer = io.StringIO()
         try:
-            globals_dict = runpy.run_path(str(self.script), run_name="__main__")
+            with contextlib.redirect_stdout(buffer):
+                globals_dict = runpy.run_path(str(self.script), run_name="__main__")
             self._capture_script_globals(globals_dict)
         finally:
             os.chdir(previous)
+        self._captured_stdout = buffer.getvalue()
 
     def _legacy_hook(self, frame, event, arg):
         try:
