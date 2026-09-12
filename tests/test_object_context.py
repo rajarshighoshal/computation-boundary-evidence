@@ -338,3 +338,12 @@ def test_guide_drops_weak_findings_in_favor_of_strong_ones():
     assert len(findings) == 5
     assert "hot" in findings[0]
     assert all("hot" not in line for line in findings[1:])
+
+
+def test_enrich_prompt_is_formattable():
+    prompt = (Path(__file__).resolve().parent.parent / "prompts/enrich_objects.md").read_text()
+    rendered = prompt.format(root="/app/task", scratch="/opt/scratch", runtime="/opt/runtime",
+                             seconds=300, explore_until="00:03:00", save_by="00:04:00",
+                             finish_by="00:05:00", instruction="task text")
+    assert '"schema_version": "object-enrichment-1.0"' in rendered
+    assert "{{" not in rendered

@@ -8,7 +8,7 @@ executing the public reproducer, objects, operations, dataflow links, unresolved
 relevant source passages and public scientific excerpts. Annotate the most task-relevant
 objects: constraint findings first, then workflow interfaces, their parameters and outputs.
 
-Response: JSON of the form {"schema_version": "object-enrichment-1.0", "annotations": [...]}.
+Response: JSON of the form {{"schema_version": "object-enrichment-1.0", "annotations": [...]}}.
 Each annotation references an exact supplied object_id and contains meaning (string),
 conventions (array of strings) and assumptions (array of strings). The code owns structure
 and derived properties; annotate it, do not extend it. Where an interpretation is uncertain,
