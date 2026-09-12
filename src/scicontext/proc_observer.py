@@ -94,7 +94,10 @@ class ProcObserver:
                     for part in line.splitlines():
                         if part.startswith(key + ":"):
                             io_bytes[key] = int(part.split(":")[1].strip())
-            exe = os.readlink(f"/proc/{pid}/exe") if pid != root else "python"
+            try:
+                exe = os.readlink(f"/proc/{pid}/exe") if pid != root else "python"
+            except OSError:
+                continue
             threads = []
             total_utime = total_stime = 0
             for tid_dir in Path(f"/proc/{pid}/task").glob("[0-9]*"):
@@ -127,7 +130,8 @@ class ProcObserver:
             self.processes.setdefault(pid, {"exe": exe, "first_seen": round(tick, 3)})
             record["processes"].append({**self.processes[pid], "pid": pid,
                                        "vmrss_kb": fields.get("VmRSS"), "vmhwm_kb": fields.get("VmHWM"),
-                                       "threads": len(threads), "utime": total_utime, "stime": total_stime,
+                                       "threads": len(threads), "threads_detail": threads,
+                                       "utime": total_utime, "stime": total_stime,
                                        "io": io_bytes, "fds": fds})
         return record
 
@@ -136,8 +140,9 @@ class ProcObserver:
             tick = time.monotonic() - self.started
             try:
                 self.samples.append(self._sample(tick))
-            except Exception:
-                pass
+            except Exception as error:
+                self.samples.append({"t": round(tick, 3), "processes": [],
+                                     "sample_error": f"{type(error).__name__}: {error}"})
             self._stop.wait(SAMPLE_INTERVAL)
 
     def summary(self) -> dict:
@@ -152,7 +157,7 @@ class ProcObserver:
                 entry["max_rss_kb"] = max(entry["max_rss_kb"], process.get("vmrss_kb") or 0)
                 entry["threads_max"] = max(entry["threads_max"], process.get("threads") or 0)
                 entry["last_seen"] = sample["t"]
-                for thread in process.get("threads", []):
+                for thread in process.get("threads_detail", []):
                     entry["threads"].setdefault(thread["tid"], {"comm": thread["comm"],
                                                                 "utime": thread["utime"],
                                                                 "stime": thread["stime"]})

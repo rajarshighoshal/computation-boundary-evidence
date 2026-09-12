@@ -1,0 +1,52 @@
+{
+  "purpose": "Offline loci evaluation on the five development tasks. Predeclared before outcomes: trace dirs, reproduce scripts, fix-touched sets from verified-passing patches, and stop rules. Fix-touched sets: 009 from the passing context-arm patch (vacuum.py external-region chain); 091 from the passing science-arm patch (pymatgen/io/common.py VolumetricData.from_cube); 058 from the passing baseline-arm patch (lattice.cpp RectLattice::distance); 114 uses the best-known 13/15 patch (define_store_constraints) and is disclosed as non-passing; 001 has no passing patch (best 1/3, disclosed).",
+  "stop_rules": [
+    "If fewer than 2 of {009, 001, 091} show a function- or file-level hit, do not launch any repair comparison.",
+    "Rule changes after seeing outcomes are recorded as a new eval version and never pooled."
+  ],
+  "tasks": {
+    "009": {
+      "trace_dir": "runs/loci-eval-v1/task-009/clean",
+      "reproduce": "reproduce.py",
+      "patch": "runs/deepseek-five-v1/jobs/task-009-science/task_009__3F4NdFk/artifacts/model.patch",
+      "patch_nested": true,
+      "fix_touched_functions": ["build_projection_wall", "_interface_outward_direction"],
+      "fix_touched_files": ["source/desc/stability/terpsichore/vacuum.py"],
+      "expected": "R1/R4 sensitivity and distinctness loci in the external-region vacuum chain; flip at workflow level"
+    },
+    "091": {
+      "trace_dir": "runs/loci-eval-v1/task-091/clean",
+      "reproduce": "reproduce.py",
+      "patch": "runs/deepseek-five-v1/jobs/task-091-science/task_091__kHGMADp/artifacts/model.patch",
+      "patch_nested": false,
+      "fix_touched_functions": ["VolumetricData.from_cube"],
+      "fix_touched_files": ["source/src/pymatgen/io/common.py"],
+      "expected": "containment/frame evidence via script-declared bounds on fractional coordinates"
+    },
+    "058": {
+      "trace_dir": "runs/loci-eval-v1/task-058/clean2",
+      "reproduce": "reproduce.py",
+      "patch": "runs/deepseek-five-v1/jobs/task-058-baseline/task_058__nrvUsTR/artifacts/model.patch",
+      "patch_nested": false,
+      "fix_touched_functions": ["RectLattice::distance"],
+      "fix_touched_files": ["source/src/lattice.cpp"],
+      "expected": "process-level completion evidence only; compiled core beyond the Python boundary"
+    },
+    "114": {
+      "trace_dir": "runs/loci-eval-v1/task-114/clean2",
+      "reproduce": "reproduce.py",
+      "patch": null,
+      "fix_touched_functions": ["define_store_constraints"],
+      "fix_touched_files": ["source/pypsa/optimization/constraints.py"],
+      "expected": "boundary-continuity via script report; function-level localization uncertain"
+    },
+    "001": {
+      "trace_dir": "runs/loci-eval-v1/task-001/clean2",
+      "reproduce": "reproduce.py",
+      "patch": null,
+      "fix_touched_functions": ["ts_linear_reacting_atom_keys", "linear_segment_cap_keys", "rotational_coordinates"],
+      "fix_touched_files": ["source/autochem/"],
+      "expected": "invariance-break chain across the four signature presentations; no passing patch exists"
+    }
+  }
+}

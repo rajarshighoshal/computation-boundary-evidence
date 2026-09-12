@@ -261,11 +261,31 @@ class ScientificCodex(BaseAgent):
         return json.loads(output)
 
     async def prepare(self, seconds):
-        return await self._helper(
+        # Science arm: observe the public reproducer first (the trace is the
+        # evidence layer), then build the static packet, then merge the
+        # execution-derived constraint loci into the graph and the enrichment
+        # input. A failed trace never blocks the static pipeline.
+        if self.condition == "science" and seconds >= 60:
+            await self._helper(
+                f"{HELPER} trace --root {self.root} --script reproduce.py --out {SCRATCH}/trace "
+                f"--seconds {max(10.0, seconds * 0.5)}",
+                max(15.0, seconds * 0.55))
+        result = await self._helper(
             f"{HELPER} packet --root {self.root} --context-root {REMOTE}/context --task-id {self.task_id} "
             f"--output {SCRATCH}/packet.json --catalog {SCRATCH}/catalog.md "
             f"--objects-output {SCRATCH}/scientific-objects.json --enrichment-input {SCRATCH}/scientific-context-input.json",
-            seconds)
+            max(10.0, seconds * 0.4))
+        if self.condition == "science" and seconds >= 60:
+            try:
+                await self._helper(
+                    f"{HELPER} merge-dynamic --graph {SCRATCH}/scientific-objects.json "
+                    f"--packet {SCRATCH}/packet.json --trace-out {SCRATCH}/trace "
+                    f"--output {SCRATCH}/scientific-objects.json "
+                    f"--enrichment-input {SCRATCH}/scientific-context-input.json",
+                    max(10.0, seconds * 0.2))
+            except Exception:
+                pass
+        return result
 
     async def interpret(self, instruction, seconds):
         return await self._interpret_call(instruction, seconds)

@@ -67,7 +67,9 @@ async def run_extraction(driver, instruction: str, seconds: float) -> dict:
                 if "error" in record:
                     receipt["error"] = record["error"]
 
-    preparation = asyncio.create_task(phase("prepare", driver.prepare, min(30.0, seconds / 10)))
+    flexible = bool(getattr(getattr(driver, "config", None), "flexible_budget", False))
+    prepare_allowance = min(1200.0, seconds * 0.6) if flexible else min(30.0, seconds / 10)
+    preparation = asyncio.create_task(phase("prepare", driver.prepare, prepare_allowance))
     try:
         prepared = await preparation
         draft = await phase("extract_draft", lambda s: driver.interpret(instruction, s),
