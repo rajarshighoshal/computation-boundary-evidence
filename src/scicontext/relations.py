@@ -354,7 +354,9 @@ def derive_loci(trace_records: list, predicate_evaluations: list, script_status:
             kind = script_report.get("failure_kind") or "workflow_failure"
             locus = _cl(("reproduce.py", "<script>", 0), "R6", ("reproduce.py", "<script>", 0),
                         "distinctness" if "collapse" in kind else "containment")
-            locus["properties"]["evidence"]["measures"]["failure_kind"] = kind
+            locus["properties"]["evidence"]["measures"]["reproduction_status"] = script_report.get("status")
+            if kind != "workflow_failure":
+                locus["properties"]["evidence"]["measures"]["failure_kind"] = kind
             loci.append(locus)
         # Script-declared observations carry the constraints even when the
         # report status is nominal: boolean agreement/invariance/distinctness

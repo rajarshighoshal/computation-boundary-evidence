@@ -27,6 +27,7 @@ def main(argv: list[str] | None = None) -> int:
     trace.add_argument("--observe", action="store_true")
     trace.add_argument("--shims-dir", type=Path, default=None)
     merge = subs.add_parser("merge-dynamic")
+    merge.add_argument("--root", type=Path, required=True)
     merge.add_argument("--graph", type=Path, required=True)
     merge.add_argument("--packet", type=Path, required=True)
     merge.add_argument("--trace-out", type=Path, required=True)
@@ -85,12 +86,32 @@ def main(argv: list[str] | None = None) -> int:
                               observer_summary=observer, script_file="reproduce.py",
                               script_report=script_report)
         # R9: attach native tolerance-comparison candidates to completion loci.
+        # Scan the native sources directly (the packet's entry caps can exclude
+        # the relevant file); bounded to 200 files / 2 MB each.
         import re as _re
         candidates = {}
         for entry in packet.get("entries", []):
             text = entry.get("text") or ""
             if entry.get("kind") == "comparison" and _re.search(r"PRECISION|EPS|TOLERANCE|_TOL|_EPS", text):
                 candidates.setdefault(entry.get("path"), []).append(entry.get("start_line"))
+        native_suffixes = (".cpp", ".cc", ".cxx", ".c", ".h", ".hpp", ".f90", ".f95", ".f03", ".m")
+        scanned = 0
+        for path in sorted(args.root.rglob("*")):
+            if scanned >= 200:
+                break
+            if not path.is_file() or path.suffix.lower() not in native_suffixes:
+                continue
+            try:
+                if path.stat().st_size > 2 * 1024 * 1024:
+                    continue
+                text = path.read_text(errors="replace")
+            except OSError:
+                continue
+            scanned += 1
+            relative = path.relative_to(args.root).as_posix()
+            for line_number, line in enumerate(text.splitlines(), start=1):
+                if _re.search(r"<|>|==|<=|>=", line) and _re.search(r"PRECISION|EPS|TOLERANCE|_TOL|_EPS", line):
+                    candidates.setdefault(relative, []).append(line_number)
         if candidates:
             for locus in derived["loci"]:
                 if locus["properties"].get("rule_id") in {"R6", "R6s", "R6p", "R8"}:

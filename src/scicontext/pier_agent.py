@@ -278,7 +278,7 @@ class ScientificCodex(BaseAgent):
         if self.condition == "science" and seconds >= 60:
             try:
                 await self._helper(
-                    f"{HELPER} merge-dynamic --graph {SCRATCH}/scientific-objects.json "
+                    f"{HELPER} merge-dynamic --root {self.root} --graph {SCRATCH}/scientific-objects.json "
                     f"--packet {SCRATCH}/packet.json --trace-out {SCRATCH}/trace "
                     f"--output {SCRATCH}/scientific-objects.json "
                     f"--enrichment-input {SCRATCH}/scientific-context-input.json",
