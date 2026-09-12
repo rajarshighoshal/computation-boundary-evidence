@@ -237,6 +237,8 @@ class DeepSeekAgent(ScientificCodex):
              "finish_reason": completion["choices"][0].get("finish_reason"),
              "usage": usage}, ensure_ascii=False))
         result = {"status": "completed", "usage": {"input_tokens": usage.get("prompt_tokens"),
+                                                   "cache_hit_tokens": usage.get("prompt_cache_hit_tokens"),
+                                                   "cache_miss_tokens": usage.get("prompt_cache_miss_tokens"),
                                                    "cached_input_tokens": None,
                                                    "output_tokens": usage.get("completion_tokens"),
                                                    "reasoning_output_tokens": None},
@@ -272,7 +274,8 @@ class DeepSeekAgent(ScientificCodex):
                 pass
         deadline = time.monotonic() + seconds
         messages = [{"role": "user", "content": prompt}]
-        usage = {"input_tokens": 0, "output_tokens": 0}
+        usage = {"input_tokens": 0, "output_tokens": 0,
+                 "cache_hit_tokens": 0, "cache_miss_tokens": 0}
         events = []
         session_log = []
         session_stream = (self.logs_dir / "repair-session.jsonl").open("a")
@@ -286,8 +289,11 @@ class DeepSeekAgent(ScientificCodex):
                     break
                 completion = await _api_completion(self.deepseek_key, self.model, messages,
                                                    tools=self.shell_tools, timeout_sec=remaining)
-                usage["input_tokens"] += completion.get("usage", {}).get("prompt_tokens", 0)
-                usage["output_tokens"] += completion.get("usage", {}).get("completion_tokens", 0)
+                call_usage = completion.get("usage", {}) or {}
+                usage["input_tokens"] += call_usage.get("prompt_tokens", 0)
+                usage["output_tokens"] += call_usage.get("completion_tokens", 0)
+                usage["cache_hit_tokens"] += call_usage.get("prompt_cache_hit_tokens", 0)
+                usage["cache_miss_tokens"] += call_usage.get("prompt_cache_miss_tokens", 0)
                 message = completion["choices"][0]["message"]
                 messages.append(message)
                 step_record = {"step": len(session_log) + 1,
