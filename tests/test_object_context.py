@@ -294,3 +294,5 @@ def test_enrichment_prompt_directs_early_scratch_write():
     assert "{scratch}/extract_draft-annotations.json" in prompt
     assert "even if the turn later times out" in prompt
     assert "Annotate the most task-relevant" in prompt
+    assert "at most 40 annotations" in prompt
+    assert "annotate it, do not extend it" in prompt
