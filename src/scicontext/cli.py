@@ -263,8 +263,8 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
                          config["total_seconds"], config["extraction_seconds"],
                          config.get("flexible_budget", False))
     concurrency = config.get("concurrency")
-    if config.get("attempts") != 1 or type(concurrency) is not int or concurrency not in (1, 2, 3):
-        raise ValueError("Pilot supports exactly one attempt and concurrency 1..3")
+    if config.get("attempts") != 1 or type(concurrency) is not int or not (1 <= concurrency <= 8):
+        raise ValueError("Pilot supports exactly one attempt and concurrency 1..8")
     if config.get("allow_restricted_licenses"):
         raise ValueError("Development pilot does not opt into restricted licenses")
     ids = config["task_ids"]

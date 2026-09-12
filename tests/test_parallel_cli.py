@@ -230,10 +230,10 @@ def test_local_dummy_subprocesses_really_overlap_with_pair_barrier(workspace, mo
     assert all(process.poll() == 0 for process in processes)
 
 
-@pytest.mark.parametrize("concurrency", [0, 4, True, 2.0, "2", None])
+@pytest.mark.parametrize("concurrency", [0, 9, True, 2.0, "2", None])
 def test_invalid_concurrency_is_rejected(workspace, concurrency):
     config = read_json(workspace / "config.json")
     config["concurrency"] = concurrency
     write_json(workspace / "bad.json", config)
-    with pytest.raises(ValueError, match="concurrency 1\\.\\.3"):
+    with pytest.raises(ValueError, match="concurrency 1\\.\\.8"):
         cli.pilot(workspace, workspace / "bad.json", workspace / "output", False, None)
