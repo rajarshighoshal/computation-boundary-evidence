@@ -276,9 +276,13 @@ def _finding_statement(locus: dict) -> str:
     if rule in {"R6", "R6s", "R6p"}:
         measure_text = ", ".join(f"{field} = {value}" for field, value in measures.items())
         kind = properties.get("constraint_type")
-        if measure_text:
-            return f"the workflow reports {measure_text} ({kind} violated)"
-        return f"the workflow fails its {kind} check"
+        statement = (f"the workflow reports {measure_text} ({kind} violated)" if measure_text
+                     else f"the workflow fails its {kind} check")
+        candidates = properties.get("static_candidates", [])
+        if candidates:
+            sites = "; ".join(f"{item['path']}:{item['line']}" for item in candidates[:4])
+            statement += f"; tolerance-style comparisons in the native source: {sites}"
+        return statement
     if rule == "R5":
         return f"computed quantities at {site} contain nan/inf values"
     return f"{properties.get('constraint_type')} finding at {site}"

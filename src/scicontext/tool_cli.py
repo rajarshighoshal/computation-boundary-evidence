@@ -24,6 +24,8 @@ def main(argv: list[str] | None = None) -> int:
     trace.add_argument("--script", type=Path, required=True)
     trace.add_argument("--out", type=Path, required=True)
     trace.add_argument("--seconds", type=float, default=300.0)
+    trace.add_argument("--observe", action="store_true")
+    trace.add_argument("--shims-dir", type=Path, default=None)
     merge = subs.add_parser("merge-dynamic")
     merge.add_argument("--graph", type=Path, required=True)
     merge.add_argument("--packet", type=Path, required=True)
@@ -56,7 +58,8 @@ def main(argv: list[str] | None = None) -> int:
             result["scientific_object_coverage"] = graph["coverage"]
     elif args.command == "trace":
         from .trace_runtime import _Tracer
-        tracer = _Tracer(args.root.resolve(), args.script.resolve(), args.out.resolve(), observe=False)
+        tracer = _Tracer(args.root.resolve(), args.script.resolve(), args.out.resolve(),
+                         observe=args.observe, shims_dir=args.shims_dir)
         tracer.run(args.seconds)
         result = {"status": "completed", "out": str(args.out)}
     elif args.command == "merge-dynamic":
@@ -73,8 +76,27 @@ def main(argv: list[str] | None = None) -> int:
             observer = read_json(args.trace_out / "observer_summary.json")
         except (OSError, ValueError):
             pass
+        script_report = None
+        try:
+            script_report = read_json(args.trace_out / "script_report.json")
+        except (OSError, ValueError):
+            pass
         derived = derive_loci(records, predicates["evaluations"], script_status=run.get("script_status"),
-                              observer_summary=observer, script_file="reproduce.py")
+                              observer_summary=observer, script_file="reproduce.py",
+                              script_report=script_report)
+        # R9: attach native tolerance-comparison candidates to completion loci.
+        import re as _re
+        candidates = {}
+        for entry in packet.get("entries", []):
+            text = entry.get("text") or ""
+            if entry.get("kind") == "comparison" and _re.search(r"PRECISION|EPS|TOLERANCE|_TOL|_EPS", text):
+                candidates.setdefault(entry.get("path"), []).append(entry.get("start_line"))
+        if candidates:
+            for locus in derived["loci"]:
+                if locus["properties"].get("rule_id") in {"R6", "R6s", "R6p", "R8"}:
+                    for path, lines in candidates.items():
+                        locus["properties"]["static_candidates"].extend(
+                            [{"path": path, "line": line} for line in lines])
         quantity_graph = build_quantity_graph(records)
         signatures = dependence_signatures(records)
         graph["objects"] = [obj for obj in graph.get("objects", []) if obj.get("kind") != "constraint_locus"]

@@ -268,7 +268,7 @@ class ScientificCodex(BaseAgent):
         if self.condition == "science" and seconds >= 60:
             await self._helper(
                 f"{HELPER} trace --root {self.root} --script {self.root}/reproduce.py --out {SCRATCH}/trace "
-                f"--seconds {max(10.0, seconds * 0.5)}",
+                f"--seconds {max(10.0, seconds * 0.5)} --observe --shims-dir {REMOTE}/src/scicontext/shims/out",
                 max(15.0, seconds * 0.55))
         result = await self._helper(
             f"{HELPER} packet --root {self.root} --context-root {REMOTE}/context --task-id {self.task_id} "
