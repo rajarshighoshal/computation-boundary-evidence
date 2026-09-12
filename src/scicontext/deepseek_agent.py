@@ -49,10 +49,19 @@ async def _api_completion(api_key: str, model: str, messages: list, *,
         body["response_format"] = response_format
 
     def send():
-        request = urllib.request.Request(API, data=json.dumps(body).encode(), method="POST", headers={
-            "Authorization": f"Bearer {api_key}", "Content-Type": "application/json"})
-        with urllib.request.urlopen(request, timeout=min(300, timeout_sec)) as response:
-            return json.load(response)
+        last_error = None
+        for attempt in range(2):  # one transparent retry on transport-level failures
+            request = urllib.request.Request(API, data=json.dumps(body).encode(), method="POST", headers={
+                "Authorization": f"Bearer {api_key}", "Content-Type": "application/json"})
+            try:
+                # Deadline-governed: no short hard cap, large tool-loop
+                # contexts can legitimately take minutes.
+                with urllib.request.urlopen(request, timeout=max(60.0, timeout_sec)) as response:
+                    return json.load(response)
+            except (urllib.error.URLError, TimeoutError, OSError) as error:
+                last_error = error
+                time.sleep(2)
+        raise last_error
 
     return await asyncio.to_thread(send)
 
