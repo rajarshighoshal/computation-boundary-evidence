@@ -4,7 +4,7 @@
  "attempt_failure_policy": "record_and_continue_without_retry",
  "attempts": 1,
  "codex_version": "0.153.4",
- "concurrency": 4,
+ "concurrency": 6,
  "condition_order": {
   "001": [
    "science",

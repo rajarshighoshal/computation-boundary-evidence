@@ -484,9 +484,13 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
                     else:
                         finish_attempt(state, result.returncode)
             else:
-                for state in active:
+                for launch_index, state in enumerate(active):
                     if state.get("finalized"):
                         continue
+                    if launch_index and width > 2:
+                        # Stagger docker compose setup so egress-proxy builds do
+                        # not race each other at higher concurrency.
+                        time.sleep(8)
                     current = state["item"]
                     try:
                         state["stream"] = state["log"].open("w")
