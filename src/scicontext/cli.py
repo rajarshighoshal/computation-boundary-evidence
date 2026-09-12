@@ -513,6 +513,22 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
                                 finish_attempt(state, code)
                     if any(not state.get("finalized") for state in active):
                         time.sleep(0.05)
+            # Large benchmarks cannot hold every task's images on disk: once a
+            # task's pair has finalized, drop its images (best effort). Steady
+            # disk usage then tracks the concurrency window, not the cohort.
+            if not smoke:
+                finished_tasks = {item["task_id"] for item in schedule
+                                  if all(s["status"] in ("completed", "infrastructure_failure", "cancelled")
+                                         for s in schedule if s["task_id"] == item["task_id"])}
+                for item in schedule:
+                    if item["task_id"] in finished_tasks and not item.get("images_removed"):
+                        row = next(r for r in receipt["tasks"] if r["task_id"] == item["task_id"])
+                        for image in {row["environment_image"], row["verifier_image"]}:
+                            subprocess.run(["docker", "rmi", image], capture_output=True, check=False)
+                        for same in schedule:
+                            if same["task_id"] == item["task_id"]:
+                                same["images_removed"] = True
+                        write_json(output / "schedule.json", plan)
             active = []
         plan["status"] = "completed" if all(item["status"] == "completed" for item in schedule) else "completed_with_failures"
     except BaseException as error:

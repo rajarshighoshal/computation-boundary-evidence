@@ -30,7 +30,7 @@ class Runners:
         return subprocess.CompletedProcess(command, 0)
 
     def start(self, command, **kwargs):
-        if command[:2] == ["docker", "network"] or command[:2] == ["docker", "container"]:
+        if command[0] == "docker":
             class PruneDone:
                 args = command
                 def poll(self):

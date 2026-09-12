@@ -36,7 +36,10 @@ MAX_OUTPUT_TOKENS = 65536
 MAX_TOOL_OUTPUT_CHARS = 60_000
 MAX_TOOL_SECONDS = 600
 MAX_LOOP_ITERATIONS = 200
-MAX_CONVERSATION_TOOL_CHARS = 300_000
+# Compaction rewrites earlier messages and invalidates the provider's
+# prompt-prefix cache, where input is ~50x cheaper; keep it rare and
+# leave the model's own context window as the guard.
+MAX_CONVERSATION_TOOL_CHARS = 800_000
 MAX_ANNOTATION_CHARS = 65_536
 
 
