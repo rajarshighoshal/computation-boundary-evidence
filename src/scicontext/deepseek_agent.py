@@ -33,8 +33,8 @@ from .pier_agent import CONTROL, HELPER, REMOTE, SCRATCH, ScientificCodex, bound
 API = "https://api.deepseek.com/chat/completions"
 MAX_OUTPUT_TOKENS = 65536
 MAX_TOOL_OUTPUT_CHARS = 60_000
-MAX_TOOL_SECONDS = 120
-MAX_LOOP_ITERATIONS = 60
+MAX_TOOL_SECONDS = 600
+MAX_LOOP_ITERATIONS = 100
 MAX_CONVERSATION_TOOL_CHARS = 300_000
 MAX_ANNOTATION_CHARS = 65_536
 
@@ -215,6 +215,7 @@ class DeepSeekAgent(ScientificCodex):
                    "embedded inline below; annotate at most the 40 most task-relevant objects and return "
                    "compact, complete annotations JSON directly as your response.\n\nSCIENTIFIC CONTEXT INPUT\n"
                    + json.dumps(payload, ensure_ascii=False))
+        (self.logs_dir / "extract-prompt.txt").write_text(prompt)
         started = time.monotonic()
         try:
             completion = await _api_completion(self.deepseek_key, self.model,
@@ -255,10 +256,12 @@ class DeepSeekAgent(ScientificCodex):
         return result
 
     async def _run_deepseek_repair(self, prompt, seconds):
+        (self.logs_dir / "repair-prompt.txt").write_text(prompt)
         deadline = time.monotonic() + seconds
         messages = [{"role": "user", "content": prompt}]
         usage = {"input_tokens": 0, "output_tokens": 0}
         events = []
+        session_log = []
         result = {"status": "timeout", "usage": usage, "cleanup_complete": None}
         try:
             for _ in range(MAX_LOOP_ITERATIONS):
@@ -271,6 +274,12 @@ class DeepSeekAgent(ScientificCodex):
                 usage["output_tokens"] += completion.get("usage", {}).get("completion_tokens", 0)
                 message = completion["choices"][0]["message"]
                 messages.append(message)
+                session_log.append({"step": len(session_log) + 1,
+                                    "content": message.get("content"),
+                                    "reasoning": message.get("reasoning_content"),
+                                    "tool_calls": message.get("tool_calls"),
+                                    "finish_reason": completion["choices"][0].get("finish_reason"),
+                                    "usage": completion.get("usage", {})})
                 events.append({"type": "turn.started"})
                 if message.get("tool_calls"):
                     for call in message["tool_calls"]:
@@ -323,4 +332,6 @@ class DeepSeekAgent(ScientificCodex):
                     "output_tokens": usage["output_tokens"], "reasoning_output_tokens": None}})
             write_json(self.logs_dir / "repair-process.json", result)
             (self.logs_dir / "repair.jsonl").write_text("\n".join(json.dumps(e, ensure_ascii=False) for e in events) + "\n")
+            write_json(self.logs_dir / "repair-session.json", {"messages": session_log,
+                                                               "usage": usage, "status": result.get("status")})
         return result
