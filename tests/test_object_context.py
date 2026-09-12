@@ -147,12 +147,10 @@ def test_code_first_interpretation_reaches_normal_repair_without_probe_loop(scie
     assert len(extraction["model_calls"]) == 1 and "probe_rounds" not in extraction
     assert extraction["selected_model_call"] == "extract_draft"
     assert extraction["usable_checkpoint"] is True
-    assert "SCIENTIFIC WORKING MODEL FOR THIS REPOSITORY" in driver.repair_prompt
+    assert "# Scientific working model" in driver.repair_prompt
     assert "Stiffness operator" in driver.repair_prompt
     assert "Fixed boundary conditions" in driver.repair_prompt
-    assert "fallible context, not repair rules" in driver.repair_prompt
-    assert "cite its object ID" in driver.repair_prompt
-    assert "reconcile them with the task and public sources" in driver.repair_prompt
+    assert "Interpretations are anchored to object IDs and public source passages." in driver.repair_prompt
     assert "fallible context, not repair rules" in driver.repair_prompt
     assert "Rerun applicable supplied public probes" not in driver.repair_prompt
     assert driver.bundle["context"]["scientific_passages"]

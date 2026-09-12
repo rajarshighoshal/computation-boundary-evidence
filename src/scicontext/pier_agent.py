@@ -459,11 +459,9 @@ class ScientificCodex(BaseAgent):
             bundle["handoff_files"] = {name: REMOTE + "/context/" + name for name in files}
             bundle["guide_markdown"] = files["scientific-guide.md"]
             bundle["handoff"] = (
-                "The scientific interpretations are embedded above. The complete graph is "
-                "/opt/scicontext/context/scientific-graph.json; use object IDs to query relevant "
-                "objects, operations and links selectively. Public source passages are preserved in "
-                "/opt/scicontext/context/scientific-sources.json. These files are outside the source checkout; "
-                "do not dump the full graph into the conversation.")
+                "The complete object graph is /opt/scicontext/context/scientific-graph.json and the public "
+                "source passages are /opt/scicontext/context/scientific-sources.json; look objects up by ID "
+                "when you need their full relationships.")
             write_json(self.logs_dir / "handoff-files.json", {
                 "paths": bundle["handoff_files"], "graph_sha256": digest_json(bundle["graph"]),
                 "file_bytes": {name: len(text.encode("utf-8")) for name, text in files.items()},

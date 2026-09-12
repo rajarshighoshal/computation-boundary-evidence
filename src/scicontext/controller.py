@@ -186,12 +186,8 @@ async def run_trial(driver: Driver, config: TrialConfig, task_id: str, condition
             if handoff is not None:
                 guide = handoff.get("guide_markdown")
                 if guide:
-                    prompt += "\n\nSCIENTIFIC WORKING MODEL FOR THIS REPOSITORY\n" + guide + "\n"
-                prompt += handoff["handoff"]
-                prompt += ("\nUse the scientific context as follows:"
-                           "\n- Inspect the source spans listed for the workflow interfaces first, then their parameters and outputs."
-                           "\n- Interpretations are fallible context, not repair rules: reconcile them with the task and public sources, and drop any that conflict."
-                           "\n- When you rely on an interpretation, cite its object ID.")
+                    prompt += "\n\n" + guide
+                prompt += "\n" + handoff["handoff"]
             result = await stage("repair", prompt, remaining)
             if result.get("fatal_model_error") or getattr(driver, "_fatal_model_error", False):
                 raise RuntimeError("Repair model execution failed; inspect this attempt's receipt.")
