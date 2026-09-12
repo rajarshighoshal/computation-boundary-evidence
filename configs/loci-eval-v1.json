@@ -70,7 +70,7 @@
    "flip_status": "n/a: no passing patch (best 13/15)"
   },
   "001": {
-   "trace_dir": "runs/loci-eval-v1/task-001/final4",
+   "trace_dir": "runs/loci-eval-v1/task-001/final7",
    "reproduce": "reproduce.py",
    "patch": null,
    "fix_touched_functions": [
@@ -79,10 +79,12 @@
     "rotational_coordinates"
    ],
    "fix_touched_files": [
-    "source/autochem/"
+    "source/automol/graph/base/_03kekule.py",
+    "source/automol/graph/base/_06heur.py"
    ],
    "expected": "invariance-break chain across the four signature presentations; no passing patch exists",
-   "flip_status": "n/a: no passing patch (best 1/3)"
+   "flip_status": "n/a: no passing patch (best 1/3)",
+   "config_note": "fix-touched files corrected to the actual traced definitions (automol graph base, not autochem); 001 has no passing patch"
   }
  }
 }

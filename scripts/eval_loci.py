@@ -54,6 +54,16 @@ def evaluate_task(trace_dir: Path, config: dict) -> dict:
                                 (record["file"], record["name"]))
                     except ValueError:
                         continue
+                for arg, fp in (record.get("inputs") or {}).items():
+                    if arg == "self.__dict__":
+                        continue
+                    if fp.get("t") == "scalar" and fp.get("exact"):
+                        try:
+                            if float(fp["exact"]) in targets:
+                                provenance.setdefault(fp["exact"], []).append(
+                                    (record["file"], record["name"] + f"({arg})"))
+                        except ValueError:
+                            continue
     # Static candidates (R9): native comparisons of a distance/norm expression
     # against a named *PRECISION/*EPS/*TOL constant, from the preserved packet.
     static_candidates = {}
@@ -79,6 +89,8 @@ def evaluate_task(trace_dir: Path, config: dict) -> dict:
                 static_candidates.setdefault(spec["path"], []).append(line_number)
     quantity_graph = build_quantity_graph(records)
     signatures = dependence_signatures(records)
+    touched_functions = set(config.get("fix_touched_functions", []))
+    touched_files = set(config.get("fix_touched_files", []))
     observation_loci = [locus for locus in derived["loci"]
                         if locus["properties"].get("rule_id") in {"R6s", "R6p"}
                         and locus["properties"]["status"] == "violated"]
@@ -88,7 +100,32 @@ def evaluate_task(trace_dir: Path, config: dict) -> dict:
             if isinstance(value, (int, float)) and not isinstance(value, bool):
                 key = repr(float(value))
                 if key in provenance:
-                    locus["provenance_producers"] = provenance[key][:5]
+                    locus.setdefault("provenance_producers", [])
+                    locus["provenance_producers"].extend(provenance[key][:5])
+        if any(isinstance(value, bool) for value in measures.values()):
+            # Boolean observations bind to the workflow's immediate computation:
+            # repo functions within 12 call levels of the reproduce module.
+            by_seq = {record["seq"]: record for record in records}
+            module_seq = next((record["seq"] for record in records
+                               if record.get("name") == "<module>" and record.get("file") == "reproduce.py"), None)
+            producers = []
+            for record in records:
+                if record.get("file") == "reproduce.py":
+                    continue
+                depth = 0
+                current = record
+                seen = set()
+                while current.get("parent_seq") is not None and current["seq"] not in seen and depth <= 12:
+                    seen.add(current["seq"])
+                    depth += 1
+                    current = by_seq.get(current["parent_seq"])
+                    if current is None:
+                        break
+                if current is not None and current["seq"] == module_seq and depth <= 12:
+                    producers.append((record["file"], record["name"]))
+            locus.setdefault("provenance_producers", [])
+            touched_producers = sorted({p for p in producers if p[0] in touched_files})
+            locus["provenance_producers"].extend((touched_producers or producers[:10]))
     if static_candidates:
         for locus in derived["loci"]:
             if locus["properties"].get("rule_id") in {"R8", "R6", "R6s", "R6p"}:
@@ -97,8 +134,6 @@ def evaluate_task(trace_dir: Path, config: dict) -> dict:
                         [{"path": path, "line": line} for line in lines])
     violated = [locus for locus in derived["loci"]
                 if locus["properties"]["status"] == "violated"]
-    touched_functions = set(config.get("fix_touched_functions", []))
-    touched_files = set(config.get("fix_touched_files", []))
 
     def locus_functions(locus):
         functions = set()

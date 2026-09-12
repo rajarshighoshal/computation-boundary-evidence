@@ -100,6 +100,7 @@ class _Tracer:
         self.in_fingerprint = False
         self.in_callback = False
         self.records = []
+        self.last_seq_by_frame_key: dict = {}
         self.script_frame_global_ids: set[int] = set()
         self.predicates = _parse_predicates(script.read_text())
         self.predicate_evaluations = []
@@ -131,14 +132,28 @@ class _Tracer:
             if frame is None or not self._eligible(frame):
                 return
             thread_stacks = self.stacks.setdefault(threading.get_ident(), [])
-            parent = thread_stacks[-1]["seq"] if thread_stacks else None
+            parent = None
+            if thread_stacks:
+                parent = thread_stacks[-1]["seq"]
+            else:
+                # Callback/lazy call paths: the eligible ancestor already
+                # returned. Recover from any frame ever recorded.
+                ancestor = frame.f_back
+                while ancestor is not None:
+                    key = (ancestor.f_code.co_filename, ancestor.f_code.co_firstlineno)
+                    if key in self.last_seq_by_frame_key:
+                        parent = self.last_seq_by_frame_key[key]
+                        break
+                    ancestor = ancestor.f_back
             self.seq += 1
+            self.last_seq_by_frame_key[(frame.f_code.co_filename, frame.f_code.co_firstlineno)] = self.seq
             func_key = (frame.f_code.co_filename, frame.f_code.co_qualname, frame.f_code.co_firstlineno)
             count = self.func_counts.get(func_key, 0)
             self.func_counts[func_key] = count + 1
             record = {"seq": self.seq, "name": frame.f_code.co_qualname,
                       "file": os.path.relpath(frame.f_code.co_filename, self.root),
                       "line": frame.f_code.co_firstlineno, "parent_seq": parent,
+                      "frame_id": id(frame),
                       "pid": os.getpid(), "tid": threading.get_ident(),
                       "t0": time.monotonic() - self.started,
                       "fingerprinted": count < MAX_INSTANCES_PER_FUNC}
