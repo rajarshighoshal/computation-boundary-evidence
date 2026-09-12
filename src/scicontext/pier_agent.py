@@ -267,7 +267,7 @@ class ScientificCodex(BaseAgent):
         # input. A failed trace never blocks the static pipeline.
         if self.condition == "science" and seconds >= 60:
             await self._helper(
-                f"{HELPER} trace --root {self.root} --script reproduce.py --out {SCRATCH}/trace "
+                f"{HELPER} trace --root {self.root} --script {self.root}/reproduce.py --out {SCRATCH}/trace "
                 f"--seconds {max(10.0, seconds * 0.5)}",
                 max(15.0, seconds * 0.55))
         result = await self._helper(
