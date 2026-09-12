@@ -88,12 +88,14 @@ def _root_name(expression: str) -> str | None:
 
 
 class _Tracer:
-    def __init__(self, root: Path, script: Path, out: Path, observe: bool):
+    def __init__(self, root: Path, script: Path, out: Path, observe: bool, shims_dir: Path | None = None):
         self.root = root.resolve()
         self.script = script.resolve()
         self.out = out
         self.out.mkdir(parents=True, exist_ok=True)
         self.observe = observe
+        self.shims_dir = shims_dir.resolve() if shims_dir else None
+        self.shim_status = None
         self.stacks: dict[int, list] = {}
         self.seq = 0
         self.func_counts: dict = {}
@@ -370,6 +372,7 @@ class _Tracer:
             if self.observer:
                 self.observer.stop()
             run = {"status": "completed", "script_status": script_error,
+                   "shim_status": self.shim_status,
                    "wall_seconds": round(time.monotonic() - self.started, 3),
                    "instances": self.seq, "func_keys": len(self.func_counts),
                    "pythonhashseed": os.environ.get("PYTHONHASHSEED"),
@@ -378,12 +381,32 @@ class _Tracer:
                                     if v > MAX_INSTANCES_PER_FUNC}}
             (self.out / "run.json").write_text(json.dumps(run, indent=2) + "\n")
 
+    def _attach_shims(self):
+        if not self.shims_dir:
+            self.shim_status = "not_configured"
+            return
+        malloc_shim = self.shims_dir / "libscitrace_malloc.so"
+        if not malloc_shim.is_file():
+            self.shim_status = "missing"
+            return
+        import subprocess
+        environment = dict(os.environ, LD_PRELOAD=str(malloc_shim), SCITRACE_OUT=str(self.out))
+        try:
+            probe = subprocess.run(["true"], env=environment, capture_output=True, timeout=30)
+            self.shim_status = "loadable" if probe.returncode == 0 else "not_loadable"
+        except Exception as error:
+            self.shim_status = f"probe_failed: {type(error).__name__}"
+        if self.shim_status == "loadable":
+            os.environ["LD_PRELOAD"] = str(malloc_shim)
+            os.environ["SCITRACE_OUT"] = str(self.out)
+
     def _run_script(self):
         import contextlib
         import io
         sys.argv = [str(self.script)]
         previous = os.getcwd()
         os.chdir(self.script.parent)
+        self._attach_shims()
         buffer = io.StringIO()
         try:
             with contextlib.redirect_stdout(buffer):
@@ -416,8 +439,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--seconds", type=float, default=300.0)
     parser.add_argument("--observe", action="store_true")
+    parser.add_argument("--shims-dir", type=Path, default=None)
     args = parser.parse_args(argv)
-    tracer = _Tracer(args.root.resolve(), args.script.resolve(), args.out.resolve(), args.observe)
+    tracer = _Tracer(args.root.resolve(), args.script.resolve(), args.out.resolve(), args.observe, args.shims_dir)
     tracer.run(args.seconds)
     return 0
 

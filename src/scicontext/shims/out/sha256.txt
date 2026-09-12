@@ -1,0 +1,2 @@
+f4693cd568f357777b188e23f1c298432c80f341a03f22b87ddbd159524ab0f0  out/libscitrace_malloc.so
+02362992552154b38f99cabb215052eb7e584979ab4d9bd4b0ff7c101dac5ccf  out/libscitrace_mpi.so
