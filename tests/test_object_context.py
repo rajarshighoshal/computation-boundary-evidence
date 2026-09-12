@@ -347,3 +347,17 @@ def test_enrich_prompt_is_formattable():
                              finish_by="00:05:00", instruction="task text")
     assert '"schema_version": "object-enrichment-1.0"' in rendered
     assert "{{" not in rendered
+
+
+def test_guide_lists_related_implementations_for_findings():
+    graph = {"objects": [
+        _locus("R1", "build_projection_wall", path="vacuum.py", delta={"name": "gain", "a": "0.15", "b": "0.55"}),
+        {"id": "so_a", "kind": "code_interface", "symbol": "x._scaled_wall_arrays", "path": "vacuum.py",
+         "source_span": {"start_line": 272}, "scope": "m", "source_entry_ids": [], "roles": [], "properties": {}},
+        {"id": "so_b", "kind": "code_interface", "symbol": "x.build_vacmet_inputs", "path": "vacuum.py",
+         "source_span": {"start_line": 301}, "scope": "m", "source_entry_ids": [], "roles": [], "properties": {}},
+    ], "coverage": {"totals": {}}}
+    guide = render_guide(graph)
+    assert "related implementations in vacuum.py" in guide
+    assert "_scaled_wall_arrays (272)" in guide
+    assert "build_vacmet_inputs (301)" in guide

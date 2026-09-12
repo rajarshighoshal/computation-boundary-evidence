@@ -288,6 +288,23 @@ def _finding_statement(locus: dict) -> str:
     return f"{properties.get('constraint_type')} finding at {site}"
 
 
+def _related_implementations(graph: dict, locus: dict) -> list:
+    """Sibling code interfaces in the finding's module - convention carriers."""
+    path = locus.get("path")
+    symbol = (locus.get("symbol") or "").split("@")[-1]
+    related = []
+    for obj in graph.get("objects", []):
+        if obj.get("kind") != "code_interface" or obj.get("path") != path:
+            continue
+        name = (obj.get("symbol") or "").split(".")[-1]
+        if not name or name == symbol or name.startswith("_" + symbol):
+            continue
+        related.append(f"{name} ({obj.get('source_span', {}).get('start_line')})")
+        if len(related) >= 3:
+            break
+    return related
+
+
 def render_guide(graph: dict) -> str:
     """Readable guide: the strongest executed findings, stated as measurements."""
     lines = ["# Scientific working model", ""]
@@ -300,6 +317,9 @@ def render_guide(graph: dict) -> str:
         lines += ["## Executed evidence from the public reproducer", ""]
         for locus in loci[:MAX_GUIDE_FINDINGS]:
             lines.append("- " + _finding_statement(locus))
+            related = _related_implementations(graph, locus)
+            if related:
+                lines.append(f"  related implementations in {locus.get('path')}: " + ", ".join(related))
         lines.append("")
     lines += ["Interpretations are anchored to object IDs and public source passages; "
               "the complete object graph is in scientific-graph.json.", ""]

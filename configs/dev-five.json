@@ -4,7 +4,7 @@
  "attempt_failure_policy": "record_and_continue_without_retry",
  "attempts": 1,
  "codex_version": "0.153.4",
- "concurrency": 3,
+ "concurrency": 4,
  "condition_order": {
   "001": [
    "science",
@@ -55,7 +55,7 @@
  "model": "deepseek-flash",
  "pier_version": "0.3.0",
  "previous_partial_run": "runs/workflow-five-v2",
- "purpose": "Development line: baseline vs scientific-context guide on the five dev tasks with the complete pipeline (execution trace -> loci -> bounded anchored enrichment -> sharp guide). Both arms DeepSeek-flash, uniform 3600s ceiling, no extraction cap, one attempt per arm, counterbalanced, official verifier. Specimens for the per-task failure-mode diagnosis loop.",
+ "purpose": "Development line: baseline vs scientific-context guide on the five dev tasks with the complete pipeline (execution trace -> loci -> bounded anchored enrichment -> sharp guide). Both arms DeepSeek-flash, uniform 3600s ceiling, no extraction cap, one attempt per arm, counterbalanced, official verifier. Specimens for the per-task failure-mode diagnosis loop. Iteration 2: convention evidence in findings (sibling implementations), 90-min ceiling, concurrency 4.",
  "reasoning_effort": "high",
  "release_commit": "42e7e97915ff7d73436a5d37b5cbe6b77e9c2a00",
  "release_receipt": "data/random-five-v1-release.json",
@@ -70,6 +70,6 @@
   "114",
   "001"
  ],
- "total_seconds": 3600,
+ "total_seconds": 5400,
  "verifier_seconds": 1800
 }
