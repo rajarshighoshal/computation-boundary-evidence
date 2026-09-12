@@ -12,8 +12,8 @@
       "hit_level": null,
       "hit_loci": [],
       "instances": 912877,
-      "loci_total": 9,
-      "loci_violated": 6,
+      "loci_total": 10,
+      "loci_violated": 7,
       "no_effect_arguments": [
         {
           "args": [
@@ -249,6 +249,7 @@
         }
       ],
       "nondeterministic": 7,
+      "observation_provenance": {},
       "observer": {
         "files": 5,
         "processes": 1,
@@ -258,6 +259,7 @@
       "quantities": 654,
       "script_status": null,
       "signatures": 154,
+      "static_candidates": null,
       "transitions": 912877,
       "wall_seconds": 20.819
     },
@@ -331,6 +333,7 @@
         }
       ],
       "nondeterministic": 1,
+      "observation_provenance": {},
       "observer": {
         "files": 5,
         "processes": 0,
@@ -340,18 +343,28 @@
       "quantities": 121,
       "script_status": null,
       "signatures": 21,
+      "static_candidates": null,
       "transitions": 299,
       "wall_seconds": 0.26
     },
     "058": {
       "flip_status": "yes: report flips to post_fix_success (process level)",
       "func_keys": 11,
-      "hit": false,
-      "hit_level": null,
-      "hit_loci": [],
+      "hit": true,
+      "hit_level": [
+        "file"
+      ],
+      "hit_loci": [
+        {
+          "id": "cl_b41b4fb9ffafbd0759866535",
+          "path": "reproduce.py",
+          "rule": "R6",
+          "symbol": "containment@<script>"
+        }
+      ],
       "instances": 14,
-      "loci_total": 0,
-      "loci_violated": 0,
+      "loci_total": 1,
+      "loci_violated": 1,
       "no_effect_arguments": [
         {
           "args": [
@@ -361,17 +374,29 @@
         }
       ],
       "nondeterministic": 0,
+      "observation_provenance": {},
       "observer": {
         "files": 5,
         "processes": 0,
         "stall": null
       },
-      "precision": null,
+      "precision": 1.0,
       "quantities": 6,
       "script_status": null,
       "signatures": 3,
+      "static_candidates": {
+        "source/src/lattice.cpp": [
+          274,
+          276,
+          279,
+          791,
+          815,
+          842,
+          858
+        ]
+      },
       "transitions": 14,
-      "wall_seconds": 113.109
+      "wall_seconds": 110.528
     },
     "091": {
       "flip_status": "yes: report flips pre_fix_expected_failure -> post_fix_success",
@@ -433,6 +458,7 @@
         }
       ],
       "nondeterministic": 0,
+      "observation_provenance": {},
       "observer": {
         "files": 5,
         "processes": 0,
@@ -442,6 +468,7 @@
       "quantities": 527,
       "script_status": null,
       "signatures": 40,
+      "static_candidates": null,
       "transitions": 20562,
       "wall_seconds": 1.471
     },
@@ -452,8 +479,8 @@
       "hit_level": null,
       "hit_loci": [],
       "instances": 6257,
-      "loci_total": 2,
-      "loci_violated": 2,
+      "loci_total": 3,
+      "loci_violated": 3,
       "no_effect_arguments": [
         {
           "args": [
@@ -661,6 +688,288 @@
         }
       ],
       "nondeterministic": 4,
+      "observation_provenance": {
+        "1": [
+          [
+            "source/pypsa/type_utils.py",
+            "is_1d_list_like"
+          ],
+          [
+            "source/pypsa/type_utils.py",
+            "is_1d_list_like"
+          ],
+          [
+            "source/pypsa/type_utils.py",
+            "is_1d_list_like"
+          ],
+          [
+            "source/pypsa/type_utils.py",
+            "is_1d_list_like"
+          ],
+          [
+            "source/pypsa/type_utils.py",
+            "is_1d_list_like"
+          ],
+          [
+            "source/pypsa/type_utils.py",
+            "is_1d_list_like"
+          ],
+          [
+            "source/pypsa/type_utils.py",
+            "is_1d_list_like"
+          ],
+          [
+            "source/pypsa/type_utils.py",
+            "is_1d_list_like"
+          ],
+          [
+            "source/pypsa/type_utils.py",
+            "is_1d_list_like"
+          ],
+          [
+            "source/pypsa/type_utils.py",
+            "is_1d_list_like"
+          ],
+          [
+            "source/pypsa/type_utils.py",
+            "is_1d_list_like"
+          ],
+          [
+            "source/pypsa/type_utils.py",
+            "is_1d_list_like"
+          ],
+          [
+            "source/pypsa/type_utils.py",
+            "is_1d_list_like"
+          ],
+          [
+            "source/pypsa/type_utils.py",
+            "is_1d_list_like"
+          ],
+          [
+            "source/pypsa/type_utils.py",
+            "is_1d_list_like"
+          ],
+          [
+            "source/pypsa/type_utils.py",
+            "is_1d_list_like"
+          ],
+          [
+            "source/pypsa/type_utils.py",
+            "is_1d_list_like"
+          ],
+          [
+            "source/pypsa/type_utils.py",
+            "is_1d_list_like"
+          ],
+          [
+            "source/pypsa/type_utils.py",
+            "is_1d_list_like"
+          ],
+          [
+            "source/pypsa/type_utils.py",
+            "is_1d_list_like"
+          ],
+          [
+            "source/pypsa/type_utils.py",
+            "is_1d_list_like"
+          ],
+          [
+            "source/pypsa/type_utils.py",
+            "is_1d_list_like"
+          ],
+          [
+            "source/pypsa/type_utils.py",
+            "is_1d_list_like"
+          ],
+          [
+            "source/pypsa/consistency.py",
+            "check_for_disconnected_buses"
+          ],
+          [
+            "source/pypsa/optimization/constraints.py",
+            "define_ramp_limit_constraints"
+          ],
+          [
+            "source/pypsa/optimization/common.py",
+            "get_strongly_meshed_buses"
+          ],
+          [
+            "source/pypsa/networks.py",
+            "Network._empty_components"
+          ],
+          [
+            "source/pypsa/networks.py",
+            "Network.passive_branches"
+          ],
+          [
+            "source/pypsa/optimization/optimize.py",
+            "OptimizationAccessor.post_processing.<locals>.v_ang_for_"
+          ]
+        ],
+        "2": [
+          [
+            "source/pypsa/network/descriptors.py",
+            "NetworkDescriptorsMixin.get_switchable_as_dense"
+          ],
+          [
+            "source/pypsa/network/descriptors.py",
+            "NetworkDescriptorsMixin.get_switchable_as_dense"
+          ],
+          [
+            "source/pypsa/optimization/optimize.py",
+            "OptimizationAccessor.create_model"
+          ],
+          [
+            "source/pypsa/components/array.py",
+            "ComponentsArrayMixin._as_xarray"
+          ],
+          [
+            "source/pypsa/components/array.py",
+            "_XarrayAccessor.__getattr__"
+          ],
+          [
+            "source/pypsa/components/array.py",
+            "ComponentsArrayMixin._as_xarray"
+          ],
+          [
+            "source/pypsa/components/array.py",
+            "_XarrayAccessor.__getattr__"
+          ],
+          [
+            "source/pypsa/optimization/constraints.py",
+            "define_operational_constraints_for_extendables"
+          ],
+          [
+            "source/pypsa/optimization/constraints.py",
+            "define_operational_constraints_for_extendables"
+          ],
+          [
+            "source/pypsa/optimization/constraints.py",
+            "define_operational_constraints_for_extendables"
+          ],
+          [
+            "source/pypsa/optimization/constraints.py",
+            "define_operational_constraints_for_extendables"
+          ],
+          [
+            "source/pypsa/components/array.py",
+            "ComponentsArrayMixin._as_xarray"
+          ],
+          [
+            "source/pypsa/components/array.py",
+            "_XarrayAccessor.__getattr__"
+          ],
+          [
+            "source/pypsa/common.py",
+            "as_index"
+          ],
+          [
+            "source/pypsa/components/array.py",
+            "ComponentsArrayMixin._as_xarray"
+          ],
+          [
+            "source/pypsa/components/array.py",
+            "_XarrayAccessor.__getattr__"
+          ],
+          [
+            "source/pypsa/optimization/constraints.py",
+            "define_operational_constraints_for_extendables"
+          ],
+          [
+            "source/pypsa/optimization/constraints.py",
+            "define_operational_constraints_for_extendables"
+          ],
+          [
+            "source/pypsa/optimization/constraints.py",
+            "define_operational_constraints_for_extendables"
+          ],
+          [
+            "source/pypsa/optimization/constraints.py",
+            "define_operational_constraints_for_extendables"
+          ],
+          [
+            "source/pypsa/components/array.py",
+            "ComponentsArrayMixin._as_xarray"
+          ],
+          [
+            "source/pypsa/components/array.py",
+            "_XarrayAccessor.__getattr__"
+          ],
+          [
+            "source/pypsa/components/array.py",
+            "ComponentsArrayMixin._as_xarray"
+          ],
+          [
+            "source/pypsa/components/array.py",
+            "_XarrayAccessor.__getattr__"
+          ],
+          [
+            "source/pypsa/components/array.py",
+            "ComponentsArrayMixin._as_xarray"
+          ],
+          [
+            "source/pypsa/components/array.py",
+            "_XarrayAccessor.__getattr__"
+          ],
+          [
+            "source/pypsa/components/array.py",
+            "ComponentsArrayMixin._as_xarray"
+          ],
+          [
+            "source/pypsa/components/array.py",
+            "_XarrayAccessor.__getattr__"
+          ],
+          [
+            "source/pypsa/components/array.py",
+            "ComponentsArrayMixin._as_xarray"
+          ],
+          [
+            "source/pypsa/components/array.py",
+            "_XarrayAccessor.__getattr__"
+          ],
+          [
+            "source/pypsa/components/array.py",
+            "ComponentsArrayMixin._as_xarray"
+          ],
+          [
+            "source/pypsa/components/array.py",
+            "_XarrayAccessor.__getattr__"
+          ],
+          [
+            "source/pypsa/optimization/constraints.py",
+            "define_total_supply_constraints"
+          ],
+          [
+            "source/pypsa/common.py",
+            "as_index"
+          ],
+          [
+            "source/pypsa/components/array.py",
+            "ComponentsArrayMixin._as_xarray"
+          ],
+          [
+            "source/pypsa/components/array.py",
+            "_XarrayAccessor.__getitem__"
+          ],
+          [
+            "source/pypsa/components/array.py",
+            "ComponentsArrayMixin._as_xarray"
+          ],
+          [
+            "source/pypsa/components/array.py",
+            "_XarrayAccessor.__getattr__"
+          ],
+          [
+            "source/pypsa/components/array.py",
+            "ComponentsArrayMixin._as_dynamic"
+          ],
+          [
+            "source/pypsa/network/descriptors.py",
+            "NetworkDescriptorsMixin.get_switchable_as_dense"
+          ]
+        ]
+      },
       "observer": {
         "files": 6,
         "processes": 1,
@@ -670,6 +979,7 @@
       "quantities": 345,
       "script_status": null,
       "signatures": 129,
+      "static_candidates": null,
       "transitions": 6257,
       "wall_seconds": 5.415
     }

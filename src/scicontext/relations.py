@@ -349,12 +349,34 @@ def derive_loci(trace_records: list, predicate_evaluations: list, script_status:
                 locus["properties"]["predicate_source"] = "process_observable"
                 locus["properties"]["evidence"]["process"] = process
                 loci.append(locus)
-    if script_report and script_report.get("status") != "workflow_completed":
-        kind = script_report.get("failure_kind") or "workflow_failure"
-        locus = _cl(("reproduce.py", "<script>", 0), "R6", ("reproduce.py", "<script>", 0),
-                    "distinctness" if "collapse" in kind else "containment")
-        locus["properties"]["evidence"]["measures"]["failure_kind"] = kind
-        loci.append(locus)
+    if script_report:
+        if script_report.get("status") != "workflow_completed":
+            kind = script_report.get("failure_kind") or "workflow_failure"
+            locus = _cl(("reproduce.py", "<script>", 0), "R6", ("reproduce.py", "<script>", 0),
+                        "distinctness" if "collapse" in kind else "containment")
+            locus["properties"]["evidence"]["measures"]["failure_kind"] = kind
+            loci.append(locus)
+        # Script-declared observations carry the constraints even when the
+        # report status is nominal: boolean agreement/invariance/distinctness
+        # fields that are False, and numeric transition/jump/difference fields
+        # that are nonzero, are recorded as observed violations with the
+        # script's own measured value.
+        observations = script_report.get("observation", script_report.get("scientific_observation")) or {}
+        if isinstance(observations, dict):
+            for field, value in observations.items():
+                name = str(field).lower()
+                if isinstance(value, bool) and not value and any(
+                        token in name for token in ("agreement", "invariant", "consistent",
+                                                    "distinct", "collapse", "finite")):
+                    kind = "distinctness" if "distinct" in name or "collapse" in name else "invariance"
+                    locus = _cl(("reproduce.py", "<script>", 0), "R6s", ("reproduce.py", "<script>", 0), kind)
+                    locus["properties"]["evidence"]["measures"][field] = value
+                    loci.append(locus)
+                elif isinstance(value, (int, float)) and not isinstance(value, bool) and abs(value) > 1e-9 \
+                        and any(token in name for token in ("transition", "jump", "across", "boundary", "diff")):
+                    locus = _cl(("reproduce.py", "<script>", 0), "R6p", ("reproduce.py", "<script>", 0), "continuity")
+                    locus["properties"]["evidence"]["measures"][field] = value
+                    loci.append(locus)
     aggregated: dict[str, dict] = {}
     for locus in loci:
         existing = aggregated.get(locus["id"])

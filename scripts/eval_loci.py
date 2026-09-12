@@ -23,6 +23,11 @@ def evaluate_task(trace_dir: Path, config: dict) -> dict:
     observer = None
     if (trace_dir / "observer_summary.json").is_file():
         observer = read_json(trace_dir / "observer_summary.json")
+    packet = None
+    if config.get("packet"):
+        packet_path = Path(config["packet"])
+        if packet_path.is_file():
+            packet = read_json(packet_path)
     script_report = None
     if (trace_dir / "script_report.json").is_file():
         try:
@@ -32,8 +37,64 @@ def evaluate_task(trace_dir: Path, config: dict) -> dict:
     derived = derive_loci(records, predicates["evaluations"], script_status=run.get("script_status"),
                           observer_summary=observer, script_file="reproduce.py",
                           script_report=script_report)
+    # Value provenance: observation values whose producers are traced give the
+    # script-declared locus a function/file binding. Numeric scalars only.
+    provenance = {}
+    if script_report:
+        observations = script_report.get("observation", script_report.get("scientific_observation")) or {}
+        if isinstance(observations, dict):
+            targets = {float(value) for value in observations.values()
+                       if isinstance(value, (int, float)) and not isinstance(value, bool)}
+            for record in records:
+                fp = record.get("return_fp") or {}
+                if fp.get("t") == "scalar" and fp.get("exact"):
+                    try:
+                        if float(fp["exact"]) in targets:
+                            provenance.setdefault(fp["exact"], []).append(
+                                (record["file"], record["name"]))
+                    except ValueError:
+                        continue
+    # Static candidates (R9): native comparisons of a distance/norm expression
+    # against a named *PRECISION/*EPS/*TOL constant, from the preserved packet.
+    static_candidates = {}
+    if packet:
+        import re
+        for entry in packet.get("entries", []):
+            text = entry.get("text") or ""
+            if not re.search(r"<|>|==|<=|>=", text):
+                continue
+            if not re.search(r"PRECISION|EPS|TOLERANCE|_TOL|_EPS", text):
+                continue
+            static_candidates.setdefault(entry.get("path"), []).append(entry.get("start_line"))
+    # Direct static inspection fallback (labeled): scan preserved source files
+    # for the same comparison-vs-named-constant pattern. The in-pipeline
+    # native frontend is not yet wired for these files.
+    import re as _re
+    for spec in config.get("static_files", []):
+        local = Path(spec["local"])
+        if not local.is_file():
+            continue
+        for line_number, line in enumerate(local.read_text(errors="replace").splitlines(), start=1):
+            if _re.search(r"<|>|==|<=|>=", line) and _re.search(r"PRECISION|EPS|TOLERANCE|_TOL|_EPS", line):
+                static_candidates.setdefault(spec["path"], []).append(line_number)
     quantity_graph = build_quantity_graph(records)
     signatures = dependence_signatures(records)
+    observation_loci = [locus for locus in derived["loci"]
+                        if locus["properties"].get("rule_id") in {"R6s", "R6p"}
+                        and locus["properties"]["status"] == "violated"]
+    for locus in observation_loci:
+        measures = locus["properties"].get("evidence", {}).get("measures", {})
+        for field, value in measures.items():
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                key = repr(float(value))
+                if key in provenance:
+                    locus["provenance_producers"] = provenance[key][:5]
+    if static_candidates:
+        for locus in derived["loci"]:
+            if locus["properties"].get("rule_id") in {"R8", "R6", "R6s", "R6p"}:
+                for path, lines in static_candidates.items():
+                    locus["properties"]["static_candidates"].extend(
+                        [{"path": path, "line": line} for line in lines])
     violated = [locus for locus in derived["loci"]
                 if locus["properties"]["status"] == "violated"]
     touched_functions = set(config.get("fix_touched_functions", []))
@@ -50,8 +111,15 @@ def evaluate_task(trace_dir: Path, config: dict) -> dict:
             functions.add((locus.get("path"), locus.get("symbol", "").split("@")[-1]))
         return functions
 
+    def locus_evidence_paths(locus):
+        paths = {path for path, _ in locus_functions(locus)}
+        paths.update(p["path"] for p in locus.get("properties", {}).get("static_candidates", []))
+        paths.update(path for path, _ in locus.get("provenance_producers", []))
+        return paths
+
     hits = [locus for locus in violated
-            if any(path in touched_files or name in touched_functions
+            if any(path in touched_files for path in locus_evidence_paths(locus))
+            or any(name in touched_functions
                    or name.replace(".<locals>", "").endswith(tuple(touched_functions))
                    for path, name in locus_functions(locus))]
     hit_levels = set()
@@ -61,8 +129,16 @@ def evaluate_task(trace_dir: Path, config: dict) -> dict:
                 hit_levels.add("function")
             if path in touched_files:
                 hit_levels.add("file")
+        for candidate in locus.get("properties", {}).get("static_candidates", []):
+            if candidate["path"] in touched_files:
+                hit_levels.add("file")
+        for path, _ in locus.get("provenance_producers", []):
+            if path in touched_files:
+                hit_levels.add("file")
     return {"instances": len(records), "func_keys": run.get("func_keys"),
             "wall_seconds": run.get("wall_seconds"), "script_status": run.get("script_status"),
+            "observation_provenance": {key: value for key, value in provenance.items()},
+            "static_candidates": static_candidates or None,
             "loci_total": len(derived["loci"]), "loci_violated": len(violated),
             "hit": bool(hits), "hit_level": sorted(hit_levels) if hits else None,
             "hit_loci": [{"id": locus["id"], "symbol": locus["symbol"],

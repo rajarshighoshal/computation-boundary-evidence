@@ -35,7 +35,7 @@
    "flip_status": "yes: report flips pre_fix_expected_failure -> post_fix_success"
   },
   "058": {
-   "trace_dir": "runs/loci-eval-v1/task-058/clean2",
+   "trace_dir": "runs/loci-eval-v1/task-058/final5",
    "reproduce": "reproduce.py",
    "patch": "runs/deepseek-five-v1/jobs/task-058-baseline/task_058__nrvUsTR/artifacts/model.patch",
    "patch_nested": false,
@@ -46,7 +46,15 @@
     "source/src/lattice.cpp"
    ],
    "expected": "process-level completion evidence only; compiled core beyond the Python boundary",
-   "flip_status": "yes: report flips to post_fix_success (process level)"
+   "flip_status": "yes: report flips to post_fix_success (process level)",
+   "packet": "runs/deepseek-five-v1/jobs/task-058-science/task_058__45ujMP5/agent/extract-scratch/packet.json",
+   "static_files": [
+    {
+     "path": "source/src/lattice.cpp",
+     "local": "runs/loci-eval-v1/task-058/lattice.cpp",
+     "label": "direct static inspection; native frontend not wired in-pipeline"
+    }
+   ]
   },
   "114": {
    "trace_dir": "runs/loci-eval-v1/task-114/final4",
