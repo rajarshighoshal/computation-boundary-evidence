@@ -89,7 +89,7 @@ def test_bad_envelope_does_not_mutate_the_derived_graph(scientific_case, respons
     _, _, graph, _ = scientific_case
     result = enrich_objects(graph, response)
     assert result["objects"] == graph["objects"]
-    assert result["enrichment"]["dropped"] == [{"reason": "invalid_enrichment_envelope"}]
+    assert result["enrichment"]["dropped"][0]["reason"] == "invalid_enrichment_envelope"
 
 
 def test_offline_command_produces_context_and_enriched_artifacts(scientific_case, capsys):

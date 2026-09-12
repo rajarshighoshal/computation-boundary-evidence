@@ -340,7 +340,9 @@ class _Tracer:
         except SystemExit:
             pass
         except Exception as error:
+            import traceback
             script_error = f"{type(error).__name__}: {error}"
+            script_traceback = traceback.format_exc()
         finally:
             outputs_dir = self.script.parent / "outputs"
             if outputs_dir.is_dir():
@@ -372,6 +374,7 @@ class _Tracer:
             if self.observer:
                 self.observer.stop()
             run = {"status": "completed", "script_status": script_error,
+                   "script_traceback": locals().get("script_traceback"),
                    "shim_status": self.shim_status,
                    "wall_seconds": round(time.monotonic() - self.started, 3),
                    "instances": self.seq, "func_keys": len(self.func_counts),
@@ -406,6 +409,11 @@ class _Tracer:
         sys.argv = [str(self.script)]
         previous = os.getcwd()
         os.chdir(self.script.parent)
+        if str(self.script.parent) not in sys.path:
+            sys.path.insert(0, str(self.script.parent))
+        if os.environ.get("SCITRACE_DEBUG_PATH"):
+            with open(self.out / "syspath-debug.txt", "w") as handle:
+                handle.write(f"cwd={os.getcwd()}\nargv={sys.argv}\nsys.path={sys.path}\n")
         self._attach_shims()
         buffer = io.StringIO()
         try:

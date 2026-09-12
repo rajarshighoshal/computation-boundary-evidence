@@ -8,11 +8,12 @@ executing the public reproducer, objects, operations, dataflow links, unresolved
 relevant source passages and public scientific excerpts. Annotate the most task-relevant
 objects: constraint findings first, then workflow interfaces, their parameters and outputs.
 
-Response: one JSON object with an annotations array. Each annotation references an exact
-supplied object_id and may contain only meaning, conventions and assumptions. The code owns
-structure and derived properties; annotate it, do not extend it. Where an interpretation is
-uncertain, state it as an assumption or omit it. Keep it compact: at most 40 annotations,
-most relevant first.
+Response: JSON of the form {"schema_version": "object-enrichment-1.0", "annotations": [...]}.
+Each annotation references an exact supplied object_id and contains meaning (string),
+conventions (array of strings) and assumptions (array of strings). The code owns structure
+and derived properties; annotate it, do not extend it. Where an interpretation is uncertain,
+state it as an assumption or omit it. Keep it compact: at most 40 annotations, most relevant
+first.
 
 Mode note: if you have shell access, the payload file is {scratch}/scientific-context-input.json;
 write your first-pass annotations JSON to {scratch}/extract_draft-annotations.json early (the

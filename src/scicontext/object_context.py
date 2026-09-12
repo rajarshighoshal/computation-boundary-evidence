@@ -151,11 +151,28 @@ def enrich_objects(graph: dict, response: object) -> dict:
     report = {"applied_object_ids": [], "dropped": []}
     result["enrichment"] = report
     schema = enrichment_schema()
+    normalized = False
+    if isinstance(response, dict) and isinstance(response.get("annotations"), list):
+        annotations = []
+        for annotation in response["annotations"]:
+            if not isinstance(annotation, dict):
+                continue
+            for field in ("conventions", "assumptions"):
+                if isinstance(annotation.get(field), str):
+                    annotation = {**annotation, field: [annotation[field]]}
+                    normalized = True
+            annotations.append(annotation)
+        if "schema_version" not in response:
+            response = {**response, "schema_version": "object-enrichment-1.0"}
+            normalized = True
+        response = {**response, "annotations": annotations}
+    if normalized:
+        report["normalized"] = "coerced string conventions/assumptions to arrays; assumed schema_version"
     envelope = {**response, "annotations": []} if isinstance(response, dict) and isinstance(
         response.get("annotations"), list) else response
     errors = list(Draft202012Validator(schema).iter_errors(envelope))
     if errors:
-        report["dropped"].append({"reason": "invalid_enrichment_envelope"})
+        report["dropped"].append({"reason": "invalid_enrichment_envelope", "errors": len(errors)})
         return result
     item_schema = {**schema["$defs"]["annotation"], "$defs": schema["$defs"]}
     validator = Draft202012Validator(item_schema)
