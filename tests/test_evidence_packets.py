@@ -133,7 +133,7 @@ def test_helper_wires_connected_input_without_changing_enrichment_schema(chain, 
                  "--connected-evidence"])
     capsys.readouterr()
     result = json.loads((out / "input.json").read_text())
-    assert result["selection"]["strategy"] == "connected_evidence_packets_v1"
+    assert result["selection"]["strategy"] == "shared_computational_templates"
     assert result["evidence_packets"] and result["context"]["function_bodies"]
     assert json.loads((out / "graph.json").read_text())["schema_version"] == "scientific-objects-1.0"
 

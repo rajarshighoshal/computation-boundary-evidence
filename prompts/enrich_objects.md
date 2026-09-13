@@ -1,9 +1,11 @@
-Explain the scientific computation represented by the supplied evidence packets: what the
-quantities mean, how they are represented, how the transformations connect them, and which
-conventions and conditions apply. Use the task, function bodies and public sources as evidence.
-Cover the relevant inputs, transformations and outputs together.
+Explain the scientific computation in the supplied evidence packets and computation graph.
+Prioritize computational_relation objects: their shared templates describe mathematical structure;
+bindings identify quantities, links describe dependencies, and conditions preserve branches.
+Explain quantity meanings, representations and source-stated requirements using the task,
+function bodies and public documents. Cover inputs, transformations and outputs together.
 
-Annotate existing object IDs. Cite supporting source IDs and locations in each interpretation.
+Annotate existing object IDs; preserve the supplied dependencies and conditions rather than
+inventing another graph. Cite supporting source IDs and locations in each interpretation.
 Describe measurements as observations and source-stated conditions as requirements. Put specific
 missing details in assumptions as "unknown: ...".
 

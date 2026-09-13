@@ -68,7 +68,9 @@ def enrichment_input(graph: dict, packet: dict, *, root: Path | None = None, con
     """
     if connected:
         from .evidence_packets import build_connected_input
-        return build_connected_input(graph, packet, root)
+        from .computation import computation_input
+        payload = build_connected_input(graph, packet, root)
+        return computation_input(payload)
     payload = {key: copy.deepcopy(graph[key]) for key in ("objects", "operations", "links", "unsupported")}
     objects, operations, links, unsupported = (payload["objects"], payload["operations"],
                                                payload["links"], payload["unsupported"])
@@ -240,6 +242,9 @@ def render_objects(graph: dict) -> str:
 
 def object_bundle(graph: dict, response: object, context: dict | None = None) -> dict:
     from .io import digest_json
+    if context and context.get("computation"):
+        from .computation import attach_computation
+        graph = attach_computation(graph, context["computation"])
     combined = enrich_objects(graph, response)
     usable = bool(combined["objects"])
     return {"graph": combined, "graph_sha256": digest_json(combined),
@@ -310,6 +315,9 @@ def _related_implementations(graph: dict, locus: dict) -> list:
 
 def render_guide(graph: dict) -> str:
     """Readable guide: the strongest executed findings, stated as measurements."""
+    if graph.get("computation"):
+        from .computation import render_computation
+        return render_computation(graph)
     lines = ["# Scientific working model", ""]
     loci = [obj for obj in graph.get("objects", []) if obj.get("kind") == "constraint_locus"
             and obj.get("properties", {}).get("status") == "violated"]

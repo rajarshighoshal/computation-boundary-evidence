@@ -94,7 +94,8 @@ def test_actual_packet_prompt_reaches_the_enrichment_request(tmp_path, monkeypat
     async def fake_api(key, model, messages, **kwargs):
         requests.append(messages)
         text = messages[0]["content"]
-        assert text.startswith("Explain the scientific computation represented by the supplied evidence packets")
+        assert text.startswith("Explain the scientific computation in the supplied evidence packets")
+        assert "computational_relation" in text and "preserve the supplied dependencies" in text
         assert "Inspect the transport calculation" in text
         assert "inputs, transformations and outputs together" in text
         assert "ep_test" in text and "so_a" in text and "e1" in text

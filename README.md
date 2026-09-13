@@ -4,7 +4,7 @@ An experimental preparation stage for SWE-bench Science. Code extracts objects, 
 interfaces and source references; a scientific-reading LLM attaches meanings, conventions and
 assumptions to those same objects before a fresh repair session.
 
-The research comparison is ordinary Codex versus extraction followed by repair under the same total agent allowance. Current initial checks use GPT-6 Astra/medium; earlier checks used high. These are exploratory feasibility checks, not a locked experiment. This implementation is a research prototype, not a scientific-correctness prover.
+The research comparison is ordinary repair versus extraction followed by repair under the same total agent allowance. Models and effort are recorded per run; older results do not evaluate the latest method. The current core shares mathematical expression templates across concrete quantity bindings, preserves dependencies and conditions, and attaches source-grounded scientific interpretations. Offline coverage has been checked on all 119 archived public packets; live interpretation and repair of this revision remain unevaluated. See the [current method and explicit gaps](docs/METHOD.md).
 
 The runner reuses Pier/Codex and subscription authentication. The current scientific-object mode
 uses one read-only interpretation call, with no probe/refinement loop. Code joins anchored output;

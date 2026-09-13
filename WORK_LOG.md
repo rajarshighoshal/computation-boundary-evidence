@@ -10,6 +10,18 @@ Language-specific structure extraction must feed the shared representation.
 
 ## Active work
 
+- CORE REPRESENTATION IMPLEMENTED AND VERIFIED: `computation.py` builds scoped quantity versions,
+  shared ordered-expression templates/bindings, local-intermediate expansion, field/container and
+  candidate helper dependencies, shared branch/continuation conditions and document-symbol links.
+  Connected input now targets these code-owned relations; existing annotation schema joins meanings
+  without changing structure. Assembly/durable graph/repair-guide integration implemented.
+  Final verification: 535 tests pass, including 19 new cross-pattern/multilingual/core-handoff cases.
+  All 119 archived public packets checked offline in 2.89s: 116 have shared templates; 98 contain
+  non-reproducer arithmetic (21 saved-slice coverage gaps). Receipt: `results/computation-coverage.json`.
+  Fresh connected source replay/code-only handoff: `runs/computation-connected-verified/`.
+  Scientific-label accuracy and repair benefit of this revision remain UNTESTED. No paid calls,
+  candidate execution or verifier. Scope/gaps/reproduction are saved in `docs/METHOD.md`; the shared
+  graph adds information and is not claimed to reduce total serialized evidence bytes.
 - ONE-CALL INTERPRETATION CHECK COMPLETE: DESC, DeepSeek Flash/default high, one call/no retry,
   52.01s, 81170 input + 12817 output tokens (9546 reasoning, included in output), estimated off-peak
   USD 0.0198657 within approved USD 0.10. Frozen input/prompt/raw response at

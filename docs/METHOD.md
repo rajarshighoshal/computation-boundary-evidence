@@ -3,6 +3,75 @@
 This describes the current scientific-object method, not the retired probe-first experiments.
 It is a research prototype; state-of-the-art performance and repair improvement are not established.
 
+## Current core: shared computational representation (13 September)
+
+Connected extraction now constructs `scientific-computation-1.0` before interpretation. This is
+an implemented code-side abstraction, not an LLM-generated graph. The older API-object layer below
+is retained for compatibility and provenance; it is no longer the main interpretation target in
+connected mode. `src/scicontext/computation.py` owns this representation.
+
+- **Quantity identities** distinguish scoped inputs, assignments, versions and indexed fields.
+  Field reads retain their container dependency. Units, axes and coordinate frames remain unknown
+  unless supported by other source/interpretation evidence; the algorithm does not invent them.
+- **Mathematical templates** share ordered expression structure up to renaming quantity operands.
+  Repeated operands, constants, indexing structure and operator order survive. For example,
+  `a*x+b*y+c*z` has one template and distinct bindings at each occurrence, rather than one
+  description per function. Native language identity remains explicit because similarly spelled
+  operators need not share semantics. This is structural abstraction, not algebraic equivalence.
+- **Transformation occurrences** bind a template to quantities and a source location. Local pure
+  intermediates are expanded under an explicit size bound while original dependency edges remain.
+  Branches, loops, early returns and validation continuations carry source conditions; shared
+  condition sets are stored once. Indexed archived expressions use the existing dependency evidence.
+- **Interprocedural edges** retain statically supported argument and return candidates from helper
+  retrieval. Variadic, dynamic, decorated and unresolved calls are not silently substituted.
+- **Scientific-source links** identify explicit symbol references in public documents. These are
+  candidate meaning correspondences, not proof that a passage defines a quantity. The LLM annotates
+  existing computational-relation IDs with meanings/conventions/assumptions; it cannot manufacture
+  dataflow links or alter the code-owned representation. Source validation guards remain distinct
+  from physical requirements.
+
+The compact interpreter input uses relation IDs plus the shared representation and source evidence,
+not duplicate legacy object/operation indexes. Assembly attaches those relation objects to the
+durable scientific graph and joins annotations with the existing schema. The repair guide renders
+shared mathematical forms, concrete bindings and retained conditions, with interpretations when
+available. Whole omitted display groups remain in the graph; a display bound never cuts a condition
+off its occurrence. This does not guarantee the complete serialized evidence input is smaller:
+recovering relationships adds information as well as sharing repeated structure.
+
+### Verification and remaining gaps
+
+`results/computation-coverage.json` records a deterministic offline check over all 119 previously
+materialized public packets, selected without inspecting repair outcomes. It measures recoverable
+arithmetic/template structure, not scientific correctness, whole-repository coverage or success.
+The verified scan found arithmetic in all 119 packets and shared templates in 116, but arithmetic
+outside reproducer files in only 98. The other 21 saved slices must not be reported as recovered
+implementation-level science: 015, 018, 020, 023, 024, 027, 042, 052, 053, 065, 066, 069, 070, 072,
+077, 092, 100, 105, 106, 115, 119. This may reflect retrieval/entry limits or computation outside the
+supported arithmetic forms; this scan does not distinguish those causes. It took 2.89 seconds for
+representation construction from archived packets, excluding retrieval, agents and verification.
+Tests cover cross-domain renaming, operand identity/order/constants, local intermediates, branch
+merges, early returns, possible mutation, array-field dependencies, source-document links, helper
+calls and the existing C/C++/Fortran/MATLAB/Cython frontends. Production assembly/guide tests use
+mock annotations, not a hidden model call. The connected source replay and code-only handoff are
+preserved in `runs/computation-connected-verified/`.
+
+Remaining gaps are explicit, not claimed as completed work:
+
+1. Templates do not establish physical meaning, operator types, floating-point equivalence, tensor
+   shapes or alias correctness. A weighted expression is not automatically a particular physical law.
+2. Interprocedural binding is partial; `*args`/`**kwargs`, indirect calls, mutation and language-specific
+   dispatch can remain opaque. Native function/array-call ambiguity is preserved. Native intermediate
+   expansion and complete loop-carried dependence analysis are not implemented.
+3. Local expression expansion is conservative, not whole-program SSA/symbolic execution. Unsupported
+   control regions and missing indexed expressions are recorded in `gaps`. Retrieval omissions remain
+   in source-selection receipts. Conditions from an indexed snippet are not a complete path predicate.
+4. Scientific interpretation with this new representation has not been live-tested. The earlier
+   one-call test used a different input and output contract; its result cannot establish this revision's
+   quality. No repair comparison has evaluated the shared-template revision.
+
+The existing harness/model route is unchanged. No new retries, agent framework, compiler IR or
+paid experiments were introduced by this core implementation.
+
 ## Representation and division of work
 
 Code identifies values, operations, source bindings, interface parameters and dependency links.

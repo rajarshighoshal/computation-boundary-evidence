@@ -44,7 +44,14 @@ def main():
     args.output.mkdir(parents=True)
     write_json(args.output / "before.json", before)
     write_json(args.output / "after.json", after)
+    if after.get("computation"):
+        from scicontext.object_context import object_bundle
+        bundle = object_bundle(graph, None, after)
+        write_json(args.output / "bundle.json", bundle)
+        write_json(args.output / "computation.json", after["computation"])
+        (args.output / "scientific-guide.md").write_text(bundle["handoff"])
     count = lambda x: {k: len(x[k]) for k in ("objects", "operations", "links")}
+    selection = after["selection"].get("source_selection", after["selection"])
     receipt = {"input_graph": str(args.graph), "input_graph_sha256": digest_file(args.graph),
                "input_packet": str(args.packet), "input_packet_sha256": digest_file(args.packet),
                "source_root": str(args.root), "before": count(before), "after": count(after),
@@ -65,8 +72,9 @@ def main():
                "complete_function_bodies": sum(b["kind"] == "complete_function_body" for b in after["context"]["function_bodies"]),
                "gaps": sorted({g["reason"] for p in after["evidence_packets"] for g in p["gaps"]} |
                               {g["reason"] for g in after["context"].get("helper_gaps", [])}),
-               "omitted_packet_seeds": len(after["selection"]["omitted_packets"]),
-               "omission_reasons": dict(Counter(p["reason"] for p in after["selection"]["omitted_packets"])),
+               "omitted_packet_seeds": len(selection["omitted_packets"]),
+               "omission_reasons": dict(Counter(p["reason"] for p in selection["omitted_packets"])),
+               "computation": after.get("computation", {}).get("coverage"),
                "model_calls": 0, "candidate_code_executed": False,
                "interpretation": "Structural input comparison only; not scientific correctness or repair benefit."}
     write_json(args.output / "receipt.json", receipt)
