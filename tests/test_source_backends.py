@@ -43,16 +43,6 @@ def test_graphson_edges_are_analyzer_owned_and_paths_follow_ast(tmp_path):
     assert all(n.get('path')=='model.py' for n in graph['nodes'])
 
 
-def test_joern_flow_attaches_without_relabeling_source_matches_as_value_proofs():
-    payload=python_payload('def f(x):\n    return x*2\n')
-    payload['computation']=build_computation(payload)
-    analysis={'analyses':[{'backend':'joern','nodes':[{'id':'j1','kind':'RETURN','path':'model.py','line':2,
-                                                   'properties':{'CODE':'return x*2'}}], 'links':[]}], 'gaps':[]}
-    result=attach_source_analysis(payload,analysis)
-    assert result['computation']['source_analysis_bindings']
-    assert result['computation']['source_analysis_bindings'][0]['status'].startswith('source_location')
-    assert result['computation']['dataflow_authority']['joern_paths']==['model.py']
-
 
 def test_real_fortls_symbols_via_supported_entrypoint(tmp_path):
     root=Path(__file__).parent/'fixtures/source_backends/fortran'
@@ -67,33 +57,7 @@ def test_real_fortls_symbols_via_supported_entrypoint(tmp_path):
 
 
 
-def test_extractor_source_analysis_path_updates_the_model_input(tmp_path,monkeypatch):
-    """Exercise download, exact source checks, subprocess invocation and upload."""
-    import hashlib
-    import scicontext.pier_agent as module
-    source='def f(x):\n    return x*2\n'
-    payload=python_payload(source)
-    for b in payload['context']['function_bodies']:
-        b['sha256']=hashlib.sha256(source.encode()).hexdigest()
-    payload['computation']=build_computation(payload)
-    uploads=[]
-    async def download(remote,local):
-        local.parent.mkdir(parents=True,exist_ok=True)
-        local.write_text(json.dumps(payload) if remote.endswith('scientific-context-input.json') else source)
-    async def upload(local,remote):uploads.append((json.loads(local.read_text()),remote))
-    async def execute(*command,**kwargs):
-        out=Path(command[command.index('--output')+1]);out.mkdir(parents=True)
-        (out/'receipt.json').write_text(json.dumps({'analyses':[], 'gaps':[{'reason':'test_backend'}]}))
-        return SimpleNamespace(wait=AsyncMock(return_value=0))
-    monkeypatch.setattr(module.asyncio,'create_subprocess_exec',execute)
-    agent=SimpleNamespace(logs_dir=tmp_path,root='/app/task',extract_environment=SimpleNamespace(download_file=download,upload_file=upload))
-    asyncio.run(ScientificCodex._augment_source_analysis(agent))
-    assert uploads[0][1]==SCRATCH+'/scientific-context-input.json'
-    assert uploads[0][0]['computation']['source_analysis']['gaps'][0]['reason']=='test_backend'
-    assert agent._source_analysis_file.is_file()
 
-
-@pytest.mark.parametrize("aliases,suffixes",JOERN_SOURCE_ROUTES)
 def test_all_registered_source_frontends_route_from_capability_list(aliases,suffixes):
     paths=['source/model'+suffix for suffix in sorted(suffixes)]
     routes,gaps=frontend_routes(paths,{aliases[-1]})

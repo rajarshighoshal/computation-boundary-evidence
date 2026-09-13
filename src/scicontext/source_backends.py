@@ -195,9 +195,9 @@ def analyze_sources(root, output):
 
 
 def attach_source_analysis(payload, result):
-    """Attach analyzer-owned flow; retain mathematical bindings, not guessed call dispatch."""
-    model=payload["computation"]
-    lift_cpg_computations(payload, result)
+    """Attach analyzer-owned code facts (signatures, calls, data flow) as
+    analysis_sources on the packet — they feed the bounded selection, not a
+    parallel computation representation."""
     import copy
     relevant=copy.deepcopy(result)
     ranges={}
@@ -218,27 +218,45 @@ def attach_source_analysis(payload, result):
         analysis["export_edge_counts"]=analysis.get("edge_counts",{})
         analysis["edge_counts"]=dict(Counter(e["role"] for e in edges))
         analysis["selection"]="source regions plus direct dependency boundary; complete export in source-analysis.json"
-    model["source_analysis"]=relevant
-    covered={node.get("path") for a in relevant["analyses"] if a["backend"]=="joern" for node in a["nodes"]}
-    quantity_paths={q["id"]:q["path"] for q in model["quantities"]}
-    unit_paths={u["id"]:u["path"] for u in model["transformations"]}
-    paths={**quantity_paths,**unit_paths}
-    model["links"]=[e for e in model["links"] if not (e.get("status")=="static_call_candidate" and
-                        paths.get(e["source"]) in covered and paths.get(e["target"]) in covered)]
-    model["source_analysis_bindings"]=[]
+    # Attach the enriched analysis regions as context — the bounded selection
+    # picks from them like any other code evidence.
+    payload.setdefault("context", {}).setdefault("analysis_sources", [])
     for a in relevant["analyses"]:
-        if a["backend"]!="joern":
+        if a["backend"] != "joern":
             continue
-        index={}
         for node in a["nodes"]:
-            index.setdefault((node.get("path"),node.get("line")),[]).append(node["id"])
-        for u in model["transformations"]:
-            nodes=index.get((u["path"],u["line"]),[])
-            if nodes:
-                model["source_analysis_bindings"].append({"transformation_id":u["id"],"analyzer_nodes":nodes,
-                    "status":"source_location_correspondence_not_value_equivalence"})
-    model["dataflow_authority"]={"joern_paths":sorted(p for p in covered if p),
-        "other_paths":"existing partial source frontend", "note":"Joern owns program-flow facts on covered paths. Mathematical operand links remain separate."}
+            path = node.get("path")
+            line = node.get("line")
+            if not path or line is None:
+                continue
+            code = node.get("properties", {}).get("CODE", "")
+            name = node.get("properties", {}).get("NAME", "")
+            full_name = node.get("properties", {}).get("FULL_NAME", name)
+            if not code and not name:
+                continue
+            payload["context"]["analysis_sources"].append({
+                "id": f"sa_{node['id'][:16]}",
+                "path": path, "start_line": line, "end_line": line,
+                "text": code or f"// {full_name}",
+                "analyzer": "joern",
+                "name": name, "full_name": full_name,
+                "kind": node.get("type", "unknown"),
+                "language": a.get("language", "unknown"),
+            })
+        # Attach call/dataflow edges as evidence links
+        for edge in a["links"]:
+            payload["context"]["analysis_sources"].append({
+                "id": f"sl_{edge['source'][:8]}_{edge['target'][:8]}",
+                "path": "analysis://joern/edges", "start_line": 0, "end_line": 0,
+                "text": f"{edge.get('role', 'call')}: {edge['source']} -> {edge['target']}",
+                "analyzer": "joern", "kind": "edge",
+            })
+    payload["source_analysis_summary"] = {
+        "backends": [a["backend"] for a in relevant["analyses"]],
+        "joern_nodes": sum(len(a["nodes"]) for a in relevant["analyses"] if a["backend"] == "joern"),
+        "joern_edges": sum(len(a["links"]) for a in relevant["analyses"] if a["backend"] == "joern"),
+        "note": "Analyzer facts attached as analysis_sources; they feed the bounded selection.",
+    }
     return payload
 
 
