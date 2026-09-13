@@ -6,6 +6,21 @@ It is a research prototype; state-of-the-art performance and repair improvement 
 ## Current core: shared computational representation (13 September)
 
 The reuse-first backend integration adds Joern, SymPy and fortls to the common representation.
+Routing now queries installed Joern frontend capabilities instead of restricting invocation to
+Python/C++. Source routing covers C/C++, Python, Java, JavaScript/TypeScript, Kotlin, Go, Rust,
+Ruby, PHP, C#, Swift and ABAP when the corresponding frontend is installed. This is source-language
+routing, not automatic binary/LLVM analysis. Missing frontends remain explicit gaps.
+
+The packet also records source files for external analysis even when the legacy syntax index has
+no entries for their language. Joern-only paths are lifted from Joern's common AST/argument nodes
+into the same mathematical-template/quantity representation; the adapter does not implement a new
+language parser or dataflow analyzer. CPG-derived source facts are still infrastructure, not the
+scientific contribution or evidence of repair benefit. The real JavaScript check passed through
+selection, Joern, representation construction and a code-only repair guide. Other added language
+routes have routing/selection tests, not equivalent live frontend validation. The failed initial
+JavaScript run is preserved; its packaged launcher needed the documented ASTGEN_BIN override to
+locate its already-installed parser. See `results/joern-language-routing.json`.
+
 Joern is invoked by the extractor's `interpret` path on the host, after downloading the exact
 public files referenced by the input. `joern-parse` and `joern-export` produce analyzer-owned
 data/control-flow facts; `source_backends.py` normalizes and binds them by source location. Only

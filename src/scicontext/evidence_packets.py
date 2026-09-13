@@ -172,7 +172,8 @@ def build_connected_input(graph, packet, root=None, *, max_objects=300, max_byte
                 "context": {"scientific_passages": list(selected_docs.values()),
                             "code_passages": [copy.deepcopy(e) for eid, e in entries.items() if eid in selected_entries],
                             "function_bodies": list(body_records.values()), "helper_calls": helper_calls,
-                            "helper_gaps": list(helper_issue_records.values())},
+                            "helper_gaps": list(helper_issue_records.values()),
+                            "analysis_sources": copy.deepcopy(packet.get("analysis_sources", []))},
                 "evidence_packets": copy.deepcopy(bundles)}
 
     for _, eid, reason, matches in sorted(seeds):

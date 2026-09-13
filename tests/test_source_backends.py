@@ -5,11 +5,13 @@ import json
 from pathlib import Path
 import subprocess
 import sys
+import pytest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 from scicontext.computation import build_computation
 from scicontext.source_backends import read_joern, attach_source_analysis
+from scicontext.source_backends import frontend_routes, JOERN_SOURCE_ROUTES
 from scicontext.pier_agent import ScientificCodex, SCRATCH
 from test_computation import python_payload
 
@@ -98,3 +100,53 @@ def test_extractor_source_analysis_path_updates_the_model_input(tmp_path,monkeyp
     assert uploads[0][1]==SCRATCH+'/scientific-context-input.json'
     assert uploads[0][0]['computation']['source_analysis']['gaps'][0]['reason']=='test_backend'
     assert agent._source_analysis_file.is_file()
+
+
+@pytest.mark.parametrize("aliases,suffixes",JOERN_SOURCE_ROUTES)
+def test_all_registered_source_frontends_route_from_capability_list(aliases,suffixes):
+    paths=['source/model'+suffix for suffix in sorted(suffixes)]
+    routes,gaps=frontend_routes(paths,{aliases[-1]})
+    assert routes==[(aliases[-1],paths)] and not gaps
+
+
+def test_mixed_languages_are_all_routed_once_and_missing_frontend_is_explicit():
+    routes,gaps=frontend_routes(['a.py','b.java','c.js','d.ts','e.rs','unknown.zz'], {'PYTHONSRC','JAVASRC','JSSRC'})
+    assert [r[0] for r in routes]==['PYTHONSRC','JAVASRC','JSSRC']
+    assert routes[2][1]==['c.js','d.ts']
+    assert gaps[0]['paths']==['e.rs'] and gaps[0]['reason']=='frontend_unavailable'
+
+
+@pytest.mark.parametrize("suffix",['.java','.js','.ts','.go','.rs','.rb','.php','.cs','.swift','.abap','.kt'])
+def test_joern_only_sources_survive_packet_and_input_selection(tmp_path,suffix):
+    from scicontext.packet import build_packet
+    from scicontext.scientific_objects import extract_objects
+    from scicontext.object_context import enrichment_input
+    source=tmp_path/'source';source.mkdir()
+    (source/('entry'+suffix)).write_text('public source fixture\n')
+    packet=build_packet(tmp_path,multilingual=True)
+    path='source/entry'+suffix
+    assert path in {s['path'] for s in packet['analysis_sources']}
+    payload=enrichment_input(extract_objects(tmp_path,packet),packet,root=tmp_path,connected=True)
+    assert path in {s['path'] for s in payload['context']['analysis_sources']}
+
+
+def test_cpg_only_language_can_create_annotatable_math_and_a_repair_guide():
+    from scicontext.object_context import object_bundle
+    payload={'context':{'function_bodies':[], 'code_passages':[], 'scientific_passages':[],
+                        'analysis_sources':[{'path':'m.js','start_line':1,'end_line':3}]}}
+    payload['computation']=build_computation(payload)
+    def node(i,kind,code,name=None,index=0):
+        return {'id':'joern:JSSRC:'+str(i),'kind':kind,'path':'m.js','line':2,'scope':'advance',
+                'properties':{'CODE':code,'NAME':name or code,'ARGUMENT_INDEX':index}}
+    nodes=[node(1,'CALL','out=a*b','<operator>.assignment'), node(2,'IDENTIFIER','out',index=1),
+           node(3,'CALL','a*b','<operator>.multiplication',2),node(4,'IDENTIFIER','a',index=1),node(5,'IDENTIFIER','b',index=2)]
+    edges=[{'source':nodes[a]['id'],'target':nodes[b]['id'],'role':'ARGUMENT'} for a,b in [(0,1),(0,2),(2,3),(2,4)]]
+    result={'analyses':[{'backend':'joern','language':'JSSRC','nodes':nodes,'links':edges}],'gaps':[]}
+    payload=attach_source_analysis(payload,result)
+    unit=payload['computation']['transformations'][0]
+    assert payload['computation']['coverage']['cpg_lifted_transformations']==1
+    assert payload['computation']['coverage']['transformations']==1
+    response={'schema_version':'object-enrichment-1.0','annotations':[{'object_id':unit['id'],'meaning':'Product of supplied quantities.'}]}
+    bundle=object_bundle({'objects':[]},response,payload)
+    assert 'Product of supplied quantities.' in bundle['handoff']
+    assert bundle['assembly']['interpretation_status']=='enriched'

@@ -16,6 +16,7 @@ from pathlib import Path
 from . import evidence
 from .io import _safe_relative
 from .task_slice import seed_references
+from .source_backends import JOERN_SOURCE_SUFFIXES
 
 MAX_SCAN_FILES = 2000
 MAX_SCAN_DIRECTORIES = 256
@@ -37,7 +38,9 @@ _MULTILINGUAL_MENTION = re.compile(r"[A-Za-z0-9_./-]+\.(?:py|pyx|pxd|pxi|cpp|cxx
 def _mentions(text: str, multilingual: bool = False) -> set[str]:
     # The bound also applies when a task statement contains huge generated text.
     paths = set()
-    for match in (_MULTILINGUAL_MENTION if multilingual else _PATH_MENTION).finditer(text[:65536]):
+    pattern = (re.compile(r"[A-Za-z0-9_./-]+\.(?:" + "|".join(re.escape(s[1:]) for s in sorted(JOERN_SOURCE_SUFFIXES | {'.pyx','.pxd','.pxi','.f90','.f95','.f03','.f08','.f77','.for','.f','.m','.md','.rst','.txt'}, key=len, reverse=True)) + r")\b", re.IGNORECASE)
+               if multilingual else _PATH_MENTION)
+    for match in pattern.finditer(text[:65536]):
         path = match.group().removeprefix("./")
         if not evidence._blocked(Path(path)) and _safe_relative(path) is None:
             paths.add(path)
@@ -229,6 +232,7 @@ def build_packet(root: Path, context_root: Path | None = None, *, multilingual=F
     for path in ordered:
         if path not in sources and path not in document_paths:
             reason = ("not_selected_by_explicit_paths" if multilingual and source_paths and source_language(path)
+                      else "deferred_to_external_analyzer" if multilingual and Path(path).suffix.lower() in JOERN_SOURCE_SUFFIXES
                       else "unsupported_language")
             coverage["skipped"].append({"path": path, "reason": reason})
     for path in sources[MAX_SOURCE_FILES:]:
@@ -275,10 +279,26 @@ def build_packet(root: Path, context_root: Path | None = None, *, multilingual=F
     coverage["files_truncated"] |= (len(sources) > MAX_SOURCE_FILES or len(document_paths) > doc_limit
                                      or coverage["scan_files_truncated"] or coverage["directories_truncated"])
     coverage["documents_truncated"] |= len(document_paths) > doc_limit
+    analysis_sources = []
+    if multilingual:
+        # Source-file evidence can reach Joern even when our legacy syntax
+        # frontend has no entries for that language. No new parser is added.
+        candidates = [p for p in ordered if Path(p).suffix.lower() in JOERN_SOURCE_SUFFIXES and
+                      (not source_paths or p in source_paths)]
+        for path in candidates[:MAX_SOURCE_FILES]:
+            source = _read_text(root, path, coverage)
+            if source:
+                raw, text = source
+                analysis_sources.append({"id": "as_" + hashlib.sha256(path.encode()+raw).hexdigest()[:24],
+                    "path": path, "sha256": hashlib.sha256(raw).hexdigest(),
+                    "start_line": 1, "end_line": max(1,len(text.splitlines())),
+                    "selection": "task_workflow_ranked_source_for_external_analyzer"})
+        coverage["analysis_source_omissions"] = candidates[MAX_SOURCE_FILES:]
     coverage["documents"] = len(documents)
     coverage["unsupported_expressions"] = coverage["expressions"] - coverage["supported_expressions"]
     coverage["limitations"].append("Packet ranks literal task/reproducer paths, entry points and shallow files; omission is not evidence of irrelevance. Document excerpts and per-file entries are bounded.")
-    return {"schema_version": "packet-1.0", "entries": entries, "documents": documents, "coverage": coverage}
+    return {"schema_version": "packet-1.0", "entries": entries, "documents": documents, "coverage": coverage,
+            **({"analysis_sources": analysis_sources} if multilingual else {})}
 
 
 def expand_packet(root: Path, packet: dict, references: list[dict], *, keep_ids=()) -> dict:

@@ -311,7 +311,7 @@ class ScientificCodex(BaseAgent):
         if not payload.get("computation"):
             return
         root = local / "source"
-        paths = sorted({item["path"] for key in ("function_bodies", "code_passages")
+        paths = sorted({item["path"] for key in ("function_bodies", "code_passages", "analysis_sources")
                         for item in payload["context"].get(key, []) if not item["path"].startswith("@context/")})
         for path in paths:
             if evidence._blocked(Path(path)) or Path(path).is_absolute() or ".." in Path(path).parts:
@@ -319,7 +319,7 @@ class ScientificCodex(BaseAgent):
             destination = root / path
             destination.parent.mkdir(parents=True, exist_ok=True)
             await self.extract_environment.download_file(self.root + "/" + path, destination)
-            expected = {item["sha256"] for key in ("function_bodies", "code_passages")
+            expected = {item["sha256"] for key in ("function_bodies", "code_passages", "analysis_sources")
                         for item in payload["context"].get(key, []) if item["path"] == path and item.get("sha256")}
             if expected and expected != {digest_file(destination)}:
                 raise ValueError("Analysis source differs from the extracted source: " + path)

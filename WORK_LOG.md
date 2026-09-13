@@ -10,6 +10,15 @@ Language-specific structure extraction must feed the shared representation.
 
 ## Active work
 
+- JOERN LANGUAGE ROUTING IMPLEMENTED: installed-capability discovery and routing for all registered
+  Joern source frontends; source-file selection no longer requires the legacy parser to understand
+  the language. Common-CPG lifting supplies mathematical/annotation targets for Joern-only paths.
+  Real JavaScript selection→CPG→representation→code-only guide verified; initial launcher failure
+  preserved and resolved with Joern's ASTGEN_BIN override for its installed binary. Other additional
+  languages have routing/selection tests, not live frontend validation. Receipt:
+  `results/joern-language-routing.json`. Final verification PASS: 567 tests and clean diff checks.
+  No model call, repair run, compiler IR, or new language parser. Scientific-context quality and
+  repair benefit remain untested for this revision; CPG generation is not the research result.
 - REUSE-FIRST BACKEND INTEGRATION: Joern 4.0.570 installed locally; actual Python/C++ graphs exported
   and normalized. SymPy 1.14 symbolic projection/CSE and fortls 3.2.2 typed interfaces implemented;
   dependencies locked and guest helper package list updated. Extractor interpret path now invokes
