@@ -14,9 +14,11 @@ personal memory or unsupported synthetic evidence enters the payload.
 The base input uses a bounded selection. Workflow-retrieved interfaces and their
 dataflow neighborhood are kept first, then everything else up to fixed object, unsupported-item
 and byte budgets. A `selection` receipt records every drop as a structure-budget decision, not
-a scientific-relevance verdict; the full graph remains in the objects artifact. The current Joern
-attachment happens after this selection and is not yet bounded correctly. Do not claim the final
-model payload is bounded until that integration is fixed and checked.
+a scientific-relevance verdict; the full graph remains in the objects artifact. Joern now selects
+method neighborhoods before export, preserves argument names/control roles and enforces the final
+input byte allowance during attachment. A method that cannot fit is omitted as a whole and recorded.
+Ambiguous boundary-call targets are represented as unresolved alternative sets; their full members
+remain in source-analysis.json. This is not a guarantee of complete evidence coverage or model fit.
 
 The interpreter returns annotations as output; the caller saves them. It does not edit source
 or write a partial artifact during a read-only turn. A completed call can return no annotations.

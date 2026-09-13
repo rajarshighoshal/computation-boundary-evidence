@@ -312,7 +312,8 @@ class ScientificCodex(BaseAgent):
             return
         root = local / "source"
         paths = sorted({item["path"] for key in ("function_bodies", "code_passages", "analysis_sources")
-                        for item in payload["context"].get(key, []) if not item["path"].startswith("@context/")})
+                        for item in payload["context"].get(key, []) if item.get("path")
+                        and item.get("analyzer") != "joern" and not item["path"].startswith("@context/")})
         for path in paths:
             if evidence._blocked(Path(path)) or Path(path).is_absolute() or ".." in Path(path).parts:
                 raise ValueError("Invalid public analysis path")
@@ -320,11 +321,12 @@ class ScientificCodex(BaseAgent):
             destination.parent.mkdir(parents=True, exist_ok=True)
             await self.extract_environment.download_file(self.root + "/" + path, destination)
             expected = {item["sha256"] for key in ("function_bodies", "code_passages", "analysis_sources")
-                        for item in payload["context"].get(key, []) if item["path"] == path and item.get("sha256")}
+                        for item in payload["context"].get(key, []) if item.get("path") == path and item.get("sha256")}
             if expected and expected != {digest_file(destination)}:
                 raise ValueError("Analysis source differs from the extracted source: " + path)
         output = local / "backend"
-        command = [sys.executable, "-m", "scicontext.source_backends", "--root", str(root), "--output", str(output)]
+        command = [sys.executable, "-m", "scicontext.source_backends", "--root", str(root),
+                   "--output", str(output), "--input", str(input_file)]
         with (local / "backend.log").open("w") as log:
             process = await asyncio.create_subprocess_exec(*command, stdout=log,
                         stderr=asyncio.subprocess.STDOUT, start_new_session=True)
@@ -346,6 +348,8 @@ class ScientificCodex(BaseAgent):
         result = read_json(output / "receipt.json")
         payload = attach_source_analysis(payload, result)
         write_json(input_file, payload)
+        if not payload["source_analysis_summary"]["within_input_budget"]:
+            raise ValueError("Scientific context exceeds its input budget; see " + str(input_file))
         await self.extract_environment.upload_file(input_file, SCRATCH + "/scientific-context-input.json")
         self._source_analysis_file = output / "receipt.json"
 

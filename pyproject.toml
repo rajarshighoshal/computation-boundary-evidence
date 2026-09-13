@@ -27,7 +27,7 @@ scicontext = "scicontext.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-scicontext = ["*.schema.json"]
+scicontext = ["*.schema.json", "*.sc"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

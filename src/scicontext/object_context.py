@@ -73,6 +73,9 @@ def enrichment_input(graph: dict, packet: dict, *, root: Path | None = None) -> 
                                               payload["links"], payload["unsupported"])
     # Joern/source-analysis facts ride the same budget as everything else.
     analysis_sources = copy.deepcopy(packet.get("analysis_sources", []))
+    coverage = packet.get("coverage", {})
+    analysis_regions = copy.deepcopy(coverage.get("workflow_retrieval", {}).get("references", []) +
+                                    coverage.get("task_local_retrieval", {}).get("references", []))
     distance = _selection_plan(graph)
     object_map = {obj["id"]: obj for obj in objects}
     ordered = sorted(objects, key=lambda obj: _object_priority(obj["id"], object_map, distance))
@@ -111,6 +114,7 @@ def enrichment_input(graph: dict, packet: dict, *, root: Path | None = None) -> 
                 "context": {"scientific_passages": copy.deepcopy(packet.get("documents", [])),
                             "code_passages": code_passages,
                             "analysis_sources": analysis_sources,
+                            "analysis_regions": analysis_regions,
                             "observations": copy.deepcopy(graph.get("dynamic", {}).get("observed_values", []))}}
 
     kept = {obj["id"] for obj in ordered[:ENRICHMENT_MAX_OBJECTS]}

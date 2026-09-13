@@ -111,11 +111,18 @@ must be established through the actual representation and comparison; neither is
 
 - Public-source readers, Python/native syntax backends, workflow/task-reference retrieval,
   code objects and candidate relationships, execution observations and an anchored LLM schema.
-- Joern integration is callable again, but still exports the full graph before selection.
-  That path caused memory/context failures and is not ready for another live test.
+- Joern now exports selected enclosing-method ASTs and direct boundary facts, using its own
+  dataflow/control-flow overlays. The query reads the CPG without persistence and visits incident
+  edges rather than copying every edge. Parsing/loading still scales with the staged source graph;
+  export budgets are not a bound on the analyzer's total working memory.
 - One-hop local document links now enter scientific-mode selection. Exact local Python imports
   can survive discovery limits. Both retrievers' references now affect file selection/allocation.
   These changes improve source delivery; per-file limits can still truncate computations.
+- The input retains structured argument/branch roles and summarizes ambiguous boundary dispatch
+  as alternative target sets with counts and artifact lookups. It does not turn hundreds of static
+  candidates into hundreds of presumed executions or choose an arbitrary target. All candidates
+  remain in the selected analysis artifact. Duplicate code text and artificial source locations
+  on edge records were removed. Whole-method omissions remain explicit when input limits bind.
 - LLM output currently attaches meaning/conventions/assumptions to individual object IDs.
   It does not yet implement the connected scientific working model proposed above.
 - The guide still uses individual annotation ranking; compact, consistently useful delivery
@@ -123,6 +130,13 @@ must be established through the actual representation and comparison; neither is
 
 The repair harness, model route and evidence policy remain unchanged. No new paid experiment,
 compiler-IR pipeline, API-rule catalogue or platform dependency was introduced by this checkpoint.
+
+Offline receipts: [source selection](../results/source-selection-review-2026-09-14.json) and
+[selected analyzer export](../results/selected-export-review-2026-09-14.json). The latter checks
+two preserved real-task CPGs and existing Python/C++/JavaScript fixtures. Task 091's selected
+from_cube computation reaches the assembled input; other method omissions remain in the receipt.
+Task 058 replays its old, workflow-heavy selection, not newly recovered OpenMC science. These
+checks establish source/relationship delivery, not scientific correctness or model-provider fit.
 
 ## Verification required before another live run
 

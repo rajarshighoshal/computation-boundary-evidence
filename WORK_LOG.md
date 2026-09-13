@@ -8,27 +8,30 @@ computational evidence; the LLM interprets scientific meaning. Rajarshi owns sci
 
 ## Active ledger — takeover 14 September
 
-- [complete] Incoming integration stabilized; 48 targeted tests and independent reviewer pass.
-  Imports/live invocation, CLI, metadata roundtrip and analyzer IDs verified. Incoming edits are
-  preserved in runs/takeover-2026-09-14/incoming.patch. Root is the only writer.
 - [complete] Focused primary-source check saved in docs/METHOD.md, with proposed mechanism clearly
   separate from implementation. Stale claims about deleted mathematical modules removed.
 - [complete] Source-delivery prerequisite: local document links, safe exact imports beyond discovery
   cap, both retrievers used for allocation. Independent review passes; full suite 500 passed.
   Public 091 replay now retains all five inspected conversion/lattice/grid/return details (previously
   none); 009 also replayed. Receipt: results/source-selection-review-2026-09-14.json. Not a meaning test.
-- [in progress] Build one bounded, implementation-grounded scientific-context path using existing
-  analyzers. Do not restore the retired parallel mathematical graph or dump whole CPGs into prompts.
-  Preserve task-relevant scientific conventions, conditions and computational relationships.
-- [pending] Verify against preserved five-task failures and unrelated computational patterns.
-  Final checks: imports/CLI/roundtrip tests, bounded source-analysis replay, actual assembled
-  prompt/guide inspection, full suite and explicit remaining coverage/meaning gaps.
-- [pending] Independent read-only review, then obtain approval for any live model test.
+- [complete] Selected Joern export and input attachment independently reviewed; 513 tests passed.
+  Two real CPGs + Python/C++/JavaScript fixtures checked offline; original CPG/source hashes verified.
+  091 from_cube method nodes reach input; missing other methods and ambiguous dispatch remain explicit.
+  Receipt: results/selected-export-review-2026-09-14.json. This is code delivery, not science quality.
+- [next] Implement the compact connected scientific interpretation/delivery stage described in
+  METHOD.md. The current per-object annotation schema/guide still does not deliver that model;
+  interpretation prompt and repair guide were not silently changed by the source fixes.
+- [pending] Inspect actual final prompt/guide on the five development tasks with scientific
+  claims traced to public evidence; independently review, then request approval for live checks.
+  Final verification remains a coherent correct scientific context followed by matched repair
+  comparison—not test counts or successful export alone. No new model calls currently authorized.
 
 ## Authority and evidence
 
-- HEAD at takeover: 6624ac6. Incoming edits contain an indentation error, undefined selector
-  variables, broken backend invocation and incomplete observation delivery. Preserve valid fixes.
+- HEAD at takeover: 6624ac6. Incoming edits contained an indentation error, undefined selector
+  variables, broken backend invocation and incomplete observation delivery; these were fixed.
+- Integration fixes committed at 1eedc68; source-retrieval/literature checkpoint at b4d921c.
+  Incoming edits and prior ledger are preserved under runs/takeover-2026-09-14/. Root is sole writer.
 - runs/shared-five-extraction at 2332b8c completed: four failed extractions; OpenMC completed but
   supplied workflow/build context rather than useful scientific implementation context. These
   are implementation failures, not a clean test or rejection of the research hypothesis.
