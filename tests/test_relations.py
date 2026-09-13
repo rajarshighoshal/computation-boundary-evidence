@@ -1,6 +1,6 @@
 """Relation classification and loci rules R1-R7 on synthetic traces."""
 from scicontext.fingerprint import fingerprint
-from scicontext.relations import derive_loci
+from scicontext.relations import _input_relation, _output_relation, derive_loci
 
 
 def _fp(*values):
@@ -105,3 +105,68 @@ def test_r6_containment_when_script_failure_matches_predicate():
     containment = [l for l in result["loci"] if l["properties"]["rule_id"] == "R6"]
     assert len(containment) == 1
     assert not [l for l in result["loci"] if l["properties"]["rule_id"] == "R6p"]
+
+
+def test_r6s_uses_script_polarity_not_field_names():
+    records = [_record(1, "<module>", None)]
+    # The script asserts `assert not collapse` (falsy required); the report
+    # observes collapse=False -> the condition PASSES; no violation.
+    evaluations = [{"kind": "inequality", "line": 5, "text": "not collapse",
+                    "operands": ["collapse"], "asserted_truthy": False,
+                    "evaluated": {"collapse": False}}]
+    result = derive_loci(records, evaluations, script_status=None)
+    assert not [l for l in result["loci"] if l["properties"]["rule_id"] == "R6s"]
+
+
+def test_r6s_violation_when_asserted_condition_fails():
+    records = [_record(1, "<module>", None)]
+    # `assert signature_agreement` (truthy required); observed False -> violated.
+    evaluations = [{"kind": "inequality", "line": 7, "text": "signature_agreement",
+                    "operands": ["signature_agreement"], "asserted_truthy": True,
+                    "evaluated": {"signature_agreement": False}}]
+    report = {"status": "workflow_completed", "observation": {"signature_agreement": False}}
+    result = derive_loci(records, evaluations, script_status=None, script_report=report)
+    r6s = [l for l in result["loci"] if l["properties"]["rule_id"] == "R6s"]
+    assert len(r6s) == 1
+    assert r6s[0]["properties"]["evidence"]["measures"]["required_truthy"] is True
+
+
+def test_unbound_numeric_observation_records_no_violation():
+    records = [_record(1, "<module>", None)]
+    # A jump-like numeric observation with NO asserting statement in the
+    # script: recorded value only, never a continuity violation.
+    evaluations = []
+    result = derive_loci(records, evaluations, script_status=None,
+                         script_report={"status": "workflow_completed",
+                                        "observation": {"transition_across_boundary": 1.5}})
+    assert not [l for l in result["loci"] if l["properties"]["rule_id"] in ("R6p", "R6s")]
+
+
+def test_r1_requires_proven_identical_outputs():
+    import numpy as np
+    base = np.arange(500, dtype=float)
+    swapped = base.copy()
+    swapped[10], swapped[400] = swapped[400], swapped[10]   # stats preserved
+    fa, fb = fingerprint(base), fingerprint(swapped)
+    records = [
+        _record(1, "<module>", None),
+        _record(2, "f", 1, inputs={"x": fingerprint(1.0)}, return_value=None),
+    ]
+    # simulate returns with stats-equal but content-different fingerprints
+    records[0]["return_fp"] = None
+    a = {"inputs": {"x": fingerprint(1.0)}, "return_fp": fa}
+    b = {"inputs": {"x": fingerprint(2.0)}, "return_fp": fb}
+    relation, _ = _input_relation(a, b)
+    assert relation == "param_delta"
+    output = _output_relation(a, b)
+    assert output != "identical"   # swapped values can never be provably identical
+    # Scale-free equivalence may hold, but R1 fires ONLY on proven identity:
+    records = [
+        _record(1, "<module>", None),
+        {"seq": 2, "name": "f", "file": "m.py", "line": 1, "parent_seq": 1,
+         "inputs": {"x": fingerprint(1.0)}, "return_fp": fa, "fingerprinted": True},
+        {"seq": 3, "name": "f", "file": "m.py", "line": 1, "parent_seq": 1,
+         "inputs": {"x": fingerprint(2.0)}, "return_fp": fb, "fingerprinted": True},
+    ]
+    result = derive_loci(records, [])
+    assert not [l for l in result["loci"] if l["properties"]["rule_id"] == "R1"]

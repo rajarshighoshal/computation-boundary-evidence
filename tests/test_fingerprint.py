@@ -1,7 +1,7 @@
 """Structure-fingerprint semantics: structure + stats, not data contents."""
 import numpy as np
 
-from scicontext.fingerprint import SMALL_HASH_BYTES, fingerprint
+from scicontext.fingerprint import EXACT_HASH_BYTES, fingerprint
 from scicontext.relations import _scale_free_equal, _same
 
 
@@ -36,12 +36,21 @@ def test_ndarray_is_structure_plus_stats_plus_small_exact():
     assert fa["multiset"] is None and fa["rev"] is None  # arrays: structure only
 
 
-def test_large_arrays_never_hash_contents():
-    big = np.ones((SMALL_HASH_BYTES // 8 + 1,), dtype=np.float64)
+def test_large_arrays_have_unknown_identity():
+    big = np.ones((EXACT_HASH_BYTES // 8 + 1,), dtype=np.float64)
     fp = fingerprint(big)
     assert fp["exact"] is None
-    assert fp["content"] is not None      # stats-based digest, no byte hashing
+    assert fp["content"] is None          # identity unknown, never stats-implied
+    assert fp["stats"] is not None        # stats stay descriptive
     assert fp["struct"] is not None
+
+
+def test_swapped_interior_values_are_not_identical():
+    a = np.arange(1000, dtype=float)
+    b = a.copy()
+    b[10], b[900] = b[900], b[10]         # same min/max/sum, different content
+    fa, fb = fingerprint(a), fingerprint(b)
+    assert fa["exact"] is not None and fa["exact"] != fb["exact"]
 
 
 def test_dict_key_agnostic_multiset():

@@ -32,16 +32,19 @@ def _parse_predicates(script_text: str) -> list:
     forms = []
     for node in ast.walk(tree):
         test = None
+        asserted_truthy = True   # `assert x` requires x truthy; `assert not x` requires x falsy
         if isinstance(node, ast.Assert):
             test = node.test
         elif isinstance(node, ast.Raise) and node.exc is not None:
             test = node.exc
         elif isinstance(node, ast.If) and isinstance(node.test, ast.UnaryOp) and isinstance(node.test.op, ast.Not):
             test = node.test.operand
+            asserted_truthy = False   # `if not x: raise` requires x truthy
         if test is None:
             continue
         if isinstance(test, ast.UnaryOp) and isinstance(test.op, ast.Not):
             test = test.operand
+            asserted_truthy = not asserted_truthy
         kind = None
         if isinstance(test, ast.Compare):
             kind = "equality" if isinstance(test.ops[0], ast.Eq) else (

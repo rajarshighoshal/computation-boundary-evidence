@@ -11,7 +11,10 @@ from __future__ import annotations
 
 import hashlib
 
-SMALL_HASH_BYTES = 64 * 1024
+# Identity evidence budget: arrays within this size are byte-hashed; larger
+# arrays carry NO identity digest (stats remain descriptive only). Matching
+# statistics must never imply "identical".
+EXACT_HASH_BYTES = 8 * 1024 * 1024
 MAX_DEPTH = 2
 MAX_CONTAINER_ITEMS = 1000
 
@@ -52,17 +55,16 @@ def _array_fp(value, depth: int) -> dict:
         except Exception:
             stats = None
     exact = None
-    if size_bytes <= SMALL_HASH_BYTES and dtype != "object":
+    if size_bytes <= EXACT_HASH_BYTES and dtype != "object":
         try:
             exact = _hash_bytes(f"{shape}|{dtype}|", np.ascontiguousarray(array).tobytes())
         except Exception:
             exact = None
-    content = exact
-    if content is None and stats is not None:
-        content = _hash_bytes(f"ndarray:{shape}:{dtype}",
-                              *[f"{k}={_round9(v)}" for k, v in sorted(stats.items()) if v is not None])
+    # Over-budget arrays: no identity digest. Stats are descriptive; they are
+    # never used as equality evidence (relations treats missing content as
+    # unknown, not equal).
     return {"t": "ndarray", "shape": shape, "dtype": dtype, "stats": stats,
-            "struct": f"ndarray:{shape}:{dtype}", "exact": exact, "content": content,
+            "struct": f"ndarray:{shape}:{dtype}", "exact": exact, "content": exact,
             "bytes": size_bytes, "equiv": None, "multiset": None, "rev": None, "truncated": False}
 
 

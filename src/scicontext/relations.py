@@ -43,8 +43,8 @@ def _round9(value) -> float:
 
 
 def _same(a, b):
-    """Equality evidence, strongest first: content digest, byte-exact, array
-    stats, otherwise unknown (never equal on struct alone)."""
+    """Proven equality only: matching content digests. Missing digests mean
+    identity is UNKNOWN (never equal); matching statistics are not evidence."""
     if not a or not b:
         return False
     left, right = a.get("content"), b.get("content")
@@ -53,8 +53,6 @@ def _same(a, b):
     left, right = a.get("exact"), b.get("exact")
     if left is not None and right is not None:
         return left == right
-    if a.get("t") == b.get("t") == "ndarray":
-        return a.get("struct") == b.get("struct") and _stats_equal(a.get("stats"), b.get("stats"))
     return False
 
 
@@ -274,7 +272,7 @@ def derive_loci(trace_records: list, predicate_evaluations: list, script_status:
                     (ia.get("inputs", {}).get(k) or {}).get("t") in {"scalar", "ndarray"}
                     or (ib.get("inputs", {}).get(k) or {}).get("t") in {"scalar", "ndarray"}
                     for k in differing_inputs))
-                if relation == "param_delta" and output in {"identical", "equivalent"} \
+                if relation == "param_delta" and output == "identical" \
                         and not _is_trivial(ia.get("return_fp")):
                     locus = _cl(func_key, "R1", func_key, "sensitivity")
                     locus["properties"]["locus_transitions"] = [a, b]
@@ -358,27 +356,32 @@ def derive_loci(trace_records: list, predicate_evaluations: list, script_status:
             if kind != "workflow_failure":
                 locus["properties"]["evidence"]["measures"]["failure_kind"] = kind
             loci.append(locus)
-        # Script-declared observations carry the constraints even when the
-        # report status is nominal: boolean agreement/invariance/distinctness
-        # fields that are False, and numeric transition/jump/difference fields
-        # that are nonzero, are recorded as observed violations with the
-        # script's own measured value.
+        # Observations are evaluated ONLY against the reproducer's own stated
+        # conditions (parsed predicates with polarity). No field-name guessing:
+        # an observation without a bound condition is recorded as measured
+        # value only, never as a violation.
         observations = script_report.get("observation", script_report.get("scientific_observation")) or {}
+        conditions = {}
+        for predicate in predicate_evaluations:
+            for operand in predicate.get("operands") or []:
+                from .trace_runtime import _root_name
+                name = _root_name(operand)
+                if name:
+                    conditions[name] = predicate
         if isinstance(observations, dict):
             for field, value in observations.items():
-                name = str(field).lower()
-                if isinstance(value, bool) and not value and any(
-                        token in name for token in ("agreement", "invariant", "consistent",
-                                                    "distinct", "collapse", "finite")):
-                    kind = "distinctness" if "distinct" in name or "collapse" in name else "invariance"
-                    locus = _cl(("reproduce.py", "<script>", 0), "R6s", ("reproduce.py", "<script>", 0), kind)
-                    locus["properties"]["evidence"]["measures"][field] = value
-                    loci.append(locus)
-                elif isinstance(value, (int, float)) and not isinstance(value, bool) and abs(value) > 1e-9 \
-                        and any(token in name for token in ("transition", "jump", "across", "boundary", "diff")):
-                    locus = _cl(("reproduce.py", "<script>", 0), "R6p", ("reproduce.py", "<script>", 0), "continuity")
-                    locus["properties"]["evidence"]["measures"][field] = value
-                    loci.append(locus)
+                predicate = conditions.get(str(field))
+                if predicate is None:
+                    continue
+                truthy_required = predicate.get("asserted_truthy", True)
+                if isinstance(value, bool):
+                    passes = value == truthy_required
+                    if not passes:
+                        locus = _cl(("reproduce.py", "<script>", predicate.get("line", 0)),
+                                    "R6s", ("reproduce.py", "<script>", predicate.get("line", 0)), "invariance")
+                        locus["properties"]["evidence"]["measures"][field] = value
+                        locus["properties"]["evidence"]["measures"]["required_truthy"] = truthy_required
+                        loci.append(locus)
     aggregated: dict[str, dict] = {}
     for locus in loci:
         existing = aggregated.get(locus["id"])
