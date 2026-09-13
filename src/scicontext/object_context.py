@@ -58,7 +58,7 @@ def _object_priority(identifier, object_map, distance):
     return (depth, _OBJECT_KIND_PRIORITY.get(obj.get("kind"), 2), -len(obj.get("roles", [])), identifier)
 
 
-def enrichment_input(graph: dict, packet: dict) -> dict:
+def enrichment_input(graph: dict, packet: dict, *, root: Path | None = None, connected: bool = False) -> dict:
     """Supply scientific source material alongside the actual object relationships.
 
     The input is a bounded selection, not a graph dump: workflow-retrieved
@@ -66,6 +66,9 @@ def enrichment_input(graph: dict, packet: dict) -> dict:
     else up to fixed object/byte budgets. A ``selection`` receipt records every
     drop as a structure-budget decision, not a scientific-relevance verdict.
     """
+    if connected:
+        from .evidence_packets import build_connected_input
+        return build_connected_input(graph, packet, root)
     payload = {key: copy.deepcopy(graph[key]) for key in ("objects", "operations", "links", "unsupported")}
     objects, operations, links, unsupported = (payload["objects"], payload["operations"],
                                                payload["links"], payload["unsupported"])

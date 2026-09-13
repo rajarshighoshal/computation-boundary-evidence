@@ -19,6 +19,7 @@ def main(argv: list[str] | None = None) -> int:
     packet.add_argument("--catalog", type=Path, required=True)
     packet.add_argument("--objects-output", type=Path)
     packet.add_argument("--enrichment-input", type=Path)
+    packet.add_argument("--connected-evidence", action="store_true")
     trace = subs.add_parser("trace")
     trace.add_argument("--root", type=Path, required=True)
     trace.add_argument("--script", type=Path, required=True)
@@ -33,6 +34,7 @@ def main(argv: list[str] | None = None) -> int:
     merge.add_argument("--trace-out", type=Path, required=True)
     merge.add_argument("--output", type=Path, required=True)
     merge.add_argument("--enrichment-input", type=Path, required=True)
+    merge.add_argument("--connected-evidence", action="store_true")
     objects = subs.add_parser("assemble-objects")
     objects.add_argument("--graph", type=Path, required=True)
     objects.add_argument("--annotations", type=Path, required=True)
@@ -55,7 +57,7 @@ def main(argv: list[str] | None = None) -> int:
             graph["task_id"] = args.task_id
             write_json(args.objects_output, graph)
             if args.enrichment_input:
-                write_json(args.enrichment_input, enrichment_input(graph, value))
+                write_json(args.enrichment_input, enrichment_input(graph, value, root=args.root, connected=args.connected_evidence))
             result["scientific_object_coverage"] = graph["coverage"]
     elif args.command == "trace":
         from .trace_runtime import _Tracer
@@ -127,7 +129,7 @@ def main(argv: list[str] | None = None) -> int:
                                    "transitions": len(quantity_graph["transitions"])}
         graph["dependence_signatures"] = signatures
         write_json(args.output, graph)
-        write_json(args.enrichment_input, enrichment_input(graph, packet))
+        write_json(args.enrichment_input, enrichment_input(graph, packet, root=args.root, connected=args.connected_evidence))
         result = {"status": "merged", "loci": derived["dynamic"]["loci"],
                   "quantities": len(quantity_graph["quantities"]),
                   "signatures": len(signatures)}

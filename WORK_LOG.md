@@ -10,11 +10,33 @@ Language-specific structure extraction must feed the shared representation.
 
 ## Active work
 
-- APPROVED (2026-09-13): implement rolling admission only. Keep configured concurrency, attempts,
-  model/budgets and scientific logic unchanged; no active-run restart. Final checks: a fast attempt
-  frees a slot while its slow peer remains active, concurrency bound holds, failures remain local,
-  cancellation cleans owned work, and task images survive until both arms finish. Root sole writer;
-  do not commit while the active launcher still requires its current HEAD.
+- PHASE 1 COMPLETE: connected evidence packets implemented for interpreter input. Packet/merge helpers
+  opt into recorded-dependency/candidate-callee bundles with hash-checked source bodies and documentation;
+  historical input selection remains available for comparison. No new scientific claims or dispatch proofs.
+  Final check: 502 tests pass, including 13 new source/budget/link/wiring regressions. Saved development
+  before/after: `docs/EVIDENCE_PACKETS_PHASE1.md`, `results/evidence-packets-phase1.json`, raw inputs in
+  `runs/evidence-packets-phase1-final/`. Unresolved inputs and omitted packet seeds remain explicit.
+  STOP HERE for joint inspection. LLM prompts, response schema, guide renderer, repair logic and rules
+  unchanged. Zero model calls, candidate execution, Docker cleanup or concurrency changes in this phase.
+- USER STOP / TAKEOVER (2026-09-13): root now leads implementation; other session should review only.
+  Stop active full-119 repair launcher gracefully, preserve all outcomes/partial attempts, then inspect
+  context generation and the actual repair prompt before more experiments. Forty-way concurrency is
+  a future target requiring context-quality and capacity checks, not approval to launch now.
+  Final verification: stopped launcher/owned containers; evidence-backed generation/selection/use
+  diagnosis and a short next-version prompt proposal. Do not modify or restart the frozen run.
+- APPROVED SCIENTIFIC FIXES (2026-09-13): exact-content equality or explicit unknown (including
+  nested/truncated values and downstream comparisons); derive report failures from actual predicates,
+  not field-name guesses. Root owns these edits; external reviewer checks afterward. Final checks:
+  swapped-array/unknown/nested-value regressions, predicate polarity/tolerance cases, full suite.
+  No new model calls, full-benchmark launch or unrelated harness changes in this implementation turn.
+- ROLLING ADMISSION VERIFIED (2026-09-13): scheduler refills freed slots in declared order, up to
+  the existing configured limit; no batch barrier. Eight-slot, real-subprocess overlap, failure,
+  cancellation and partner-image tests pass; full suite 478 passed. Model/budgets/science unchanged.
+  Another session committed scheduler/README/review files as `762b9fe` during this work; preserved.
+  Its message mentions concurrent pre-pulls, but image pulls remain serial in the actual code.
+  Added regression tests remain uncommitted; no commit or run restart by this session.
+  User asked how to fix scientific issues: proposed exact-content comparison or unknown, and
+  explicit reproducer predicates rather than field-name guesses. Those fixes are NOT implemented.
 - REVIEW COMPLETE (2026-09-13): concurrency/cloud/scientific-design review at `c6b973d`, saved in
   `docs/CONCURRENCY_SCIENCE_REVIEW_2026-09-13.md`; executable diagnostics and source hashes in
   `results/concurrency-review-2026-09-13.json` / `scripts/review_concurrency.py`. User has Hetzner;
@@ -22,7 +44,8 @@ Language-specific structure extraction must feed the shared representation.
   Verified batch barrier; synthetic unequal-array/equality collision, false field-name violations,
   and trace failure preventing static fallback. Conditional cheap CX53 quote fits a short rental,
   but public stock unavailable and console/all-in price unverified. No rentals/model calls/runtime
-  changes. Review files remain uncommitted because active launcher checks HEAD. Await user direction.
+  changes during review. Review docs/receipt were subsequently committed by the other session;
+  diagnostic script remains untracked. Avoid changing active launcher's HEAD. Await user direction.
 - Root remains the only writer in main; no extra worktrees. Read-only review findings were addressed
   with regression tests; the implementation is ready for external review.
 - Offline retrieval/linking checkpoint COMPLETE: public workflow references reach implementation

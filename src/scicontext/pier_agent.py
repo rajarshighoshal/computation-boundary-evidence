@@ -279,7 +279,7 @@ class ScientificCodex(BaseAgent):
         result = await self._helper(
             f"{HELPER} packet --root {self.root} --context-root {REMOTE}/context --task-id {self.task_id} "
             f"--output {SCRATCH}/packet.json --catalog {SCRATCH}/catalog.md "
-            f"--objects-output {SCRATCH}/scientific-objects.json --enrichment-input {SCRATCH}/scientific-context-input.json",
+            f"--objects-output {SCRATCH}/scientific-objects.json --enrichment-input {SCRATCH}/scientific-context-input.json --connected-evidence",
             max(10.0, seconds * 0.4))
         if self.condition == "science" and seconds >= 60:
             try:
@@ -287,7 +287,7 @@ class ScientificCodex(BaseAgent):
                     f"{HELPER} merge-dynamic --root {self.root} --graph {SCRATCH}/scientific-objects.json "
                     f"--packet {SCRATCH}/packet.json --trace-out {SCRATCH}/trace "
                     f"--output {SCRATCH}/scientific-objects.json "
-                    f"--enrichment-input {SCRATCH}/scientific-context-input.json",
+                    f"--enrichment-input {SCRATCH}/scientific-context-input.json --connected-evidence",
                     max(10.0, seconds * 0.2))
             except Exception:
                 pass
