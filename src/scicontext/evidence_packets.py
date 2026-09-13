@@ -14,6 +14,7 @@ from collections import defaultdict, deque
 from pathlib import Path
 
 from . import evidence
+from .callee_context import HelperRetriever, MAX_HELPER_DEPTH, MAX_HELPER_BODIES, MAX_HELPER_FILES
 from .packet import _reproducer
 
 MAX_PACKETS = 8
@@ -60,11 +61,11 @@ class _Sources:
     def __init__(self, root, entries, references):
         self.root = Path(root).resolve() if root is not None else None
         self.entries, self.references, self.cache = entries, references, {}
+        self.trees = {}
 
-    def body(self, entry):
-        path = entry["path"]
+    def load(self, path):
         if self.root is None:
-            return None, "source_root_unavailable"
+            return None, None, None, "source_root_unavailable"
         if path not in self.cache:
             problem = evidence._safe_file(self.root, path)[1]
             raw = None
@@ -72,17 +73,23 @@ class _Sources:
                 try:
                     raw = evidence._read_regular(self.root, path)
                     expected = {e.get("sha256") for e in self.entries if e["path"] == path}
-                    if expected != {hashlib.sha256(raw).hexdigest()}:
+                    if expected and expected != {hashlib.sha256(raw).hexdigest()}:
                         problem = "source_hash_mismatch"
                     text = raw.decode("utf-8")
                     tree = ast.parse(text) if path.endswith(".py") else None
                     if tree is not None and not evidence._ast_within_limits(tree):
                         problem = "source_ast_limit"
+                    if tree is not None and not problem:
+                        self.trees[path] = (tree, evidence._ScopeIndex(tree))
                     definitions = [n for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))] if tree else []
-                except (OSError, ValueError, SyntaxError, UnicodeError) as exc:
+                except (OSError, ValueError, SyntaxError, UnicodeError, RecursionError) as exc:
                     problem = type(exc).__name__
             self.cache[path] = (None, None, None, problem) if problem else (raw, text, definitions, None)
-        raw, text, definitions, problem = self.cache[path]
+        return self.cache[path]
+
+    def body(self, entry):
+        path = entry["path"]
+        raw, text, definitions, problem = self.load(path)
         if problem:
             return None, problem
         line = entry.get("start_line", 0)
@@ -146,19 +153,26 @@ def build_connected_input(graph, packet, root=None, *, max_objects=300, max_byte
                         e = entries[eid]
                         seeds.append(((0, 3, e["path"], e["start_line"], eid), eid, "interface_fallback", []))
     sources = _Sources(root, list(entries.values()), packet.get("coverage", {}).get("workflow_retrieval", {}).get("references", []))
+    helpers = HelperRetriever(sources)
     bundles, kept, body_records, selected_docs, omitted = [], set(), {}, {}, []
+    helper_records, helper_issue_records = {}, {}
     for doc in task_docs:
         selected_docs[doc["id"]] = doc
 
     def payload():
         selected_entries = {eid for eid, ids in entry_nodes.items() if ids & kept}
+        helper_calls = copy.deepcopy(list(helper_records.values()))
+        for call in helper_calls:
+            call["caller_operation_ids"] = [oid for oid in call["caller_operation_ids"] if oid in kept]
+            call["caller_result_object_ids"] = [oid for oid in call["caller_result_object_ids"] if oid in kept]
         return {"objects": [copy.deepcopy(o) for k, o in objects.items() if k in kept],
                 "operations": [copy.deepcopy(o) for k, o in operations.items() if k in kept],
                 "links": [copy.deepcopy(l) for l in links if l["source"] in kept and l["target"] in kept],
                 "unsupported": [copy.deepcopy(u) for u in graph.get("unsupported", []) if u.get("source_entry_id") in selected_entries],
                 "context": {"scientific_passages": list(selected_docs.values()),
                             "code_passages": [copy.deepcopy(e) for eid, e in entries.items() if eid in selected_entries],
-                            "function_bodies": list(body_records.values())},
+                            "function_bodies": list(body_records.values()), "helper_calls": helper_calls,
+                            "helper_gaps": list(helper_issue_records.values())},
                 "evidence_packets": copy.deepcopy(bundles)}
 
     for _, eid, reason, matches in sorted(seeds):
@@ -217,6 +231,17 @@ def build_connected_input(graph, packet, root=None, *, max_objects=300, max_byte
                 bodies[body["id"]] = body
             elif entries[key]["kind"] in {"signature", "return", "call", "comparison"}:
                 gaps.append({"source_entry_id": key, "reason": problem})
+        bodies, helper_links, helper_gaps = helpers.expand(bodies)
+        helper_gaps = [{**g, "id": _id(g)} for g in helper_gaps]
+        helper_links = copy.deepcopy(helper_links)
+        for link in helper_links:
+            site = link["call_site"]
+            call_ops = [op for op in operations.values() if
+                        op.get("source", {}).get("path") == site["path"] and
+                        op.get("call_site") == {"start_line": site["start_line"], "start_col": site["start_col"]}]
+            link["caller_operation_ids"] = [op["id"] for op in call_ops]
+            link["caller_result_object_ids"] = [oid for op in call_ops for oid in op.get("output_ids", [])]
+            link["id"] = _id([link["caller_body_id"], link["callee_body_id"], site])
         query = task_tokens | _tokens(" ".join(entries[key].get("expression_text") or "" for key in selected_entries))
         linked_docs = sorted((d for d in docs if d.get("id") and d not in task_docs and
                               query & _tokens(d.get("quote", ""))),
@@ -231,15 +256,19 @@ def build_connected_input(graph, packet, root=None, *, max_objects=300, max_byte
             "document_ids": [d["id"] for d in task_docs + linked_docs],
             "documentation_status": "lexical_retrieval_candidates_not_semantic_proof",
             "candidate_call_links": possible, "gaps": gaps,
+            "helper_call_ids": [link["id"] for link in helper_links],
+            "helper_gap_ids": [gap["id"] for gap in helper_gaps],
             "boundary_links": [l for l in links if (l["source"] in selected) != (l["target"] in selected)],
             "claim_scope": "Recorded structure and source regions; no new scientific requirements or proven dispatch."}
-        old = kept, body_records.copy(), selected_docs.copy()
+        old = kept, body_records.copy(), selected_docs.copy(), helper_records.copy(), helper_issue_records.copy()
         kept = kept | selected
         body_records.update(bodies)
+        helper_records.update({link["id"]: link for link in helper_links})
+        helper_issue_records.update({gap["id"]: gap for gap in helper_gaps})
         selected_docs.update({d["id"]: d for d in linked_docs})
         bundles.append(bundle)
         if len(kept & objects.keys()) > max_objects or len(json.dumps(payload(), ensure_ascii=False).encode()) > max_bytes - min(65536, max_bytes // 8):
-            kept, body_records, selected_docs = old
+            kept, body_records, selected_docs, helper_records, helper_issue_records = old
             bundles.pop()
             omitted.append({"seed_entry_id": eid, "reason": "whole_packet_exceeds_input_budget"})
     result = payload()
@@ -247,7 +276,9 @@ def build_connected_input(graph, packet, root=None, *, max_objects=300, max_byte
         "kept_objects": len(result["objects"]), "kept_operations": len(result["operations"]),
         "truncated": len(result["objects"]) < len(objects), "omitted_packets": omitted,
         "limits": {"objects": max_objects, "bytes": max_bytes, "packets": MAX_PACKETS,
-                   "packet_nodes": MAX_PACKET_NODES, "hops": MAX_HOPS, "body_chars": MAX_BODY_CHARS}}
+                   "packet_nodes": MAX_PACKET_NODES, "hops": MAX_HOPS, "body_chars": MAX_BODY_CHARS,
+                   "helper_depth": MAX_HELPER_DEPTH, "helper_bodies_per_packet": MAX_HELPER_BODIES,
+                   "helper_files": MAX_HELPER_FILES}}
     if len(json.dumps(result, ensure_ascii=False).encode()) > max_bytes:
         raise ValueError("Input budget is too small for the task context and omission receipt")
     return result

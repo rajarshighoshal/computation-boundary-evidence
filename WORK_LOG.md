@@ -10,10 +10,29 @@ Language-specific structure extraction must feed the shared representation.
 
 ## Active work
 
-- PHASE 2 PROMPT DRAFT READY: direct packet-based scientific interpretation instructions, 148 words,
+- TARGETED HELPER RETRIEVAL COMPLETE: connected input follows Python same-file/relative-import/module-
+  alias calls using existing source reads and AST scope analysis. Bodies/call/gap records deduplicated;
+  call argument/default mappings, return sites, branches and existing caller/result IDs retained.
+  Native retrieval, graph scientific semantics, prompts/schema and repair logic unchanged.
+  Final verification PASS: 516 tests (12 new cases), offline DESC all six required implementation
+  functions together in a packet, source hashes and endpoint references checked. Receipt:
+  `results/evidence-helper-retrieval.json`; raw replay `runs/evidence-helper-retrieval-final/`.
+  Retrieval/assembly from saved graph/packet 0.1604s; not model/extraction/repair latency. Input grew
+  432526→641846 bytes with newly supplied evidence. 43 syntactic argument mappings; 20 unexpanded
+  variadic/star mappings explicitly unknown. STOP: review transformation-based interpretation and
+  compression next; no model call, candidate execution, benchmark restart or cleanup was performed.
+- MANUAL TRANSFORMATION CHECK COMPLETE: one existing DESC development packet worked into three
+  connected units, compact context and code/LLM responsibilities in `docs/EVIDENCE_PACKETS_PHASE1.md`.
+  Final checks PASS: packet-ID membership, source hashes/slices, key formula/branch line bindings,
+  and diff whitespace. Crucial gap: saved input has no vacuum.py passages/bodies; manual public-helper
+  retrieval supplies the wall/metric internals. Do not present this as automatic extraction success.
+  No pipeline edits, model calls, candidate execution, repair runs or cleanup. STOP for joint review.
+  The helper-retrieval gap is addressed by the checkpoint above; general unit construction remains
+  pending. User explicitly wants runtime treated as a design goal before acceleration/scale-up.
+- PHASE 2 PROMPT DRAFT ON HOLD pending transformation-unit design review: direct instructions, 148 words,
   no blanket hedging; specific missing facts use "unknown" in assumptions. Existing JSON schema,
   guide renderer and repair prompt unchanged. Formatting and real-template adapter wiring verified:
-  37 targeted tests pass (API mocked). Show the exact text and STOP for user review. No model calls
+  37 targeted tests pass (API mocked). Existing per-object schema is not the new unit representation. No model calls
   or new runs performed/authorized in this prompt-only step; scientific output quality not yet tested.
 - PHASE 1 COMPLETE: connected evidence packets implemented for interpreter input. Packet/merge helpers
   opt into recorded-dependency/candidate-callee bundles with hash-checked source bodies and documentation;

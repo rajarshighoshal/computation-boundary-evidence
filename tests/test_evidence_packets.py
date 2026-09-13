@@ -191,3 +191,127 @@ def test_production_preparation_requests_connected_input_in_both_helper_stages()
     input_stages = [command for command in commands if "--enrichment-input" in command]
     assert len(input_stages) == 2
     assert all("--connected-evidence" in command for command in input_stages)
+
+
+def helper_case(tmp_path, adapter, kernel):
+    package = tmp_path / "pkg"
+    package.mkdir()
+    (package / "__init__.py").write_text("")
+    (package / "adapter.py").write_text(adapter)
+    (package / "kernel.py").write_text('raise RuntimeError("must not execute")\n' + kernel)
+    packet = build_packet(tmp_path, multilingual=True)
+    # Simulate the saved input: adapter entries exist, kernel entries do not.
+    packet["entries"] = [e for e in packet["entries"] if e["path"] == "pkg/adapter.py"]
+    packet["coverage"]["workflow_retrieval"] = {"references": []}
+    graph = extract_objects(tmp_path, packet)
+    return packet, graph
+
+
+def test_missing_relative_helper_retrieved_with_bindings_branches_and_result_ids(tmp_path):
+    packet, graph = helper_case(tmp_path,
+        'from .kernel import advance as step\n'
+        'def calculate(x, enabled):\n'
+        '    if enabled:\n'
+        '        return step(x, gain=2)\n'
+        '    return step(x)\n',
+        'def advance(value, gain=1):\n'
+        '    if gain > 0:\n'
+        '        return value * gain\n'
+        '    return value\n')
+    original = copy.deepcopy((packet, graph))
+    result = build_connected_input(graph, packet, tmp_path)
+    assert result == build_connected_input(graph, packet, tmp_path)
+    assert (packet, graph) == original
+    bodies = result["context"]["function_bodies"]
+    assert len([b for b in bodies if b["path"] == "pkg/kernel.py"]) == 1
+    links = result["context"]["helper_calls"]
+    call = next(l for l in links if l["call_site"]["expression"] == "step(x, gain=2)")
+    assert call["argument_bindings"] == [
+        {"parameter": "value", "expression": "x", "origin": "caller"},
+        {"parameter": "gain", "expression": "2", "origin": "caller"}]
+    assert call["call_site"]["branch"] and call["return_sites"][0]["branch"]
+    assert call["caller_operation_ids"] and call["caller_result_object_ids"]
+    assert call["status"] == "static_candidate_not_runtime_dispatch"
+    default = next(l for l in links if l["call_site"]["expression"] == "step(x)")
+    assert default["argument_bindings"][1]["origin"] == "callee_default"
+    assert all(l["callee_body_id"] in {b["id"] for b in bodies} for l in links)
+    assert len(links) == len({l["id"] for l in links})
+    assert all(set(p["helper_call_ids"]) <= {l["id"] for l in links} for p in result["evidence_packets"])
+
+
+@pytest.mark.parametrize("statement,expression", [
+    ("from . import kernel as k", "k.advance(x)"),
+    ("import pkg.kernel as k", "k.advance(x)"),
+    ("import pkg.kernel", "pkg.kernel.advance(x)"),
+])
+def test_helper_module_aliases(tmp_path, statement, expression):
+    packet, graph = helper_case(tmp_path,
+        statement + '\ndef calculate(x):\n    return ' + expression + '\n',
+        'def advance(value):\n    return value * 2\n')
+    result = build_connected_input(graph, packet, tmp_path)
+    assert any(b["path"] == "pkg/kernel.py" for b in result["context"]["function_bodies"])
+
+
+@pytest.mark.parametrize("adapter,kernel", [
+    ('from .kernel import advance\ndef calculate(x, advance):\n    return advance(x)\n',
+     'def advance(x):\n    return x * 2\n'),
+    ('from .kernel import advance\nadvance = replacement\ndef calculate(x):\n    return advance(x)\n',
+     'def advance(x):\n    return x * 2\n'),
+    ('from .kernel import advance\ndef calculate(x):\n    return advance(x)\n',
+     'def advance(x):\n    return x * 2\nadvance = replacement\n'),
+    ('from .kernel import advance\ndef calculate(x):\n    return advance(x)\n',
+     '@decorator\ndef advance(x):\n    return x * 2\n'),
+])
+def test_helper_shadowing_and_decorators_do_not_invent_links(tmp_path, adapter, kernel):
+    packet, graph = helper_case(tmp_path, adapter, kernel)
+    result = build_connected_input(graph, packet, tmp_path)
+    assert not any(b["path"] == "pkg/kernel.py" for b in result["context"]["function_bodies"])
+    assert result["context"]["helper_gaps"]
+
+
+def test_helper_recursion_deduplicates_bodies_and_nested_returns_are_not_borrowed(tmp_path):
+    packet, graph = helper_case(tmp_path,
+        'from .kernel import advance\ndef calculate(x):\n    return advance(x)\n',
+        'def advance(x):\n'
+        '    def unrelated():\n        return 999\n'
+        '    if x > 0:\n        return advance(x - 1)\n'
+        '    return x\n')
+    result = build_connected_input(graph, packet, tmp_path)
+    bodies = result["context"]["function_bodies"]
+    assert len([b for b in bodies if b["path"] == "pkg/kernel.py"]) == 1
+    links = result["context"]["helper_calls"]
+    assert any(l["caller_body_id"] == l["callee_body_id"] for l in links)
+    assert all(r["expression"] != "999" for l in links for r in l["return_sites"])
+
+
+def test_star_arguments_preserve_source_without_fabricated_binding(tmp_path):
+    packet, graph = helper_case(tmp_path,
+        'from .kernel import advance\ndef calculate(args):\n    return advance(*args)\n',
+        'def advance(x):\n    return x * 2\n')
+    result = build_connected_input(graph, packet, tmp_path)
+    links = result["context"]["helper_calls"]
+    assert links and links[0]["binding_status"] == "star_arguments_not_expanded"
+    assert links[0]["argument_bindings"] == []
+
+
+def test_helper_depth_budget_is_explicit(tmp_path, monkeypatch):
+    import scicontext.callee_context as module
+    packet, graph = helper_case(tmp_path,
+        'from .kernel import advance\ndef calculate(x):\n    return advance(x)\n',
+        'def advance(x):\n    return x * 2\n')
+    monkeypatch.setattr(module, "MAX_HELPER_DEPTH", 0)
+    result = build_connected_input(graph, packet, tmp_path)
+    assert not any(b["path"] == "pkg/kernel.py" for b in result["context"]["function_bodies"])
+    assert any(g["reason"] == "helper_depth_limit" for g in result["context"]["helper_gaps"])
+
+
+def test_new_helper_symlink_is_not_read(tmp_path):
+    packet, graph = helper_case(tmp_path,
+        'from .kernel import advance\ndef calculate(x):\n    return advance(x)\n',
+        'def advance(x):\n    return x * 2\n')
+    (tmp_path / "outside.txt").write_text('private_material = "must not read"')
+    (tmp_path / "pkg/kernel.py").unlink()
+    (tmp_path / "pkg/kernel.py").symlink_to(tmp_path / "outside.txt")
+    result = build_connected_input(graph, packet, tmp_path)
+    assert "private_material" not in json.dumps(result)
+    assert not any(b["path"] == "pkg/kernel.py" for b in result["context"]["function_bodies"])
