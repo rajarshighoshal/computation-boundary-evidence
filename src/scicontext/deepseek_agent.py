@@ -45,7 +45,7 @@ MAX_ANNOTATION_CHARS = 65_536
 
 async def _api_completion(api_key: str, model: str, messages: list, *,
                           tools=None, response_format=None, max_tokens=MAX_OUTPUT_TOKENS,
-                          timeout_sec: float, temperature: float = 0.0) -> dict:
+                          timeout_sec: float, temperature: float = 0.0, max_attempts: int = 2) -> dict:
     body = {"model": model, "messages": messages, "max_tokens": max_tokens, "temperature": temperature}
     if tools:
         body["tools"] = tools
@@ -54,7 +54,7 @@ async def _api_completion(api_key: str, model: str, messages: list, *,
 
     def send():
         last_error = None
-        for attempt in range(2):  # one transparent retry on transport-level failures
+        for attempt in range(max_attempts):
             request = urllib.request.Request(API, data=json.dumps(body).encode(), method="POST", headers={
                 "Authorization": f"Bearer {api_key}", "Content-Type": "application/json"})
             try:
@@ -224,7 +224,7 @@ class DeepSeekAgent(ScientificCodex):
             completion = await _api_completion(self.deepseek_key, self.model,
                                                [{"role": "user", "content": prompt}],
                                                response_format={"type": "json_object"},
-                                               timeout_sec=model_seconds)
+                                               timeout_sec=model_seconds, max_attempts=1)
         except (urllib.error.URLError, TimeoutError, OSError) as error:
             result = {"status": "failed", "fatal_model_error": True,
                       "error": f"DeepSeek transport failure: {error}", "usage": {}}

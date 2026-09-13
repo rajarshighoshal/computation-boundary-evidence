@@ -10,6 +10,10 @@ Language-specific structure extraction must feed the shared representation.
 
 ## Active work
 
+- APPROVED / LAUNCH: five development tasks 091/058/009/114/001, DeepSeek Flash/high, extraction
+  only, one request each, USD 1 total. Config `configs/shared-five-extraction.json`; preserve all
+  outputs and review scientific context/tokens/cost/time. No repairs/private verifier. Concurrency 2.
+  Final check: five terminal receipts and content review.
 - PROMPT CLEANUP VERIFIED: extraction template 89 words, legacy repair template 38 words. Runtime
   access instructions are route-specific and nonduplicated; read-only extraction returns JSON and
   caller saves it. Schema/grounding/model/effort/limits unchanged; active repair assembly unchanged.
