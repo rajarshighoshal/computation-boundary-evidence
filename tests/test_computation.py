@@ -104,24 +104,6 @@ def test_existing_multilingual_frontends_feed_shared_representation(tmp_path,pat
     assert any(t["pattern"].get("op")=="sub" for t in model["templates"])
 
 
-def test_code_owned_graph_survives_annotation_and_real_assembly(tmp_path):
-    (tmp_path/"model.py").write_text('raise RuntimeError("must never execute")\n'
-        'def storage(volume,flow,dt):\n    updated=volume-flow*dt\n    return updated\n')
-    packet=build_packet(tmp_path,multilingual=True)
-    graph=extract_objects(tmp_path,packet)
-    old=copy.deepcopy((packet,graph))
-    payload=enrichment_input(graph,packet,root=tmp_path,connected=True)
-    unit=output_unit(payload["computation"],"updated")
-    response={"schema_version":"object-enrichment-1.0","annotations":[
-        {"object_id":unit["id"],"meaning":"Stored volume after outward transport."}]}
-    bundle=object_bundle(graph,response,payload)
-    assert bundle["assembly"]["interpretation_status"]=="enriched"
-    assert bundle["graph"]["computation"]==payload["computation"]
-    assert "Stored volume" in bundle["handoff"]
-    assert "flow" in bundle["handoff"]
-    assert (packet,graph)==old
-    assert build_computation(payload)==payload["computation"]
-
 
 def test_helper_argument_and_return_connections_are_preserved(tmp_path):
     (tmp_path/"model.py").write_text('def scale(x,factor):\n    return x*factor\n'

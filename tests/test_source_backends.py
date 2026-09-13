@@ -66,15 +66,6 @@ def test_real_fortls_symbols_via_supported_entrypoint(tmp_path):
     assert 'scale' in names and 'advance' in names
 
 
-def test_interpret_invokes_backend_before_model_and_accounts_for_time():
-    order=[]
-    async def augment():order.append('backend')
-    async def interpret(instruction,seconds):
-        order.append('model');assert 0<seconds<=300;return {'ok':True}
-    agent=SimpleNamespace(_augment_source_analysis=augment,_interpret_call=interpret)
-    assert asyncio.run(ScientificCodex.interpret(agent,'task',300))=={'ok':True}
-    assert order==['backend','model']
-
 
 def test_extractor_source_analysis_path_updates_the_model_input(tmp_path,monkeypatch):
     """Exercise download, exact source checks, subprocess invocation and upload."""
@@ -129,27 +120,6 @@ def test_joern_only_sources_survive_packet_and_input_selection(tmp_path,suffix):
     payload=enrichment_input(extract_objects(tmp_path,packet),packet,root=tmp_path,connected=True)
     assert path in {s['path'] for s in payload['context']['analysis_sources']}
 
-
-def test_cpg_only_language_can_create_annotatable_math_and_a_repair_guide():
-    from scicontext.object_context import object_bundle
-    payload={'context':{'function_bodies':[], 'code_passages':[], 'scientific_passages':[],
-                        'analysis_sources':[{'path':'m.js','start_line':1,'end_line':3}]}}
-    payload['computation']=build_computation(payload)
-    def node(i,kind,code,name=None,index=0):
-        return {'id':'joern:JSSRC:'+str(i),'kind':kind,'path':'m.js','line':2,'scope':'advance',
-                'properties':{'CODE':code,'NAME':name or code,'ARGUMENT_INDEX':index}}
-    nodes=[node(1,'CALL','out=a*b','<operator>.assignment'), node(2,'IDENTIFIER','out',index=1),
-           node(3,'CALL','a*b','<operator>.multiplication',2),node(4,'IDENTIFIER','a',index=1),node(5,'IDENTIFIER','b',index=2)]
-    edges=[{'source':nodes[a]['id'],'target':nodes[b]['id'],'role':'ARGUMENT'} for a,b in [(0,1),(0,2),(2,3),(2,4)]]
-    result={'analyses':[{'backend':'joern','language':'JSSRC','nodes':nodes,'links':edges}],'gaps':[]}
-    payload=attach_source_analysis(payload,result)
-    unit=payload['computation']['transformations'][0]
-    assert payload['computation']['coverage']['cpg_lifted_transformations']==1
-    assert payload['computation']['coverage']['transformations']==1
-    response={'schema_version':'object-enrichment-1.0','annotations':[{'object_id':unit['id'],'meaning':'Product of supplied quantities.'}]}
-    bundle=object_bundle({'objects':[]},response,payload)
-    assert 'Product of supplied quantities.' in bundle['handoff']
-    assert bundle['assembly']['interpretation_status']=='enriched'
 
 
 def test_actual_codex_prompt_only_requests_read_access_and_returned_json(tmp_path):

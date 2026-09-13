@@ -242,9 +242,7 @@ def render_objects(graph: dict) -> str:
 
 def object_bundle(graph: dict, response: object, context: dict | None = None) -> dict:
     from .io import digest_json
-    if context and context.get("computation"):
-        from .computation import attach_computation
-        graph = attach_computation(graph, context["computation"])
+    # Computation attachment retired; the code-owned object graph is the representation.
     combined = enrich_objects(graph, response)
     usable = bool(combined["objects"])
     return {"graph": combined, "graph_sha256": digest_json(combined),
@@ -315,9 +313,8 @@ def _related_implementations(graph: dict, locus: dict) -> list:
 
 def render_guide(graph: dict) -> str:
     """Readable guide: the strongest executed findings, stated as measurements."""
-    if graph.get("computation"):
-        from .computation import render_computation
-        return render_computation(graph)
+    # Computation/symbolic rendering is retired; the bounded guide format
+    # (findings + annotations) is the working deliverable.
     lines = ["# Scientific working model", ""]
     loci = [obj for obj in graph.get("objects", []) if obj.get("kind") == "constraint_locus"
             and obj.get("properties", {}).get("status") == "violated"]

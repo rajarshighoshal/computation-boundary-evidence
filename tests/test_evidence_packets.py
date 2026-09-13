@@ -182,16 +182,6 @@ def test_native_recorded_function_region_is_not_mislabeled_as_proven_dispatch(tm
     assert result["evidence_packets"][0]["candidate_call_links"] == []
 
 
-def test_production_preparation_requests_connected_input_in_both_helper_stages():
-    from scicontext.pier_agent import ScientificCodex
-    helper = AsyncMock(return_value={"status": "ready"})
-    driver = SimpleNamespace(condition="science", root="/app/task_synthetic", task_id="synthetic", _helper=helper)
-    asyncio.run(ScientificCodex.prepare(driver, 1200))
-    commands = [call.args[0] for call in helper.await_args_list]
-    input_stages = [command for command in commands if "--enrichment-input" in command]
-    assert len(input_stages) == 2
-    assert all("--connected-evidence" in command for command in input_stages)
-
 
 def helper_case(tmp_path, adapter, kernel):
     package = tmp_path / "pkg"

@@ -19,7 +19,7 @@ def main(argv: list[str] | None = None) -> int:
     packet.add_argument("--catalog", type=Path, required=True)
     packet.add_argument("--objects-output", type=Path)
     packet.add_argument("--enrichment-input", type=Path)
-    packet.add_argument("--connected-evidence", action="store_true")
+    packet.add_argument("--connected-evidence", action="store_true", default=False)
     trace = subs.add_parser("trace")
     trace.add_argument("--root", type=Path, required=True)
     trace.add_argument("--script", type=Path, required=True)
