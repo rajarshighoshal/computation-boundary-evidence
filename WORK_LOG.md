@@ -11,6 +11,12 @@ computational evidence; the LLM interprets scientific meaning. Rajarshi owns sci
 - [complete] Incoming integration stabilized; 48 targeted tests and independent reviewer pass.
   Imports/live invocation, CLI, metadata roundtrip and analyzer IDs verified. Incoming edits are
   preserved in runs/takeover-2026-09-14/incoming.patch. Root is the only writer.
+- [complete] Focused primary-source check saved in docs/METHOD.md, with proposed mechanism clearly
+  separate from implementation. Stale claims about deleted mathematical modules removed.
+- [complete] Source-delivery prerequisite: local document links, safe exact imports beyond discovery
+  cap, both retrievers used for allocation. Independent review passes; full suite 500 passed.
+  Public 091 replay now retains all five inspected conversion/lattice/grid/return details (previously
+  none); 009 also replayed. Receipt: results/source-selection-review-2026-09-14.json. Not a meaning test.
 - [in progress] Build one bounded, implementation-grounded scientific-context path using existing
   analyzers. Do not restore the retired parallel mathematical graph or dump whole CPGs into prompts.
   Preserve task-relevant scientific conventions, conditions and computational relationships.

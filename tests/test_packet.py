@@ -102,6 +102,62 @@ def test_documents_validate_exact_lines_hashes_and_explicit_context(tmp_path):
     assert build_packet(root, context)["documents"][0]["id"] != old_id
 
 
+def test_linked_scientific_documents_survive_discovery_and_document_caps(tmp_path, monkeypatch):
+    write(tmp_path, "paper.md", "Model definition: source/docs/conventions.rst\n")
+    write(tmp_path, "a_table.txt", "Incidental lookup table\n")
+    write(tmp_path, "source/docs/conventions.rst", "Velocity uses metres per second.\n")
+    monkeypatch.setattr(packet, "MAX_SCAN_DIRECTORIES", 1)
+    monkeypatch.setattr(packet, "MAX_DOCUMENT_FILES", 2)
+    result = build_packet(tmp_path, multilingual=True)
+    assert result["coverage"]["directories_truncated"]
+    assert result["coverage"]["selected_document_paths"][0] == "source/docs/conventions.rst"
+    assert any(d["quote"] == "Velocity uses metres per second." for d in result["documents"])
+    assert result["coverage"]["document_references"] == [
+        {"path": "source/docs/conventions.rst", "via": "paper.md"}]
+    assert result == build_packet(tmp_path, multilingual=True)
+
+
+def test_document_links_are_one_hop_relative_and_public_only(tmp_path, monkeypatch):
+    root, context = tmp_path / "root", tmp_path / "context"
+    write(context, "task_statement.md", "See docs/overview.md.\n")
+    write(root, "docs/overview.md", "[contract](../source/model.rst)\n"
+          "../private/secret.md\n../../outside.md\n../alias.md\n")
+    write(root, "source/model.rst", "Preserve the normalization. More: deeper/extra.md\n")
+    write(root, "source/deeper/extra.md", "Third hop, not selected.\n")
+    write(root, "private/secret.md", "Private text.\n")
+    outside = write(tmp_path, "outside.md", "Outside text.\n")
+    (root / "alias.md").symlink_to(outside)
+    monkeypatch.setattr(packet, "MAX_SCAN_DIRECTORIES", 1)
+    result = build_packet(root, context, multilingual=True)
+    assert {d["path"] for d in result["documents"]} == {
+        "@context/task_statement.md", "docs/overview.md", "source/model.rst"}
+    assert result["coverage"]["document_references"] == [
+        {"path": "source/model.rst", "via": "docs/overview.md"}]
+
+
+def test_both_retrievers_receive_body_allocation_before_fallback(tmp_path, monkeypatch):
+    from scicontext import workflow_retrieval
+
+    write(tmp_path, "reproduce.py", "def main():\n    return 0\n")
+    write(tmp_path, "source/model.py", 'def advance(x):\n    """x is stored volume."""\n' +
+          "".join(f"    v{i} = x * {i}\n" for i in range(40)) + "    return v39\n")
+    for i in range(24):
+        write(tmp_path, f"a{i}.py", "unused = 0\n")
+    refs = [{"path": "source/model.py", "start_line": 1, "end_line": 43, "depth": 1}]
+    workflow = [{"path": "reproduce.py", "start_line": 1, "end_line": 2, "depth": 0}]
+    monkeypatch.setattr(packet, "seed_references", lambda *args: (refs, {"references": refs}))
+    monkeypatch.setattr(workflow_retrieval, "retrieve", lambda *args: (workflow, {"references": workflow}))
+    result = build_packet(tmp_path, multilingual=True)
+    selected = result["coverage"]["selected_source_paths"]
+    assert selected[:2] == ["reproduce.py", "source/model.py"]
+    allocations = result["coverage"]["entry_allocations"]
+    assert allocations["source/model.py"] > 10 * allocations["a0.py"]
+    assert any(e["path"] == "source/model.py" and e["text"] == "return v39"
+               for e in result["entries"])
+    assert sum(e["path"] == "source/model.py" for e in result["entries"]) > 40
+    assert len(result["entries"]) <= packet.MAX_ENTRIES
+
+
 def test_task_and_reproducer_paths_outrank_root_and_deep_files(tmp_path, monkeypatch):
     root, context = tmp_path / "root", tmp_path / "context"
     write(root, "a.py", "unused = 1\n")

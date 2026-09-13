@@ -24,6 +24,36 @@ def test_reproducer_import_reaches_deep_reader_before_shallow_files(tmp_path, mo
     assert result == build_packet(tmp_path)
 
 
+def test_exact_local_import_and_relative_reexport_survive_discovery_cap(tmp_path, monkeypatch):
+    write(tmp_path, 'reproduce.py', 'from workflow import compute\nresult = compute(2)\n')
+    write(tmp_path, 'workflow/__init__.py', 'from .model import compute\n')
+    write(tmp_path, 'workflow/model.py', 'raise RuntimeError("never import")\n'
+          'def compute(x):\n    return x * 3\n')
+    monkeypatch.setattr(packet, 'MAX_SCAN_DIRECTORIES', 1)
+    result = build_packet(tmp_path, multilingual=True)
+    assert result['coverage']['directories_truncated']
+    assert any(e['path'] == 'workflow/model.py' and e['text'] == 'return x * 3'
+               for e in result['entries'])
+    refs = result['coverage']['task_local_retrieval']['references']
+    assert any(r['path'] == 'workflow/model.py' and r['depth'] == 2 for r in refs)
+    assert not result['coverage']['task_local_retrieval']['unresolved']
+    assert result == build_packet(tmp_path, multilingual=True)
+
+
+def test_exact_local_import_does_not_admit_symlink_or_private_path(tmp_path, monkeypatch):
+    root = tmp_path / 'root'
+    write(root, 'reproduce.py', 'from hidden_pkg import compute\nfrom private.model import secret\n'
+          'compute()\nsecret()\n')
+    write(tmp_path, 'outside.py', 'def compute():\n    return 1\n')
+    (root / 'hidden_pkg.py').symlink_to(tmp_path / 'outside.py')
+    write(root, 'private/model.py', 'def secret():\n    return 2\n')
+    monkeypatch.setattr(packet, 'MAX_SCAN_DIRECTORIES', 1)
+    result = build_packet(root, multilingual=True)
+    assert all(e['path'] == 'reproduce.py' for e in result['entries'])
+    unresolved = result['coverage']['task_local_retrieval']['unresolved']
+    assert {r['import'] for r in unresolved} == {'hidden_pkg', 'private.model'}
+
+
 def test_expand_late_region_preserves_ids_context_and_bounds(tmp_path, monkeypatch):
     source = ''.join(f'unused{i} = {i}\n' for i in range(160))
     source += 'def compute(x):\n    y = x * 2\n    z = y + 1\n    return z\n'

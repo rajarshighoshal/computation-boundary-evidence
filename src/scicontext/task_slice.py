@@ -29,8 +29,20 @@ def seed_references(root, paths, seed_paths, task_text=""):
 
     def module_paths(module):
         suffix = module.replace(".", "/")
-        return [p for p in sources if p == suffix + ".py" or p.endswith("/" + suffix + ".py")
-                or p == suffix + "/__init__.py" or p.endswith("/" + suffix + "/__init__.py")]
+        matches = {p for p in sources if p == suffix + ".py" or p.endswith("/" + suffix + ".py")
+                   or p == suffix + "/__init__.py" or p.endswith("/" + suffix + "/__init__.py")}
+        # An exact local import remains eligible after directory discovery stops.
+        # Existing safety checks apply; this does not search external packages.
+        return admit(matches | {suffix + ".py", suffix + "/__init__.py"})
+
+    def admit(candidates):
+        accepted = sorted(p for p in candidates if evidence._safe_file(root, p)[1] is None)
+        for path in accepted:
+            if path not in sources:
+                sources.append(path)
+                paths.add(path)
+        sources.sort()
+        return accepted
 
     queue = [(p, None, "public_reproducer_or_task_path") for p in sorted(seed_paths) if p.endswith('.py')][:MAX_SEED_FILES]
     # Exact identifiers inside backticks or call syntax, not fuzzy prose names.
@@ -53,7 +65,7 @@ def seed_references(root, paths, seed_paths, task_text=""):
         for node in focus:
             references.append({"path": path, "start_line": node.lineno,
                                "end_line": node.lineno if isinstance(node, ast.ClassDef) else node.end_lineno,
-                               "symbol": node.name, "via": via})
+                               "symbol": node.name, "via": via, "depth": depths.get(path, 0)})
         nodes = [part for node in focus for part in ast.walk(node)] if focus else list(ast.walk(tree))
         calls = {evidence.symbol_name(n.func) for n in nodes if isinstance(n, ast.Call)}
         for node in ast.walk(tree):
@@ -75,7 +87,7 @@ def seed_references(root, paths, seed_paths, task_text=""):
                     for _ in range(node.level - 1):
                         parent = parent.parent
                     stem = (parent / module.replace('.', '/')).as_posix()
-                    matches = [p for p in sources if p in {stem + '.py', stem + '/__init__.py'}]
+                    matches = admit({stem + '.py', stem + '/__init__.py'})
                 else:
                     matches = module_paths(module)
                 if len(matches) != 1:

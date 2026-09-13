@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import posixpath
 import re
 import copy
 from pathlib import Path
@@ -35,18 +36,44 @@ _PATH_MENTION = re.compile(r"[A-Za-z0-9_./-]+\.(?:py|md|rst|txt)\b", re.IGNORECA
 _MULTILINGUAL_MENTION = re.compile(r"[A-Za-z0-9_./-]+\.(?:py|pyx|pxd|pxi|cpp|cxx|cc|c|hpp|hxx|hh|h|f90|f95|f03|f08|f77|for|f|m|md|rst|txt)\b", re.IGNORECASE)
 
 
-def _mentions(text: str, multilingual: bool = False) -> set[str]:
+def _mentions(text: str, multilingual: bool = False, *, relative_to: str = "") -> set[str]:
     # The bound also applies when a task statement contains huge generated text.
     paths = set()
     pattern = (re.compile(r"[A-Za-z0-9_./-]+\.(?:" + "|".join(re.escape(s[1:]) for s in sorted(JOERN_SOURCE_SUFFIXES | {'.pyx','.pxd','.pxi','.f90','.f95','.f03','.f08','.f77','.for','.f','.m','.md','.rst','.txt'}, key=len, reverse=True)) + r")\b", re.IGNORECASE)
                if multilingual else _PATH_MENTION)
     for match in pattern.finditer(text[:65536]):
         path = match.group().removeprefix("./")
+        if relative_to and not path.startswith("/"):
+            path = posixpath.normpath(posixpath.join(relative_to, path))
         if not evidence._blocked(Path(path)) and _safe_relative(path) is None:
             paths.add(path)
         if len(paths) >= 128:
             break
     return paths
+
+
+def _linked_documents(root: Path, paths: set[str], task_paths: set[str], coverage: dict,
+                      multilingual: bool) -> set[str]:
+    """One hop of explicit local document links, using the public-source reader."""
+    seeds = sorted((p for p in paths if Path(p).suffix.casefold() in _DOCUMENT_SUFFIXES),
+                   key=lambda p: _rank(p, task_paths, set()))[:MAX_DOCUMENT_FILES]
+    linked, records = set(), []
+    for path in seeds:
+        source = _read_text(root, path, coverage)
+        if source is None:
+            continue
+        candidates = (_mentions(source[1], multilingual) |
+                      _mentions(source[1], multilingual, relative_to=posixpath.dirname(path)))
+        for target in sorted(candidates):
+            if target == path or Path(target).suffix.casefold() not in _DOCUMENT_SUFFIXES:
+                continue
+            _, problem = evidence._safe_file(root, target)
+            if problem is None and not target.startswith("@context/"):
+                paths.add(target)
+                linked.add(target)
+                records.append({"path": target, "via": path})
+    coverage["document_references"] = records
+    return linked
 
 
 def _reproducer(path: str) -> bool:
@@ -189,7 +216,8 @@ def build_packet(root: Path, context_root: Path | None = None, *, multilingual=F
             paths.add(path)
         else:
             coverage["skipped"].append({"path": path, "reason": problem or "excluded_path"})
-    ordered = sorted(paths, key=lambda p: _rank(p, task_paths, repro_paths))
+    linked_docs = (_linked_documents(root, paths, task_paths, coverage, multilingual)
+                   if multilingual else set())
     refs, retrieval = seed_references(root, paths,
         task_paths | {p for p in paths if _reproducer(p) and p.endswith('.py')}, context[1] if context else '')
     coverage['task_local_retrieval'] = retrieval
@@ -205,13 +233,13 @@ def build_packet(root: Path, context_root: Path | None = None, *, multilingual=F
         coverage["workflow_retrieval"] = workflow
     focus_paths = {ref['path'] for ref in refs}
     focus_order = {path: index for index, path in enumerate(dict.fromkeys(ref['path'] for ref in refs))}
-    ordered.sort(key=lambda p: (0 if p in focus_paths else 1, focus_order.get(p, len(refs)),
-                               _rank(p, task_paths, repro_paths)))
+    ordered = sorted(paths, key=lambda p: (0 if p in focus_paths else 1,
+        focus_order.get(p, len(refs)), _rank(p, task_paths, repro_paths)))
     if multilingual:
         from .language_frontends import source_language, extract_native_evidence
         all_sources = [p for p in ordered if source_language(p) is not None]
-        explicit = list(dict.fromkeys([r["path"] for r in workflow_refs] +
-            [r["path"] for r in caller_refs] + [p for p in all_sources if p in task_paths]))
+        explicit = list(dict.fromkeys([r["path"] for r in refs] +
+            [p for p in all_sources if p in task_paths]))
         groups = {}
         for path in all_sources:
             if path not in explicit:
@@ -225,10 +253,12 @@ def build_packet(root: Path, context_root: Path | None = None, *, multilingual=F
                     sources.append(groups[language].pop(0))
         if source_paths:
             sources = [p for p in sources if p in source_paths]
-        coverage["source_selection"] = "workflow_references_then_explicit_paths_then_language_fallback"
+        coverage["source_selection"] = "retrieved_references_then_explicit_paths_then_language_fallback"
     else:
         sources = [p for p in ordered if Path(p).suffix.casefold() == ".py"]
     document_paths = [p for p in ordered if Path(p).suffix.casefold() in _DOCUMENT_SUFFIXES]
+    document_paths.sort(key=lambda p: (0 if p in task_paths else 1 if p in linked_docs else 2,
+                                      _rank(p, task_paths, repro_paths)))
     for path in ordered:
         if path not in sources and path not in document_paths:
             reason = ("not_selected_by_explicit_paths" if multilingual and source_paths and source_language(path)
@@ -240,8 +270,8 @@ def build_packet(root: Path, context_root: Path | None = None, *, multilingual=F
     coverage["selected_source_paths"] = sources[:MAX_SOURCE_FILES]
     entries = []
     allocations = {}
-    if workflow_refs:
-        weights = {p: 1 / (1 + min((r.get("depth", 0) for r in workflow_refs + caller_refs if r["path"] == p), default=MAX_SOURCE_FILES))
+    if multilingual and refs:
+        weights = {p: 1 / (1 + min((r.get("depth", 0) for r in refs if r["path"] == p), default=MAX_SOURCE_FILES))
                    for p in coverage["selected_source_paths"]}
         allocations = {p: min(MAX_ENTRIES_PER_FILE, max(1, int(MAX_ENTRIES * w / sum(weights.values())))) for p, w in weights.items()}
         coverage["entry_allocations"] = allocations

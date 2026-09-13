@@ -1,284 +1,140 @@
-# Hybrid scientific working model
+# Task-specific scientific context for repair
 
-This describes the current scientific-object method, not the retired probe-first experiments.
-It is a research prototype; state-of-the-art performance and repair improvement are not established.
+## Research question and current status
 
-## Current core: shared computational representation (13 September)
+Does a compact task-specific scientific representation, grounded in public code and documentation,
+help an otherwise unchanged agent repair scientific software under a matched total allowance?
+Rajarshi owns this question and the scientific choices. Better repair is not established.
 
-The reuse-first backend integration adds Joern, SymPy and fortls to the common representation.
-Routing now queries installed Joern frontend capabilities instead of restricting invocation to
-Python/C++. Source routing covers C/C++, Python, Java, JavaScript/TypeScript, Kotlin, Go, Rust,
-Ruby, PHP, C#, Swift and ABAP when the corresponding frontend is installed. This is source-language
-routing, not automatic binary/LLVM analysis. Missing frontends remain explicit gaps.
+The intended context explains the computation's purpose, the relevant quantities or structures,
+their relationships, and the conditions/conventions that matter to this task. It is not an
+inventory of suspicious lines or a paraphrase of the reproducer. Scientific meaning can come
+from LLM interpretation; the useful claim is about the resulting grounded representation,
+not that static analysis independently understands physics.
 
-The packet also records source files for external analysis even when the legacy syntax index has
-no entries for their language. Joern-only paths are lifted from Joern's common AST/argument nodes
-into the same mathematical-template/quantity representation; the adapter does not implement a new
-language parser or dataflow analyzer. CPG-derived source facts are still infrastructure, not the
-scientific contribution or evidence of repair benefit. The real JavaScript check passed through
-selection, Joern, representation construction and a code-only repair guide. Other added language
-routes have routing/selection tests, not equivalent live frontend validation. The failed initial
-JavaScript run is preserved; its packaged launcher needed the documented ASTGEN_BIN override to
-locate its already-installed parser. See `results/joern-language-routing.json`.
+This file replaces stale claims about the mathematical representation removed at 6624ac6.
+That implementation and its historical results remain in Git and preserved run artifacts.
+They are not current functionality.
 
-Joern is invoked by the extractor's `interpret` path on the host, after downloading the exact
-public files referenced by the input. `joern-parse` and `joern-export` produce analyzer-owned
-data/control-flow facts; `source_backends.py` normalizes and binds them by source location. Only
-selected source regions and direct boundary endpoints enter the model input. The complete export
-is retained in `source-analysis.json` and delivered alongside the repair artifacts. A missing Joern
-executable or failed frontend is recorded as a capability gap, not silently called successful analysis.
+## Focused literature check — 14 September 2026
 
-SymPy 1.14 constructs formal symbolic expressions and runs common-subexpression elimination.
-Unspecified quantity types use noncommutative symbols. This is a symbolic projection, not a proof
-that algebraic rewriting preserves floating-point execution. Original ordered source templates
-remain the source record; unsupported symbolic operators are listed explicitly. SymPy does not
-infer a physical meaning from variable names. The source-to-representation adapter is still custom;
-this integration does not claim to have removed every custom scope/quantity abstraction.
+The following are mechanisms to borrow, not evidence that our method works.
 
-fortls 3.2.2 supplies Fortran symbols and typed interface hovers through its own LSP handlers.
-It does not supply Joern-equivalent dataflow. MATLAB/Cython retain the existing syntax frontends.
-The shared representation is language-independent, while analysis depth remains backend-dependent.
-No new compiler IR pipeline is introduced. The archived indexed entries contain Python, C/C++,
-Fortran, MATLAB and Cython; skipped-file metadata also includes JavaScript/shell, an R documentation
-renderer and CUDA files. That bounded inventory is not proof of exhaustive source-language coverage.
+- **Niu et al., TVR, v1, §§2.2–3:** narrow traceability to the specific message/signal and
+  condition a requirement covers. Retrieve labelled requirement-pair examples, then validate
+  that correspondence. The lesson for us is to ask which documented scientific role a
+  computation implements, not whether two passages sound related. Their automotive templates
+  and private labelled pairs do not transfer automatically.
+  [Paper](https://arxiv.org/html/2504.15427v1),
+  [official prompts](https://github.com/feifeiniu-se/TVR/blob/main/Prompts.md).
 
-Connected extraction now constructs `scientific-computation-1.0` before interpretation. This is
-an implemented code-side abstraction, not an LLM-generated graph. The older API-object layer below
-is retained for compatibility and provenance; it is no longer the main interpretation target in
-connected mode. `src/scicontext/computation.py` owns this representation.
+- **Pan, Niu et al., requirements coverage-guided minimization, v1, §§2–3:** select a
+  fixed-size test subset while preserving supplied requirement coverage and reducing redundancy.
+  Borrow coverage-aware selection: retain evidence for distinct task-relevant roles and conditions
+  before more examples of an already-covered role. Their requirement mappings are given;
+  our mappings must be recovered. Their guarantee does not transfer to our selected context.
+  [Paper](https://arxiv.org/html/2505.20004v1).
 
-- **Quantity identities** distinguish scoped inputs, assignments, versions and indexed fields.
-  Field reads retain their container dependency. Units, axes and coordinate frames remain unknown
-  unless supported by other source/interpretation evidence; the algorithm does not invent them.
-- **Mathematical templates** share ordered expression structure up to renaming quantity operands.
-  Repeated operands, constants, indexing structure and operator order survive. For example,
-  `a*x+b*y+c*z` has one template and distinct bindings at each occurrence, rather than one
-  description per function. Native language identity remains explicit because similarly spelled
-  operators need not share semantics. This is structural abstraction, not algebraic equivalence.
-- **Transformation occurrences** bind a template to quantities and a source location. Local pure
-  intermediates are expanded under an explicit size bound while original dependency edges remain.
-  Branches, loops, early returns and validation continuations carry source conditions; shared
-  condition sets are stored once. Indexed archived expressions use the existing dependency evidence.
-- **Interprocedural edges** retain statically supported argument and return candidates from helper
-  retrieval. Variadic, dynamic, decorated and unresolved calls are not silently substituted.
-- **Scientific-source links** identify explicit symbol references in public documents. These are
-  candidate meaning correspondences, not proof that a passage defines a quantity. The LLM annotates
-  existing computational-relation IDs with meanings/conventions/assumptions; it cannot manufacture
-  dataflow links or alter the code-owned representation. Source validation guards remain distinct
-  from physical requirements.
+- **AutoMATES, v1, §§3–6:** connect variables and functional relationships to definitions
+  from code comments, equations and text; use shared variable identities and the paths connecting
+  them to compare models. This is much closer to the intended compactness than file grouping.
+  The paper reports a Fortran subset and initial results; its richly enriched opening example
+  is explicitly hand-crafted/aspirational.
+  [Paper](https://arxiv.org/html/2001.07295v1).
 
-The compact interpreter input uses relation IDs plus the shared representation and source evidence,
-not duplicate legacy object/operation indexes. Assembly attaches those relation objects to the
-durable scientific graph and joins annotations with the existing schema. The repair guide renders
-shared mathematical forms, concrete bindings and retained conditions, with interpretations when
-available. Whole omitted display groups remain in the graph; a display bound never cuts a condition
-off its occurrence. This does not guarantee the complete serialized evidence input is smaller:
-recovering relationships adds information as well as sharing repeated structure.
+- **SKEMA/GroMEt:** function definitions are stored separately from invocation bindings, ports
+  and wires. Its structural alignment uses seeded graph matching on operator-labelled graphs;
+  candidate correspondences are not scientific or algebraic equality. The inspected equation–code
+  path seeds from names; definition-based matching exists in another path. Do not import the
+  whole platform or introduce this extra matcher until we have a concrete alignment input.
+  Official source inspected at fe8f41f704e8802a6d1d30cc7107062d338489b0:
+  [function definitions](https://github.com/ml4ai/skema/blob/fe8f41f704e8802a6d1d30cc7107062d338489b0/skema/gromet/fn/gromet_box_function.py),
+  [alignment](https://github.com/ml4ai/skema/blob/fe8f41f704e8802a6d1d30cc7107062d338489b0/skema/isa/lib.py).
 
-### Verification and remaining gaps
+- **SemAgent, v1, §4.2:** already abstracts issue intent, constructs semantic execution flows,
+  and maps their steps to code using an LLM, then refines an existing patch. Its inspected
+  implementation is Python/single-file, and additional semantic edits sometimes hurt.
+  Therefore “code structure plus LLM explanation” is not itself a new contribution.
+  Our possible distinction is the pre-repair scientific abstraction and its measured benefit
+  under an unchanged repair harness—not a new multi-agent repair workflow.
+  [Paper](https://arxiv.org/html/2506.16650v1).
 
-`results/computation-coverage.json` records a deterministic offline check over all 119 previously
-materialized public packets, selected without inspecting repair outcomes. It measures recoverable
-arithmetic/template structure, not scientific correctness, whole-repository coverage or success.
-The verified scan found arithmetic in all 119 packets and shared templates in 116, but arithmetic
-outside reproducer files in only 98. The other 21 saved slices must not be reported as recovered
-implementation-level science: 015, 018, 020, 023, 024, 027, 042, 052, 053, 065, 066, 069, 070, 072,
-077, 092, 100, 105, 106, 115, 119. This may reflect retrieval/entry limits or computation outside the
-supported arithmetic forms; this scan does not distinguish those causes. It took 2.89 seconds for
-representation construction from archived packets, excluding retrieval, agents and verification.
-Tests cover cross-domain renaming, operand identity/order/constants, local intermediates, branch
-merges, early returns, possible mutation, array-field dependencies, source-document links, helper
-calls and the existing C/C++/Fortran/MATLAB/Cython frontends. Production assembly/guide tests use
-mock annotations, not a hidden model call. The connected source replay and code-only handoff are
-preserved in `runs/computation-connected-verified/`.
+- **Variable Extraction for Model Recovery, v1:** evaluates extracting names, descriptions and
+  values from scientific text, including a hybrid where rule-derived candidates aid an LLM.
+  Results are imperfect and gains depend on the model. Borrow explicit definition/value
+  correspondences with textual evidence, not an assumption that one model call understands
+  everything. Its dataset is scientific text, not repository repair.
+  [Paper](https://arxiv.org/html/2411.14569v1).
 
-Remaining gaps are explicit, not claimed as completed work:
+- **GROUNDING.md:** proposes field-scoped, community-governed scientific constraints and
+  convention parameters for coding agents. This closely relates to Rajarshi's manually
+  authored project guidance, but does not solve automatic task-level extraction or establish
+  our repair effect. This observation is based on the publisher's abstract, not a full-paper audit.
+  [NIST publication record](https://www.nist.gov/publications/agentic-ai-assisted-coding-offers-unique-opportunity-instill-epistemic-grounding-during).
 
-1. Templates do not establish physical meaning, operator types, floating-point equivalence, tensor
-   shapes or alias correctness. A weighted expression is not automatically a particular physical law.
-2. Interprocedural binding is partial; `*args`/`**kwargs`, indirect calls, mutation and language-specific
-   dispatch can remain opaque. Native function/array-call ambiguity is preserved. Native intermediate
-   expansion and complete loop-carried dependence analysis are not implemented.
-3. Local expression expansion is conservative, not whole-program SSA/symbolic execution. Unsupported
-   control regions and missing indexed expressions are recorded in `gaps`. Retrieval omissions remain
-   in source-selection receipts. Conditions from an indexed snippet are not a complete path predicate.
-4. Scientific interpretation with this new representation has not been live-tested. The earlier
-   one-call test used a different input and output contract; its result cannot establish this revision's
-   quality. No repair comparison has evaluated the shared-template revision.
+## Proposed mechanism, not yet completed
 
-The existing harness/model route is unchanged. No new retries, agent framework, compiler IR or
-paid experiments were introduced by this core implementation.
+1. **Recover the task's computational core.** Start from public task references and workflow
+   entry/output points. Retain the relevant implementation computations, operand relationships
+   and controlling conditions using the existing analyzers. An available source file is not
+   automatically a relevant computation. External calls remain interfaces unless their bodies
+   are the repair target.
 
-## Representation and division of work
+2. **Connect scientific definitions to that core.** Present the relevant definitions,
+   parameter/return documentation and scientific passages beside the code-owned relationships.
+   The LLM explains what the quantities and transformations mean and identifies the supporting
+   passages. Keep intended behaviour, observed execution and interpretive assumptions distinct.
+   An existing object ID proves an anchor exists; it does not prove the explanation is true.
 
-Code identifies values, operations, source bindings, interface parameters and dependency links.
-Recognised API rules supply scientific computational roles: a linear system's coefficient operator,
-right-hand side and solution; sampled integration's field and coordinates; graph topology and
-component partitions; or unit-bearing quantities and their arithmetic. These are documented API
-contracts and source facts, not a recovered scientific specification.
+3. **Compact by shared identity and retained distinctions.** A known function definition can be
+   represented once with separate call bindings. Repeated references to the same documented
+   quantity can share its definition while retaining different uses. Do not merge quantities
+   just because their names or embeddings are similar. Keep conditions, operand roles, units,
+   coordinate frames and normalization attached to the relationship they qualify.
+   Missing identities stay separate rather than becoming invented equivalences.
 
-Custom computations are retained even when no API rule applies. They have source-backed objects
-and operations but no invented scientific meaning. Scoped shadowing, uncertain dataflow and
-unsupported operations stay visible. Wrapper links identify indexed lexical targets/bodies; they
-do not prove argument/parameter or return-value equivalence across functions.
+4. **Deliver one small connected working model.** Explain the task objective and the relevant
+   input → computation → output relationships with scientific interpretations and source pointers.
+   The durable artifact retains details for targeted lookup. Do not force repair to mine a
+   whole-repository JSON graph. Render the retained relationships, not merely the first eight
+   individually annotated objects.
 
-Pint supplies offline unit parsing and registry-based dimensionality/scales. Prefixes and compound
-units no longer depend on a hand-maintained vocabulary. Only multiplicative scales are propagated;
-offset/logarithmic or unresolved unit cases stay unsupported. Registry precision and the candidate
-library's runtime behaviour are not mathematical-equivalence guarantees.
+For the user's clique-counting example, the core would describe what is counted, how work is
+partitioned and combined, and any documented correctness/performance requirements. Network
+contention is a diagnosis only if supported by evidence. A target such as x/N + c remains a
+stated performance model with assumptions, not a universal scientific law.
 
-The LLM reads the public task and scientific passages alongside the objects and code/interface
-excerpts. It explains scientific meaning, conventions and assumptions on exact existing object IDs.
-It cannot create graph structure, overwrite units/shapes, supply probes, or declare a hypothesis a
-required patch. Code joins accepted annotations separately from intrinsic properties and records
-unanchored/malformed output as omitted. See [the contract](OBJECT_ENRICHMENT.md).
+This is an adaptation of existing ideas to a particular repair question. Novelty and usefulness
+must be established through the actual representation and comparison; neither is assumed.
 
-## Scientific context, not an API catalogue
+## What currently exists
 
-An operator's numerical role and its scientific role are different. Recognising a linear solve does
-not establish whether its matrix represents stiffness, a transition process or something else.
-That connection must come from the scientific material and task context. Similarly, dimensional
-consistency cannot decide whether the correct coordinate frame or boundary condition was selected.
+- Public-source readers, Python/native syntax backends, workflow/task-reference retrieval,
+  code objects and candidate relationships, execution observations and an anchored LLM schema.
+- Joern integration is callable again, but still exports the full graph before selection.
+  That path caused memory/context failures and is not ready for another live test.
+- One-hop local document links now enter scientific-mode selection. Exact local Python imports
+  can survive discovery limits. Both retrievers' references now affect file selection/allocation.
+  These changes improve source delivery; per-file limits can still truncate computations.
+- LLM output currently attaches meaning/conventions/assumptions to individual object IDs.
+  It does not yet implement the connected scientific working model proposed above.
+- The guide still uses individual annotation ranking; compact, consistently useful delivery
+  remains unfinished. The deleted SymPy/computation layer has not been restored.
 
-The delivered representation combines meanings with actual code relationships and unresolved cases.
-Repair uses it as a working model, not as a list of mandatory invariants. Its usefulness remains an
-empirical question, especially when documentation is incomplete or inferred meaning is wrong.
+The repair harness, model route and evidence policy remain unchanged. No new paid experiment,
+compiler-IR pipeline, API-rule catalogue or platform dependency was introduced by this checkpoint.
 
-## Task-directed source retrieval
+## Verification required before another live run
 
-Scientific mode now follows literal public workflow evidence: imported function/class uses,
-receiver-method candidates, native calls and filename-matched functions, and call spellings inside
-embedded MATLAB driver text. Generated definitions are not treated as calls; import/local shadowing
-and absent targets do not produce an invented binding. These are retrieval candidates, not runtime
-dispatch proofs. There are no benchmark-specific names in the retrieval implementation.
+First establish that source selection retains the actual scientific computations and their
+documented conventions on development cases. Preserve contrary cases: identical vocabulary
+with different conditions, repeated calls with different bindings, and incidental numeric code.
+Inspect the assembled model input and repair guide, not just intermediate graphs.
 
-Function documentation is ranked against the public task and scientific passages with TF-IDF
-cosine similarity. Workflow references precede language-balancing fallbacks; the existing global
-entry allowance is shared across selected files. Legacy selections remain reproducible. File,
-depth, call-site and entry omissions are exposed rather than treated as evidence of irrelevance.
+Then verify the bounded analyzer-to-context path with existing real source artifacts and an
+independent reviewer. Synthetic annotations can test plumbing, not scientific interpretation.
+A separately approved live extraction must show accurate, useful scientific content before
+another repair comparison. Paired verifier outcomes, total tokens and time remain the eventual
+repair measures. Broken delivery is not a clean negative test of the research question.
 
-After source validation, exact call sites can point to retrieved interfaces and partial bodies via
-`possible_callee_interface`/`possible_callee_body` links. Output dimensions, shapes and argument/return
-equivalence stay unknown. Comparisons retain source-predicate objects; unsupported unpacking or
-mutation retains a source-statement anchor without becoming a false binding for every target.
-The LLM still annotates existing IDs only. This uses source parsers, not compiler IR.
-
-Offline regressions are generated by `scripts/check_task_retrieval.py` on the same public images.
-Targets and scientific source regions are explicitly posthoc development checks, not extraction
-rules or an unseen test set. The receipts record operation locations/kinds: finding a function or
-some setup calls is not claimed as complete scientific-body coverage. Missing gravitational
-counterparts and incomplete Osprey timing/calibration coverage remain limitations. The updated
-[live enrichment comparison](SCIENTIFIC_READING_V1_V2.md) shows better implementation anchoring of
-reviewed scientific meaning, with [remaining gaps](SCIENTIFIC_READING_V2_NOTES.md). No repair
-comparison has yet evaluated this revision.
-
-## Execution and inspection
-
-Set `"extractor": "scientific_objects"` in an approved run configuration to select this method.
-Existing configurations default to the historical annotation method for reproducibility. The new
-mode prepares code objects before a single scientific-reading call; it does not invoke the old
-probe/refinement loop. It reuses normal Pier/Codex execution and the existing overall allowances.
-
-For offline inspection, without candidate imports or model calls:
-
-```sh
-.venv/bin/scicontext scientific-objects --root PATH --output objects.json --llm-input reader-input.json --markdown objects.md
-.venv/bin/python scripts/demo_scientific_objects.py --output runs/scientific-object-demo-v1
-.venv/bin/python scripts/check_multilingual_sources.py --output runs/multilingual-public-source-new
-```
-
-The demo uses hand-authored interpretation fixtures. It tests representation/enrichment plumbing,
-not LLM discovery or benchmark performance. Real scientific quality needs a separately approved
-live check. Per-file coverage and its denominator are recorded in the graph.
-
-The approved [live reading check](SCIENTIFIC_READING_V1.md) now has outputs from full public
-SHTOOLS, Osprey and MACS workspaces. [Source review](SCIENTIFIC_READING_V1_NOTES.md) found substantive
-scientific interpretations but insufficient links to the relevant implementation bodies. This is
-evidence for a source-selection failure, not repair improvement or completed model–code alignment.
-
-Pinned Linux/x86-64 helper wheels were downloaded for Python 3.10–3.13; this verifies wheel
-availability, not imports inside every benchmark image. The 3.10 helper uses rpds-py 0.30.0 because
-the existing newer pin lacks a compatible wheel; other guest versions retain that newer pin.
-
-## Research basis and what is not implemented
-
-[Semantic enrichment of dataflow graphs](https://arxiv.org/html/1807.05691v2) motivates separating
-concrete computation from domain interpretation and retaining unknown computation without breaking
-connectivity. Its richer ontology operations and dynamic interprocedural provenance are not
-reproduced by this static prototype.
-
-[SKEMA](https://github.com/ml4ai/skema) separates program analysis, scientific-text reading and
-mention/model linking. This supports giving the interpreter scientific source material, not just
-a code graph. Our anchored annotations are not a complete text–equation–code alignment system.
-
-[SpecRover](https://arxiv.org/html/2408.02232v4) is a close repair precedent for making issue-conditioned
-function intent explicit during retrieval. Consequently, an additional LLM explanation pass alone
-is not a novelty claim. The intended contribution here must involve substantive scientific
-representation, code-derived relationships and demonstrably useful contextual understanding.
-
-[DSrepair](https://arxiv.org/html/2502.09771v1) retrieves API knowledge-graph information and combines
-it with fine-grained execution diagnostics for data-science snippet repair. It is close to the API
-knowledge part here, but not the same repository-level setting. Its results also caution against
-assuming that longer or richer API descriptions are necessarily better repair context.
-
-[SIGA v2](https://arxiv.org/html/2606.09774v2) grounds native coding agents in simulator documentation,
-procedural knowledge and validation. It supports the domain-interface motivation; it does not
-justify importing another termination gate or training a procedural-memory system for this task.
-
-[ReproAgent](https://arxiv.org/html/2608.24291v1) links paper-derived obligations and related-code
-evidence to implementation work in paper-to-code reproduction. Source-anchored scientific context
-is therefore not independently novel. Our investigated direction starts from an existing buggy
-repository's objects and computations, then interprets their scientific roles for repair. Whether
-that distinction helps is still an empirical question, not an established SOTA or novelty claim.
-
-## Current limits
-
-Python AST and Cython's parser, plus Tree-sitter C/C++/Fortran/MATLAB frontends, feed the shared
-representation in scientific-object mode. Legacy packet mode remains Python-only. Native syntax
-adds interfaces, declarations, expressions, local call targets and source documentation—not new
-scientific API rules or inferred physical laws. Cython compile-time evaluation/includes are disabled;
-omissions are exposed. C headers use a C++-compatible parse with dialect ambiguity stated. Macros,
-overloads, dynamic dispatch and MATLAB/Fortran call-versus-index ambiguity remain unresolved.
-
-Bounded native packets group contiguous comments and balance documentation, interfaces and
-computation across functions. Returns and writes to explicit output parameters receive priority. Omitted prior
-definitions prevent stale bindings from being presented as dataflow. Parameter declarations retain
-Fortran dimensions/intent as source text. These selection heuristics are not complete slicing.
-Scientific-mode Python selection retains the enclosing interfaces and docstrings with selected
-body statements; the legacy selector is unchanged. MATLAB implicit outputs refer to header-declared
-outputs evaluated at function exit, not whole bodies labelled as return statements.
-
-Pinned public-source checks are in `runs/multilingual-public-source-reviewed`: selected files from
-bedtools, Osprey, MACS, SHTOOLS and htslib. They establish artifact generation, not complete parsing
-or scientific understanding; htslib macro-related parse errors and packet limits remain visible.
-The initially requested MACS `.pyx` file was absent: its pinned version is `BedGraph.py`, parsed as
-Python. Earlier failed receipts are preserved; native Cython is covered by synthetic tests here,
-not claimed as a successful real `.pyx` benchmark-source check.
-
-### Scientific-input preflight
-
-Follow-up artifacts in `runs/scientific-input-preflight` expose a distinction between component
-interpretation and task-complete understanding. No model output was generated or scored.
-
-| Public component | Scientific information available | Missing task coverage |
-| --- | --- | --- |
-| SHTOOLS magnetic tensor | Source comments state the north-west-up frame, coefficient normalization, output units and zero-trace condition; interfaces and tensor-output writes provide anchors. | One routine cannot establish equivalence across the other tensor implementations, coefficient data and complete public workflow. |
-| Osprey quantification | Interfaces and sampled calculations distinguish uncorrected tCr ratios, water scaling and tissue correction; their assumptions are documented locally. | The public task also concerns a model-derived contribution and cross-protocol behavior outside this selected file. |
-| MACS sparse signal track | Class/interface anchors retain zero-based, right-open transition conventions and the public task's evidence-attribution requirement. | The packet still omits `bedGraphTrackI.refine_peaks` even though that method exists in the file; the public reproducer and remaining repository are absent from this selected-file check. |
-
-These are source-backed reading targets, not verified scientific truth or intended patches. The
-initial Python packet had dropped every interface; interface/docstring reservation fixes that
-specific defect. Balancing native entries across functions also exposes Osprey's later calculations
-as objects rather than relying on accidental whole-body excerpts. Neither fix establishes task
-localization. A component-only reading trial must be labelled accordingly; a task-level test needs
-the complete public workspace and must inspect whether its relevant computation is actually indexed.
-
-Broader scientific-source recovery and cross-file argument/return relations remain work.
-The finite rule set does not establish full scientific coverage. Interpretation can still be
-incorrect despite source anchors. Whole-benchmark effectiveness is untested for this method.
-
-PyCG was checked as an optional source of call edges, not assumed compatible. Its published package
-had startup/packaging issues; unmodified official source also failed during analysis initialization
-in the tested Python environment after supplying its missing dependency. No call graph was produced.
-The check does not prove universal incompatibility. Current wrapper links remain the bounded local
-implementation, with cross-file/value-flow limitations explicit; no PyCG fork was introduced.
+Current milestone status and receipts are recorded only in [WORK_LOG.md](../WORK_LOG.md).
