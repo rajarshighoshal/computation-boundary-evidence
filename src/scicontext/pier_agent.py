@@ -294,7 +294,60 @@ class ScientificCodex(BaseAgent):
         return result
 
     async def interpret(self, instruction, seconds):
-        return await self._interpret_call(instruction, seconds)
+        started = time.monotonic()
+        await self._augment_source_analysis()
+        return await self._interpret_call(instruction, max(1, seconds - (time.monotonic() - started)))
+
+    async def _augment_source_analysis(self):
+        """Run installed analyzers on the host against the exact public source slice."""
+        import sys
+        from . import evidence
+        from .source_backends import attach_source_analysis
+        local = self.logs_dir / "source-analysis"
+        local.mkdir(parents=True, exist_ok=True)
+        input_file = local / "input.json"
+        await self.extract_environment.download_file(SCRATCH + "/scientific-context-input.json", input_file)
+        payload = read_json(input_file)
+        if not payload.get("computation"):
+            return
+        root = local / "source"
+        paths = sorted({item["path"] for key in ("function_bodies", "code_passages")
+                        for item in payload["context"].get(key, []) if not item["path"].startswith("@context/")})
+        for path in paths:
+            if evidence._blocked(Path(path)) or Path(path).is_absolute() or ".." in Path(path).parts:
+                raise ValueError("Invalid public analysis path")
+            destination = root / path
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            await self.extract_environment.download_file(self.root + "/" + path, destination)
+            expected = {item["sha256"] for key in ("function_bodies", "code_passages")
+                        for item in payload["context"].get(key, []) if item["path"] == path and item.get("sha256")}
+            if expected and expected != {digest_file(destination)}:
+                raise ValueError("Analysis source differs from the extracted source: " + path)
+        output = local / "backend"
+        command = [sys.executable, "-m", "scicontext.source_backends", "--root", str(root), "--output", str(output)]
+        with (local / "backend.log").open("w") as log:
+            process = await asyncio.create_subprocess_exec(*command, stdout=log,
+                        stderr=asyncio.subprocess.STDOUT, start_new_session=True)
+            try:
+                code = await process.wait()
+            except asyncio.CancelledError:
+                import os, signal
+                try:
+                    os.killpg(process.pid, signal.SIGTERM)
+                    await asyncio.wait_for(process.wait(), 3)
+                except asyncio.TimeoutError:
+                    os.killpg(process.pid, signal.SIGKILL)
+                    await process.wait()
+                except ProcessLookupError:
+                    pass
+                raise
+            if code:
+                raise RuntimeError(f"Source analysis exited {code}; see {local / 'backend.log'}")
+        result = read_json(output / "receipt.json")
+        payload = attach_source_analysis(payload, result)
+        write_json(input_file, payload)
+        await self.extract_environment.upload_file(input_file, SCRATCH + "/scientific-context-input.json")
+        self._source_analysis_file = output / "receipt.json"
 
     async def _interpret_call(self, instruction, seconds):
         now = datetime.now(timezone.utc)
@@ -458,6 +511,8 @@ class ScientificCodex(BaseAgent):
                 "scientific-guide.md": render_guide(bundle["graph"]),
                 "scientific-sources.json": json.dumps(bundle.get("context"), ensure_ascii=False) + "\n",
             }
+            if getattr(self, "_source_analysis_file", None):
+                files["source-analysis.json"] = self._source_analysis_file.read_text()
             for name, text in files.items():
                 local = self.logs_dir / name
                 local.write_text(text, encoding="utf-8")

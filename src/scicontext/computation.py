@@ -389,7 +389,10 @@ class Builder:
 
 
 def build_computation(payload):
-    return Builder(payload).build()
+    from .symbolic_math import symbolic_projection
+    model = Builder(payload).build()
+    model["symbolic_math"] = symbolic_projection(model)
+    return model
 
 
 def conditions_for(model, unit):

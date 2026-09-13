@@ -5,6 +5,28 @@ It is a research prototype; state-of-the-art performance and repair improvement 
 
 ## Current core: shared computational representation (13 September)
 
+The reuse-first backend integration adds Joern, SymPy and fortls to the common representation.
+Joern is invoked by the extractor's `interpret` path on the host, after downloading the exact
+public files referenced by the input. `joern-parse` and `joern-export` produce analyzer-owned
+data/control-flow facts; `source_backends.py` normalizes and binds them by source location. Only
+selected source regions and direct boundary endpoints enter the model input. The complete export
+is retained in `source-analysis.json` and delivered alongside the repair artifacts. A missing Joern
+executable or failed frontend is recorded as a capability gap, not silently called successful analysis.
+
+SymPy 1.14 constructs formal symbolic expressions and runs common-subexpression elimination.
+Unspecified quantity types use noncommutative symbols. This is a symbolic projection, not a proof
+that algebraic rewriting preserves floating-point execution. Original ordered source templates
+remain the source record; unsupported symbolic operators are listed explicitly. SymPy does not
+infer a physical meaning from variable names. The source-to-representation adapter is still custom;
+this integration does not claim to have removed every custom scope/quantity abstraction.
+
+fortls 3.2.2 supplies Fortran symbols and typed interface hovers through its own LSP handlers.
+It does not supply Joern-equivalent dataflow. MATLAB/Cython retain the existing syntax frontends.
+The shared representation is language-independent, while analysis depth remains backend-dependent.
+No new compiler IR pipeline is introduced. The archived indexed entries contain Python, C/C++,
+Fortran, MATLAB and Cython; skipped-file metadata also includes JavaScript/shell, an R documentation
+renderer and CUDA files. That bounded inventory is not proof of exhaustive source-language coverage.
+
 Connected extraction now constructs `scientific-computation-1.0` before interpretation. This is
 an implemented code-side abstraction, not an LLM-generated graph. The older API-object layer below
 is retained for compatibility and provenance; it is no longer the main interpretation target in

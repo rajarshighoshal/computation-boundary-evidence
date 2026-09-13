@@ -10,6 +10,17 @@ Language-specific structure extraction must feed the shared representation.
 
 ## Active work
 
+- REUSE-FIRST BACKEND INTEGRATION: Joern 4.0.570 installed locally; actual Python/C++ graphs exported
+  and normalized. SymPy 1.14 symbolic projection/CSE and fortls 3.2.2 typed interfaces implemented;
+  dependencies locked and guest helper package list updated. Extractor interpret path now invokes
+  host source analysis, uploads the augmented input and retains/delivers source-analysis.json.
+  Joern paths prefer analyzer-owned program flow over old candidate call links; mathematical
+  bindings/source projections remain distinct from runtime equivalence. Actual backend fixtures
+  verified; full-container trial/model interpretation not run. Final suite PASS: 542 tests, including
+  real fortls and mocked extractor transport/invocation checks. Receipt: `results/source-backend-check.json`.
+  Fortran has symbol/interface evidence, not Joern-level flow; MATLAB/Cython remain syntax fallbacks.
+  Indexed language inventory has six languages; skipped metadata also includes JS/shell, R docs,
+  CUDA files. Do not claim exhaustive language coverage or equivalent analysis depth. No paid calls.
 - CORE REPRESENTATION IMPLEMENTED AND VERIFIED: `computation.py` builds scoped quantity versions,
   shared ordered-expression templates/bindings, local-intermediate expansion, field/container and
   candidate helper dependencies, shared branch/continuation conditions and document-symbol links.

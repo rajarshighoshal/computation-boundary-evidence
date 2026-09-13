@@ -3,6 +3,7 @@ Prioritize computational_relation objects: their shared templates describe mathe
 bindings identify quantities, links describe dependencies, and conditions preserve branches.
 Explain quantity meanings, representations and source-stated requirements using the task,
 function bodies and public documents. Cover inputs, transformations and outputs together.
+Use analyzer-owned source_analysis for program flow and symbol resolution.
 
 Annotate existing object IDs; preserve the supplied dependencies and conditions rather than
 inventing another graph. Cite supporting source IDs and locations in each interpretation.
