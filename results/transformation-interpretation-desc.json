@@ -1,0 +1,52 @@
+{
+  "cost_basis": "provider token usage at checked published rates, not billing invoice",
+  "cost_usd_off_peak": 0.0198657,
+  "cost_usd_peak": 0.0397314,
+  "elapsed_seconds": 52.010460459045134,
+  "finish_reason": "stop",
+  "finished_utc": "2026-09-13T15:49:48.465245+00:00",
+  "input_sha256": "0cba9e557ebff48fb63cd484aa956eb5a9fe83ecd13693e8c85985e79bb65683",
+  "model_calls": 1,
+  "prompt_sha256": "303f55d916ac2ae3801d9ec5fc9a071d9dcea296433af9d2de3f92697acf2aab",
+  "repair_runs": 0,
+  "requested_model": "deepseek-flash",
+  "response_sha256": "e1c373f8cc3836e5de0a1e50128abd2ebf3e0624b309d825ee37be42012660a4",
+  "retries": 0,
+  "returned_model": "deepseek-flash",
+  "started_utc": "2026-09-13T15:48:56.450559+00:00",
+  "status": "response_received",
+  "usage": {
+    "completion_tokens": 12817,
+    "completion_tokens_details": {
+      "reasoning_tokens": 9546
+    },
+    "prompt_cache_hit_tokens": 0,
+    "prompt_cache_miss_tokens": 81170,
+    "prompt_tokens": 81170,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "total_tokens": 93987
+  },
+  "verifier_runs": 0,
+  "review": {
+    "kind": "manual_review_against_public_source_and_development_target",
+    "evidence_id_and_range_errors": 0,
+    "summary_words": 173,
+    "unit_count": 6,
+    "verdict": "useful_scientific_summary_but_transformation_graph_not_ready",
+    "strengths": [
+      "Connects boundary, wall construction and pseudo-vacuum computation.",
+      "Identifies discarded projection_gain and shared downstream path.",
+      "Distinguishes source requirements and missing exact projection law."
+    ],
+    "issues": [
+      "Summary generalizes projection/scaled equivalence without matching effective nowall/angular conventions; public example does match them.",
+      "Missing direct boundary-to-metric dependency; graph mixes computational flow with requirement comparisons.",
+      "Six units include packaging, reproducer and requirements instead of compressing around three scientific stages.",
+      "nowall sign-dependent angular convention and derivative consistency are insufficiently emphasized."
+    ],
+    "scope": "No repair benefit tested. Input is one preselected connected packet; manual example and repair outcomes not supplied.",
+    "next": "Review compact unit/link contract; do not relaunch repairs or repeat model call without approval."
+  }
+}

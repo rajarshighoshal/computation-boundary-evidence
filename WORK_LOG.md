@@ -10,6 +10,17 @@ Language-specific structure extraction must feed the shared representation.
 
 ## Active work
 
+- ONE-CALL INTERPRETATION CHECK COMPLETE: DESC, DeepSeek Flash/default high, one call/no retry,
+  52.01s, 81170 input + 12817 output tokens (9546 reasoning, included in output), estimated off-peak
+  USD 0.0198657 within approved USD 0.10. Frozen input/prompt/raw response at
+  `runs/transformation-interpretation-desc-v1/`; receipt/review `results/transformation-interpretation-desc.json`.
+  Final check: JSON and cited source IDs/ranges valid; 173-word summary recovers the main scientific
+  chain and discarded gain. Partial scientific pass: six units retain wrapper/reproducer/requirements;
+  links omit direct boundary→metrics dependency and mix requirements with flow; summary overgeneralizes
+  scaled/projection equality without matching effective nowall. No repair benefit tested or claimed.
+  No production prompt/schema changes, repairs, verifier or candidate execution. STOP: review concise
+  transformation/link contract next; no repeat call or full-run approval remains. User prioritizes
+  finishing quickly and explicitly rejects further elaborate infrastructure.
 - TARGETED HELPER RETRIEVAL COMPLETE: connected input follows Python same-file/relative-import/module-
   alias calls using existing source reads and AST scope analysis. Bodies/call/gap records deduplicated;
   call argument/default mappings, return sites, branches and existing caller/result IDs retained.
