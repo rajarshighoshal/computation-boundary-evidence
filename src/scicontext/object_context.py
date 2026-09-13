@@ -70,7 +70,9 @@ def enrichment_input(graph: dict, packet: dict, *, root: Path | None = None) -> 
     # below is the active path.
     payload = {key: copy.deepcopy(graph[key]) for key in ("objects", "operations", "links", "unsupported")}
     objects, operations, links, unsupported = (payload["objects"], payload["operations"],
-                                               payload["links"], payload["unsupported"])
+                                              payload["links"], payload["unsupported"])
+    # Joern/source-analysis facts ride the same budget as everything else.
+    analysis_sources = copy.deepcopy(packet.get("analysis_sources", []))
     distance = _selection_plan(graph)
     object_map = {obj["id"]: obj for obj in objects}
     ordered = sorted(objects, key=lambda obj: _object_priority(obj["id"], object_map, distance))
@@ -107,7 +109,9 @@ def enrichment_input(graph: dict, packet: dict, *, root: Path | None = None) -> 
                 "links": selected_links,
                 "unsupported": selected_unsupported,
                 "context": {"scientific_passages": copy.deepcopy(packet.get("documents", [])),
-                            "code_passages": code_passages}}
+                            "code_passages": code_passages,
+                            "analysis_sources": analysis_sources,
+                            "observations": copy.deepcopy(graph.get("dynamic", {}).get("observed_values", []))}}
 
     kept = {obj["id"] for obj in ordered[:ENRICHMENT_MAX_OBJECTS]}
     selected = assemble(kept)

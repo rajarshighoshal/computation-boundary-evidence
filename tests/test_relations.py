@@ -224,7 +224,5 @@ def test_unbound_numeric_observation_emits_measured_record():
     records = [_record(1, "<module>", None)]
     report = {"status": "workflow_completed", "observation": {"transition_across_boundary": 1.5}}
     result = derive_loci(records, [], script_status=None, script_report=report)
-    observed = [l for l in result["loci"] if l.get("kind") == "observed_values"]
-    assert len(observed) == 1
-    assert observed[0]["values"][0]["field"] == "transition_across_boundary"
+    assert result["dynamic"]["observed_values"][0]["field"] == "transition_across_boundary"
     assert not [l for l in result["loci"] if l.get("properties", {}).get("rule_id") in ("R6p", "R6s")]

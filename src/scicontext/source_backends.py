@@ -10,7 +10,7 @@ import shutil
 import subprocess
 import time
 
-from .io import digest_file, write_json
+from .io import digest_file, digest_json, write_json
 
 # Routing metadata, not a set of language-specific analyzers. Joern owns parsing.
 JOERN_SOURCE_ROUTES = (
@@ -235,18 +235,18 @@ def attach_source_analysis(payload, result):
             if not code and not name:
                 continue
             payload["context"]["analysis_sources"].append({
-                "id": f"sa_{node['id'][:16]}",
+                "id": f"sa_{node['id']}",
                 "path": path, "start_line": line, "end_line": line,
                 "text": code or f"// {full_name}",
                 "analyzer": "joern",
                 "name": name, "full_name": full_name,
-                "kind": node.get("type", "unknown"),
+                "kind": node.get("kind", node.get("type", "unknown")),
                 "language": a.get("language", "unknown"),
             })
         # Attach call/dataflow edges as evidence links
         for edge in a["links"]:
             payload["context"]["analysis_sources"].append({
-                "id": f"sl_{edge['source'][:8]}_{edge['target'][:8]}",
+                "id": "sl_" + digest_json([edge['source'], edge['target'], edge.get('role'), edge.get('properties', {})])[:24],
                 "path": "analysis://joern/edges", "start_line": 0, "end_line": 0,
                 "text": f"{edge.get('role', 'call')}: {edge['source']} -> {edge['target']}",
                 "analyzer": "joern", "kind": "edge",
@@ -260,3 +260,18 @@ def attach_source_analysis(payload, result):
     return payload
 
 
+
+
+def main(argv: list[str] | None = None) -> int:
+    """CLI: run installed analyzers on the given source root, write receipt."""
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--root", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args(argv)
+    analyze_sources(args.root, args.output)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

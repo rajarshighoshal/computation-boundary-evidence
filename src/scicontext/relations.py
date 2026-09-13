@@ -413,12 +413,11 @@ def derive_loci(trace_records: list, predicate_evaluations: list, script_status:
             existing["properties"]["locus_transitions"] + locus["properties"]["locus_transitions"]))
         existing["properties"]["evidence"]["pairs"].extend(locus["properties"]["evidence"]["pairs"])
     unique_loci = list(aggregated.values())
-    if observed_loci:
-        unique_loci.append({"kind": "observed_values",
-                            "note": "measured values without script-declared conditions",
-                            "values": observed_loci})
+    # observed_values are metadata, not graph objects; they ride in the
+    # dynamic summary where consumers expect them, never in the object list.
     return {"loci": unique_loci,
             "dynamic": {"schema_version": SCHEMA_VERSION, "instances": len(instances),
+                        "observed_values": observed_loci,
                         "pairs": pair_count, "loci": len(unique_loci),
                         "nondeterministic_funcs": sorted({json.dumps(key) for key in nondeterministic}),
                         "declared_equivalent_pairs": sorted(map(list, declared_equivalent)),

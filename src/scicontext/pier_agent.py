@@ -295,8 +295,7 @@ class ScientificCodex(BaseAgent):
 
     async def interpret(self, instruction, seconds):
         started = time.monotonic()
-        # Source analysis (Joern) available offline; not a live pipeline step.
-                # await self._augment_source_analysis()
+        await self._augment_source_analysis()
         return await self._interpret_call(instruction, max(1, seconds - (time.monotonic() - started)))
 
     async def _augment_source_analysis(self):
