@@ -99,9 +99,11 @@ revision adds one planned correction call inside the same budget; no larger mode
 
 Use a fresh output directory for every attempt. Existing attempts are never overwritten. The default development configuration uses tasks **002 and 077**; explicit configurations support bounded selections from a materialized release receipt. Full-benchmark evaluation requires a subsequent protocol/budget decision and restricted-license opt-in where applicable.
 
-Set `concurrency` to `2` for paired parallel execution, or retain `1` for serial. Full comparisons
-drain each task's baseline/treatment pair before the next task; extraction-only checks group two
-tasks. Both share Docker memory and CPU capacity. An attempt's preparation, provider or execution
+Set `concurrency` from `1` (serial) through `8`. Parallel execution uses a rolling pool: whenever
+an attempt finishes, the next queued attempt is prepared and launched without waiting for its
+task partner or batch. Image preparation still takes time; launches above two workers retain
+the existing minimum eight-second spacing. Images are removed only after all planned arms of
+their task finish. Attempts share Docker memory and CPU capacity. An attempt's preparation, provider or execution
 failure is recorded without cancelling its sibling or stopping the remaining queue. No automatic
 retry is made. A drained queue with failures is `completed_with_failures`; missing verifier outcomes
 remain unknown. Operator cancellation, invalid global inputs or an unresolved cleanup/integrity

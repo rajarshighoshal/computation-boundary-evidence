@@ -118,7 +118,7 @@ def test_parallel_pairs_overlap_and_drain_before_next_task(workspace, monkeypatc
     output = workspace / "output"
     plan = read_json(output / "schedule.json")
     assert plan["status"] == "completed"
-    assert plan["execution_policy"]["admission"] == "2_attempt_barrier"
+    assert plan["execution_policy"]["admission"] == "rolling"
     assert all(t["status"] == "completed" for t in plan["schedule"])
     assert len(list((output / "inputs").glob("task-*/task_*"))) == 4
     for process in runners.started:
@@ -211,7 +211,7 @@ def test_extraction_only_groups_two_tasks(workspace, monkeypatch):
     parallel(workspace, extraction_only=True)
     assert [p.name for p in runners.started] == ["task-002-science", "task-077-science"]
     plan = read_json(workspace / "output/schedule.json")
-    assert plan["execution_policy"]["admission"] == "2_attempt_barrier"
+    assert plan["execution_policy"]["admission"] == "rolling"
     assert plan["status"] == "completed"
 
 

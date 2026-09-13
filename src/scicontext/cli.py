@@ -313,7 +313,7 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
     plan.update(_implementation_provenance(workspace))
     plan["execution_policy"] = {
         "concurrency": 1 if smoke else concurrency,
-        "admission": "serial" if smoke or concurrency == 1 else f"{concurrency}_attempt_barrier",
+        "admission": "serial" if smoke or concurrency == 1 else "rolling",
         "pier_concurrency_per_process": 1,
         "shared_resources": concurrency >= 2 and not smoke,
         "attempt_failure": "record_and_continue_without_retry",
@@ -457,6 +457,20 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
             write_json(output / "schedule.json", plan)
             return command, environment, log
 
+        def remove_finished_images(item):
+            # A task's images are shared by its arms. A fast arm must not evict
+            # them while its partner is still running or waiting for admission.
+            siblings = [s for s in schedule if s["task_id"] == item["task_id"]]
+            if (smoke or item.get("images_removed") or any(
+                    s["status"] not in ("completed", "infrastructure_failure", "cancelled") for s in siblings)):
+                return
+            row = available[item["task_id"]]
+            for image in {row["environment_image"], row["verifier_image"]}:
+                subprocess.run(["docker", "rmi", image], capture_output=True, check=False)
+            for sibling in siblings:
+                sibling["images_removed"] = True
+            write_json(output / "schedule.json", plan)
+
         def finish_attempt(state, code, error=None):
             nonlocal current, task_row, return_code
             item = current = state["item"]
@@ -481,14 +495,17 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
             state["finalized"] = True
             current = None
             write_json(output / "schedule.json", plan)
+            remove_finished_images(item)
 
         width = plan["execution_policy"]["concurrency"]
-        for offset in range(0, len(schedule), width):
-            # Comparison schedules contain adjacent arms for exactly one task.
-            # Prepare the whole group before admitting either runner, and drain
-            # both before admitting the next task (or extraction-only group).
-            active = []
-            for item in schedule[offset:offset + width]:
+        next_attempt = 0
+        last_launch = None
+        while active or next_attempt < len(schedule):
+            # Refill available slots in declared order, without a task/batch
+            # barrier. Start each prepared runner before preparing the next.
+            while next_attempt < len(schedule) and len(active) < width:
+                item = schedule[next_attempt]
+                next_attempt += 1
                 state = {"item": item, "task_row": available[item["task_id"]], "return_code": None}
                 active.append(state)
                 try:
@@ -496,9 +513,10 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
                     state.update(command=command, environment=environment, log=log)
                 except Exception as error:
                     finish_attempt(state, error.returncode if isinstance(error, subprocess.CalledProcessError) else None, error)
-            if width == 1:
-                state = active[0]
-                if not state.get("finalized"):
+                if state.get("finalized"):
+                    active.remove(state)
+                    continue
+                if width == 1:
                     try:
                         with state["log"].open("w") as stream:
                             result = _run_owned_process(state["command"], env=state["environment"], stdout=stream,
@@ -507,47 +525,30 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
                         finish_attempt(state, error.returncode if isinstance(error, subprocess.CalledProcessError) else None, error)
                     else:
                         finish_attempt(state, result.returncode)
-            else:
-                for launch_index, state in enumerate(active):
-                    if state.get("finalized"):
-                        continue
-                    if launch_index and width > 2:
-                        # Stagger docker compose setup so egress-proxy builds do
-                        # not race each other at higher concurrency.
-                        time.sleep(8)
+                else:
+                    if last_launch is not None and width > 2:
+                        # Retain the existing startup spacing, but never wait
+                        # for a sibling to finish before reusing a free slot.
+                        time.sleep(max(0.0, last_launch + 8 - time.monotonic()))
                     current = state["item"]
                     try:
                         state["stream"] = state["log"].open("w")
                         state["process"] = subprocess.Popen(
                             state["command"], start_new_session=True, env=state["environment"],
                             stdout=state["stream"], stderr=subprocess.STDOUT, cwd=workspace)
+                        last_launch = time.monotonic()
                     except Exception as error:
                         finish_attempt(state, None, error)
-                while any(not state.get("finalized") for state in active):
-                    for state in active:
-                        if not state.get("finalized"):
-                            code = state["process"].poll()
-                            if code is not None:
-                                finish_attempt(state, code)
-                    if any(not state.get("finalized") for state in active):
-                        time.sleep(0.05)
-            # Large benchmarks cannot hold every task's images on disk: once a
-            # task's pair has finalized, drop its images (best effort). Steady
-            # disk usage then tracks the concurrency window, not the cohort.
-            if not smoke:
-                finished_tasks = {item["task_id"] for item in schedule
-                                  if all(s["status"] in ("completed", "infrastructure_failure", "cancelled")
-                                         for s in schedule if s["task_id"] == item["task_id"])}
-                for item in schedule:
-                    if item["task_id"] in finished_tasks and not item.get("images_removed"):
-                        row = next(r for r in receipt["tasks"] if r["task_id"] == item["task_id"])
-                        for image in {row["environment_image"], row["verifier_image"]}:
-                            subprocess.run(["docker", "rmi", image], capture_output=True, check=False)
-                        for same in schedule:
-                            if same["task_id"] == item["task_id"]:
-                                same["images_removed"] = True
-                        write_json(output / "schedule.json", plan)
-            active = []
+                if state.get("finalized"):
+                    active.remove(state)
+            for state in active:
+                current = state["item"]
+                code = state["process"].poll()
+                if code is not None:
+                    finish_attempt(state, code)
+            active = [state for state in active if not state.get("finalized")]
+            if active and (len(active) == width or next_attempt == len(schedule)):
+                time.sleep(0.05)
         plan["status"] = "completed" if all(item["status"] == "completed" for item in schedule) else "completed_with_failures"
     except BaseException as error:
         interrupted = isinstance(error, (KeyboardInterrupt, SystemExit))

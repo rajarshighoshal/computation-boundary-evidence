@@ -10,6 +10,19 @@ Language-specific structure extraction must feed the shared representation.
 
 ## Active work
 
+- APPROVED (2026-09-13): implement rolling admission only. Keep configured concurrency, attempts,
+  model/budgets and scientific logic unchanged; no active-run restart. Final checks: a fast attempt
+  frees a slot while its slow peer remains active, concurrency bound holds, failures remain local,
+  cancellation cleans owned work, and task images survive until both arms finish. Root sole writer;
+  do not commit while the active launcher still requires its current HEAD.
+- REVIEW COMPLETE (2026-09-13): concurrency/cloud/scientific-design review at `c6b973d`, saved in
+  `docs/CONCURRENCY_SCIENCE_REVIEW_2026-09-13.md`; executable diagnostics and source hashes in
+  `results/concurrency-review-2026-09-13.json` / `scripts/review_concurrency.py`. User has Hetzner;
+  VM budget is USD 2 TOTAL, not hourly. Wants rolling slots and eventually 20–30 active attempts.
+  Verified batch barrier; synthetic unequal-array/equality collision, false field-name violations,
+  and trace failure preventing static fallback. Conditional cheap CX53 quote fits a short rental,
+  but public stock unavailable and console/all-in price unverified. No rentals/model calls/runtime
+  changes. Review files remain uncommitted because active launcher checks HEAD. Await user direction.
 - Root remains the only writer in main; no extra worktrees. Read-only review findings were addressed
   with regression tests; the implementation is ready for external review.
 - Offline retrieval/linking checkpoint COMPLETE: public workflow references reach implementation
