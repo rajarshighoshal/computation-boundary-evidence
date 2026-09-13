@@ -94,10 +94,13 @@ def test_actual_packet_prompt_reaches_the_enrichment_request(tmp_path, monkeypat
     async def fake_api(key, model, messages, **kwargs):
         requests.append(messages)
         text = messages[0]["content"]
-        assert text.startswith("Explain the scientific computation in the supplied evidence packets")
-        assert "computational_relation" in text and "preserve the supplied dependencies" in text
+        assert text.startswith("Explain the scientific meaning of this computation")
+        assert "Prioritize computation objects" in text and "Preserve dependencies" in text
         assert "Inspect the transport calculation" in text
-        assert "inputs, transformations and outputs together" in text
+        assert "how inputs become outputs" in text
+        assert text.count("at most 40") == 1
+        assert "If shell tools" not in text and "save first-pass" not in text
+        assert "Evidence JSON (no tools or file access)" in text
         assert "ep_test" in text and "so_a" in text and "e1" in text
         assert "{instruction}" not in text and "{scratch}" not in text
         assert kwargs["response_format"] == {"type": "json_object"}

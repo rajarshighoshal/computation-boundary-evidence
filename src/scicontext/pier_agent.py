@@ -365,6 +365,8 @@ class ScientificCodex(BaseAgent):
                                  seconds=max(1, int(model_seconds)), explore_until=clock(model_seconds * .60),
                                  save_by=clock(model_seconds * .80), finish_by=clock(model_seconds * .95),
                                  instruction=instruction)
+        prompt += (f"\n\nRead {SCRATCH}/scientific-context-input.json. Task root: {self.root}. "
+                   "Return the JSON response; the caller saves it. Access is read-only.")
         result = await self._run_codex("extract_draft", prompt, seconds)
         if result.get("fatal_model_error"):
             return result
@@ -375,8 +377,7 @@ class ScientificCodex(BaseAgent):
                 raise ValueError("Compact annotations exceed 64 KiB")
             annotations = read_json(final_path)
         except (OSError, ValueError) as error:
-            # The prompt directs a first-pass write to the scratch path; on a
-            # timed-out or failed turn, assembly picks that file up if present.
+            # File persistence belongs to the caller, not the read-only model.
             result.update(annotations_status="no_valid_annotations", annotations_error=str(error))
             write_json(self.logs_dir / "extract_draft-process.json", result)
             return result

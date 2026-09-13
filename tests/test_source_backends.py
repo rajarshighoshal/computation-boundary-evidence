@@ -150,3 +150,22 @@ def test_cpg_only_language_can_create_annotatable_math_and_a_repair_guide():
     bundle=object_bundle({'objects':[]},response,payload)
     assert 'Product of supplied quantities.' in bundle['handoff']
     assert bundle['assembly']['interpretation_status']=='enriched'
+
+
+def test_actual_codex_prompt_only_requests_read_access_and_returned_json(tmp_path):
+    (tmp_path/'prompts').mkdir()
+    (tmp_path/'prompts/enrich_objects.md').write_text((Path(__file__).parent.parent/'prompts/enrich_objects.md').read_text())
+    prompts=[]
+    async def run(stage,prompt,seconds):
+        prompts.append(prompt)
+        (tmp_path/'extract_draft-final.txt').write_text('{"schema_version":"object-enrichment-1.0","annotations":[]}')
+        return {'status':'completed'}
+    agent=SimpleNamespace(frozen_source=None,workspace=tmp_path,root='/app/task',logs_dir=tmp_path,
+        extraction_model_seconds=None,_run_codex=run,_put=AsyncMock(),extract_environment=object())
+    result=asyncio.run(ScientificCodex._interpret_call(agent,'original task',300))
+    assert result['annotations_status']=='received'
+    assert 'Read '+SCRATCH+'/scientific-context-input.json' in prompts[0]
+    assert 'caller saves it' in prompts[0] and 'read-only' in prompts[0]
+    assert 'save first-pass' not in prompts[0] and '{scratch}' not in prompts[0]
+    assert prompts[0].count('at most 40')==1
+    assert agent._put.await_count==1

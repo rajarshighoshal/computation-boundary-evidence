@@ -216,9 +216,7 @@ class DeepSeekAgent(ScientificCodex):
             write_json(self.logs_dir / "extract_draft-process.json", result)
             return result
         payload = read_json(payload_path)
-        prompt += ("\n\nThis call has no shell tools and no file access. The scientific context input is "
-                   "embedded inline below; annotate at most the 40 most task-relevant objects and return "
-                   "compact, complete annotations JSON directly as your response.\n\nSCIENTIFIC CONTEXT INPUT\n"
+        prompt += ("\n\nEvidence JSON (no tools or file access):\n"
                    + json.dumps(payload, ensure_ascii=False))
         (self.logs_dir / "extract-prompt.txt").write_text(prompt)
         started = time.monotonic()

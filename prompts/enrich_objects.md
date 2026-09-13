@@ -1,23 +1,13 @@
-Explain the scientific computation in the supplied evidence packets and computation graph.
-Prioritize computational_relation objects: their shared templates describe mathematical structure;
-bindings identify quantities, links describe dependencies, and conditions preserve branches.
-Explain quantity meanings, representations and source-stated requirements using the task,
-function bodies and public documents. Cover inputs, transformations and outputs together.
-Use analyzer-owned source_analysis for program flow and symbol resolution.
+Explain the scientific meaning of this computation: its quantities, how inputs become outputs,
+and the conventions and requirements that apply.
 
-Annotate existing object IDs; preserve the supplied dependencies and conditions rather than
-inventing another graph. Cite supporting source IDs and locations in each interpretation.
-Describe measurements as observations and source-stated conditions as requirements. Put specific
-missing details in assumptions as "unknown: ...".
+Use the supplied code, graph and documents. Prioritize computation objects. Preserve dependencies
+and conditions; use analyzer-provided program flow. Cite source IDs and locations. Keep observations
+separate from requirements stated by sources. Mark missing details as "unknown: ...".
 
 Return only {{"schema_version": "object-enrichment-1.0", "annotations": [...]}} with at most 40
-annotations, most relevant first. Each annotation contains object_id, meaning (string), conventions
-(array of strings) and assumptions (array of strings). Preserve the supplied graph structure.
+annotations, most relevant first. Each contains object_id, meaning (string), conventions (string
+array) and assumptions (string array). Annotate existing IDs only.
 
-If shell tools are available, read {scratch}/scientific-context-input.json and save first-pass JSON
-to {scratch}/extract_draft-annotations.json early, then return the final JSON. Otherwise, use the
-input embedded below and return the JSON directly.
-
-Task root: {root}
-Original task:
+Task:
 {instruction}

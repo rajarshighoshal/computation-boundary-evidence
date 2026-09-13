@@ -56,10 +56,7 @@ def main() -> int:
                              runtime="/opt/scicontext/runtime", seconds=360,
                              explore_until="00:03:36 UTC", save_by="00:04:48 UTC",
                              finish_by="00:05:42 UTC", instruction=args.instruction)
-    prompt += ("\n\nThis check has no shell tools and no file access. The scientific context input "
-               "is embedded inline below instead of readable at {scratch}. Annotate at most the 40 most "
-               "task-relevant objects and return compact, complete annotations JSON directly as your "
-               "response; keep reasoning minimal.\n\nSCIENTIFIC CONTEXT INPUT\n"
+    prompt += ("\n\nEvidence JSON (no tools or file access):\n"
                + json.dumps(payload, ensure_ascii=False))
     completion = call_deepseek(api_key, args.model, prompt)
     response = completion["choices"][0]["message"]

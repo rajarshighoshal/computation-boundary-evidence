@@ -10,6 +10,10 @@ Language-specific structure extraction must feed the shared representation.
 
 ## Active work
 
+- PROMPT CLEANUP VERIFIED: extraction template 89 words, legacy repair template 38 words. Runtime
+  access instructions are route-specific and nonduplicated; read-only extraction returns JSON and
+  caller saves it. Schema/grounding/model/effort/limits unchanged; active repair assembly unchanged.
+  Final checks: 71 targeted tests and 569 full-suite tests pass. No model calls.
 - JOERN LANGUAGE ROUTING IMPLEMENTED: installed-capability discovery and routing for all registered
   Joern source frontends; source-file selection no longer requires the legacy parser to understand
   the language. Common-CPG lifting supplies mathematical/annotation targets for Joern-only paths.

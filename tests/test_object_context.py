@@ -286,23 +286,29 @@ def test_enrichment_input_prioritizes_interfaces_even_without_retrieved_targets(
     assert payload["selection"]["kept_objects"] <= 300
 
 
-def test_enrichment_prompt_directs_early_scratch_write():
+def test_enrichment_prompt_keeps_format_without_transport_or_write_instructions():
     prompt = (Path(__file__).resolve().parent.parent / "prompts/enrich_objects.md").read_text()
-    assert "{scratch}/extract_draft-annotations.json" in prompt
-    assert "save first-pass JSON" in prompt and "early" in prompt
     assert "at most 40 annotations" in " ".join(prompt.split())
-    assert "Preserve the supplied graph structure" in prompt
+    assert "Annotate existing IDs only" in prompt
+    assert "{scratch}" not in prompt and "save first-pass" not in prompt
 
 
 def test_packet_prompt_is_direct_compact_and_keeps_uncertainty_local():
     prompt = (Path(__file__).resolve().parent.parent / "prompts/enrich_objects.md").read_text()
-    assert len(prompt.split()) <= 180
-    assert "supplied evidence packets" in prompt
-    assert "inputs, transformations and outputs together" in prompt
+    assert len(prompt.split()) <= 110
+    assert "scientific meaning" in prompt
+    assert "how inputs become outputs" in prompt
     assert "source IDs and locations" in prompt
-    assert "observations" in prompt and "source-stated conditions as requirements" in prompt
+    assert "observations" in prompt and "requirements stated by sources" in prompt
     assert '"unknown: ..."' in prompt
     assert not any(phrase in prompt.lower() for phrase in ("may be wrong", "may be incomplete", "if useful", "use it if"))
+
+
+def test_legacy_repair_prompt_is_short_and_direct():
+    text=(Path(__file__).resolve().parent.parent / "prompts/repair.md").read_text()
+    assert len(text.split()) < 60
+    assert "Use the scientific context and its source references" in text
+    assert "incomplete or wrong" not in text
 
 
 def _locus(rule, symbol, path="m.py", line=10, pairs=1, delta=None, measures=None, status="violated"):
