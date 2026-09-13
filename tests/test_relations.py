@@ -139,7 +139,7 @@ def test_unbound_numeric_observation_records_no_violation():
     result = derive_loci(records, evaluations, script_status=None,
                          script_report={"status": "workflow_completed",
                                         "observation": {"transition_across_boundary": 1.5}})
-    assert not [l for l in result["loci"] if l["properties"]["rule_id"] in ("R6p", "R6s")]
+    assert not [l for l in result["loci"] if l.get("properties", {}).get("rule_id") in ("R6p", "R6s")]
 
 
 def test_r1_requires_proven_identical_outputs():
@@ -170,3 +170,61 @@ def test_r1_requires_proven_identical_outputs():
     ]
     result = derive_loci(records, [])
     assert not [l for l in result["loci"] if l["properties"]["rule_id"] == "R1"]
+
+
+def _predicates_from(script_text):
+    from scicontext.trace_runtime import _parse_predicates
+    return _parse_predicates(script_text)
+
+
+def test_parser_bare_boolean_assert_produces_falsy_predicate():
+    forms = _predicates_from("assert not collapse\n")
+    assert len(forms) == 1
+    assert forms[0]["kind"] == "boolean"
+    assert forms[0]["asserted_truthy"] is False
+    assert "collapse" in forms[0]["operands"][0]
+
+
+def test_parser_literal_equality_produces_required_value():
+    forms = _predicates_from("assert collapse == False\n")
+    assert len(forms) == 1
+    assert forms[0]["required_value"] is False
+    assert forms[0]["asserted_truthy"] is False
+
+
+def test_parser_to_relation_falsy_passes():
+    forms = _predicates_from("assert not collapse\n")
+    records = [_record(1, "<module>", None)]
+    report = {"status": "workflow_completed", "observation": {"collapse": False}}
+    result = derive_loci(records, [{**f, "evaluated": {"collapse": False}} for f in forms],
+                         script_status=None, script_report=report)
+    assert not [l for l in result["loci"] if l["properties"].get("rule_id") == "R6s"]
+
+
+def test_parser_to_relation_literal_eq_false_passes():
+    forms = _predicates_from("assert collapse == False\n")
+    records = [_record(1, "<module>", None)]
+    report = {"status": "workflow_completed", "observation": {"collapse": False}}
+    result = derive_loci(records, [{**f, "evaluated": {"collapse": False}} for f in forms],
+                         script_status=None, script_report=report)
+    assert not [l for l in result["loci"] if l["properties"].get("rule_id") == "R6s"]
+
+
+def test_parser_to_relation_truthy_assert_failing_observation_violates():
+    forms = _predicates_from("assert signature_agreement\n")
+    records = [_record(1, "<module>", None)]
+    report = {"status": "workflow_completed", "observation": {"signature_agreement": False}}
+    result = derive_loci(records, [{**f, "evaluated": {"signature_agreement": False}} for f in forms],
+                         script_status=None, script_report=report)
+    r6s = [l for l in result["loci"] if l["properties"].get("rule_id") == "R6s"]
+    assert len(r6s) == 1
+
+
+def test_unbound_numeric_observation_emits_measured_record():
+    records = [_record(1, "<module>", None)]
+    report = {"status": "workflow_completed", "observation": {"transition_across_boundary": 1.5}}
+    result = derive_loci(records, [], script_status=None, script_report=report)
+    observed = [l for l in result["loci"] if l.get("kind") == "observed_values"]
+    assert len(observed) == 1
+    assert observed[0]["values"][0]["field"] == "transition_across_boundary"
+    assert not [l for l in result["loci"] if l["properties"].get("rule_id") in ("R6p", "R6s")]

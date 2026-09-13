@@ -126,6 +126,11 @@ def _output_relation(a, b) -> str:
     fa, fb = a.get("return_fp"), b.get("return_fp")
     if _same(fa, fb):
         return "identical"
+    # Identity unknown (over-budget values in containers or bare): the
+    # relation is unknown, not a positive finding of difference.
+    if fa and fb and fa.get("content") is None and fb.get("content") is None \
+            and fa.get("exact") is None and fb.get("exact") is None:
+        return "unknown"
     if _scale_free_equal(fa, fb):
         return "equivalent"
     if fa and fb and fa.get("multiset") == fb.get("multiset") and fa.get("multiset") is not None:
@@ -338,6 +343,7 @@ def derive_loci(trace_records: list, predicate_evaluations: list, script_status:
             locus = _cl(func_key, "R6", func_key, "containment")
             locus["properties"]["locus_transitions"] = [p for p in producers if p]
             loci.append(locus)
+    observed_loci = []  # initialized here; populated only under script_report
     # R8: process-level completion evidence.
     if observer_summary:
         for process in observer_summary.get("processes", []):
@@ -361,6 +367,7 @@ def derive_loci(trace_records: list, predicate_evaluations: list, script_status:
         # an observation without a bound condition is recorded as measured
         # value only, never as a violation.
         observations = script_report.get("observation", script_report.get("scientific_observation")) or {}
+        observed_loci = []
         conditions = {}
         for predicate in predicate_evaluations:
             for operand in predicate.get("operands") or []:
@@ -372,16 +379,30 @@ def derive_loci(trace_records: list, predicate_evaluations: list, script_status:
             for field, value in observations.items():
                 predicate = conditions.get(str(field))
                 if predicate is None:
+                    # Unbound observation: record the measured value with NO
+                    # violation status. It is evidence, not a finding.
+                    if isinstance(value, (int, float)) and not isinstance(value, bool) and abs(value) > 1e-9:
+                        observed_loci.append({"field": field, "value": value})
                     continue
-                truthy_required = predicate.get("asserted_truthy", True)
-                if isinstance(value, bool):
-                    passes = value == truthy_required
-                    if not passes:
-                        locus = _cl(("reproduce.py", "<script>", predicate.get("line", 0)),
-                                    "R6s", ("reproduce.py", "<script>", predicate.get("line", 0)), "invariance")
-                        locus["properties"]["evidence"]["measures"][field] = value
-                        locus["properties"]["evidence"]["measures"]["required_truthy"] = truthy_required
-                        loci.append(locus)
+                required = predicate.get("required_value")
+                if required is not None:
+                    # `assert x == True/False`: the observation must equal the literal.
+                    passes = (value == required)
+                else:
+                    truthy_required = predicate.get("asserted_truthy", True)
+                    if isinstance(value, bool):
+                        passes = value == truthy_required
+                    else:
+                        # Truthiness of a non-boolean against a bare assert.
+                        passes = bool(value) == truthy_required
+                if not passes:
+                    locus = _cl(("reproduce.py", "<script>", predicate.get("line", 0)),
+                                "R6s", ("reproduce.py", "<script>", predicate.get("line", 0)), "invariance")
+                    locus["properties"]["evidence"]["measures"][field] = value
+                    locus["properties"]["evidence"]["measures"]["required_truthy"] = predicate.get("asserted_truthy", True)
+                    if required is not None:
+                        locus["properties"]["evidence"]["measures"]["required_value"] = required
+                    loci.append(locus)
     aggregated: dict[str, dict] = {}
     for locus in loci:
         existing = aggregated.get(locus["id"])
@@ -392,6 +413,10 @@ def derive_loci(trace_records: list, predicate_evaluations: list, script_status:
             existing["properties"]["locus_transitions"] + locus["properties"]["locus_transitions"]))
         existing["properties"]["evidence"]["pairs"].extend(locus["properties"]["evidence"]["pairs"])
     unique_loci = list(aggregated.values())
+    if observed_loci:
+        unique_loci.append({"kind": "observed_values",
+                            "note": "measured values without script-declared conditions",
+                            "values": observed_loci})
     return {"loci": unique_loci,
             "dynamic": {"schema_version": SCHEMA_VERSION, "instances": len(instances),
                         "pairs": pair_count, "loci": len(unique_loci),

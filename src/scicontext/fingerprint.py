@@ -68,9 +68,11 @@ def _array_fp(value, depth: int) -> dict:
             "bytes": size_bytes, "equiv": None, "multiset": None, "rev": None, "truncated": False}
 
 
-def _item_key(fp: dict) -> str:
-    """Container item identity: exact bytes when small, otherwise content digest."""
-    return fp.get("exact") if fp.get("exact") is not None else (fp.get("content") or fp.get("struct") or "")
+def _item_key(fp: dict) -> str | None:
+    """Container item identity: exact bytes or content digest. None = unknown
+    (child too large to hash); the caller must propagate unknown, never
+    substitute structure as identity."""
+    return fp.get("exact") if fp.get("exact") is not None else fp.get("content")
 
 
 def _sequence_fp(value, depth: int) -> dict:
@@ -78,9 +80,17 @@ def _sequence_fp(value, depth: int) -> dict:
         return {"t": "seq", "struct": "seq|depth-cap", "exact": None, "equiv": None,
                 "multiset": None, "rev": None, "bytes": 0, "stats": None, "truncated": True}
     items = [_fingerprint(item, depth + 1) for item in value]
-    exact = _hash_bytes(*[_item_key(item) for item in items])
-    multiset = _hash_bytes(*sorted(_item_key(item) for item in items))
-    rev = _hash_bytes(*[_item_key(item) for item in reversed(items)])
+    keys = [_item_key(item) for item in items]
+    unknown = any(key is None for key in keys)
+    if unknown:
+        # Identity is unknown: at least one child lacks a digest. Structure
+        # and stats remain descriptive; exact/content stay None.
+        struct = _hash_bytes(*[item["struct"] for item in items])
+        return {"t": "seq", "struct": struct, "exact": None, "content": None, "equiv": None,
+                "multiset": None, "rev": None, "bytes": 0, "stats": None, "truncated": False}
+    exact = _hash_bytes(*keys)
+    multiset = _hash_bytes(*sorted(keys))
+    rev = _hash_bytes(*list(reversed(keys)))
     struct = _hash_bytes(*[item["struct"] for item in items])
     return {"t": "seq", "struct": struct, "exact": exact, "content": exact, "equiv": None,
             "multiset": multiset, "rev": rev, "bytes": 0, "stats": None, "truncated": False}
@@ -92,9 +102,15 @@ def _dict_fp(value: dict, depth: int) -> dict:
                 "multiset": None, "rev": None, "bytes": 0, "stats": None, "truncated": True}
     items = sorted(((_fingerprint(key, depth + 1), _fingerprint(val, depth + 1))
                      for key, val in value.items()),
-                   key=lambda pair: _item_key(pair[0]) + "|" + pair[1].get("struct", ""))
+                   key=lambda pair: (_item_key(pair[0]) or "?") + "|" + pair[1].get("struct", ""))
+    value_keys = [_item_key(v) for _, v in items]
+    unknown = any(key is None for key in value_keys)
+    if unknown:
+        struct = _hash_bytes(*sorted(f"{k['struct']}:{v['struct']}" for k, v in items))
+        return {"t": "dict", "struct": struct, "exact": None, "content": None, "equiv": None,
+                "multiset": None, "rev": None, "bytes": 0, "stats": None, "truncated": False}
     exact = _hash_bytes(*[f"{_item_key(k)}:{_item_key(v)}" for k, v in items])
-    multiset = _hash_bytes(*sorted(_item_key(v) for _, v in items))
+    multiset = _hash_bytes(*sorted(value_keys))
     struct = _hash_bytes(*sorted(f"{k['struct']}:{v['struct']}" for k, v in items))
     return {"t": "dict", "struct": struct, "exact": exact, "content": exact, "equiv": None,
             "multiset": multiset, "rev": None, "bytes": 0, "stats": None, "truncated": False}

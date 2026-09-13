@@ -46,9 +46,22 @@ def _parse_predicates(script_text: str) -> list:
             test = test.operand
             asserted_truthy = not asserted_truthy
         kind = None
+        required_value = None   # for `assert x == False/True` literal comparisons
         if isinstance(test, ast.Compare):
             kind = "equality" if isinstance(test.ops[0], ast.Eq) else (
                 "inequality" if isinstance(test.ops[0], ast.NotEq) else "bounds")
+            # `assert x == False` means the required value of x IS False;
+            # `assert x == True` means required True. Capture the literal so
+            # the relation layer evaluates the observation against it.
+            if kind == "equality" and len(test.comparators) == 1:
+                comparator = test.comparators[0]
+                if isinstance(comparator, ast.Constant) and isinstance(comparator.value, bool):
+                    required_value = comparator.value
+                    # x == True means truthy required; x == False means falsy.
+                    asserted_truthy = comparator.value
+        elif isinstance(test, ast.Name) or (isinstance(test, ast.Attribute)):
+            # Bare Boolean assertion: `assert flag` or `assert not flag`.
+            kind = "boolean"
         elif isinstance(test, ast.Call):
             name = _call_name(test.func)
             if name in {"all", "any", "np.all", "np.any", "numpy.all", "numpy.any"} or name.endswith((".all", ".any")):
@@ -56,9 +69,14 @@ def _parse_predicates(script_text: str) -> list:
             elif "allclose" in name:
                 kind = "closeness"
         if kind and getattr(node, "lineno", None):
+            operands = [ast.unparse(o) for o in _operands(test)]
+            if kind == "boolean":
+                operands = [ast.unparse(test)]
             forms.append({"kind": kind, "line": node.lineno,
-                          "operands": [ast.unparse(o) for o in _operands(test)],
-                          "text": ast.unparse(test)})
+                          "operands": operands,
+                          "text": ast.unparse(test),
+                          "asserted_truthy": asserted_truthy,
+                          "required_value": required_value})
     return forms
 
 
