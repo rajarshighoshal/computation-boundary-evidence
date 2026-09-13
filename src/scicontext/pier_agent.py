@@ -266,10 +266,16 @@ class ScientificCodex(BaseAgent):
         # execution-derived constraint loci into the graph and the enrichment
         # input. A failed trace never blocks the static pipeline.
         if self.condition == "science" and seconds >= 60:
-            await self._helper(
-                f"{HELPER} trace --root {self.root} --script {self.root}/reproduce.py --out {SCRATCH}/trace "
-                f"--seconds {max(10.0, seconds * 0.5)} --observe --shims-dir {REMOTE}/src/scicontext/shims/out",
-                max(15.0, seconds * 0.55))
+            try:
+                await self._helper(
+                    f"{HELPER} trace --root {self.root} --script {self.root}/reproduce.py --out {SCRATCH}/trace "
+                    f"--seconds {max(10.0, seconds * 0.5)} --observe --shims-dir {REMOTE}/src/scicontext/shims/out",
+                    max(15.0, seconds * 0.55))
+            except Exception as error:
+                # A failed trace (missing reproduce.py, crashed script, etc.)
+                # degrades to static-only extraction; the attempt continues.
+                write_json(self.logs_dir / "trace-failure.json",
+                           {"status": "failed", "error": f"{type(error).__name__}: {error}"})
         result = await self._helper(
             f"{HELPER} packet --root {self.root} --context-root {REMOTE}/context --task-id {self.task_id} "
             f"--output {SCRATCH}/packet.json --catalog {SCRATCH}/catalog.md "
