@@ -220,3 +220,21 @@ def test_interpret_success_writes_process_receipt(tmp_path, monkeypatch):
     asyncio.run(agent._interpret_call("Inspect", 300))
     receipt = json.loads((tmp_path / "logs/extract_draft-process.json").read_text())
     assert receipt["status"] == "completed" and receipt["annotations_status"] == "received"
+
+
+def test_malformed_json_response_is_salvaged(tmp_path, monkeypatch):
+    agent = make_agent(tmp_path)
+    env = FakeEnvironment(tmp_path, {}, {})
+    agent.extract_environment = env
+    agent.root = "/app/task_004"
+    agent.logs_dir.mkdir(parents=True, exist_ok=True)
+    broken = ('{"schema_version": "object-enrichment-1.0", "annotations": ['
+              '{"object_id": "so_a", "meaning": "valid one"},'
+              '{"object_id": "so_b", "meaning": "broken  -- missing quote,}]')
+    async def fake_api(*args, **kwargs):
+        return {"choices": [{"message": {"content": broken}, "finish_reason": "stop"}],
+                "usage": {"prompt_tokens": 10, "completion_tokens": 5}}
+    monkeypatch.setattr(module, "_api_completion", fake_api)
+    result = asyncio.run(agent._interpret_call("Inspect", 300))
+    assert result["annotations_status"] == "received"
+    assert result["salvaged_annotations"]["count"] == 1

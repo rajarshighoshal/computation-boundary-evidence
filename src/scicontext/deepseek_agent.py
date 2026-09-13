@@ -257,9 +257,41 @@ class DeepSeekAgent(ScientificCodex):
         try:
             annotations = json.loads(content)
         except ValueError as error:
-            result.update(annotations_status="no_valid_annotations", annotations_error=str(error))
-            write_json(self.logs_dir / "extract_draft-process.json", result)
-            return result
+            # Salvage complete annotation objects from malformed JSON rather
+            # than discarding the whole response: brace-scan balanced objects
+            # that individually parse, and keep the valid prefix.
+            salvaged = []
+            stack = []
+            in_string = False
+            escaped = False
+            for index, char in enumerate(content):
+                if in_string:
+                    if escaped:
+                        escaped = False
+                    elif char == "\\":
+                        escaped = True
+                    elif char == '"':
+                        in_string = False
+                    continue
+                if char == '"':
+                    in_string = True
+                elif char == "{":
+                    stack.append(index)
+                elif char == "}" and stack:
+                    start = stack.pop()
+                    try:
+                        candidate = json.loads(content[start:index + 1])
+                        if isinstance(candidate, dict) and "object_id" in candidate:
+                            salvaged.append(candidate)
+                    except ValueError:
+                        pass  # unbalanced or broken span; other spans still salvage
+            if salvaged:
+                annotations = {"schema_version": "object-enrichment-1.0", "annotations": salvaged}
+                result["salvaged_annotations"] = {"count": len(salvaged), "error": str(error)}
+            else:
+                result.update(annotations_status="no_valid_annotations", annotations_error=str(error))
+                write_json(self.logs_dir / "extract_draft-process.json", result)
+                return result
         self._annotations_remote = SCRATCH + "/extract_draft-annotations.json"
         await self._put(self.extract_environment, "extract_draft-annotations.json", json.dumps(annotations),
                         self._annotations_remote)
