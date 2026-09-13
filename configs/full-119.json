@@ -501,6 +501,7 @@
  "extraction_seconds": 600,
  "extractor": "scientific_objects",
  "flexible_budget": true,
+ "full_benchmark": true,
  "handoff": "durable_graph_and_sources_plus_readable_guide_with_prompt_file_pointers",
  "method_revision": null,
  "model": "deepseek-flash",

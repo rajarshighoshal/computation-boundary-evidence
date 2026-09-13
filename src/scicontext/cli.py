@@ -265,17 +265,23 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
     concurrency = config.get("concurrency")
     if config.get("attempts") != 1 or type(concurrency) is not int or not (1 <= concurrency <= 8):
         raise ValueError("Pilot supports exactly one attempt and concurrency 1..8")
-    if config.get("allow_restricted_licenses"):
-        raise ValueError("Development pilot does not opt into restricted licenses")
+    restricted_optin = bool(os.environ.get("SCICONSORT_RESTRICTED_OPTIN"))
+    if config.get("allow_restricted_licenses") and not restricted_optin:
+        raise ValueError("Restricted-license tasks require the owner's explicit "
+                         "SCICONSORT_RESTRICTED_OPTIN in the environment")
     ids = config["task_ids"]
-    if not isinstance(ids, list) or not 1 <= len(ids) <= 5 or len(set(ids)) != len(ids):
-        raise ValueError("A bounded comparison requires one to five unique task IDs")
+    max_tasks = 119 if config.get("full_benchmark") else 5
+    if not isinstance(ids, list) or not 1 <= len(ids) <= max_tasks or len(set(ids)) != len(ids):
+        raise ValueError(f"A comparison requires one to {max_tasks} unique task IDs "
+                         "(>5 needs full_benchmark: true)")
     receipt_path = Path(config.get("release_receipt", "data/release-receipt.json"))
     receipt = read_json(receipt_path if receipt_path.is_absolute() else workspace / receipt_path)
     available = {r["task_id"]: r for r in receipt["tasks"]}
     if any(t not in available for t in ids):
         raise ValueError("Configured tasks are not in the explicit release receipt")
-    if any(str(available[t].get("restricted_license", "false")).lower() != "false" for t in ids):
+    restricted_ids = [t for t in ids
+                      if str(available[t].get("restricted_license", "false")).lower() != "false"]
+    if restricted_ids and not (config.get("allow_restricted_licenses") and restricted_optin):
         raise ValueError("Restricted-license tasks are not enabled for this comparison")
     if config.get("sampling_manifest"):
         manifest_path = Path(config["sampling_manifest"])
@@ -299,7 +305,10 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
             schedule.append({"task_id": task, "condition": condition, "status": "pending", "phase": "not_started"})
     plan = {"schema_version": "1.0", "kind": "extraction_verification" if extraction_only else "subscription_smoke" if smoke else config.get("study_kind", "development_pilot"),
             "config": config, "config_sha256": digest_file(config_path),
-            "selection_sha256": receipt["selection_sha256"], "schedule": schedule,
+            "selection_sha256": receipt["selection_sha256"],
+            "restricted_license_optin": bool(restricted_ids) and config.get("allow_restricted_licenses", False),
+            "restricted_license_task_count": len(restricted_ids),
+            "schedule": schedule,
             "output": str(output.resolve()), "execute": execute}
     plan.update(_implementation_provenance(workspace))
     plan["execution_policy"] = {

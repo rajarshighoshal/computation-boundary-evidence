@@ -17,3 +17,4 @@ tmp/
 auth.json
 *.auth.json
 .DS_Store
+.cache/
