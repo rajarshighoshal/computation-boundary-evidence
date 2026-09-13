@@ -309,7 +309,7 @@ class ScientificCodex(BaseAgent):
         input_file = local / "input.json"
         await self.extract_environment.download_file(SCRATCH + "/scientific-context-input.json", input_file)
         payload = read_json(input_file)
-        if not payload.get("computation"):
+        if not payload.get("context"):
             return
         root = local / "source"
         paths = sorted({item["path"] for key in ("function_bodies", "code_passages", "analysis_sources")
