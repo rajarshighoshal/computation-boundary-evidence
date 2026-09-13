@@ -418,7 +418,7 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
                        "--path", str(task_input.resolve()), "--env", "docker", "--model", budget.model,
                        "--agent-import-path",
                        "scicontext.pier_agent:ScientificCodex" if agent == "codex" else "scicontext.deepseek_agent:DeepSeekAgent",
-                       "--no-force-build", "--no-delete", "--yes", "--n-concurrent", "1", "--n-attempts", "1",
+                       "--no-force-build", "--yes", "--n-concurrent", "1", "--n-attempts", "1",
                        "--max-retries", "0", "--agent-timeout-multiplier", str(total / 5400),
                        "--jobs-dir", str((output / "jobs").resolve()), "--job-name", f"task-{task}-{condition}"]
             if extraction_only:
