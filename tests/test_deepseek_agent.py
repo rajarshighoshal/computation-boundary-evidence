@@ -1,6 +1,7 @@
 """DeepSeek agent wiring: extraction call, repair tool loop, receipts."""
 import asyncio
 import json
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -78,6 +79,36 @@ def test_interpret_calls_api_inline_and_uploads_annotations(tmp_path, monkeypatc
     assert result["usage"]["input_tokens"] == 100 and result["usage"]["output_tokens"] == 20
     assert "/opt/scicontext/scratch/extract_draft-annotations.json" in env.uploaded
     assert "so_a" in env.uploaded["/opt/scicontext/scratch/extract_draft-annotations.json"]
+
+
+def test_actual_packet_prompt_reaches_the_enrichment_request(tmp_path, monkeypatch):
+    graph, payload = graph_and_payload()
+    payload["evidence_packets"] = [{"id": "ep_test", "object_ids": ["so_a"], "source_entry_ids": ["e1"]}]
+    agent = make_agent(tmp_path)
+    template = (Path(__file__).resolve().parent.parent / "prompts/enrich_objects.md").read_text()
+    (tmp_path / "prompts/enrich_objects.md").write_text(template)
+    agent.extract_environment = FakeEnvironment(tmp_path, payload, graph)
+    agent.root = "/app/task_058"
+    agent.logs_dir.mkdir(parents=True, exist_ok=True)
+    requests = []
+    async def fake_api(key, model, messages, **kwargs):
+        requests.append(messages)
+        text = messages[0]["content"]
+        assert text.startswith("Explain the scientific computation represented by the supplied evidence packets")
+        assert "Inspect the transport calculation" in text
+        assert "inputs, transformations and outputs together" in text
+        assert "ep_test" in text and "so_a" in text and "e1" in text
+        assert "{instruction}" not in text and "{scratch}" not in text
+        assert kwargs["response_format"] == {"type": "json_object"}
+        assert not kwargs.get("tools")
+        return {"choices": [{"message": {"content": json.dumps({
+            "schema_version": "object-enrichment-1.0", "annotations": [{
+                "object_id": "so_a", "meaning": "Scientific interface, supported by e1."}]})},
+            "finish_reason": "stop"}], "usage": {"prompt_tokens": 10, "completion_tokens": 5}}
+    monkeypatch.setattr(module, "_api_completion", fake_api)
+    result = asyncio.run(agent._interpret_call("Inspect the transport calculation", 300))
+    assert len(requests) == 1 and result["annotations_status"] == "received"
+    assert (agent.logs_dir / "extract-prompt.txt").read_text() == requests[0][0]["content"]
 
 
 def test_interpret_non_json_content_is_code_only_not_fatal(tmp_path, monkeypatch):

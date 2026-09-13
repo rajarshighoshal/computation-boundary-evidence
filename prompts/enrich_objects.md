@@ -1,24 +1,19 @@
-Build a scientific working model of this task for a separate repair agent. The deliverable is
-understanding, not a repair: what this computation means scientifically, how its objects and
-interfaces realize that meaning, and which conventions and assumptions matter for the reported
-problem.
+Explain the scientific computation represented by the supplied evidence packets: what the
+quantities mean, how they are represented, how the transformations connect them, and which
+conventions and conditions apply. Use the task, function bodies and public sources as evidence.
+Cover the relevant inputs, transformations and outputs together.
 
-The input is a bounded selection of a code-derived object graph: constraint findings from
-executing the public reproducer, objects, operations, dataflow links, unresolved items,
-relevant source passages and public scientific excerpts. Annotate the most task-relevant
-objects: constraint findings first, then workflow interfaces, their parameters and outputs.
+Annotate existing object IDs. Cite supporting source IDs and locations in each interpretation.
+Describe measurements as observations and source-stated conditions as requirements. Put specific
+missing details in assumptions as "unknown: ...".
 
-Response: JSON of the form {{"schema_version": "object-enrichment-1.0", "annotations": [...]}}.
-Each annotation references an exact supplied object_id and contains meaning (string),
-conventions (array of strings) and assumptions (array of strings). The code owns structure
-and derived properties; annotate it, do not extend it. Where an interpretation is uncertain,
-state it as an assumption or omit it. Keep it compact: at most 40 annotations, most relevant
-first.
+Return only {{"schema_version": "object-enrichment-1.0", "annotations": [...]}} with at most 40
+annotations, most relevant first. Each annotation contains object_id, meaning (string), conventions
+(array of strings) and assumptions (array of strings). Preserve the supplied graph structure.
 
-Mode note: if you have shell access, the payload file is {scratch}/scientific-context-input.json;
-write your first-pass annotations JSON to {scratch}/extract_draft-annotations.json early (the
-harness collects that file even if the turn later times out), then refine if time remains.
-If you have no tools, the payload is embedded inline below and you return the JSON directly.
+If shell tools are available, read {scratch}/scientific-context-input.json and save first-pass JSON
+to {scratch}/extract_draft-annotations.json early, then return the final JSON. Otherwise, use the
+input embedded below and return the JSON directly.
 
 Task root: {root}
 Original task:

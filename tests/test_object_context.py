@@ -289,10 +289,20 @@ def test_enrichment_input_prioritizes_interfaces_even_without_retrieved_targets(
 def test_enrichment_prompt_directs_early_scratch_write():
     prompt = (Path(__file__).resolve().parent.parent / "prompts/enrich_objects.md").read_text()
     assert "{scratch}/extract_draft-annotations.json" in prompt
-    assert "even if the turn later times out" in prompt
-    assert "Annotate the most task-relevant" in prompt
-    assert "at most 40 annotations" in prompt
-    assert "annotate it, do not extend it" in prompt
+    assert "save first-pass JSON" in prompt and "early" in prompt
+    assert "at most 40 annotations" in " ".join(prompt.split())
+    assert "Preserve the supplied graph structure" in prompt
+
+
+def test_packet_prompt_is_direct_compact_and_keeps_uncertainty_local():
+    prompt = (Path(__file__).resolve().parent.parent / "prompts/enrich_objects.md").read_text()
+    assert len(prompt.split()) <= 180
+    assert "supplied evidence packets" in prompt
+    assert "inputs, transformations and outputs together" in prompt
+    assert "source IDs and locations" in prompt
+    assert "observations" in prompt and "source-stated conditions as requirements" in prompt
+    assert '"unknown: ..."' in prompt
+    assert not any(phrase in prompt.lower() for phrase in ("may be wrong", "may be incomplete", "if useful", "use it if"))
 
 
 def _locus(rule, symbol, path="m.py", line=10, pairs=1, delta=None, measures=None, status="violated"):

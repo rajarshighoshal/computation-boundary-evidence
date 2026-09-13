@@ -10,6 +10,11 @@ Language-specific structure extraction must feed the shared representation.
 
 ## Active work
 
+- PHASE 2 PROMPT DRAFT READY: direct packet-based scientific interpretation instructions, 148 words,
+  no blanket hedging; specific missing facts use "unknown" in assumptions. Existing JSON schema,
+  guide renderer and repair prompt unchanged. Formatting and real-template adapter wiring verified:
+  37 targeted tests pass (API mocked). Show the exact text and STOP for user review. No model calls
+  or new runs performed/authorized in this prompt-only step; scientific output quality not yet tested.
 - PHASE 1 COMPLETE: connected evidence packets implemented for interpreter input. Packet/merge helpers
   opt into recorded-dependency/candidate-callee bundles with hash-checked source bodies and documentation;
   historical input selection remains available for comparison. No new scientific claims or dispatch proofs.
