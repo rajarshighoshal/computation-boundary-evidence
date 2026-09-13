@@ -404,7 +404,16 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
             write_json(output / "schedule.json", plan)
             images = [task_row["environment_image"]] if extraction_only else [task_row["environment_image"], task_row["verifier_image"]]
             for image in images:
-                _run_owned_process(["docker", "pull", "--platform", "linux/amd64", image], check=True, stdout=subprocess.DEVNULL)
+                # Registry pulls burst-fail under concurrency (429/network);
+                # retry with backoff instead of failing the attempt.
+                for attempt in range(3):
+                    pull = _run_owned_process(["docker", "pull", "--platform", "linux/amd64", image],
+                                              stdout=subprocess.DEVNULL)
+                    if pull.returncode == 0:
+                        break
+                    time.sleep(30 * (attempt + 1))
+                else:
+                    raise subprocess.CalledProcessError(pull.returncode, pull.args)
             command = [str(Path(sys.executable).parent / "pier"), "run",
                        "--path", str(task_input.resolve()), "--env", "docker", "--model", budget.model,
                        "--agent-import-path",
