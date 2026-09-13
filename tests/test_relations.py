@@ -227,4 +227,4 @@ def test_unbound_numeric_observation_emits_measured_record():
     observed = [l for l in result["loci"] if l.get("kind") == "observed_values"]
     assert len(observed) == 1
     assert observed[0]["values"][0]["field"] == "transition_across_boundary"
-    assert not [l for l in result["loci"] if l["properties"].get("rule_id") in ("R6p", "R6s")]
+    assert not [l for l in result["loci"] if l.get("properties", {}).get("rule_id") in ("R6p", "R6s")]
