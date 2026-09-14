@@ -115,22 +115,28 @@ class DeepSeekAgent(ScientificCodex):
                            "required": ["command"]}}}]
 
     async def _setup_environment(self, environment, stage):
-        await self.checked(environment, f"mkdir -p {CONTROL} {REMOTE}/src {REMOTE}/context {SCRATCH}/checkpoints {self.root}/outputs")
-        await environment.upload_dir(self.helper_deps, REMOTE + "/deps")
-        source_root = self.frozen_source / "scicontext" if self.frozen_source else self.workspace / "src/scicontext"
-        await environment.upload_dir(source_root, REMOTE + "/src/scicontext")
         if self.condition == "science":
+            await self.checked(environment, f"mkdir -p {CONTROL} {REMOTE}/src {REMOTE}/context {SCRATCH}/checkpoints {self.root}/outputs")
+            await environment.upload_dir(self.helper_deps, REMOTE + "/deps")
+            source_root = self.frozen_source / "scicontext" if self.frozen_source else self.workspace / "src/scicontext"
+            await environment.upload_dir(source_root, REMOTE + "/src/scicontext")
             from .object_context import enrichment_schema
             await self._put(environment, "object-enrichment.schema.json", json.dumps(enrichment_schema()),
                             CONTROL + "/object-enrichment.schema.json")
-        statement = (environment.environment_dir.parent / "instruction.md").read_text()
-        await self._put(environment, "task_statement.md", statement, REMOTE + "/context/task_statement.md")
+            statement = (environment.environment_dir.parent / "instruction.md").read_text()
+            await self._put(environment, "task_statement.md", statement, REMOTE + "/context/task_statement.md")
+        else:
+            # Plain repair uses only the task container and host-side API.
+            # Do not expose method sources/dependencies or task-context files
+            # that the baseline can mine despite not having the science tool.
+            await self.checked(environment, f"mkdir -p {self.root}/outputs")
         probe = "import os; print(open('/proc/%s/statm' % os.getpid()).read().strip())"
         if self.task_id == "002":
             probe += "; from pyscf import lib; print(lib.current_memory())"
         output = await self.checked(environment, "python -c " + json.dumps(probe))
         (self.logs_dir / f"runtime-{stage}.log").write_text(output)
-        await self.checked(environment, f"PYTHONPATH={REMOTE}/src:{REMOTE}/deps python -c 'from scicontext.object_context import enrichment_schema; print(enrichment_schema()[\"type\"])'")
+        if self.condition == "science":
+            await self.checked(environment, f"PYTHONPATH={REMOTE}/src:{REMOTE}/deps python -c 'from scicontext.object_context import enrichment_schema; print(enrichment_schema()[\"type\"])'")
 
     async def setup(self, environment):
         from pier.environments.docker.docker import DockerEnvironment
@@ -145,7 +151,8 @@ class DeepSeekAgent(ScientificCodex):
         info = subprocess.run(["docker", "info", "--format", "{{.MemTotal}} {{.NCPU}} {{.Architecture}}"],
                               check=True, text=True, capture_output=True).stdout.split()
         pyminor = (await self.checked(environment, "python -c 'import sys; print(str(sys.version_info.major)+str(sys.version_info.minor))'")).strip()
-        self.helper_deps = await asyncio.to_thread(prepare_helpers, self.workspace / ".cache", pyminor)
+        if self.condition == "science":
+            self.helper_deps = await asyncio.to_thread(prepare_helpers, self.workspace / ".cache", pyminor)
         self._baseline_tree = (await self.checked(environment, "git rev-parse HEAD", cwd=self.root)).strip()
         self.codex_package = None
         self.extract_codex_package = None

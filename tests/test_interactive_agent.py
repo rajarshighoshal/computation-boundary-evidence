@@ -52,6 +52,26 @@ def test_host_api_agent_uses_pier_offline_mode_without_egress_proxy(tmp_path, mo
     assert cls._docker_compose_paths.fget(env)[-1] == cls._DOCKER_COMPOSE_NO_NETWORK_PATH
 
 
+def test_plain_baseline_setup_does_not_expose_science_assets(tmp_path, monkeypatch):
+    model = agent(tmp_path, "baseline")
+    model.task_id = "test"
+    commands = []
+
+    class Env:
+        async def upload_dir(self, *args):
+            pytest.fail("plain baseline must not receive scientific helper assets")
+
+    async def checked(environment, command, **kwargs):
+        commands.append(command)
+        return "statm"
+
+    model.checked = checked
+    asyncio.run(model._setup_environment(Env(), "repair"))
+    assert commands[0] == "mkdir -p /app/task_test/outputs"
+    assert any(command.startswith("python -c ") for command in commands[1:])
+    assert all("/opt/scicontext" not in command for command in commands)
+
+
 def test_science_agent_has_graph_tool_and_shell_from_the_start(tmp_path, monkeypatch):
     model = agent(tmp_path)
     root = tmp_path / "task"
