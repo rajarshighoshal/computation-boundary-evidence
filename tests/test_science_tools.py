@@ -373,3 +373,17 @@ def test_oversize_data_file_head_is_readable(tmp_path):
     result = store.inspect("data.cube")
     assert result["status"] == "ok" and result["truncated"] is True
     assert "header line" in json.dumps(result)
+
+
+def test_self_check_verifies_queries_and_leaves_no_model(tmp_path):
+    store = prepared_graph_store(tmp_path)
+    store.prepare()
+    result = store.check()
+    assert result["status"] == "ok"
+    assert result["steps"]["graph"]["nodes"] >= 3
+    assert result["steps"]["inspect"]["registered_matches_shown"]
+    assert result["steps"]["record"]["status"] == "recorded"
+    assert result["steps"]["unseen_citation"]["status"] == "refused"
+    restored = ScienceStore(store.root, store.store)
+    assert not restored.state.get("model_recorded"), "self-check must restore the store"
+    assert not (store.store / "scientific-model.json").exists()
