@@ -24,16 +24,15 @@ def _module_trace():
     ]
 
 
-def test_r1_sensitivity_violated_when_param_delta_gives_identical_output():
+def test_r1_identical_output_is_an_observation_without_a_declaration():
+    # f(1.0) and f(2.0) returning the same value is an observation; only a
+    # declared requirement makes it a sensitivity violation.
     result = derive_loci(_module_trace(), [])
-    loci = result["loci"]
-    sensitivity = [l for l in loci if l["properties"]["rule_id"] == "R1"]
-    assert len(sensitivity) == 1
-    assert sensitivity[0]["properties"]["constraint_type"] == "sensitivity"
-    assert sensitivity[0]["properties"]["status"] == "violated"
-    pair = sensitivity[0]["properties"]["evidence"]["pairs"][0]
-    assert pair["input_relation"] == "param_delta"
-    assert pair["delta_param"] == {"name": "x", "a": "1.0", "b": "2.0"}
+    assert not [l for l in result["loci"] if l["properties"]["rule_id"] == "R1"]
+    pairs = result["dynamic"]["insensitive_pairs"]
+    assert len(pairs) == 1
+    assert pairs[0]["input_relation"] == "param_delta"
+    assert pairs[0]["delta_param"] == {"name": "x", "a": "1.0", "b": "2.0"}
 
 
 def test_r2_invariance_violated_when_related_inputs_differ_in_output():
@@ -251,3 +250,19 @@ def test_scientific_failure_emits_r6_containment():
     assert len(r6) == 1
     assert r6[0]["properties"]["constraint_type"] == "distinctness"
     assert result["dynamic"]["reproduction"]["classification"] == "scientific_failure"
+
+
+def test_r1_identical_output_is_observation_unless_declared():
+    # Rounding 3.0 to one vs two decimal places legitimately gives the same
+    # result: unchanged output is an observation, not a sensitivity violation.
+    fa = fingerprint(3.0)
+    records = [
+        {"seq": 1, "name": "<module>", "file": "reproduce.py", "line": 1, "parent_seq": None},
+        {"seq": 2, "name": "round_like", "file": "m.py", "line": 1, "parent_seq": 1,
+         "inputs": {"places": fingerprint(1)}, "return_fp": fa, "fingerprinted": True},
+        {"seq": 3, "name": "round_like", "file": "m.py", "line": 1, "parent_seq": 1,
+         "inputs": {"places": fingerprint(2)}, "return_fp": fa, "fingerprinted": True},
+    ]
+    result = derive_loci(records, [])
+    assert not [l for l in result["loci"] if l["properties"]["rule_id"] == "R1"]
+    assert result["dynamic"]["insensitive_pairs"], "unchanged output stays an observation"

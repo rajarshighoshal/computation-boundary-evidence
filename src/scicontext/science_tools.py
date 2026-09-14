@@ -134,15 +134,25 @@ class ScienceStore:
         self.save()
 
     def read(self, path):
+        raw, text, _ = self._read_window(path)
+        return raw, text
+
+    def _read_window(self, path):
+        """Read a path, truncating oversize files to a bounded newline prefix.
+
+        The prefix keeps hashes and citations consistent across calls; the
+        returned flag tells inspectors to report the truncation explicitly.
+        """
         _, problem = evidence._safe_file(self.root, path)
         if problem:
             raise ValueError(problem)
-        raw = evidence._read_regular(self.root, path)
-        if len(raw) > evidence.MAX_FILE_BYTES:
-            raise ValueError("File exceeds the parser read limit; no complete-file hash or coverage is claimed")
+        raw, truncated = evidence._read_bounded(self.root, path, evidence.MAX_FILE_BYTES)
+        if truncated:
+            cut = raw.rfind(b"\n")
+            raw = raw[:cut + 1] if cut > 0 else raw
         if b"\x00" in raw:
             raise ValueError("Binary input: inspect its public interface/metadata, or use normal tools after recording the initial model.")
-        return raw, raw.decode("utf-8")
+        return raw, raw.decode("utf-8", errors="replace"), truncated
 
     def find(self, query, offset=0):
         if not isinstance(query, str) or not query.strip():
@@ -262,9 +272,10 @@ class ScienceStore:
                       "boundary": node.get("boundary") or [],
                       "note": "Citable: the sources and entity/quantity IDs shown above. "
                               "Use offset for more sources; inspect returned path:line targets for uncompiled detail."}
-            if not node.get("source_ids") and node.get("path"):
-                # No parsed region for this node in the prepared packet: compile
-                # the public file location on demand so citations are real.
+            if node.get("path") and (not node.get("source_ids") or analysis is not None):
+                # No parsed region for this node in the prepared packet, or the
+                # runner returned analyzer facts: compile the public location on
+                # demand so citations are real and the graph expands.
                 try:
                     detail = self.inspect(f"{node['path']}:{node.get('line') or 1}", "relationships", 0, analysis)
                     result["evidence"] = {key: detail.get(key) for key in
@@ -275,20 +286,25 @@ class ScienceStore:
                         # request; keep it visible when the work is nested in evidence.
                         result["backend_request"] = detail["backend_request"]
                     self._remember_expansion(node, detail)
+                    if detail.get("analysis_backends"):
+                        result["analysis_backends"] = detail["analysis_backends"]
+                        result["analysis_gaps"] = detail.get("analysis_gaps") or []
                 except (OSError, ValueError, KeyError, TypeError, SyntaxError) as error:
                     result["evidence_error"] = f"{type(error).__name__}: {error}"
             if view == "source":
                 result["source"] = self._node_source(node)
             return result
         path, line, symbol = self._target(target)
-        raw, text = self.read(path)
+        raw, text, truncated = self._read_window(path)
         lines = text.splitlines()
         if not 1 <= line <= max(1, len(lines)):
             raise ValueError("Source line outside file")
         language = source_language(path)
         is_document = Path(path).suffix.lower() in {".md", ".rst", ".txt", ".xml", ".json", ".toml", ".yaml", ".yml", ".cmake"} or Path(path).name == "CMakeLists.txt"
         tree = None
-        if language == "python" and view != "source":
+        if language == "python":
+            # Parse for every view: source view must resolve the requested symbol
+            # instead of returning the head of the file.
             try:
                 tree = ast.parse(text, filename=path)
             except SyntaxError:
@@ -337,6 +353,7 @@ class ScienceStore:
             self.state["targets"][identifier] = {"path": path, "line": lo, "content_hash": digest_json(raw.hex())}
             self._visible([], [identifier])
             return {"status": "ok", "source": document, "offset_unit": "characters",
+                    "truncated": truncated,
                     "next_offset": offset+len(quote) if offset+len(quote) < len(selected_text) else None}
         if language == "python":
             packet = evidence.extract_evidence(self.root, [path], max_files=1, max_entries=2000,
@@ -431,6 +448,7 @@ class ScienceStore:
             "sources": inline_sources,
             "next_offset": page_start+PAGE_SIZE if page_start+PAGE_SIZE < len(roots) else None,
             "total_expressions": len(roots), "coverage": compiled["coverage"],
+            "truncated": truncated,
             "note": "Other relationship endpoints are expandable IDs. Source excerpts are not a complete specification; scientific meanings are yours to establish."}
 
     @staticmethod

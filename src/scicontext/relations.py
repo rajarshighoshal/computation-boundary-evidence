@@ -248,6 +248,7 @@ def derive_loci(trace_records: list, predicate_evaluations: list, script_status:
     instances = {record["seq"]: record for record in trace_records}
     children = _children_map(instances)
     declared_equivalent, declared_distinct = _declared_relations(predicate_evaluations, instances)
+    insensitive_pairs = []
     groups = defaultdict(list)
     for record in trace_records:
         groups[(record["file"], record["name"], record["line"])].append(record["seq"])
@@ -279,11 +280,13 @@ def derive_loci(trace_records: list, predicate_evaluations: list, script_status:
                     for k in differing_inputs))
                 if relation == "param_delta" and output == "identical" \
                         and not _is_trivial(ia.get("return_fp")):
-                    locus = _cl(func_key, "R1", func_key, "sensitivity")
-                    locus["properties"]["locus_transitions"] = [a, b]
-                    locus["properties"]["evidence"]["pairs"] = [{"a": a, "b": b, "input_relation": relation,
-                                                                 "output_relation": output, "delta_param": delta}]
-                    loci.append(locus)
+                    # Varying a parameter without changing the output is an
+                    # observation. Declared distinctness requires differing
+                    # outputs, so it cannot establish required sensitivity here;
+                    # a broken expectation surfaces through the script's own
+                    # failed predicates and status instead.
+                    insensitive_pairs.append({"rule": "R1", "func": list(func_key), "a": a, "b": b,
+                                              "input_relation": relation, "delta_param": delta})
                 elif scientific_pair and (pair_key in declared_equivalent or relation in {"relabeled", "reversed"}):
                     if output == "different":
                         deepest = _first_divergence(a, b, instances, children)
@@ -437,6 +440,7 @@ def derive_loci(trace_records: list, predicate_evaluations: list, script_status:
     return {"loci": unique_loci,
             "dynamic": {"schema_version": SCHEMA_VERSION, "instances": len(instances),
                         "observed_values": observed_loci,
+                        "insensitive_pairs": insensitive_pairs,
                         "reproduction": reproduction,
                         "pairs": pair_count, "loci": len(unique_loci),
                         "nondeterministic_funcs": sorted({json.dumps(key) for key in nondeterministic}),

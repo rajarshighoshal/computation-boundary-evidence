@@ -82,7 +82,9 @@ def test_execution_edges_follow_parent_links(tmp_path):
 @pytest.mark.parametrize("raw, expected", [
     ("<module>.run_workflow@85", "run_workflow"),
     ("<module>.TerpsichoreRadialGrid@13.uniform@41", "TerpsichoreRadialGrid.uniform"),
-    ("<module>.namespace_definition:openmc@518.Cell::set_rotation@48:1118", "Cell::set_rotation"),
+    ("<module>.namespace_definition:openmc@518.Cell::set_rotation@48:1118", "openmc.Cell::set_rotation"),
+    ("<module>.namespace_definition:alpha@1.Solver::step@5:10", "alpha.Solver::step"),
+    ("<module>.namespace_definition:beta@9.Solver::step@5:10", "beta.Solver::step"),
     ("<module>.namespace_definition:openmc@518.namespace_definition:model@721", "model@721"),
     ("<module>.namespace_definition:openmc@212", "openmc@212"),
     ("<script>", "<module>"),
@@ -106,8 +108,11 @@ def test_graph_surfaces_runner_failure_instead_of_violation(tmp_path):
 def test_cut_calls_stay_as_boundary_references(tmp_path):
     graph_path, packet_path, trace = write_prepared(tmp_path / "task")
     with gzip.open(trace / "trace.jsonl.gz", "at") as stream:
-        stream.write(json.dumps({"pid": 1, "seq": 4, "parent_seq": 2, "file": "helper.py",
-                                 "name": "helper", "line": 3}) + "\n")
+        for index in range(8):
+            stream.write(json.dumps({"pid": 1, "seq": 10 + index, "parent_seq": 2,
+                                     "file": f"helper{index}.py", "name": "helper",
+                                     "line": 3 + index}) + "\n")
     result = build_graph(graph_path, packet_path, trace)
     run = next(node for node in result["nodes"] if node["name"] == "run")
-    assert {"target": "helper.py:3", "relation": "calls"} in run["boundary"]
+    calls = [ref for ref in run["boundary"] if ref["relation"] == "calls"]
+    assert len(calls) == 8, "cut calls must not be squeezed out by the boundary cap"

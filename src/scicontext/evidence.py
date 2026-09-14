@@ -96,13 +96,12 @@ def _span_text(source: str, node: ast.AST) -> str:
     return ast.get_source_segment(source, node) or ""
 
 
-def _read_regular(root: Path, relative: str) -> bytes:
-    """Open each path component without following a symlink, including races.
+def _read_bounded(root: Path, relative: str, limit: int) -> tuple[bytes, bool]:
+    """Read at most ``limit`` bytes through the symlink-safe walk.
 
-    Evidence extraction runs on POSIX benchmark/host environments. ``dir_fd``
-    pins each directory while walking so replacing a parent path cannot redirect
-    the read outside the public root. Nonblocking open avoids hanging on a FIFO
-    swapped in between validation and open.
+    Returns ``(raw, truncated)``. Callers that need the source-size contract
+    (packet extraction) reject truncation; inspectors may present a bounded
+    prefix with the truncation reported explicitly.
     """
     descriptors = []
     try:
@@ -117,20 +116,33 @@ def _read_regular(root: Path, relative: str) -> bytes:
         metadata = os.fstat(descriptor)
         if not stat.S_ISREG(metadata.st_mode):
             raise ValueError("source is not a regular file")
-        if metadata.st_size > MAX_FILE_BYTES:
-            raise _FileTooLarge("file exceeds source byte limit")
         chunks = []
-        remaining = MAX_FILE_BYTES + 1
+        remaining = limit + 1
         while remaining:
             chunk = os.read(descriptor, min(remaining, 65536))
             if not chunk:
                 break
             chunks.append(chunk)
             remaining -= len(chunk)
-        return b"".join(chunks)
+        raw = b"".join(chunks)
+        return raw[:limit], len(raw) > limit
     finally:
         for descriptor in reversed(descriptors):
             os.close(descriptor)
+
+
+def _read_regular(root: Path, relative: str) -> bytes:
+    """Open each path component without following a symlink, including races.
+
+    Evidence extraction runs on POSIX benchmark/host environments. ``dir_fd``
+    pins each directory while walking so replacing a parent path cannot redirect
+    the read outside the public root. Nonblocking open avoids hanging on a FIFO
+    swapped in between validation and open.
+    """
+    raw, truncated = _read_bounded(root, relative, MAX_FILE_BYTES)
+    if truncated:
+        raise _FileTooLarge("file exceeds source byte limit")
+    return raw
 
 
 def _ast_within_limits(tree: ast.AST) -> bool:

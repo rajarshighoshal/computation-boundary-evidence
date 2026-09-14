@@ -329,3 +329,47 @@ def test_cpp_node_inspection_requests_analysis_and_expands(tmp_path):
     assert detail["evidence"]["sources"], "on-demand compilation must register citations"
     expanded = next(item for item in store.state["scientific_graph"]["nodes"] if item["id"] == node["id"])
     assert expanded.get("expanded") and expanded["source_ids"]
+
+
+def test_cpp_node_applies_analysis_on_the_return_call(tmp_path):
+    import json as jsonlib
+    store = prepared_graph_store(tmp_path, unseen=True, unseen_path="unseen.cpp")
+    node = next(item for item in store.inspect("#graph")["nodes"] if item["name"] == "mystery")
+    first = store.inspect(node["id"])
+    assert first.get("backend_request") and first.get("evidence")
+    # The runner returns with the analyzer result on the second call; it must
+    # still be applied even though call one already persisted source_ids.
+    analysis = {"analyses": [{"backend": "joern", "language": "cpp", "nodes": [], "links": [],
+                              "selection": {"methods": []}}], "gaps": [], "source_hashes": {}}
+    second = store.inspect(node["id"], analysis=analysis)
+    assert second.get("analysis_backends") == ["joern"]
+    assert second.get("evidence"), "the detailed response must not be skipped once sources exist"
+    persisted = next(item for item in store.state["scientific_graph"]["nodes"] if item["id"] == node["id"])
+    assert persisted.get("analysis_backends") == ["joern"]
+    assert jsonlib.dumps(second)
+
+
+def test_source_view_resolves_the_symbol_span(tmp_path):
+    root = tmp_path / "long-task"
+    root.mkdir()
+    lines = [f"# filler {index}\n" for index in range(120)]
+    lines += ["def late_symbol(value):\n", "    return value + 1\n"]
+    (root / "long.py").write_text("".join(lines))
+    store = ScienceStore(root, tmp_path / "long-store")
+    store.prepare()
+    result = store.inspect("long.py#late_symbol", view="source")
+    text = result["source"]["quote"]
+    assert "def late_symbol" in text and "return value + 1" in text
+    assert "filler 1" not in text
+
+
+def test_oversize_data_file_head_is_readable(tmp_path):
+    from scicontext import evidence
+    root = tmp_path / "big-task"
+    root.mkdir()
+    (root / "data.cube").write_text("# header line\n" + "x" * (evidence.MAX_FILE_BYTES + 100))
+    store = ScienceStore(root, tmp_path / "big-store")
+    store.prepare()
+    result = store.inspect("data.cube")
+    assert result["status"] == "ok" and result["truncated"] is True
+    assert "header line" in json.dumps(result)

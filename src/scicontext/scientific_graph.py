@@ -27,7 +27,7 @@ MAX_NODES = 20
 MAX_SOURCE_IDS = 6
 MAX_ENTITY_IDS = 8
 MAX_QUANTITIES = 5
-MAX_BOUNDARY = 5
+MAX_BOUNDARY = 8
 MAX_DOCUMENTS = 12
 GRAPH_SCHEMA = "scientific-graph-2.0"
 
@@ -50,11 +50,17 @@ def _scope_key(scope):
     """Normalize a scope string to its source identity name."""
     raw = str(scope or "").strip()
     if "::" in raw:
-        # Joern-style C/C++ scopes: keep the innermost Class::method tail.
-        stripped = re.sub(r"@\d+(?::\d+)?", "", raw)
-        parts = stripped.rstrip(":.").split("::")
-        head = parts[-2].split(".")[-1] if len(parts) >= 2 else ""
-        return f"{head}::{parts[-1]}" if head else parts[-1]
+        # Joern-style C/C++ scopes: keep the namespace-qualified Class::method
+        # tail so distinct namespaces never merge into one identity.
+        parts = re.sub(r"@\d+(?::\d+)?", "", raw).rstrip(":.").split("::")
+        qualifier = parts[-2] if len(parts) >= 2 else ""
+        if qualifier.startswith("<module>."):
+            qualifier = qualifier[len("<module>."):]
+        qualifier = qualifier.replace("namespace_definition:", "").strip(".")
+        if not qualifier and len(parts) >= 2:
+            # Anonymous namespace: keep the raw qualifier, offsets included.
+            qualifier = raw.rsplit("::", 1)[0].rstrip(":.").replace("<module>.", "", 1)
+        return f"{qualifier}::{parts[-1]}" if qualifier else parts[-1]
     if "namespace_definition:" in raw:
         # Keep the innermost namespace segment with its block offset so distinct
         # namespace definitions in one file do not merge into a single node.
@@ -324,6 +330,20 @@ def build_graph(graph_path, packet_path=None, trace_dir=None) -> dict:
                     seen_edges.add(edge)
                     edges.append({"from": edge[0], "to": edge[1], "relation": "candidate"})
 
+    # Observed calls that leave the selected set stay visible as boundary
+    # references instead of disappearing with the cut edge.
+    for (caller, callee), sites in sorted(call_sites.items()):
+        if caller in selected and callee not in selected:
+            reference = {"target": f"{sites['callee']['path']}:{sites['callee']['line']}", "relation": "calls"}
+            if reference not in selected[caller]["boundary"] and \
+                    len(selected[caller]["boundary"]) < MAX_BOUNDARY:
+                selected[caller]["boundary"].append(reference)
+        elif callee in selected and caller not in selected:
+            reference = {"target": f"{sites['caller']['path']}:{sites['caller']['line']}", "relation": "calls"}
+            if reference not in selected[callee]["boundary"] and \
+                    len(selected[callee]["boundary"]) < MAX_BOUNDARY:
+                selected[callee]["boundary"].append(reference)
+
     owner_by_entity = {}
     for key in selected:
         for operation in operations_by_key.get(key, ()):
@@ -348,20 +368,6 @@ def build_graph(graph_path, packet_path=None, trace_dir=None) -> dict:
             if site and reference not in selected[node_key]["boundary"] \
                     and len(selected[node_key]["boundary"]) < MAX_BOUNDARY:
                 selected[node_key]["boundary"].append(reference)
-
-    # Observed calls that leave the selected set stay visible as boundary
-    # references instead of disappearing with the cut edge.
-    for (caller, callee), sites in sorted(call_sites.items()):
-        if caller in selected and callee not in selected:
-            reference = {"target": f"{sites['callee']['path']}:{sites['callee']['line']}", "relation": "calls"}
-            if reference not in selected[caller]["boundary"] and \
-                    len(selected[caller]["boundary"]) < MAX_BOUNDARY:
-                selected[caller]["boundary"].append(reference)
-        elif callee in selected and caller not in selected:
-            reference = {"target": f"{sites['caller']['path']}:{sites['caller']['line']}", "relation": "calls"}
-            if reference not in selected[callee]["boundary"] and \
-                    len(selected[callee]["boundary"]) < MAX_BOUNDARY:
-                selected[callee]["boundary"].append(reference)
 
     documents = {}
     for document in packet.get("documents") or []:
