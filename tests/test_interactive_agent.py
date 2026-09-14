@@ -24,6 +24,34 @@ def agent(tmp_path, condition="science"):
     return value
 
 
+@pytest.mark.parametrize("condition", ["baseline", "science"])
+def test_host_api_agent_uses_pier_offline_mode_without_egress_proxy(tmp_path, monkeypatch, condition):
+    from types import SimpleNamespace
+    from pier.environments.docker import docker as docker_module
+
+    model = agent(tmp_path, condition)
+    allowlist = model.network_allowlist()
+    assert allowlist.domains == [], "Host-side DeepSeek calls need no in-container OpenAI proxy"
+    env = SimpleNamespace(network_allowlist=allowlist,
+                          task_env_config=SimpleNamespace(allow_internet=False),
+                          _egress_proxy_compose_path=None)
+    def unexpected_proxy(**kwargs):
+        pytest.fail("An offline task must not create a per-trial inference proxy")
+    monkeypatch.setattr(docker_module, "write_docker_proxy_compose", unexpected_proxy)
+    docker_module.DockerEnvironment._prepare_egress_proxy_compose(env)
+    assert env._egress_proxy_compose_path is None
+    env._use_prebuilt = True
+    env._resources_compose_path = None
+    env._is_windows_container = False
+    env._mounts_compose_path = None
+    env._environment_docker_compose_path = tmp_path / "absent-compose.yaml"
+    cls = docker_module.DockerEnvironment
+    for name in ("_DOCKER_COMPOSE_BASE_PATH", "_DOCKER_COMPOSE_PREBUILT_PATH",
+                 "_DOCKER_COMPOSE_NO_NETWORK_PATH"):
+        setattr(env, name, getattr(cls, name))
+    assert cls._docker_compose_paths.fget(env)[-1] == cls._DOCKER_COMPOSE_NO_NETWORK_PATH
+
+
 def test_science_agent_has_graph_tool_and_shell_from_the_start(tmp_path, monkeypatch):
     model = agent(tmp_path)
     root = tmp_path / "task"

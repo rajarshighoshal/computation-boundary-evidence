@@ -17,6 +17,8 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+from pier.models.agent.network import NetworkAllowlist
+
 from .assets import prepare_helpers
 from .io import digest_file, digest_json, read_json, write_json, _safe_relative
 from .pier_agent import CONTROL, REMOTE, SCRATCH, ScientificCodex, bounded_call
@@ -85,6 +87,12 @@ def _compact_tools(messages: list) -> None:
 
 class DeepSeekAgent(ScientificCodex):
     interactive_science = True
+
+    def network_allowlist(self):
+        # Inference runs on the host. Empty allowlist selects Pier's standard
+        # offline container mode, without an unnecessary OpenAI egress proxy.
+        return NetworkAllowlist()
+
     def __init__(self, *args, deepseek_key_file=None, **kwargs):
         if not deepseek_key_file:
             raise ValueError("deepseek_key_file is required for the DeepSeek route")

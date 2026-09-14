@@ -1,0 +1,94 @@
+{
+  "implementation_revision": "273d23c190d4c903e8c7b9f5afd17ea78772b061",
+  "limitations": [
+    "One previously development-exposed task, one attempt per arm; no general effect claim.",
+    "Baseline spent about10minutes on a broad filesystem search.",
+    "Reference registration succeeded; some scientific-model citations did not support their attached claim.",
+    "Actual40-trial capacity remains to be tested."
+  ],
+  "pricing": {
+    "checked_date": "2026-09-14",
+    "period": "off_peak",
+    "reasoning_included_in_output": true,
+    "source": "https://api-docs.deepseek.com/quick_start/pricing/",
+    "usd_per_million": {
+      "cached_input": 0.003,
+      "output": 0.6,
+      "uncached_input": 0.15
+    }
+  },
+  "source_run": "runs/development-e2e-check-v1",
+  "study_partition": "development",
+  "task_ids": [
+    "009"
+  ],
+  "total_estimated_usd": 0.116319516,
+  "trials": [
+    {
+      "agent_duration_seconds": 1094.8705445840023,
+      "condition": "baseline",
+      "estimated_usd": 0.06278256,
+      "model_calls": 59,
+      "official_reward": 0,
+      "prepare_seconds": 0,
+      "private": {
+        "collected": 9,
+        "failed": 1,
+        "passed": 8,
+        "return_code": 1
+      },
+      "public": {
+        "collected": 1,
+        "passed": 1,
+        "return_code": 0
+      },
+      "raw_trial": "runs/development-e2e-check-v1/jobs/task-009-baseline/task_009__9X7Za5Q",
+      "repair_seconds": 1094.8697886249865,
+      "reward_sha256": "e29d58ebe9e8ff07f89acd153155feb0217ee2e825a0e15cf910058022c5437a",
+      "run_sha256": "0407b4e3a39f91e41934597122702f5cf6bbd05db63abc34006d461c79e9a646",
+      "status": "completed",
+      "task_id": "009",
+      "usage": {
+        "cache_hit_tokens": 3403520,
+        "cache_miss_tokens": 77384,
+        "cached_input_tokens": 3403520,
+        "input_tokens": 3480904,
+        "output_tokens": 68274,
+        "reasoning_output_tokens": 59566
+      }
+    },
+    {
+      "agent_duration_seconds": 387.2242515839753,
+      "condition": "science",
+      "estimated_usd": 0.053536956,
+      "model_calls": 37,
+      "official_reward": 1,
+      "prepare_seconds": 5.318459875008557,
+      "private": {
+        "collected": 9,
+        "failed": 0,
+        "passed": 9,
+        "return_code": 0
+      },
+      "public": {
+        "collected": 1,
+        "passed": 1,
+        "return_code": 0
+      },
+      "raw_trial": "runs/development-e2e-check-v1/jobs/task-009-science/task_009__YoNYsMP",
+      "repair_seconds": 381.8936114999815,
+      "reward_sha256": "79b412895d52d535f9572e6de4a38b6c95d952946c63144495108c83d6c49d61",
+      "run_sha256": "84356ca3b53341c915ad4958f68dc6ee223fa119f7e68ad4cb9ace5c63429503",
+      "status": "completed",
+      "task_id": "009",
+      "usage": {
+        "cache_hit_tokens": 2413952,
+        "cache_miss_tokens": 73070,
+        "cached_input_tokens": 2413952,
+        "input_tokens": 2487022,
+        "output_tokens": 58891,
+        "reasoning_output_tokens": 45298
+      }
+    }
+  ]
+}

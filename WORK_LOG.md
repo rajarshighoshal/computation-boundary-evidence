@@ -28,12 +28,23 @@ evaluation tasks stay outside this iteration.
   behavioral change is removal of the mandatory planning instruction; graph-quality fixes remain.
 - [verified] Side capacity diagnostic ran4/8/16 public reproducer workloads without OOM/stall;
   runs/capacity-check-b116/receipt.json. This does NOT validate40 full trials.
-- [active] Freeze and run configs/development-e2e-check.json → runs/development-e2e-check-v1.
-  Check009's actual prepared graph, delivered prompt/tool replies, graph use, repair and official
-  verification before admitting the larger batch. Successful setup alone is insufficient.
-- [next] Run the approved fixed30 both-arm development/capacity test at40 total concurrency;
-  configs/development-e2e-40.json → runs/development-e2e-40-v1. Monitor resources, preserve failures,
-  and stop admission if the host cannot sustain the load. No retries or code changes during a run.
+- [verified] 009 pair completed on273d23c, runs/development-e2e-check-v1/summary/summary.json:
+  baseline8/9 private, science9/9. Agent durations1094.87s/387.22s, science preparation5.32s.
+  Actual graph/node queries, persisted analysis/model/patch and official verifier checked; zero
+  infrastructure failures. Independent review found optional citation friction and mismatched
+  claim-to-snippet meanings. One positive development pair is not a general benefit claim.
+- [verified] runs/development-e2e-40-v1 reached40 live task containers +40 proxies, then observed
+  DockerOOM on004 and exit137 preparation failures on001/016. Stopped owned launcher25602;
+  finalized2026-09-14T16:50:51Z:2 infrastructure failures,40 interrupted,16 not_run;42 cleanup
+  receipts complete. Both stages used identical273d23c frozen files. This is a capacity failure,
+  not a negative scientific repair result. See capacity/ samples and oom-review.json in the run.
+- [verified] Corrected DeepSeekAgent's inherited OpenAI allowlist with Pier's standard empty
+  allowlist for BOTH arms. Both new regression cases failed before the fix;587 tests nowpass,
+  independent9-test reviewpasses. No new service, benchmark-image or verifier change.
+- [active] Real zero-model009 preparation check at runs/offline-network-check-v1: inspect the
+  actual container NetworkMode, absence of proxies, prepared graph and model_calls=0.
+- [next] Review the corrected capacity checkpoint before any repeat paid batch. Original40-slot
+  attempt is preserved separately; do not silently retry/merge cancelled trials into first results.
 - [next] Inspect concrete failures, apply small task-agnostic fixes with regression tests, and
   recheck. Known graph-content gaps include114 missing sources,001 selection,091 missing guard,
   and false R2/R4 requirements; do not label node counts/self-checks as scientific quality.
