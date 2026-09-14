@@ -18,11 +18,15 @@ computational evidence; the LLM interprets scientific meaning. Rajarshi owns sci
   Two real CPGs + Python/C++/JavaScript fixtures checked offline; original CPG/source hashes verified.
   091 from_cube method nodes reach input; missing other methods and ambiguous dispatch remain explicit.
   Receipt: results/selected-export-review-2026-09-14.json. This is code delivery, not science quality.
-- [next] Implement the compact connected scientific interpretation/delivery stage described in
-  METHOD.md. The current per-object annotation schema/guide still does not deliver that model;
-  interpretation prompt and repair guide were not silently changed by the source fixes.
-- [pending] Inspect actual final prompt/guide on the five development tasks with scientific
-  claims traced to public evidence; independently review, then request approval for live checks.
+- [complete] Connected scientific interpretation/delivery 2.0 implemented: code-owned callable views,
+  shared entity/source indices, source-cited purpose/quantity meanings/conventions, preserved conditions
+  and unknowns, durable scientific-model.json and one actual inline repair guide. Legacy1.0 readable.
+  Host/guest method imports frozen; malformed2.0 cannot become legacy notes or silent baseline repair.
+- [complete] Independent code/live-path reviews passed. Five archived public inputs compile with
+  closed references;153-word091 guide is a manually supplied source-grounded fixture, NOT automatic
+  extraction. Receipt: results/connected-science-review-2026-09-14.json. Full suite538 passed.
+- [next] Obtain approval for a fresh five-task scientific extraction check on frozen2.0, then inspect
+  model-generated meanings against public code/docs. No fresh2.0 model outputs or repair results yet.
   Final verification remains a coherent correct scientific context followed by matched repair
   comparison—not test counts or successful export alone. No new model calls currently authorized.
 

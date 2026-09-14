@@ -1,72 +1,73 @@
-# Scientific-object enrichment contract
+# Connected scientific interpretation contract
 
-The implemented enrichment interface preserves the original division of work:
-code derives scientific objects and computational relationships; the LLM relates that structure
-to the task's scientific meaning. It does not generate a replacement graph or a test oracle.
+Current interpretation version: **object-enrichment-2.0**. The code graph remains
+scientific-objects-1.0; old annotation artifacts and renderers remain readable.
 
-## Input
+## Code-owned input
 
-The LLM receives the code-derived `objects`, `operations`, `links` and `unsupported` records,
-plus `context`: the public task statement and relevant scientific excerpts with source provenance.
-Context uses the existing public-source packet; no private outcomes, previous repair answers,
-personal memory or unsupported synthetic evidence enters the payload.
+The existing source/analysis pipeline builds computations, quantities and relationships.
+scientific_model.reading_input compiles a shared entity/source index plus callable views:
+each definition references its member entities, boundary entities and recorded relationships.
+Source and Joern namespaces stay distinct. A callable correspondence needs a unique matching
+definition site and name; it is not inferred from name similarity. Analyzer scope disambiguates
+overlapping source ranges when available.
 
-The base input uses a bounded selection. Workflow-retrieved interfaces and their
-dataflow neighborhood are kept first, then everything else up to fixed object, unsupported-item
-and byte budgets. A `selection` receipt records every drop as a structure-budget decision, not
-a scientific-relevance verdict; the full graph remains in the objects artifact. Joern now selects
-method neighborhoods before export, preserves argument names/control roles and enforces the final
-input byte allowance during attachment. A method that cannot fit is omitted as a whole and recorded.
-Ambiguous boundary-call targets are represented as unresolved alternative sets; their full members
-remain in source-analysis.json. This is not a guarantee of complete evidence coverage or model fit.
+Operand roles, data dependencies, comparisons, control conditions and original code properties
+remain code-owned. Missing operands/outputs stay explicit unknowns. Alternative call targets
+remain alternatives. The reader view omits detailed AST/CFG scaffolding; the original analysis
+remains in the durable source-analysis artifact. This is a projection of recorded evidence,
+not mathematical equivalence or a newly recovered complete scientific specification.
 
-The interpreter returns annotations as output; the caller saves them. It does not edit source
-or write a partial artifact during a read-only turn. A completed call can return no annotations.
+Scientific documents, code excerpts and analyzer representations have distinct provenance.
+Analyzer-generated pseudo-code is not a literal source quote. Private verifiers, gold patches
+and prior repair answers do not enter this input.
 
-This deliberately differs from a graph-only input proposal: scientific context is necessary for
-the planned model–code alignment. Removing it would leave only API semantics and variable names.
-The restriction belongs on what the LLM can change, not on removing the scientific source material.
+## One scientific interpretation call
 
-## Output
+[The schema](../src/scicontext/scientific-model.schema.json) requests:
 
-`src/scicontext/object-enrichment.schema.json` defines the output. Each annotation contains an
-existing `object_id` and only `meaning`, `conventions` and/or `assumptions`.
+- A source-cited description of the task's scientific/computational purpose.
+- Up to six selected computation IDs, each with a source-cited scientific meaning.
+- Meanings for relevant quantity IDs belonging to that computation or its recorded boundary.
+- Source-cited conventions/conditions and separately stated assumptions.
 
-```json
-{
-  "schema_version": "object-enrichment-1.0",
-  "annotations": [
-    {
-      "object_id": "so_id_from_the_supplied_graph",
-      "meaning": "This right-hand-side vector represents the applied load in the supplied model.",
-      "conventions": ["The scientific source defines the coordinate order."],
-      "assumptions": ["The model description applies to this calculation."]
-    }
-  ]
-}
-```
+A cited statement has text and source_ids. The interpreter does not write graph edges,
+dimensions, executable probes, patches or verified statuses. The same short prompt and
+compiled input are used by the Codex and DeepSeek routes; there is one interpretation call.
 
-The example is illustrative, not an extracted scientific result. The LLM cannot add objects,
-operations, links, executable probes, patches, formulas asserted as requirements, or derived
-dimensions/scales/shapes. It cannot mark unsupported relationships as resolved. Conventions and
-assumptions remain contextual statements, not replacements for code-derived properties.
+The caller saves the response. Assembly validates the envelope, IDs and cited-source existence.
+It preserves original code facts and joins accepted interpretation with the computation's actual
+relationships. **Citation validity is not scientific entailment.** Scientific correctness and
+usefulness still require inspecting actual model outputs against public evidence.
 
-## Joining the two halves
+## Durable model and repair guide
 
-- Match annotations to the exact object IDs in the supplied graph.
-- Drop unanchored, malformed or duplicate annotations and record a short reason. Do not retry the
-  model merely to repair such output; an empty annotation set is a valid result.
-- Attach accepted interpretation under a separate field. Preserve the original structure,
-  dimensions, scales, operation contracts, source links and recorded conflicts unchanged.
-- Render the combined representation for inspection. API recognition, contextual interpretation
-  and derived facts remain distinguishable. No annotation becomes a mandatory repair instruction.
+The joined model is stored under graph.scientific_model and handed off as scientific-model.json.
+Entities and source records are stored once and referenced by ID. Interpretations remain scoped
+to their computations, so distinct conventions are not silently merged.
 
-## This prototype's boundary
+The guide presents purpose, computation meanings, quantity roles, conventions, assumptions and
+source-level code predicates. Predicates describe implementation behaviour, not automatically
+required physical laws. Compiler-generated predicates remain analyzer facts in the model rather
+than being presented as literal source rules.
 
-Keep the current finite API families; do not expand the rule catalogue to inflate a demo.
-Use existing unit/call-analysis tools only where they reduce implementation work and actually fit
-the runtime. A call edge alone is not argument/return-value or scientific equivalence.
+The renderer aims for 9,000 characters and keeps a displayed computation's explanation,
+conventions and assumptions together. The first complete computation is always shown, even when
+it exceeds that soft display target; additional complete computations remain in the model file.
+The actual collection path uploads the model and inserts the guide into the repair prompt once.
+The repair agent gets source locations for implementation inspection rather than a requirement
+to mine the entire raw graph.
 
-Coverage reports must expose the denominator and unsupported cases per file. They measure rule
-coverage, not scientific understanding or repair benefit. Cross-domain examples demonstrate the
-mechanism; benchmark claims still require a separately approved controlled comparison.
+An invalid/empty 2.0 model is not accepted merely because the code graph is nonempty.
+If no scientific model is delivered, the live science path does not start an unassisted repair
+and label it science. Valid legacy 1.0 artifacts remain inspectable through their original path.
+
+## Verification boundary
+
+Offline tests cover identity, citations, unresolved inputs/outputs, condition preservation,
+provider output handling, real helper assembly, real collection and controller handoff.
+The five-archive replay checks deterministic compilation, not fresh extraction. The manually
+authored source-grounded cube-reader fixture tests rendering, not LLM discovery.
+
+Receipt: [connected science check](../results/connected-science-review-2026-09-14.json).
+Model-generated scientific quality and repair improvement remain untested for this revision.

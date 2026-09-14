@@ -1,11 +1,11 @@
-"""Offline DeepSeek extraction delivery check (no tools, no container).
+"""Standalone paid DeepSeek reading check (no tools or container).
 
 Uses the frozen scientific-context-input payload from a prepared run and calls
 the DeepSeek chat API directly with the standard enrichment template. The only
 deviation from the container flow: the payload is embedded inline instead of
 readable at {scratch}, because this check has no shell tools. Everything after
-the model call (schema validation, assembly, guide rendering) is the standard
-pipeline.
+the model call uses the standard compiler/join/guide. This is not the locked
+experiment harness and requires separate model-call approval.
 """
 from __future__ import annotations
 
@@ -16,7 +16,8 @@ import urllib.request
 from pathlib import Path
 
 from scicontext.io import read_json, write_json
-from scicontext.object_context import enrichment_schema, object_bundle, render_guide
+from scicontext.object_context import ENRICHMENT_MAX_BYTES, object_bundle, render_guide
+from scicontext.scientific_model import reading_input
 
 API = "https://api.deepseek.com/chat/completions"
 
@@ -49,13 +50,12 @@ def main() -> int:
     api_key = os.environ.get("DEEPSEEK_API_KEY")
     if not api_key:
         raise ValueError("DEEPSEEK_API_KEY is not set")
-    payload = read_json(args.context_input)
+    payload = reading_input(read_json(args.context_input))
+    if len(json.dumps(payload, ensure_ascii=False).encode()) > ENRICHMENT_MAX_BYTES:
+        raise ValueError("Compiled scientific input exceeds its allowance")
     graph = read_json(args.graph)
     template = (Path(__file__).resolve().parents[1] / "prompts/enrich_objects.md").read_text()
-    prompt = template.format(root="/app/task_058", scratch="/opt/scicontext/scratch",
-                             runtime="/opt/scicontext/runtime", seconds=360,
-                             explore_until="00:03:36 UTC", save_by="00:04:48 UTC",
-                             finish_by="00:05:42 UTC", instruction=args.instruction)
+    prompt = template.format(instruction=args.instruction)
     prompt += ("\n\nEvidence JSON (no tools or file access):\n"
                + json.dumps(payload, ensure_ascii=False))
     completion = call_deepseek(api_key, args.model, prompt)
@@ -73,10 +73,10 @@ def main() -> int:
     except ValueError:
         receipt["annotations_error"] = f"response was not JSON ({len(text)} chars)"
         annotations = None
-    bundle = object_bundle(graph, annotations, payload["context"])
+    bundle = object_bundle(graph, annotations, payload)
     receipt["annotations_status"] = bundle["assembly"]["interpretation_status"]
-    receipt["applied_object_ids"] = len(bundle["assembly"].get("applied_object_ids", []))
-    receipt["dropped_invalid_enrichment"] = bundle["assembly"].get("dropped_invalid_enrichment", 0)
+    receipt["applied_object_ids"] = len(bundle["assembly"]["enrichment"]["applied_object_ids"])
+    receipt["dropped_invalid_enrichment"] = len(bundle["assembly"]["enrichment"]["dropped"])
     receipt["usable"] = bundle["assembly"]["usable"]
     receipt["guide_markdown_chars"] = len(render_guide(bundle["graph"]))
     write_json(args.output / "deepseek-extract-check.json", receipt)

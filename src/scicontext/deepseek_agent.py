@@ -156,7 +156,7 @@ class DeepSeekAgent(ScientificCodex):
             "harness_architecture": "x64", "scientific_image_architecture": "amd64",
             "environment_image": environment.task_env_config.docker_image,
             "execution": "host_side_deepseek_api_with_in_container_shell_tools",
-            "extractor": "scientific_objects_v1", "frozen_source": self.frozen_source is not None,
+            "extractor": "scientific_model_v2", "frozen_source": self.frozen_source is not None,
             "claim_cap": None, "probe_cap": 0,
             "extraction_model_call_cap": 1 if self.condition == "science" else 0,
             "extraction_model_seconds": self.extraction_model_seconds,
@@ -255,6 +255,12 @@ class DeepSeekAgent(ScientificCodex):
         try:
             annotations = json.loads(content)
         except ValueError as error:
+            if payload.get("schema_version") == "scientific-reading-2.0" or "object-enrichment-2.0" in content:
+                # A nested quantity is not a complete scientific computation.
+                # Preserve the failed response; never relabel fragments as 1.0.
+                result.update(annotations_status="no_valid_annotations", annotations_error=str(error))
+                write_json(self.logs_dir / "extract_draft-process.json", result)
+                return result
             # Salvage complete annotation objects from malformed JSON rather
             # than discarding the whole response: brace-scan balanced objects
             # that individually parse, and keep the valid prefix.

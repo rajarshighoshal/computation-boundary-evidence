@@ -72,7 +72,7 @@ The following are mechanisms to borrow, not evidence that our method works.
   our repair effect. This observation is based on the publisher's abstract, not a full-paper audit.
   [NIST publication record](https://www.nist.gov/publications/agentic-ai-assisted-coding-offers-unique-opportunity-instill-epistemic-grounding-during).
 
-## Proposed mechanism, not yet completed
+## Implemented pipeline; scientific quality remains to be evaluated
 
 1. **Recover the task's computational core.** Start from public task references and workflow
    entry/output points. Retain the relevant implementation computations, operand relationships
@@ -92,6 +92,9 @@ The following are mechanisms to borrow, not evidence that our method works.
    just because their names or embeddings are similar. Keep conditions, operand roles, units,
    coordinate frames and normalization attached to the relationship they qualify.
    Missing identities stay separate rather than becoming invented equivalences.
+
+   The implemented sharing is code-entity/function/source identity. It does not automatically
+   establish equivalence between different documented scientific concepts or mathematical forms.
 
 4. **Deliver one small connected working model.** Explain the task objective and the relevant
    input → computation → output relationships with scientific interpretations and source pointers.
@@ -123,13 +126,18 @@ must be established through the actual representation and comparison; neither is
   candidates into hundreds of presumed executions or choose an arbitrary target. All candidates
   remain in the selected analysis artifact. Duplicate code text and artificial source locations
   on edge records were removed. Whole-method omissions remain explicit when input limits bind.
-- LLM output currently attaches meaning/conventions/assumptions to individual object IDs.
-  It does not yet implement the connected scientific working model proposed above.
-- The guide still uses individual annotation ranking; compact, consistently useful delivery
-  remains unfinished. The deleted SymPy/computation layer has not been restored.
+- The 2.0 interpreter returns task purpose and selected computation meanings, quantity meanings,
+  conventions and assumptions. Claims cite supplied source IDs. Code joins these interpretations
+  to recorded member/boundary entities and relationships; it does not accept LLM-authored edges.
+- The connected model is delivered as scientific-model.json. Its guide presents the scientific
+  explanation with source references and code predicates, preserving a displayed computation's
+  conditions and assumptions. The real collection/controller path delivers it once. The deleted
+  SymPy/computation layer has not been restored. See [the current contract](OBJECT_ENRICHMENT.md).
 
-The repair harness, model route and evidence policy remain unchanged. No new paid experiment,
+The repair model, tools and configured allowances remain unchanged. No new paid experiment,
 compiler-IR pipeline, API-rule catalogue or platform dependency was introduced by this checkpoint.
+The context format/prompt is a method revision. Host and guest now both use frozen code, and missing
+scientific context cannot silently fall back to an unassisted repair labelled as science.
 
 Offline receipts: [source selection](../results/source-selection-review-2026-09-14.json) and
 [selected analyzer export](../results/selected-export-review-2026-09-14.json). The latter checks
@@ -137,6 +145,9 @@ two preserved real-task CPGs and existing Python/C++/JavaScript fixtures. Task 0
 from_cube computation reaches the assembled input; other method omissions remain in the receipt.
 Task 058 replays its old, workflow-heavy selection, not newly recovered OpenMC science. These
 checks establish source/relationship delivery, not scientific correctness or model-provider fit.
+The [connected-model receipt](../results/connected-science-review-2026-09-14.json) additionally records
+compilation of all five archived development inputs and a source-grounded rendering fixture for 091.
+The fixture's interpretation is manually supplied, not an automatic extraction result.
 
 ## Verification required before another live run
 

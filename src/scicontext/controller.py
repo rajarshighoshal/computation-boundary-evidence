@@ -182,8 +182,13 @@ async def run_trial(driver: Driver, config: TrialConfig, task_id: str, condition
             record["status"] = "completed"
             record["extraction_only"] = True
         elif remaining > 0:
+            if condition == "science" and getattr(driver, "requires_scientific_model", False) and handoff is None:
+                record["treatment_delivered"] = False
+                record["error_kind"] = "scientific_context_delivery"
+                raise RuntimeError("No scientific model was delivered; repair was not started as a silent baseline fallback")
             prompt = instruction
             if handoff is not None:
+                record["treatment_delivered"] = True
                 guide = handoff.get("guide_markdown")
                 if guide:
                     prompt += "\n\n" + guide

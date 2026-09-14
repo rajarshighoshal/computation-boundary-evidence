@@ -146,8 +146,8 @@ def test_offline_command_exposes_native_code_and_scientific_context(tmp_path, ca
           "--llm-input", str(tmp_path / "context.json")])
     capsys.readouterr()
     result = json.loads((tmp_path / "context.json").read_text())
-    assert any(c["language"] == "fortran" for c in result["context"]["code_passages"])
-    assert "depletes water" in json.dumps(result["context"]["scientific_passages"])
+    assert any(c.get("language") == "fortran" for c in result["sources"])
+    assert "depletes water" in json.dumps(result["sources"])
 
 
 def test_extension_dispatch_includes_mixed_language_variants():

@@ -15,10 +15,20 @@ def summarize_graph(graph):
         return None
     objects = graph["objects"]
     interfaces = [o for o in objects if o["kind"] == "code_interface"]
-    return {"objects": len(objects), "interpreted_objects": sum(bool(o.get("interpretation")) for o in objects),
-            "interfaces": len(interfaces), "interpreted_interfaces": sum(bool(o.get("interpretation")) for o in interfaces),
+    model = graph.get("scientific_model", {})
+    interpreted = {o["id"] for o in objects if o.get("interpretation") and "id" in o}
+    interpreted.update(c["id"] for c in model.get("computations", []))
+    interpreted.update(q["object_id"] for c in model.get("computations", []) for q in c["interpretation"]["quantities"])
+    model_sources = {s["id"]: s for s in model.get("sources", [])}
+    model_paths = {model_sources[s]["path"] for c in model.get("computations", [])
+                   for s in c["source_ids"] if s in model_sources}
+    annotated = lambda obj: bool(obj.get("interpretation")) or obj.get("id") in interpreted
+    return {"objects": len(objects), "interpreted_objects": sum(annotated(o) for o in objects),
+            "interfaces": len(interfaces), "interpreted_interfaces": sum(annotated(o) for o in interfaces),
+            "interpreted_computations": len(model.get("computations", [])),
+            "interpretation_version": model.get("schema_version", "object-enrichment-1.0"),
             "source_paths": sorted({o["path"] for o in objects}),
-            "interpreted_source_paths": sorted({o["path"] for o in objects if o.get("interpretation")}),
+            "interpreted_source_paths": sorted({o["path"] for o in objects if annotated(o)} | model_paths),
             "coverage": graph.get("coverage"), "enrichment": graph.get("enrichment")}
 
 

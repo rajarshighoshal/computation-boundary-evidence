@@ -240,3 +240,37 @@ def test_malformed_json_response_is_salvaged(tmp_path, monkeypatch):
     result = asyncio.run(agent._interpret_call("Inspect", 300))
     assert result["annotations_status"] == "received"
     assert result["salvaged_annotations"]["count"] == 1
+
+
+def test_connected_response_is_uploaded_without_flattening(tmp_path, monkeypatch):
+    agent = make_agent(tmp_path)
+    payload = {"schema_version": "scientific-reading-2.0", "computations": [{"id": "c"}],
+               "sources": [{"id": "s", "text": "Scientific definition"}]}
+    env = FakeEnvironment(tmp_path, payload, {})
+    agent.extract_environment, agent.root = env, "/app/task_004"
+    agent.logs_dir.mkdir(parents=True, exist_ok=True)
+    claim = {"text": "Scientific computation", "source_ids": ["s"]}
+    response = {"schema_version": "object-enrichment-2.0", "purpose": claim,
+                "computations": [{"computation_id": "c", "meaning": claim, "quantities": [], "conventions": [], "assumptions": []}]}
+    async def fake_api(*args, **kwargs):
+        assert "Scientific definition" in args[2][0]["content"]
+        return {"choices": [{"message": {"content": json.dumps(response)}, "finish_reason": "stop"}], "usage": {}}
+    monkeypatch.setattr(module, "_api_completion", fake_api)
+    result = asyncio.run(agent._interpret_call("Inspect", 300))
+    assert result["annotations_status"] == "received"
+    assert json.loads(env.uploaded["/opt/scicontext/scratch/extract_draft-annotations.json"]) == response
+
+
+def test_broken_connected_response_never_salvages_quantities_as_v1(tmp_path, monkeypatch):
+    agent = make_agent(tmp_path)
+    env = FakeEnvironment(tmp_path, {"schema_version": "scientific-reading-2.0"}, {})
+    agent.extract_environment, agent.root = env, "/app/task_004"
+    agent.logs_dir.mkdir(parents=True, exist_ok=True)
+    broken = '{"schema_version":"object-enrichment-2.0","computations":[{"quantities":[{"object_id":"q","meaning":"fragment"}],'
+    async def fake_api(*args, **kwargs):
+        return {"choices": [{"message": {"content": broken}, "finish_reason": "length"}], "usage": {}}
+    monkeypatch.setattr(module, "_api_completion", fake_api)
+    result = asyncio.run(agent._interpret_call("Inspect", 300))
+    assert result["annotations_status"] == "no_valid_annotations"
+    assert "salvaged_annotations" not in result
+    assert "/opt/scicontext/scratch/extract_draft-annotations.json" not in env.uploaded

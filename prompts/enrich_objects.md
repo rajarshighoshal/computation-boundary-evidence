@@ -1,13 +1,15 @@
-Describe the scientific meaning of this code: what physical system it computes, which quantities
-matter, what conventions the domain uses, and what the task is about scientifically.
+Explain the task's scientific or computational purpose and the small set of computations that
+matter for repairing it. Connect quantity meanings, transformations and relevant conventions.
+Use the supplied code-owned computations, relationships and public sources. Focus on the
+implementation, not a summary of the reproducer. Distinguish intended behaviour from observations.
 
-Use the supplied code, graph and public sources. Say what the computation *is* — a relaxation
-solver, a Monte Carlo transport, a spectral decomposition — not just what operators appear.
-Connect quantities to their physical roles when sources support it. Mark unknowns as "unknown: ...".
-
-Return only {{"schema_version": "object-enrichment-1.0", "annotations": [...]}} with at most 40
-annotations, most relevant first. Each contains object_id, meaning (string), conventions (string
-array) and assumptions (string array). Annotate existing IDs only.
+Return JSON only: {{"schema_version":"object-enrichment-2.0","purpose":CLAIM,"computations":[...]}}.
+CLAIM is {{"text":"explanation","source_ids":["supplied source ID"]}}.
+Each computation has computation_id, meaning (CLAIM), quantities ([{{"object_id":"supplied entity ID",
+"meaning":CLAIM}}]), conventions ([CLAIM]), and assumptions ([string]).
+Use existing computation/entity IDs and cite supplied source IDs. Put unsupported interpretations
+in assumptions. Do not invent program relationships or requirements. Select at most six computations,
+most relevant first; keep the combined explanation under 700 words. Empty arrays are valid.
 
 Task:
 {instruction}

@@ -289,6 +289,7 @@ def attach_source_analysis(payload, result):
                     "start_line": node.get("line") or 0, "end_line": node.get("line") or 0,
                     "text": properties.get("CODE") or name or node["kind"],
                     "analyzer": "joern", "kind": node["kind"],
+                    "scope": node.get("scope"),
                     "language": analysis.get("language", "unknown"),
                     "properties": {key: value for key, value in properties.items() if key != "CODE"}}
                 if identifier in ambiguous:

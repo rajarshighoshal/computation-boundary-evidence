@@ -452,7 +452,7 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
             for name in list(environment):
                 if any(token in name.upper() for token in ("API_KEY", "AUTH_TOKEN", "BEARER", "SECRET")):
                     environment.pop(name, None)
-            environment["PYTHONPATH"] = str(workspace / "src")
+            environment["PYTHONPATH"] = frozen_source["dir"]
             item["phase"] = "pier"
             write_json(output / "schedule.json", plan)
             return command, environment, log
@@ -680,10 +680,12 @@ def main(argv: list[str] | None = None) -> int:
         from .packet import build_packet
         packet = build_packet(args.root, args.context_root, multilingual=True, source_paths=args.paths or None)
         result = extract_objects(args.root, packet)
+        from .scientific_model import reading_input
+        context = enrichment_input(result, packet)
         if args.llm_input:
-            write_json(args.llm_input, enrichment_input(result, packet))
+            write_json(args.llm_input, reading_input(context))
         if args.interpretations:
-            result = enrich_objects(result, read_json(args.interpretations))
+            result = enrich_objects(result, read_json(args.interpretations), reading_input(context))
         write_json(args.output, result)
         if args.markdown:
             args.markdown.parent.mkdir(parents=True, exist_ok=True)

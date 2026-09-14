@@ -116,6 +116,7 @@ class ScientificCodex(BaseAgent):
         if extractor != "scientific_objects":
             raise ValueError("Only the scientific-objects extractor is supported")
         self.condition = condition
+        self.requires_scientific_model = condition == "science"
         self.extraction_model_seconds = float(extraction_model_seconds) if extraction_model_seconds is not None else None
         if self.extraction_model_seconds is not None and not (0 < self.extraction_model_seconds < float("inf")):
             raise ValueError("extraction_model_seconds must be finite and positive")
@@ -220,7 +221,7 @@ class ScientificCodex(BaseAgent):
             "codex_version": self.config.codex_version, "harness_architecture": "x64",
             "scientific_image_architecture": "amd64", "environment_image": environment.task_env_config.docker_image,
             "execution": "upstream_pier_codex_docker_boundary", "timeout": "GNU timeout foreground process group",
-            "extractor": "scientific_objects_v1",
+            "extractor": "scientific_model_v2",
             "frozen_source": self.frozen_source is not None,
             "claim_cap": None, "probe_cap": 0,
             "extraction_model_call_cap": 1 if self.condition == "science" else 0,
@@ -347,9 +348,19 @@ class ScientificCodex(BaseAgent):
                 raise RuntimeError(f"Source analysis exited {code}; see {local / 'backend.log'}")
         result = read_json(output / "receipt.json")
         payload = attach_source_analysis(payload, result)
-        write_json(input_file, payload)
+        write_json(local / "evidence-input.json", payload)
         if not payload["source_analysis_summary"]["within_input_budget"]:
             raise ValueError("Scientific context exceeds its input budget; see " + str(input_file))
+        from .scientific_model import reading_input
+        payload = reading_input(payload)
+        write_json(input_file, payload)
+        from .object_context import ENRICHMENT_MAX_BYTES
+        compiled_bytes = len(json.dumps(payload, ensure_ascii=False).encode())
+        write_json(local / "reading-input-receipt.json", {"schema_version": payload["schema_version"],
+            "serialized_bytes": compiled_bytes, "max_bytes": ENRICHMENT_MAX_BYTES,
+            "within_input_budget": compiled_bytes <= ENRICHMENT_MAX_BYTES})
+        if compiled_bytes > ENRICHMENT_MAX_BYTES:
+            raise ValueError("Compiled scientific input exceeds its allowance; see " + str(input_file))
         await self.extract_environment.upload_file(input_file, SCRATCH + "/scientific-context-input.json")
         self._source_analysis_file = output / "receipt.json"
 
@@ -516,6 +527,8 @@ class ScientificCodex(BaseAgent):
                 "scientific-guide.md": render_guide(bundle["graph"]),
                 "scientific-sources.json": json.dumps(bundle.get("context"), ensure_ascii=False) + "\n",
             }
+            if bundle["graph"].get("scientific_model"):
+                files["scientific-model.json"] = json.dumps(bundle["graph"]["scientific_model"], ensure_ascii=False) + "\n"
             if getattr(self, "_source_analysis_file", None):
                 files["source-analysis.json"] = self._source_analysis_file.read_text()
             for name, text in files.items():
@@ -525,6 +538,9 @@ class ScientificCodex(BaseAgent):
             bundle["handoff_files"] = {name: REMOTE + "/context/" + name for name in files}
             bundle["guide_markdown"] = files["scientific-guide.md"]
             bundle["handoff"] = (
+                "The connected scientific model is /opt/scicontext/context/scientific-model.json; "
+                "look up a computation ID there when needed. Use its cited implementation locations to inspect relevant code."
+                if "scientific-model.json" in files else
                 "The complete object graph is /opt/scicontext/context/scientific-graph.json and the public "
                 "source passages are /opt/scicontext/context/scientific-sources.json; look objects up by ID "
                 "when you need their full relationships.")

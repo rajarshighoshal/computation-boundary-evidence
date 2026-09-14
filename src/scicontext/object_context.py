@@ -24,7 +24,10 @@ _OBJECT_KIND_PRIORITY = {"constraint_locus": 0, "transition_instance": 1, "state
                          "array": 4, "literal": 5}
 
 
-def enrichment_schema() -> dict:
+def enrichment_schema(version="object-enrichment-2.0") -> dict:
+    if version == "object-enrichment-2.0":
+        from .scientific_model import schema
+        return schema()
     return json.loads(Path(__file__).with_name("object-enrichment.schema.json").read_text())
 
 
@@ -154,13 +157,16 @@ def enrichment_input(graph: dict, packet: dict, *, root: Path | None = None) -> 
     return selected
 
 
-def enrich_objects(graph: dict, response: object) -> dict:
+def enrich_objects(graph: dict, response: object, context: dict | None = None) -> dict:
     """Join only anchored meaning/conventions/assumptions; preserve every code fact."""
+    if isinstance(response, dict) and response.get("schema_version") == "object-enrichment-2.0":
+        from .scientific_model import join
+        return join(graph, response, context)
     result = copy.deepcopy(graph)
     objects = {obj["id"]: obj for obj in result["objects"]}
     report = {"applied_object_ids": [], "dropped": []}
     result["enrichment"] = report
-    schema = enrichment_schema()
+    schema = enrichment_schema("object-enrichment-1.0")
     normalized = False
     if isinstance(response, dict) and isinstance(response.get("annotations"), list):
         annotations = []
@@ -205,6 +211,9 @@ def enrich_objects(graph: dict, response: object) -> dict:
 
 def render_objects(graph: dict) -> str:
     """An inspectable scientific working model, not a list of required patches."""
+    if graph.get("scientific_model"):
+        from .scientific_model import render
+        return render(graph["scientific_model"])
     lines = ["# Scientific working model", "",
         "Code-derived objects and relationships are below. Contextual meanings are interpretations "
         "of the supplied scientific material, not mandatory repair rules. Read stated scope and unknowns.", ""]
@@ -248,16 +257,23 @@ def render_objects(graph: dict) -> str:
 def object_bundle(graph: dict, response: object, context: dict | None = None) -> dict:
     from .io import digest_json
     # Computation attachment retired; the code-owned object graph is the representation.
-    combined = enrich_objects(graph, response)
-    usable = bool(combined["objects"])
+    if (context or {}).get("schema_version") == "scientific-reading-2.0":
+        from .scientific_model import join
+        combined = join(graph, response, context)
+    else:
+        combined = enrich_objects(graph, response, context)
+    connected = combined["enrichment"].get("version") == "object-enrichment-2.0"
+    model = combined.get("scientific_model", {})
+    usable = bool(model.get("purpose") and model.get("computations")) if connected else bool(combined["objects"])
     return {"graph": combined, "graph_sha256": digest_json(combined),
             "handoff": render_guide(combined) if usable else "",
             "context": copy.deepcopy(context),
-            "assembly": {"usable": usable, "status": "scientific_objects" if usable else "no_objects",
+            "assembly": {"usable": usable, "status": ("scientific_model" if connected else "scientific_objects") if usable else "no_scientific_model" if connected else "no_objects",
                          "interpretation_status": "enriched" if combined["enrichment"]["applied_object_ids"] else "code_only",
                          "enrichment": combined["enrichment"]},
             "analysis": {"coverage": combined.get("coverage", {}).get("totals", {})},
-            "validation": {"valid": True, "scope": "code_owned_structure_and_anchored_annotation_fields"}}
+            "validation": {"valid": usable if connected else True,
+                           "scope": "code_owned_structure_and_citation_IDs_not_scientific_entailment" if connected else "code_owned_structure_and_anchored_annotation_fields"}}
 
 
 MAX_GUIDE_FINDINGS = 5
@@ -318,6 +334,9 @@ def _related_implementations(graph: dict, locus: dict) -> list:
 
 def render_guide(graph: dict) -> str:
     """Readable guide: the strongest executed findings, stated as measurements."""
+    if graph.get("scientific_model"):
+        from .scientific_model import render
+        return render(graph["scientific_model"])
     # Computation/symbolic rendering is retired; the bounded guide format
     # (findings + annotations) is the working deliverable.
     lines = ["# Scientific working model", ""]

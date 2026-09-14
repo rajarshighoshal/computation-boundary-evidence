@@ -101,7 +101,7 @@ def test_offline_command_produces_context_and_enriched_artifacts(scientific_case
           "--markdown", str(root / "model.md")])
     capsys.readouterr()
     assert "Stiffness operator" in (root / "model.md").read_text()
-    assert json.loads((root / "input.json").read_text())["context"]["scientific_passages"]
+    assert json.loads((root / "input.json").read_text())["sources"]
     output = json.loads((root / "objects.json").read_text())
     assert output["enrichment"]["applied_object_ids"]
     assert output["coverage"]["per_file"]
@@ -288,8 +288,9 @@ def test_enrichment_input_prioritizes_interfaces_even_without_retrieved_targets(
 
 def test_enrichment_prompt_keeps_format_without_transport_or_write_instructions():
     prompt = (Path(__file__).resolve().parent.parent / "prompts/enrich_objects.md").read_text()
-    assert "at most 40 annotations" in " ".join(prompt.split())
-    assert "Annotate existing IDs only" in prompt
+    assert "at most six computations" in " ".join(prompt.split())
+    assert "Use existing computation/entity IDs" in prompt
+    assert len(prompt.split()) < 200
     assert "{scratch}" not in prompt and "save first-pass" not in prompt
 
 
@@ -351,7 +352,7 @@ def test_enrich_prompt_is_formattable():
     rendered = prompt.format(root="/app/task", scratch="/opt/scratch", runtime="/opt/runtime",
                              seconds=300, explore_until="00:03:00", save_by="00:04:00",
                              finish_by="00:05:00", instruction="task text")
-    assert '"schema_version": "object-enrichment-1.0"' in rendered
+    assert '"schema_version":"object-enrichment-2.0"' in rendered
     assert "{{" not in rendered
 
 
