@@ -24,9 +24,14 @@ def enrichment_input(graph, packet, *, root=None):
                         "code_passages": copy.deepcopy(packet.get("entries", [])),
                         "analysis_sources": copy.deepcopy(packet.get("analysis_sources", [])),
                         "analysis_regions": copy.deepcopy(
+                            coverage.get("execution_regions", []) +
                             coverage.get("workflow_retrieval", {}).get("references", []) +
                             coverage.get("task_local_retrieval", {}).get("references", [])),
-                        "observations": copy.deepcopy(graph.get("dynamic", {}).get("observed_values", []))},
+                        "observations": copy.deepcopy(graph.get("dynamic", {}).get("observed_values", [])),
+                        "execution": {**copy.deepcopy(coverage.get("execution_status", {})),
+                            **copy.deepcopy(coverage.get("execution_seed", {})),
+                            "resolved_callables": len(coverage.get("execution_regions", [])),
+                            "selected_callable_excerpts": sum(r["admitted"] for r in coverage.get("executed_functions", []))}},
             "selection": {key: value for key, value in coverage.items()
                           if isinstance(value, (int, bool))}}
 

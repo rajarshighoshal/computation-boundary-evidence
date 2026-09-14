@@ -1,18 +1,8 @@
-"""DeepSeek-backed experiment agent: same harness interface, host-side API calls.
+"""One continuous DeepSeek agent with on-demand scientific evidence and repair tools.
 
-Subclasses ScientificCodex so packet preparation, assembly, artifact
-collection, cleanup and run_trial wiring stay identical. Only the model-call
-paths change:
-
-- Extraction: one direct DeepSeek chat call with the focused payload embedded
-  inline (no tools; the payload is already the bounded selection). The
-  annotations are schema-checked by the standard assembly step.
-- Repair: a bounded DeepSeek function-calling loop with a single ``shell``
-  tool executed in the task container. Same prompt composition, same budget
-  and same receipts shape as the Codex route.
-
-API calls run on the host; only shell commands execute inside containers, so
-no provider credential ever enters a task container.
+Preparation is non-model indexing. Science queries and a recorded working model
+precede ordinary repair tools; all stages share one task container and allowance.
+Provider credentials remain on the host.
 """
 from __future__ import annotations
 
@@ -20,16 +10,17 @@ import asyncio
 import http.client
 import json
 import subprocess
+import shutil
+import sys
 import time
 import urllib.error
 import urllib.request
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from .assets import prepare_helpers
-from .extraction import extraction_reserve, run_extraction
-from .io import digest_file, read_json, write_json
-from .pier_agent import CONTROL, HELPER, REMOTE, SCRATCH, ScientificCodex, bounded_call
+from .io import digest_file, digest_json, read_json, write_json, _safe_relative
+from .pier_agent import CONTROL, REMOTE, SCRATCH, ScientificCodex, bounded_call
+from .science_tools import tool_definition
 
 API = "https://api.deepseek.com/chat/completions"
 MAX_OUTPUT_TOKENS = 65536
@@ -40,13 +31,14 @@ MAX_LOOP_ITERATIONS = 200
 # prompt-prefix cache, where input is ~50x cheaper; keep it rare and
 # leave the model's own context window as the guard.
 MAX_CONVERSATION_TOOL_CHARS = 800_000
-MAX_ANNOTATION_CHARS = 65_536
 
 
 async def _api_completion(api_key: str, model: str, messages: list, *,
                           tools=None, response_format=None, max_tokens=MAX_OUTPUT_TOKENS,
-                          timeout_sec: float, temperature: float = 0.0, max_attempts: int = 2) -> dict:
+                          timeout_sec: float, temperature: float = 0.0, max_attempts: int = 2,
+                          reasoning_effort="high") -> dict:
     body = {"model": model, "messages": messages, "max_tokens": max_tokens, "temperature": temperature}
+    body["reasoning_effort"] = reasoning_effort
     if tools:
         body["tools"] = tools
     if response_format:
@@ -54,18 +46,23 @@ async def _api_completion(api_key: str, model: str, messages: list, *,
 
     def send():
         last_error = None
+        deadline = time.monotonic() + timeout_sec
         for attempt in range(max_attempts):
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError("Provider request exhausted its remaining task allowance")
             request = urllib.request.Request(API, data=json.dumps(body).encode(), method="POST", headers={
                 "Authorization": f"Bearer {api_key}", "Content-Type": "application/json"})
             try:
                 # Deadline-governed: no short hard cap, large tool-loop
                 # contexts can legitimately take minutes.
-                with urllib.request.urlopen(request, timeout=max(60.0, timeout_sec)) as response:
+                with urllib.request.urlopen(request, timeout=remaining) as response:
                     return json.load(response)
             except (urllib.error.URLError, TimeoutError, OSError,
                     http.client.HTTPException, ConnectionError) as error:
                 last_error = error
-                time.sleep(2)
+                if attempt + 1 < max_attempts and deadline - time.monotonic() > 2:
+                    time.sleep(2)
         raise last_error
 
     return await asyncio.to_thread(send)
@@ -85,14 +82,19 @@ def _compact_tools(messages: list) -> None:
 
 
 class DeepSeekAgent(ScientificCodex):
+    interactive_science = True
     def __init__(self, *args, deepseek_key_file=None, **kwargs):
         if not deepseek_key_file:
             raise ValueError("deepseek_key_file is required for the DeepSeek route")
         # The parent requires an existing auth-file path; the DeepSeek key file
         # satisfies that check without ever being read by the Codex path.
+        kwargs.setdefault("extractor", "interactive_science")
+        if kwargs["extractor"] != "interactive_science":
+            raise ValueError("Use extractor=interactive_science; the forced interpretation workflow is retired")
         super().__init__(*args, auth_file=deepseek_key_file, **kwargs)
         self.deepseek_key = read_json(Path(deepseek_key_file).expanduser())["api_key"]
         self.model = self.config.model
+        self._science_model_recorded = False
         self.shell_tools = [{"type": "function", "function": {
             "name": "shell", "description": (
                 "Execute a command in the task repository container and return combined stdout/stderr "
@@ -139,32 +141,18 @@ class DeepSeekAgent(ScientificCodex):
         self.extract_codex_package = None
         self.extraction_architecture = None
         await self._setup_environment(environment, "repair")
-        if self.condition == "science":
-            from pier.models.trial.paths import TrialPaths
-            self.extract_environment = DockerEnvironment(
-                environment_dir=environment.environment_dir,
-                environment_name=environment.environment_name + "-extract",
-                session_id=environment.session_id + "-extract",
-                trial_paths=TrialPaths(trial_dir=self.logs_dir.parent / "extraction_environment"),
-                task_env_config=environment.task_env_config.model_copy(deep=True),
-                network_allowlist=self.network_allowlist(), default_user=environment.default_user,
-            )
-            await self.extract_environment.start(force_build=False)
-            await self._setup_environment(self.extract_environment, "extract")
         write_json(self.logs_dir / "setup.json", {
             "agent": "deepseek", "model": self.model,
-            "harness_architecture": "x64", "scientific_image_architecture": "amd64",
+            "harness_architecture": "host_api", "scientific_image_architecture": "amd64",
             "environment_image": environment.task_env_config.docker_image,
             "execution": "host_side_deepseek_api_with_in_container_shell_tools",
-            "extractor": "scientific_model_v2", "frozen_source": self.frozen_source is not None,
+            "extractor": "interactive_science_v1", "frozen_source": self.frozen_source is not None,
             "claim_cap": None, "probe_cap": 0,
-            "extraction_model_call_cap": 1 if self.condition == "science" else 0,
+            "extraction_model_call_cap": 0,
             "extraction_model_seconds": self.extraction_model_seconds,
             "extraction_harness_architecture": "host_api",
             "extraction_access_mode": "read-only" if self.condition == "science" else None,
-            "interpretation_cap_seconds": (self.config.extraction_seconds - min(60, self.config.extraction_seconds / 6)
-                - extraction_reserve(self.config.extraction_seconds - min(60, self.config.extraction_seconds / 6))),
-            "revision_policy": "one_scientific_interpretation_call; no probe/refinement loop",
+            "revision_policy": "one_continuous_agent; science_queries_then_recorded_model_then_repair",
             "python_minor": pyminor, "baseline_tree": self._baseline_tree,
             "docker_memory_bytes": int(info[0]), "docker_cpus": int(info[1]),
             "task_requested_memory_mb": environment.task_env_config.memory_mb,
@@ -177,106 +165,136 @@ class DeepSeekAgent(ScientificCodex):
             if check.strip() != "42":
                 raise RuntimeError("Smoke dependency check failed")
 
-    async def run_stage(self, name, instruction, seconds):
-        if name == "extract":
-            self._selected_remote = None
-            try:
-                result = await run_extraction(self, instruction, seconds)
-            except asyncio.CancelledError:
-                write_json(self.logs_dir / "extraction-phases.json", {
-                    "status": "interrupted", "model_calls": getattr(self, "extraction_model_calls", []),
-                    "phases": getattr(self, "extraction_phases", [])})
-                raise
-            write_json(self.logs_dir / "extraction-phases.json", result)
+    async def prepare(self, seconds):
+        result = await self._science_command(None, seconds, prepare=True)
+        if result.get("status") != "prepared":
+            raise RuntimeError("Science index preparation failed: " + json.dumps(result))
+        self._science_prepared = result
+        return {"status": "completed", "usage": {"input_tokens": 0, "cached_input_tokens": 0,
+                "output_tokens": 0, "reasoning_output_tokens": 0}, "model_calls": [], "index": result}
+
+    async def collect_graph(self, seconds):
+        from .io import digest_json
+        if not getattr(self, "_science_prepared", None):
+            return None
+        template = ((self.frozen_source / "prompts/scientific_repair.md") if self.frozen_source
+                    else self.workspace / "prompts/scientific_repair.md").read_text()
+        return {"graph_sha256": digest_json(self._science_prepared), "analysis": {"coverage": {}},
+                "handoff": template + "\nTask map: " + json.dumps(self._science_prepared["task_map"])}
+
+    async def _science_command(self, request, seconds, prepare=False):
+        import base64, shlex
+        command = (f"PYTHONPATH={REMOTE}/src:{REMOTE}/deps PYTHONDONTWRITEBYTECODE=1 "
+                   f"python -m scicontext.science_tools --root {shlex.quote(self.root)} "
+                   f"--store {REMOTE}/context/science ")
+        command += "--prepare" if prepare else "--request " + shlex.quote(
+            base64.b64encode(json.dumps(request).encode()).decode())
+        started = time.monotonic()
+        raw = await bounded_call(self.checked(self.environment, command, cwd=REMOTE,
+                            timeout_sec=max(1, seconds)), max(1, seconds), set())
+        result = json.loads(raw)
+        wanted = result.get("backend_request")
+        if wanted and shutil.which("joern-parse") and shutil.which("joern"):
+            result = await self._analyze_query(command, result, wanted, max(1, seconds-(time.monotonic()-started)))
+        elif wanted:
+            result["analysis_gaps"] = [{"backend": "joern", "reason": "not_installed_on_host"}]
+        return result
+
+    async def _analyze_query(self, command, result, wanted, seconds):
+        import shlex
+        path = wanted["path"]
+        if _safe_relative(path):
+            raise ValueError("Invalid analysis source")
+        directory = self.logs_dir / "source-analysis" / digest_json(wanted)[:20]
+        source = directory / "source" / path
+        output = directory / "backend"
+        receipt = output / "receipt.json"
+        try:
+            if not receipt.exists():
+                source.parent.mkdir(parents=True, exist_ok=True)
+                await self.environment.download_file(self.root + "/" + path, source)
+                if digest_file(source) != wanted["sha256"]:
+                    raise ValueError("Source changed during query; request a fresh inspection")
+                input_file = directory / "request.json"
+                write_json(input_file, {"context": {"analysis_regions": [wanted]}})
+                with (directory / "analyzer.log").open("w") as log:
+                    process = await asyncio.create_subprocess_exec(sys.executable, "-m", "scicontext.source_backends",
+                        "--root", str(directory / "source"), "--output", str(output), "--input", str(input_file),
+                        stdout=log, stderr=asyncio.subprocess.STDOUT, start_new_session=True)
+                    try:
+                        code = await asyncio.wait_for(process.wait(), max(1, seconds * .8))
+                    except BaseException:
+                        import os, signal
+                        try:
+                            os.killpg(process.pid, signal.SIGTERM)
+                            await asyncio.wait_for(process.wait(), 3)
+                        except asyncio.TimeoutError:
+                            os.killpg(process.pid, signal.SIGKILL)
+                            await process.wait()
+                        except ProcessLookupError:
+                            pass
+                        raise
+                    if code:
+                        raise RuntimeError("Analyzer failed; see preserved analyzer.log")
+            remote = CONTROL + "/analysis-" + digest_json(wanted)[:20] + ".json"
+            await self.environment.upload_file(receipt, remote)
+            raw = await self.checked(self.environment, command + " --analysis " + shlex.quote(remote), cwd=REMOTE,
+                                     timeout_sec=max(1, seconds * .2))
+            return json.loads(raw)
+        except Exception as error:
+            result["analysis_gaps"] = [{"backend": "joern", "reason": str(error)}]
             return result
+
+    async def finish_extraction(self):
+        pass  # Preparation and repair use the same task container.
+
+    async def run_stage(self, name, instruction, seconds):
+        if name in {"prepare", "extract"}:
+            return await self.prepare(seconds)
         prompt = instruction + f"\n\nTime allowance remaining: at most {max(1, int(seconds))} seconds."
         return await self._run_deepseek_repair(prompt, seconds)
 
-    async def _interpret_call(self, instruction, seconds):
-        template = ((self.frozen_source / "prompts" / "enrich_objects.md") if self.frozen_source
-                    else (self.workspace / "prompts/enrich_objects.md")).read_text()
-        model_seconds = max(0.0, seconds - min(10.0, seconds / 5) - min(3.0, seconds / 10) - min(1.0, seconds / 10))
-        if self.extraction_model_seconds is not None:
-            model_seconds = min(model_seconds, self.extraction_model_seconds)
-        now = datetime.now(timezone.utc)
-        clock = lambda duration: (now + timedelta(seconds=max(0, duration))).strftime("%H:%M:%S UTC")
-        prompt = template.format(root=self.root, scratch=SCRATCH, runtime=CONTROL,
-                                 seconds=max(1, int(model_seconds)), explore_until=clock(model_seconds * .60),
-                                 save_by=clock(model_seconds * .80), finish_by=clock(model_seconds * .95),
-                                 instruction=instruction)
-        local_scratch = self.logs_dir / "extract-scratch"
-        local_scratch.mkdir(parents=True, exist_ok=True)
-        payload_path = local_scratch / "scientific-context-input.json"
+    async def _execute_tool(self, call, seconds):
+        function = call.get("function", {})
+        name = function.get("name")
+        event = {"type": "science_tool" if name == "science" else "command_execution", "exit_code": 1}
         try:
-            await bounded_call(self.extract_environment.download_file(
-                SCRATCH + "/scientific-context-input.json", payload_path), 30, set())
+            arguments = json.loads(function.get("arguments") or "{}")
+            if not isinstance(arguments, dict):
+                raise ValueError("Tool arguments must be an object")
+            if name == "science":
+                if self.condition != "science":
+                    raise ValueError("Science tool is not enabled in the baseline")
+                event.update(action=arguments.get("action"), target=arguments.get("target"), query=arguments.get("query"))
+                result = await self._science_command(arguments, min(MAX_TOOL_SECONDS, seconds))
+                if arguments.get("action") == "record_model" and result.get("status") == "recorded":
+                    write_json(self.logs_dir / "scientific-model-submitted.json", arguments["model"])
+                    self._science_model_recorded = True
+                event.update(exit_code=0 if result.get("status") != "error" else 1,
+                             result_status=result.get("status"),
+                             model_recorded=self._science_model_recorded)
+                return json.dumps(result, ensure_ascii=False), event
+            if name != "shell":
+                raise ValueError("Unknown tool name")
+            if self.condition == "science" and not self._science_model_recorded:
+                raise ValueError("Inspect scientific evidence and record_model before using ordinary repair tools")
+            command = arguments.get("command")
+            if not isinstance(command, str) or not command.strip():
+                raise ValueError("Empty shell command refused")
+            event["command"] = command
+            output = await bounded_call(self.checked(self.environment, command, cwd=self.root,
+                        timeout_sec=min(MAX_TOOL_SECONDS, max(0.05, seconds))), min(MAX_TOOL_SECONDS, max(0.05, seconds)), set())
+            event["exit_code"] = 0
+            return output[-MAX_TOOL_OUTPUT_CHARS:], event
         except Exception as error:
-            result = {"status": "failed", "fatal_model_error": True,
-                      "error": f"payload download failed: {error}", "usage": {}}
-            write_json(self.logs_dir / "extract_draft-process.json", result)
-            return result
-        payload = read_json(payload_path)
-        from .representation import render_reading
-        prompt += "\n\nEvidence (no tools or file access):\n" + render_reading(payload)
-        (self.logs_dir / "extract-prompt.txt").write_text(prompt)
-        started = time.monotonic()
-        try:
-            completion = await _api_completion(self.deepseek_key, self.model,
-                                               [{"role": "user", "content": prompt}],
-                                               response_format={"type": "json_object"},
-                                               timeout_sec=model_seconds, max_attempts=1)
-        except (urllib.error.URLError, TimeoutError, OSError) as error:
-            result = {"status": "failed", "fatal_model_error": True,
-                      "error": f"DeepSeek transport failure: {error}", "usage": {}}
-            write_json(self.logs_dir / "extract_draft-process.json", result)
-            return result
-        usage = completion.get("usage", {})
-        message = completion["choices"][0]["message"]
-        content = message.get("content") or ""
-        (self.logs_dir / "extract-session.json").write_text(json.dumps(
-            {"reasoning": message.get("reasoning_content"),
-             "finish_reason": completion["choices"][0].get("finish_reason"),
-             "usage": usage}, ensure_ascii=False))
-        result = {"status": "completed", "usage": {"input_tokens": usage.get("prompt_tokens"),
-                                                   "cache_hit_tokens": usage.get("prompt_cache_hit_tokens"),
-                                                   "cache_miss_tokens": usage.get("prompt_cache_miss_tokens"),
-                                                   "cached_input_tokens": usage.get("prompt_cache_hit_tokens", usage.get("prompt_tokens_details", {}).get("cached_tokens")),
-                                                   "output_tokens": usage.get("completion_tokens"),
-                                                   "reasoning_output_tokens": usage.get("completion_tokens_details", {}).get("reasoning_tokens")},
-                  "duration_seconds": time.monotonic() - started,
-                  "finish_reason": completion["choices"][0].get("finish_reason"),
-                  "prompt_chars": len(prompt)}
-        (self.logs_dir / "extract_draft-final.txt").write_text(content)
-        if len(content.encode()) > MAX_ANNOTATION_CHARS:
-            result.update(annotations_status="no_valid_annotations",
-                          annotations_error="Compact annotations exceed 64 KiB")
-            write_json(self.logs_dir / "extract_draft-process.json", result)
-            return result
-        try:
-            annotations = json.loads(content)
-        except ValueError as error:
-            result.update(annotations_status="no_valid_annotations", annotations_error=str(error))
-            write_json(self.logs_dir / "extract_draft-process.json", result)
-            return result
-        self._annotations_remote = SCRATCH + "/extract_draft-annotations.json"
-        await self._put(self.extract_environment, "extract_draft-annotations.json", json.dumps(annotations),
-                        self._annotations_remote)
-        result["annotations_status"] = "received"
-        write_json(self.logs_dir / "extract_draft-process.json", result)
-        return result
+            return f"Tool error: {type(error).__name__}: {error}", event
 
     async def _run_deepseek_repair(self, prompt, seconds):
         (self.logs_dir / "repair-prompt.txt").write_text(prompt)
-        for name in ("scientific-graph.json", "scientific-sources.json", "scientific-guide.md", "scientific-model.json"):
-            try:
-                await bounded_call(self.environment.download_file(
-                    "/opt/scicontext/context/" + name, self.logs_dir / ("repair-context-" + name)), 20, set())
-            except Exception:
-                pass
         deadline = time.monotonic() + seconds
         messages = [{"role": "user", "content": prompt}]
-        usage = {"input_tokens": 0, "output_tokens": 0,
-                 "cache_hit_tokens": 0, "cache_miss_tokens": 0}
+        usage = {"input_tokens": 0, "output_tokens": 0, "cached_input_tokens": 0,
+                 "cache_hit_tokens": 0, "cache_miss_tokens": 0, "reasoning_output_tokens": 0}
         events = []
         session_log = []
         session_stream = (self.logs_dir / "repair-session.jsonl").open("a")
@@ -288,16 +306,24 @@ class DeepSeekAgent(ScientificCodex):
                 if remaining <= 1:
                     result["loop_exit"] = "time_cap"
                     break
+                available_tools = ([tool_definition()] if self.condition == "science" else [])
+                if self.condition == "baseline" or self._science_model_recorded:
+                    available_tools += self.shell_tools
                 completion = await _api_completion(self.deepseek_key, self.model, messages,
-                                                   tools=self.shell_tools, timeout_sec=remaining)
+                    tools=available_tools, timeout_sec=remaining, reasoning_effort=self.config.reasoning_effort)
                 call_usage = completion.get("usage", {}) or {}
                 usage["input_tokens"] += call_usage.get("prompt_tokens", 0)
                 usage["output_tokens"] += call_usage.get("completion_tokens", 0)
                 usage["cache_hit_tokens"] += call_usage.get("prompt_cache_hit_tokens", 0)
                 usage["cache_miss_tokens"] += call_usage.get("prompt_cache_miss_tokens", 0)
+                for key, value in (("cached_input_tokens", call_usage.get("prompt_cache_hit_tokens", call_usage.get("prompt_tokens_details", {}).get("cached_tokens"))),
+                                   ("reasoning_output_tokens", call_usage.get("completion_tokens_details", {}).get("reasoning_tokens"))):
+                    usage[key] = usage[key] + value if usage[key] is not None and type(value) is int else None
                 message = completion["choices"][0]["message"]
                 messages.append(message)
                 step_record = {"step": len(session_log) + 1,
+                               "provider_model": completion.get("model"),
+                               "provider_fingerprint": completion.get("system_fingerprint"),
                                "content": message.get("content"),
                                "reasoning": message.get("reasoning_content"),
                                "tool_calls": message.get("tool_calls"),
@@ -312,42 +338,24 @@ class DeepSeekAgent(ScientificCodex):
                         tool_remaining = max(0.0, deadline - time.monotonic())
                         if tool_remaining <= 0:
                             break
-                        output = "Tool budget exhausted."
-                        command = ""
-                        exit_code = 1
-                        arguments = {}
-                        try:
-                            arguments = json.loads(call["function"].get("arguments") or "{}")
-                            command = arguments.get("command", "")
-                        except ValueError as error:
-                            output = f"Malformed tool arguments refused: {error}"
-                        if arguments and command:
-                            try:
-                                output = await bounded_call(self.checked(
-                                    self.environment, command, cwd=self.root,
-                                    timeout_sec=min(MAX_TOOL_SECONDS, max(0.05, tool_remaining))),
-                                    min(MAX_TOOL_SECONDS, max(1.0, tool_remaining)), set())
-                                exit_code = 0
-                            except Exception as error:
-                                output = f"Command failed: {type(error).__name__}: {error}"
-                                exit_code = 1
-                        elif arguments and not command:
-                            output = "Empty shell command refused."
-                        events.append({"type": "item.completed", "item": {
-                            "id": call["id"], "type": "command_execution", "command": command,
-                            "exit_code": exit_code,
-                            "aggregated_output": output[-MAX_TOOL_OUTPUT_CHARS:]}})
-                        messages.append({"role": "tool", "tool_call_id": call["id"],
-                                         "content": output[-MAX_TOOL_OUTPUT_CHARS:]})
+                        output, event = await self._execute_tool(call, tool_remaining)
+                        events.append({"type": "item.completed", "item": {"id": call["id"], **event,
+                                      "aggregated_output": output}})
+                        session_stream.write(json.dumps({"tool_result": call["id"], "event": event,
+                                                          "output": output}, ensure_ascii=False) + "\n")
+                        session_stream.flush()
+                        messages.append({"role": "tool", "tool_call_id": call["id"], "content": output})
                     _compact_tools(messages)
                     continue
                 content = message.get("content") or ""
                 (self.logs_dir / "repair-final.txt").write_text(content)
                 events.append({"type": "turn.completed", "usage": {
-                    "input_tokens": usage["input_tokens"], "cached_input_tokens": 0,
-                    "output_tokens": usage["output_tokens"], "reasoning_output_tokens": None}})
+                    "input_tokens": usage["input_tokens"], "cached_input_tokens": usage["cached_input_tokens"],
+                    "output_tokens": usage["output_tokens"], "reasoning_output_tokens": usage["reasoning_output_tokens"]}})
                 result.update(status="completed", loop_exit="final_message",
                               finish_reason=completion["choices"][0].get("finish_reason"))
+                if self.condition == "science" and not self._science_model_recorded:
+                    result.update(status="failed", error_kind="scientific_model_not_recorded")
                 break
         except (urllib.error.URLError, TimeoutError, OSError) as error:
             result.update(status="failed", fatal_model_error=True, error=f"DeepSeek transport failure: {error}")
@@ -355,8 +363,16 @@ class DeepSeekAgent(ScientificCodex):
         finally:
             if "usage" in result and events and events[-1]["type"] != "turn.completed":
                 events.append({"type": "turn.completed", "usage": {
-                    "input_tokens": usage["input_tokens"], "cached_input_tokens": 0,
-                    "output_tokens": usage["output_tokens"], "reasoning_output_tokens": None}})
+                    "input_tokens": usage["input_tokens"], "cached_input_tokens": usage["cached_input_tokens"],
+                    "output_tokens": usage["output_tokens"], "reasoning_output_tokens": usage["reasoning_output_tokens"]}})
+            result["scientific_model_recorded"] = self._science_model_recorded if self.condition == "science" else None
+            if self.condition == "science":
+                try:
+                    remaining = max(0.05, deadline-time.monotonic())
+                    await bounded_call(self.environment.download_dir(REMOTE + "/context/science", self.logs_dir / "science"),
+                                       min(20, remaining), set())
+                except Exception as error:
+                    result["science_artifact_error"] = str(error)
             session_stream.close()
             write_json(self.logs_dir / "repair-process.json", result)
             (self.logs_dir / "repair.jsonl").write_text("\n".join(json.dumps(e, ensure_ascii=False) for e in events) + "\n")

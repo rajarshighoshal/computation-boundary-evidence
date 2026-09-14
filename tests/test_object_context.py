@@ -62,8 +62,8 @@ def test_no_legacy_fallback_or_code_only_science(tmp_path):
 
 
 def test_enrichment_prompt_is_short_direct_and_formattable():
-    prompt = (Path(__file__).resolve().parents[1] / "prompts/enrich_objects.md").read_text()
+    prompt = (Path(__file__).resolve().parents[1] / "prompts/scientific_repair.md").read_text()
     assert len(prompt.split()) < 220
-    assert "Explain the task" in prompt
-    assert "do not diagnose" in prompt
+    assert "governing relationships" in prompt
+    assert "record_model unlocks" in prompt
     assert prompt.format(instruction="Repair the stored-material calculation.")

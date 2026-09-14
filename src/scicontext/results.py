@@ -249,8 +249,12 @@ def _trial_row(root: Path, path: Path) -> dict[str, Any]:
         "private": private,
         "exact_private_success": _private_success(private, candidate, (trial / "verifier/junit.xml").exists(), candidate_error),
         "matched_test_outcomes": matched,
-        "development_exposed": task_id in DEVELOPMENT_TASKS or run.get("development_exposed") is True,
-        "prior_private_test_exposure": task_id in PRIVATE_EXPOSURE_TASKS,
+        "development_exposed": (run.get("development_exposed") is True if run.get("exposure_policy") == "explicit_split_v1"
+                                else task_id in DEVELOPMENT_TASKS or run.get("development_exposed") is True),
+        "prior_private_test_exposure": (run.get("prior_private_test_exposure") is True if run.get("exposure_policy") == "explicit_split_v1"
+                                        else task_id in PRIVATE_EXPOSURE_TASKS),
+        "exposure_policy": run.get("exposure_policy", "legacy"),
+        "evaluation_partition": run.get("evaluation_partition"),
         "diagnostics": sorted(set(diagnostics)),
         "artifact_sha256": {
             name: hashlib.sha256((trial / name).read_bytes()).hexdigest() if (trial / name).is_file() else None
@@ -369,7 +373,10 @@ def summarize_runs(root: Path) -> dict[str, Any]:
     untouched_pairs = [pair for pair in pairs if not pair["development_exposed"]]
     return {
         "schema_version": "1.0", "task_ids": sorted({row["task_id"] for row in rows}),
-        "exposure": {"development_tasks": sorted(DEVELOPMENT_TASKS | {row["task_id"] for row in rows if row["development_exposed"]}), "prior_private_test_exposure": sorted(PRIVATE_EXPOSURE_TASKS)},
+        "exposure": {"development_tasks": sorted((DEVELOPMENT_TASKS if any(r["exposure_policy"] == "legacy" for r in rows) else set()) |
+                       {row["task_id"] for row in rows if row["development_exposed"]}),
+                     "prior_private_test_exposure": sorted((PRIVATE_EXPOSURE_TASKS if any(r["exposure_policy"] == "legacy" for r in rows) else set()) |
+                       {row["task_id"] for row in rows if row["prior_private_test_exposure"]})},
         "trials": rows, "pairs": pairs,
         "metrics": {"all": _metrics(rows, pairs), "untouched": _metrics(untouched_rows, untouched_pairs)},
     }

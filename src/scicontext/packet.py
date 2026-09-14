@@ -15,6 +15,7 @@ import copy
 from pathlib import Path
 
 from . import evidence
+from .execution_seed import seed_summary
 from .io import _safe_relative
 from .task_slice import seed_references
 from .source_backends import JOERN_SOURCE_SUFFIXES
@@ -53,17 +54,25 @@ def _mentions(text: str, multilingual: bool = False, *, relative_to: str = "") -
 
 
 def _linked_documents(root: Path, paths: set[str], task_paths: set[str], coverage: dict,
-                      multilingual: bool) -> set[str]:
-    """One hop of explicit local document links, using the public-source reader."""
-    seeds = sorted((p for p in paths if Path(p).suffix.casefold() in _DOCUMENT_SUFFIXES),
-                   key=lambda p: _rank(p, task_paths, set()))[:MAX_DOCUMENT_FILES]
-    linked, records = set(), []
-    for path in seeds:
+                      multilingual: bool, docstrings: list[tuple[str, str]] | None = None) -> set[str]:
+    """One hop of explicit local document links, using the public-source reader.
+
+    In execution-seeded mode (docstrings given) README-style link proximity is
+    not evidence: only docstrings of executed regions nominate documents.
+    """
+    sources = [] if docstrings is not None else sorted(
+        (p for p in paths if Path(p).suffix.casefold() in _DOCUMENT_SUFFIXES),
+        key=lambda p: _rank(p, task_paths, set()))[:MAX_DOCUMENT_FILES]
+    mentions = []
+    for path in sources:
         source = _read_text(root, path, coverage)
-        if source is None:
-            continue
-        candidates = (_mentions(source[1], multilingual) |
-                      _mentions(source[1], multilingual, relative_to=posixpath.dirname(path)))
+        if source is not None:
+            mentions.append((path, source[1]))
+    mentions.extend(docstrings or [])
+    linked, records = set(), []
+    for path, text in mentions:
+        candidates = (_mentions(text, multilingual) |
+                      _mentions(text, multilingual, relative_to=posixpath.dirname(path)))
         for target in sorted(candidates):
             if target == path or Path(target).suffix.casefold() not in _DOCUMENT_SUFFIXES:
                 continue
@@ -72,7 +81,7 @@ def _linked_documents(root: Path, paths: set[str], task_paths: set[str], coverag
                 paths.add(target)
                 linked.add(target)
                 records.append({"path": target, "via": path})
-    coverage["document_references"] = records
+    coverage.setdefault("document_references", []).extend(r for r in records if r not in coverage.get("document_references", []))
     return linked
 
 
@@ -177,8 +186,39 @@ def _documents(path: str, raw: bytes, text: str, remaining: int, coverage: dict)
     return records
 
 
+def _executed_receipt(seed: list[dict], plans: dict, seeded_paths: set[str],
+                      coverage: dict, entries: list[dict]) -> list[dict]:
+    """Per executed function: admitted, or the reason its body is not present."""
+    selected = set(coverage["selected_source_paths"])
+    spans: dict[str, list[tuple[int, int, str]]] = {}
+    for entry in entries:
+        spans.setdefault(entry["path"], []).append((entry["start_line"], entry["end_line"], entry["kind"]))
+    rows = []
+    for record in seed:
+        path = record["file"]
+        region = next((r for r in (plans.get(path) or {}).get("regions", [])
+                       if r["line"] == record["line"] and r["name"] == record["name"]), None)
+        row = {"file": path, "name": record["name"], "line": record["line"],
+               "count": record["count"], "min_depth": record["min_depth"], "admitted": False}
+        if path not in seeded_paths:
+            row["reason"] = "file_not_selectable"
+        elif path not in selected:
+            row["reason"] = "source_file_limit"
+        elif region is None:
+            row["reason"] = "region_unresolved"
+        elif any(kind not in {"signature", "docstring", "parameter", "import"}
+                 and start <= region["end_line"] and end >= region["start_line"]
+                 for start, end, kind in spans.get(path, [])):
+            row["admitted"] = True
+        else:
+            row["reason"] = "no_body_entries_admitted"
+        rows.append(row)
+    return rows
+
+
 def build_packet(root: Path, context_root: Path | None = None, *, multilingual=False,
-                 source_paths: list[str] | None = None) -> dict:
+                 source_paths: list[str] | None = None, seed: list[dict] | None = None,
+                 execution: dict | None = None) -> dict:
     """Return original syntactic entries and graph-compatible document spans."""
     root = Path(root).resolve(strict=True)
     if not root.is_dir():
@@ -216,16 +256,60 @@ def build_packet(root: Path, context_root: Path | None = None, *, multilingual=F
             paths.add(path)
         else:
             coverage["skipped"].append({"path": path, "reason": problem or "excluded_path"})
+    # The execution trace names the repository functions that actually ran;
+    # it is computed before this packet and only read here.
+    seed = [record for record in (seed or []) if isinstance(record, dict)
+            and isinstance(record.get("file"), str) and isinstance(record.get("name"), str)
+            and type(record.get("line")) is int and (record.get("min_depth") is None or type(record.get("min_depth")) is int)
+            and type(record.get("count")) is int]
+    seed_files: dict[str, list[dict]] = {}
+    for record in seed:
+        seed_files.setdefault(record["file"], []).append(record)
+    seeded_paths: set[str] = set()
+    plans: dict[str, dict | None] = {}
+    for path in sorted(seed_files):
+        if Path(path).suffix.casefold() != ".py" or path.startswith("@context/"):
+            continue
+        if path not in paths and evidence._safe_file(root, path)[1] is not None:
+            continue
+        paths.add(path)
+        plans[path] = evidence.executed_region_plan(root, path, seed_files[path],
+                                                    preserve_interfaces=multilingual)
+        if plans[path] and plans[path]["regions"]:
+            seeded_paths.add(path)
+    seed_docstrings = [(f"{path}:{region['start_line']}", region["docstring"])
+                       for path in sorted(seeded_paths) if plans.get(path)
+                       for region in plans[path]["regions"] if region["docstring"]]
     linked_docs = (_linked_documents(root, paths, task_paths, coverage, multilingual)
                    if multilingual else set())
+    if multilingual and seed_docstrings:
+        linked_docs |= _linked_documents(root, paths, task_paths, coverage, multilingual, docstrings=seed_docstrings)
     refs, retrieval = seed_references(root, paths,
         task_paths | {p for p in paths if _reproducer(p) and p.endswith('.py')}, context[1] if context else '')
     coverage['task_local_retrieval'] = retrieval
     workflow_refs = []
     if multilingual:
         from .workflow_retrieval import retrieve
+        executed_symbols = [(path, region["symbol"]) for path in sorted(seeded_paths)
+                            for region in plans[path]["regions"]]
         workflow_refs, workflow = retrieve(root, paths,
-            task_paths | repro_paths | {p for p in paths if _reproducer(p)}, context[1] if context else '')
+            task_paths | repro_paths | {p for p in paths if _reproducer(p)}, context[1] if context else '',
+            **({"executed": executed_symbols} if executed_symbols else {}))
+        spans_by_file = {path: [(region["start_line"], region["end_line"]) for region in plans[path]["regions"]]
+                         for path in seeded_paths if plans.get(path)}
+
+        def executed_call_site(site) -> bool:
+            spans = spans_by_file.get(site.get("path"))
+            line = site.get("start_line")
+            return bool(spans) and type(line) is int and any(lo <= line <= hi for lo, hi in spans)
+
+        # One static hop: direct callees of executed functions, resolved by the
+        # existing retrieval machinery and ranked above ordinary references.
+        for reference in workflow_refs:
+            if reference.get("via") != "executed_function" and any(
+                    executed_call_site(site) for site in reference.get("callers", [])):
+                reference["via"] = "executed_callee"
+                reference["priority"] = 0
         caller_refs = [{"path": c["path"], "start_line": c["start_line"],
                         "end_line": c["start_line"], "via": "workflow_call_site", "depth": max(0, r["depth"] - 1),
                         "priority": 0} for r in workflow_refs for c in r.get("callers", [])]
@@ -256,6 +340,18 @@ def build_packet(root: Path, context_root: Path | None = None, *, multilingual=F
         coverage["source_selection"] = "retrieved_references_then_explicit_paths_then_language_fallback"
     else:
         sources = [p for p in ordered if Path(p).suffix.casefold() == ".py"]
+    if seeded_paths:
+        # Files containing executed functions come first, ordered by the
+        # shallowest executed function then total executed calls; the
+        # reproducer is itself executed but is a wrapper, so it goes last.
+        pool = set(sources)
+        def execution_rank(path):
+            relevance = max((r.get("relevance_score", 0) for r in workflow_refs if r["path"] == path), default=0)
+            depths = [r["min_depth"] for r in seed_files[path] if r["min_depth"] is not None]
+            return (_reproducer(path), -relevance, min(depths, default=10**9), path)
+        seeded_order = sorted((p for p in seeded_paths if p in pool), key=execution_rank)
+        sources = seeded_order + [p for p in sources if p not in seeded_paths]
+        coverage["source_selection"] = "execution_seeded_then_static_selection"
     document_paths = [p for p in ordered if Path(p).suffix.casefold() in _DOCUMENT_SUFFIXES]
     document_paths.sort(key=lambda p: (0 if p in task_paths else 1 if p in linked_docs else 2,
                                       _rank(p, task_paths, repro_paths)))
@@ -270,7 +366,29 @@ def build_packet(root: Path, context_root: Path | None = None, *, multilingual=F
     coverage["selected_source_paths"] = sources[:MAX_SOURCE_FILES]
     entries = []
     allocations = {}
-    if multilingual and refs:
+    seeded_region_refs = [{"path": path, "start_line": region["start_line"], "end_line": region["end_line"],
+                          "symbol": region["symbol"], "runtime_name": region["name"], "via": "executed_function",
+                          "relevance_score": max((r.get("relevance_score", 0) for r in workflow_refs
+                             if r["path"] == path and r.get("symbol") == region["symbol"]), default=0)}
+                          for path, plan in sorted(plans.items()) if plan for region in plan["regions"]]
+    if seeded_paths:
+        # Execution weighting replaces text-proximity weighting: each seeded
+        # file is sized for its executed bodies (bounded by twice the per-file
+        # cap); every other selected file shares what is left of the global
+        # entry budget equally.
+        remaining = MAX_ENTRIES
+        for path in coverage["selected_source_paths"]:
+            if path in seeded_paths:
+                needed = plans[path]["needed"] if plans.get(path) else 1
+                allocations[path] = max(1, min(2 * MAX_ENTRIES_PER_FILE, needed, remaining))
+                remaining = max(0, remaining - allocations[path])
+        others = [path for path in coverage["selected_source_paths"] if path not in allocations]
+        if others:
+            share = max(1, remaining // len(others))
+            for path in others:
+                allocations[path] = min(MAX_ENTRIES_PER_FILE, share)
+        coverage["entry_allocations"] = allocations
+    elif multilingual and refs:
         def source_weight(path):
             located = [r for r in refs if r["path"] == path]
             if not located:
@@ -293,13 +411,23 @@ def build_packet(root: Path, context_root: Path | None = None, *, multilingual=F
         if multilingual and source_language(path) != "python":
             result = extract_native_evidence(root, [path], max_entries=limit, references=refs)
         else:
+            options = {"preserve_interfaces": True} if multilingual else {}
+            if seeded_paths:
+                options["seeded_regions"] = seeded_region_refs
             result = evidence.extract_evidence(root, [path], max_files=1, max_entries=limit, references=refs,
-                                               **({"preserve_interfaces": True} if multilingual else {}))
+                                               **options)
         entries.extend(result["entries"])
         for key in ("files_considered", "files_parsed", "entries", "expressions", "supported_expressions"):
             coverage[key] += result["coverage"][key]
         coverage["entries_truncated"] |= result["coverage"]["entries_truncated"]
         coverage["skipped"].extend(result["coverage"]["skipped"])
+    coverage["selection_mode"] = "execution_seeded" if seeded_paths else "static_only"
+    if seeded_paths:
+        coverage["execution_seed"] = seed_summary(seed)
+        coverage["executed_functions"] = _executed_receipt(seed, plans, seeded_paths, coverage, entries)
+        coverage["execution_regions"] = seeded_region_refs
+    coverage["execution_status"] = {key: (execution or {}).get(key, "unknown") for key in
+                                    ("trace_status", "reproduction_status", "reproduction_error")}
     documents = []
     if context:
         coverage["selected_document_paths"].append("@context/task_statement.md")

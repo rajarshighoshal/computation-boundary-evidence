@@ -399,11 +399,9 @@ def _has_unknown(expression: dict | None) -> bool:
     return False
 
 
-def _file_entries(path: str, raw: bytes, source: str, tree: ast.AST, limit: int,
-                  references: list[dict] | None = None, preserve_interfaces: bool = False) -> tuple[list[dict], bool]:
-    digest = hashlib.sha256(raw).hexdigest()
-    index = _ScopeIndex(tree)
-    entries = []
+def _candidates(tree: ast.AST, index: _ScopeIndex, preserve_interfaces: bool = False
+                ) -> tuple[list[tuple], dict, set]:
+    """Classified (node, kind, expression) candidates in deterministic source order."""
     candidates = []
     condition_owners = {id(node.test): f"{'while' if isinstance(node, ast.While) else 'if'}@{node.lineno}"
                         for node in ast.walk(tree) if isinstance(node, (ast.If, ast.While))}
@@ -449,6 +447,75 @@ def _file_entries(path: str, raw: bytes, source: str, tree: ast.AST, limit: int,
         if kind is not None:
             candidates.append((node, kind, expression_node))
     candidates.sort(key=lambda item: (item[0].lineno, item[0].col_offset, item[1]))
+    return candidates, condition_owners, docstrings
+
+
+def executed_region_plan(root: Path, relative: str, wanted: list[dict],
+                          preserve_interfaces: bool = True) -> dict | None:
+    """Resolve traced definition lines to exact spans and size their entries.
+
+    Traced lines are co_firstlineno values, which point at a decorated
+    definition's first decorator, so matching includes decorator spans. Body
+    counts follow the candidate classification packet entries use; each region
+    contributes at most one signature and one docstring to the needed size.
+    Returns None when the file cannot be read or parsed under the same bounds.
+    """
+    path, problem = _safe_file(root, relative)
+    if problem is not None or path.suffix.casefold() != ".py":
+        return None
+    try:
+        if path.stat().st_size > MAX_FILE_BYTES:
+            return None
+        raw = _read_regular(root, relative)
+        if len(raw) > MAX_FILE_BYTES:
+            return None
+        encoding, _ = tokenize.detect_encoding(io.BytesIO(raw).readline)
+        source = raw.decode(encoding)
+        tree = ast.parse(source, filename=relative)
+        if not _ast_within_limits(tree):
+            return None
+        candidates, _, _ = _candidates(tree, _ScopeIndex(tree), preserve_interfaces)
+    except (OSError, SyntaxError, UnicodeError, LookupError, ValueError, RecursionError, MemoryError):
+        return None
+    definitions = []
+    def visit(node, symbol="", runtime="", parent_function=False):
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                qualified = symbol + "." + child.name if symbol else child.name
+                traced = runtime + (".<locals>." if parent_function else ".") + child.name if runtime else child.name
+                start = min([child.lineno, *(d.lineno for d in child.decorator_list)])
+                definitions.append((traced, start, child, qualified))
+                visit(child, qualified, traced, not isinstance(child, ast.ClassDef))
+            else:
+                visit(child, symbol, runtime, parent_function)
+    visit(tree)
+    regions, omitted, needed = [], [], 0
+    for item in wanted:
+        matches = [(node, symbol) for name, start, node, symbol in definitions
+                   if name == item.get("name") and start == item.get("line")]
+        if len(matches) != 1 or isinstance(matches[0][0], ast.ClassDef):
+            omitted.append({"name": item.get("name"), "line": item.get("line"),
+                            "reason": "not_a_callable_definition"})
+            continue
+        owner, symbol = matches[0]
+        start, end = owner.lineno, owner.end_lineno
+        body = sum(kind not in {"signature", "docstring", "parameter"} and
+                   start <= node.lineno <= end for node, kind, _ in candidates)
+        regions.append({"line": item["line"], "name": item["name"], "symbol": symbol,
+                        "start_line": start, "end_line": end,
+                        "docstring": ast.get_docstring(owner) or "", "body_entries": body,
+                        "count": item.get("count", 1), "min_depth": item.get("min_depth")})
+        needed += sum(start <= node.lineno <= end for node, _, _ in candidates) + 2
+    return {"regions": regions, "needed": needed, "omitted_frames": omitted}
+
+
+def _file_entries(path: str, raw: bytes, source: str, tree: ast.AST, limit: int,
+                  references: list[dict] | None = None, preserve_interfaces: bool = False,
+                  seeded_regions: list[dict] | None = None) -> tuple[list[dict], bool]:
+    digest = hashlib.sha256(raw).hexdigest()
+    index = _ScopeIndex(tree)
+    entries = []
+    candidates, condition_owners, docstrings = _candidates(tree, index, preserve_interfaces)
     regions = []
     for ref in references or []:
         if ref.get("path") != path:
@@ -461,56 +528,85 @@ def _file_entries(path: str, raw: bytes, source: str, tree: ast.AST, limit: int,
         owner = min(enclosing, key=lambda n: n.end_lineno - n.lineno) if enclosing else None
         regions.append((start, end, owner.lineno if owner else max(1, start - 3),
                         owner.end_lineno if owner else end + 3))
-    if regions:
-        needs_allocation = len(candidates) > limit
-        bucket_counts = {}
-        fair_order = {}
-        for node, kind, _ in candidates:
-            direct = [(end - start, i) for i, (start, end, _, _) in enumerate(regions)
-                      if kind != "signature" and node.lineno <= end and node.end_lineno >= start]
-            nearby = [(hi - lo, i) for i, (_, _, lo, hi) in enumerate(regions)
-                      if lo <= node.lineno <= hi]
-            tier, matches = (0, direct) if direct else (1, nearby) if nearby else (2, [])
-            region = min(matches)[1] if matches else len(regions)
-            # Round-robin inspected regions. Reserve one parameter occurrence
-            # per region alongside statements; remaining parameters follow
-            # direct statements so large signatures cannot crowd out body code.
-            # Assign overlaps to the tightest region to avoid duplicate votes.
-            category = 1 if kind == "parameter" else 0
-            bucket = (tier, region, category)
-            rank = bucket_counts.get(bucket, 0)
-            bucket_counts[bucket] = rank + 1
-            allocation_tier = tier * 2 + int(category == 1 and rank > 0)
-            fair_order[id(node)] = (allocation_tier, rank, region, category)
-
-        def priority(item):
-            node = item[0]
-            if needs_allocation:
-                return (*fair_order[id(node)], node.lineno, node.col_offset, item[1])
-            direct = any(node.lineno <= end and node.end_lineno >= start for start, end, _, _ in regions)
-            nearby = any(lo <= node.lineno <= hi for _, _, lo, hi in regions)
-            return (0 if direct and item[1] != "signature" else 1 if nearby else 2,
-                    node.lineno, node.col_offset, item[1])
-        candidates.sort(key=priority)
-    selected = candidates[:limit]
-    if preserve_interfaces and len(candidates) > limit:
-        # A scientific body excerpt needs its defining interface and scientific
-        # docstrings. Admit that bundle together rather than dropping all headers
-        # behind a full allocation of direct body statements.
-        context = [item for item in candidates if item[1] in {"signature", "docstring"}]
+    # Execution-seeded regions take precedence over reference round-robin: the
+    # statement bodies that actually ran are admitted first, each region gets
+    # at most one signature and one docstring, direct static callees of the
+    # executed functions follow, and everything else waits for leftover budget.
+    seeded = sorted((r for r in seeded_regions or [] if r.get("path") == path),
+                    key=lambda r: (-r.get("relevance_score", 0), r["start_line"]))
+    selected = None
+    if seeded:
         selected, seen = [], set()
-        for item in candidates:
+        context = [c for c in candidates if c[1] in {"signature", "docstring"}]
+        # Round-robin source statements across ranked observed callables. Keep
+        # defining interfaces and guards with each admitted statement.
+        buckets = [[c for c in candidates if r["start_line"] <= c[0].lineno <= r["end_line"]
+                    and c[1] not in {"signature", "docstring", "parameter"}] for r in seeded]
+        ordered = [bucket[index] for index in range(max(map(len, buckets), default=0))
+                   for bucket in buckets if index < len(bucket)]
+        ordered += candidates
+        for item in ordered:
+            if id(item[0]) in seen:
+                continue
             scope = index.scopes[id(item[0])].name
-            required = [c for c in context if scope == index.scopes[id(c[0])].name or
-                        scope.startswith(index.scopes[id(c[0])].name + ".")]
-            guards = {b.rsplit(":", 1)[0] for b in index.branches[id(item[0])]}
+            required = [c for c in context if index.scopes[id(c[0])].name == scope]
+            guards = {label.rsplit(":", 1)[0] for label in index.branches[id(item[0])]}
             required.extend(c for c in candidates if condition_owners.get(id(c[0])) in guards)
-            bundle = [c for c in [*required, item] if id(c[0]) not in seen]
-            # The item can itself be a signature/docstring already in required.
-            unique = {id(c[0]): c for c in bundle}
-            if len(selected) + len(unique) <= limit:
-                selected.extend(unique.values())
-                seen.update(unique)
+            bundle = {id(c[0]): c for c in [*required, item] if id(c[0]) not in seen}
+            if len(selected) + len(bundle) <= limit:
+                selected.extend(bundle.values())
+                seen.update(bundle)
+    if selected is None:
+        if regions:
+            needs_allocation = len(candidates) > limit
+            bucket_counts = {}
+            fair_order = {}
+            for node, kind, _ in candidates:
+                direct = [(end - start, i) for i, (start, end, _, _) in enumerate(regions)
+                          if kind != "signature" and node.lineno <= end and node.end_lineno >= start]
+                nearby = [(hi - lo, i) for i, (_, _, lo, hi) in enumerate(regions)
+                          if lo <= node.lineno <= hi]
+                tier, matches = (0, direct) if direct else (1, nearby) if nearby else (2, [])
+                region = min(matches)[1] if matches else len(regions)
+                # Round-robin inspected regions. Reserve one parameter occurrence
+                # per region alongside statements; remaining parameters follow
+                # direct statements so large signatures cannot crowd out body code.
+                # Assign overlaps to the tightest region to avoid duplicate votes.
+                category = 1 if kind == "parameter" else 0
+                bucket = (tier, region, category)
+                rank = bucket_counts.get(bucket, 0)
+                bucket_counts[bucket] = rank + 1
+                allocation_tier = tier * 2 + int(category == 1 and rank > 0)
+                fair_order[id(node)] = (allocation_tier, rank, region, category)
+
+            def priority(item):
+                node = item[0]
+                if needs_allocation:
+                    return (*fair_order[id(node)], node.lineno, node.col_offset, item[1])
+                direct = any(node.lineno <= end and node.end_lineno >= start for start, end, _, _ in regions)
+                nearby = any(lo <= node.lineno <= hi for _, _, lo, hi in regions)
+                return (0 if direct and item[1] != "signature" else 1 if nearby else 2,
+                        node.lineno, node.col_offset, item[1])
+            candidates.sort(key=priority)
+        selected = candidates[:limit]
+        if preserve_interfaces and len(candidates) > limit:
+            # A scientific body excerpt needs its defining interface and scientific
+            # docstrings. Admit that bundle together rather than dropping all headers
+            # behind a full allocation of direct body statements.
+            context = [item for item in candidates if item[1] in {"signature", "docstring"}]
+            selected, seen = [], set()
+            for item in candidates:
+                scope = index.scopes[id(item[0])].name
+                required = [c for c in context if scope == index.scopes[id(c[0])].name or
+                            scope.startswith(index.scopes[id(c[0])].name + ".")]
+                guards = {b.rsplit(":", 1)[0] for b in index.branches[id(item[0])]}
+                required.extend(c for c in candidates if condition_owners.get(id(c[0])) in guards)
+                bundle = [c for c in [*required, item] if id(c[0]) not in seen]
+                # The item can itself be a signature/docstring already in required.
+                unique = {id(c[0]): c for c in bundle}
+                if len(selected) + len(unique) <= limit:
+                    selected.extend(unique.values())
+                    seen.update(unique)
     entry_nodes = {}
     for node, kind, expression_node in selected:
         scope = index.scopes[id(node)]
@@ -669,7 +765,8 @@ def _file_entries(path: str, raw: bytes, source: str, tree: ast.AST, limit: int,
 
 def extract_evidence(
     root: Path, paths: list[str] | None = None, *, max_files: int = 200, max_entries: int = 2000,
-    references: list[dict] | None = None, preserve_interfaces: bool = False
+    references: list[dict] | None = None, preserve_interfaces: bool = False,
+    seeded_regions: list[dict] | None = None
 ) -> dict:
     """Index bounded Python evidence without following symlinks or executing code."""
     _valid_limit(max_files, "max_files")
@@ -745,7 +842,8 @@ def extract_evidence(
                 coverage["skipped"].append({"path": relative, "reason": "ast_size_or_depth_limit"})
                 continue
             file_entries, truncated = _file_entries(relative, raw, source, tree, max_entries - len(entries), references,
-                                                    preserve_interfaces=preserve_interfaces)
+                                                    preserve_interfaces=preserve_interfaces,
+                                                    seeded_regions=seeded_regions)
         except _FileTooLarge:
             coverage["skipped"].append({"path": relative, "reason": "file_size_limit"})
             continue

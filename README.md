@@ -1,127 +1,64 @@
-# Scientific context for scientific-code repair
+# Interactive scientific understanding for repair
 
-This project tests whether a compact, evidence-grounded scientific task model helps an otherwise
-unchanged coding agent repair SWE-bench Science tasks under a matched total allowance.
+This study asks whether a compact, queryable scientific-code representation helps a repair agent
+understand and repair SWE-bench Science tasks under the same total allowance as ordinary repair.
 
-The current implementation is **scientific interpretation 2.0**. Code supplies computations,
-quantity identities, dependencies and conditions. One read-only LLM call explains their scientific
-purpose, quantity roles and conventions with source citations. Code joins those interpretations
-to its recorded relationships and delivers a short guide plus scientific-model.json.
+## Current method
+Static preparation indexes public files and gives the agent a tiny task map. The same agent uses
+science.find and science.inspect to retrieve quantities, expressions, conditions and source
+definitions on demand. science.record_model saves its source-linked scientific working model and
+unlocks ordinary repair tools. The science tool remains available during repair.
 
-The first live 2.0 check failed: four responses hit a hidden schema limit and one exhausted
-reasoning output; the reader input was also much too large. The current revision replaces that
-graph dump with shared source-expression templates, bindings, conditions and a readable view.
-**This revised representation has offline checks, not a successful live scientific-quality or
-repair evaluation yet.** See [the method](docs/METHOD.md),
-[the input/output contract](docs/OBJECT_ENRICHMENT.md), and the current [ledger](WORK_LOG.md).
+There is no separate interpretation model, mandatory reproduction/build, or second task container.
+Python/native/Cython parsers supply structure; targeted Joern analysis adds data/control flow when
+available. Unsupported analysis is explicit. Scientific interpretation belongs to the agent; source
+IDs and tool use do not prove scientific correctness.
 
-## Pipeline
-
-Public task/code/docs → source and Joern evidence → task-level expression/dependency representation
-→ readable scientific input → one source-cited interpretation → model and guide → ordinary repair.
-
-These are views of the same representation. Exact source and analyzer records stay on disk;
-shared templates retain separate occurrence bindings and do not assert mathematical equality.
-The active pipeline has one response schema and one renderer; retired 1.0 annotation fallback,
-probe-first scripts and synthetic demo scaffolding are removed. Historical results remain intact.
-
-The representation retains source/analyzer namespaces and unknown bindings. It does not infer
-scientific equivalence from similar names, treat observations as physical requirements, or allow
-the interpreter to invent program edges. Existing API rules are not being expanded into a physics
-catalogue. No compiler-IR pipeline or additional repair-agent framework is introduced.
-
-The actual repair prompt contains the guide once. The connected model, code graph, public-source
-records and selected analyzer evidence remain durable files under /opt/scicontext/context/.
-Missing scientific context is recorded as failed delivery; it does not silently launch an
-unassisted repair labelled as science.
+The ordinary baseline has no extra scientific-planning instruction. The comparison measures the
+whole added workflow, not an isolated component effect. No repair improvement is established yet.
 
 ## Install and verify
-
-Python 3.12 and uv are required. Docker with linux/amd64 support is required for benchmark runs.
-Joern/fortls are optional analysis capabilities whose availability and omissions are recorded.
+Use Python3.12, uv, Docker linux/amd64 support, and the pinned dependencies:
 
 ```bash
 uv sync --python 3.12 --locked --extra test --extra runner
 uv run --no-sync pytest -q
 ```
 
-Inspect public source without executing candidate code or calling a model:
+Joern is an optional host analyzer; unavailable frontends are reported, not silently replaced by
+scientific claims. Native source frontends do not execute candidate code.
+
+## Frozen development/evaluation split
+configs/interactive-science.split.json fixes30 development tasks and89 locked evaluation tasks.
+It includes13 documented design cases and17 seeded random unrestricted cases. Historical pipeline
+activity, method-development use and private-diagnostic exposure are distinct metadata.
+The locked set is not claimed to be historically untouched. License gates remain explicit.
+
+## Run the approved pilot
+The initial paired pilot uses001/009/058/091/114, one attempt per arm, DeepSeek Flash/high,
+1800seconds including preparation, queries and repair, and rolling concurrency2.
 
 ```bash
-uv run --no-sync scicontext scientific-objects \
-  --root /path/to/public/task --context-root /path/to/context \
-  --output /tmp/scientific-objects.json --llm-input /tmp/scientific-reading-input.json
+uv run --no-sync scicontext pilot --config configs/interactive-five.json --output runs/new-pilot
+uv run --no-sync scicontext pilot --config configs/interactive-five.json --output runs/new-pilot --execute
 ```
 
-The context directory contains task_statement.md. This standalone command uses the source
-extractor; Joern augmentation is part of the full agent preparation path.
+The first command is a dry run; use a fresh output directory for execution. The DeepSeek key is
+read from DEEPSEEK_API_KEY on the host and is never mounted in the task container.
+No Claude calls are used. Larger cohorts require a reviewed pilot and explicit launch approval.
 
-Replay the five preserved public inputs without model calls:
-
-```bash
-uv run --no-sync python scripts/check_representation.py \
-  --run runs/connected-five-extraction-v2 --output runs/new-offline-check
-```
-
-The result includes scientific-reading.md, its linked structured view and size/reference receipts.
-An absent implementation body remains a coverage gap; a compact source excerpt is not a complete
-scientific model. No task-specific expected repair is inserted by this projection.
-
-Join a saved interpretation using the same offline assembly helper:
-
-```bash
-uv run --no-sync scicontext assemble-objects \
-  --graph /tmp/scientific-objects.json --context-input /tmp/scientific-reading-input.json \
-  --annotations /path/to/model-response.json --output /tmp/scientific-bundle.json
-```
-
-Unit/integration checks cover source citations, scoped identity, unknown inputs/outputs,
-condition preservation, both provider output paths, actual file collection and prompt delivery.
-The [five-input compatibility receipt](results/connected-science-review-2026-09-14.json) includes
-a manually authored cube-reader interpretation fixture. It tests joining/rendering, not automatic
-scientific understanding. The [selected-export receipt](results/selected-export-review-2026-09-14.json)
-covers two real CPGs and Python/C++/JavaScript fixtures.
-
-## Experiments
-
-Use an explicit configuration, predeclared task IDs and a fresh output directory. Dry-run scheduling
-does not call a model:
-
-```bash
-uv run --no-sync scicontext pilot --config /path/to/approved-config.json \
-  --extract-only --output /path/to/new-run
-```
-
-Adding --execute launches the configured workflow and requires approval of tasks, attempts and
-budget. Current configuration files include historical experiments; do not assume a filename
-denotes the latest evaluated method. The original five development tasks are
-091, 058, 009, 114 and 001. They are not an untouched evaluation set.
-
-Codex uses the standard subscription-authenticated CLI route; DeepSeek uses its configured API
-route. One scientific interpretation call is used, without probe/refinement loops. Host code,
-guest helpers and prompts are frozen together. Extraction, transfer and cleanup count against
-the science arm's total allowance. Model, effort, source revision, images, prompts and task
-selection belong in each run's receipts.
-
-Keep credentials outside Git, images and public artifacts. Standard Codex container authentication
-is not isolation from hostile candidate code. Do not mount personal home directories or the Docker
-socket into task containers.
-
-## Results and records
+## What to inspect
+Each trial preserves the agent conversation/tool results, model submission, scientific-store
+artifacts, patch, verifier output, token accounting and timing. Inspect the pre-edit model and
+subsequent repair: correct scientific relationships, useful implementation links, no invented cause.
 
 ```bash
 uv run --no-sync scicontext summarize /path/to/run/jobs --output /path/to/summary
-uv run --no-sync python scripts/report_scientific_reading.py \
-  --run-root /path/to/extraction-run --json-output /path/to/results.json \
-  --markdown-output /path/to/results.md
 ```
 
-Preserve trajectories, patches, verifier outputs, failed attempts, source evidence and exact task
-IDs. Do not pool method revisions or reinterpret broken delivery as a clean test of the research
-hypothesis. Verifier success is the eventual primary repair outcome; tokens, time and failure
-mechanisms are also required.
+Cached input is part of input tokens; reasoning is part of output tokens. Missing costs remain
+unknown. Forty scheduler slots do not imply this laptop can run forty heavy scientific workloads.
 
-Source code is in src/scicontext/, tests in tests/, prompts/configs in their named directories,
-and compact receipts in results/. Large raw artifacts stay under ignored runs/, data/ and .cache/.
-WORK_LOG.md is the only live milestone ledger. Historical designs/results remain in Git and
-docs/archive/; [AI disclosure](docs/AI_DISCLOSURE.md) must accompany the final research submission.
+The approved design is in [RESEARCH_PLAN.md](RESEARCH_PLAN.md), tool contract in
+[docs/OBJECT_ENRICHMENT.md](docs/OBJECT_ENRICHMENT.md), and live progress in [WORK_LOG.md](WORK_LOG.md).
+Old one-shot/probe-first experiments are preserved separately and are not results of this method.

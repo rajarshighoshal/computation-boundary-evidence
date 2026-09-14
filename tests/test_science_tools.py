@@ -1,0 +1,183 @@
+import json
+
+import pytest
+from jsonschema import Draft202012Validator
+
+from scicontext.science_tools import ScienceStore, tool_definition
+
+
+@pytest.fixture
+def store(tmp_path):
+    root = tmp_path / "task"
+    root.mkdir()
+    (root / "model.py").write_text('raise RuntimeError("never import me")\n'
+        'def advance(energy, flux, dt, active):\n'
+        '    """Positive flux leaves the stored energy; dt is elapsed time."""\n'
+        '    if active:\n        energy = energy - flux * dt\n    return energy\n')
+    (root / "paper.md").write_text("The calculation advances stored energy under outward flux. Energy is conserved.\n")
+    result = ScienceStore(root, tmp_path / "artifacts")
+    result.prepare()
+    return result
+
+
+def model_from(result, docs):
+    source = docs["source"]["id"]
+    claim = {"text": "Advance stored energy using the outward transport and elapsed time.", "source_ids": [source]}
+    c = next(c for c in result["computations"] if "advance" in c["name"])
+    return {"purpose": claim, "expected_change": claim, "preserve": [claim],
+        "computations": [{"computation_id": c["id"], "meaning": claim, "quantities": [],
+            "conventions": [claim], "assumptions": ["The source shows implementation behaviour; its correctness remains to be checked."]}]}
+
+
+def test_find_inspect_record_is_nonexecuting_and_connected(store):
+    found = store.find("stored energy")
+    assert found["matches"]
+    result = store.inspect("model.py#advance")
+    assert any("flux * dt" in s["text"] for s in result["sources"])
+    assert result["relationships"] and result["templates"]
+    docs = store.inspect("paper.md")
+    recorded = store.record_model(model_from(result, docs))
+    assert recorded["status"] == "recorded"
+    assert (store.store / "scientific-model.json").is_file()
+    assert "stored energy" in (store.store / "scientific-model.md").read_text()
+
+
+def test_tool_schema_references_are_resolvable():
+    parameters = tool_definition()["function"]["parameters"]
+    Draft202012Validator.check_schema(parameters)
+    assert not list(Draft202012Validator(parameters).iter_errors({"action": "find", "query": "energy"}))
+
+
+@pytest.mark.parametrize("target", ["../secret.py", "/etc/passwd", "private/test.py"])
+def test_tool_rejects_nonpublic_paths(store, target):
+    with pytest.raises((ValueError, OSError)):
+        store.inspect(target)
+
+
+def test_symlink_escape_rejected(store, tmp_path):
+    (tmp_path / "outside.py").write_text("secret=1")
+    (store.root / "escape.py").symlink_to(tmp_path / "outside.py")
+    with pytest.raises(ValueError):
+        store.inspect("escape.py")
+
+
+def test_empty_and_unanchored_models_do_not_unlock(store):
+    with pytest.raises(ValueError):
+        store.record_model({})
+    result, docs = store.inspect("model.py#advance"), store.inspect("paper.md")
+    model = model_from(result, docs)
+    model["purpose"] = {"text": "invented", "source_ids": ["not_seen"]}
+    with pytest.raises(ValueError, match="inspected"):
+        store.record_model(model)
+    assert not store.state["model_recorded"]
+
+
+def test_failed_second_record_is_not_success_from_previous_record(store):
+    model = model_from(store.inspect("model.py#advance"), store.inspect("paper.md"))
+    store.record_model(model)
+    before = (store.store / "scientific-model.json").read_bytes()
+    model["computations"][0]["computation_id"] = "fake"
+    with pytest.raises(ValueError):
+        store.record_model(model)
+    assert (store.store / "scientific-model.json").read_bytes() == before
+
+
+def test_inspections_do_not_evict_previous_citations_and_changed_ids_fail(store):
+    result = store.inspect("model.py#advance")
+    docs = store.inspect("paper.md")
+    assert store.record_model(model_from(result, docs))["status"] == "recorded"
+    identifier = result["quantities_and_expressions"][0]["id"]
+    path = store.root / "model.py"
+    path.write_text(path.read_text().replace("flux * dt", "flux * dt * 2"))
+    with pytest.raises(ValueError, match="Source changed"):
+        store.inspect(identifier)
+
+
+def test_source_paging_does_not_skip_or_duplicate_lines(store):
+    (store.root / "long.py").write_text("\n".join(f"value_{i} = {i}" for i in range(140)))
+    pages, offset = [], 0
+    while True:
+        result = store.inspect("long.py", "source", offset)
+        pages.append(result["source"]["quote"])
+        offset = result["next_offset"]
+        if offset is None:
+            break
+    assert "".join(pages).splitlines() == [f"value_{i} = {i}" for i in range(140)]
+
+
+@pytest.mark.parametrize("name,code", [
+    ("m.cpp", "double energy(double e,double flux,double dt) {return e-flux*dt;}\n"),
+    ("m.f90", "function energy(e,flux,dt) result(out)\nreal::e,flux,dt,out\nout=e-flux*dt\nend function\n"),
+    ("m.m", "function out = energy(e,flux,dt)\nout = e-flux*dt;\nend\n"),
+    ("m.pyx", "cdef double energy(double e,double flux,double dt):\n    return e-flux*dt\n"),
+])
+def test_native_inspection_retains_calculations(store, name, code):
+    (store.root / name).write_text(code)
+    result = store.inspect(name)
+    assert result["quantities_and_expressions"]
+    assert "flux" in json.dumps(result)
+
+
+def test_discovery_does_not_require_a_language_frontend(store):
+    (store.root / "model.jl").write_text("energy(e, flux, dt) = e - flux * dt\n")
+    store.prepare()
+    assert any(m["target"].startswith("model.jl:") for m in store.find("energy")["matches"])
+    result = store.inspect("model.jl", "source")
+    assert result["source"]["source_kind"] == "code"
+    assert "e - flux * dt" in result["source"]["quote"]
+    structure = store.inspect("model.jl")
+    assert not structure["analysis_backends"]
+    assert "source_only_language" in json.dumps(structure["coverage"])
+
+
+def test_expand_later_expression_id_shows_that_expression(store):
+    (store.root / "many.py").write_text("def f(x):\n" + "".join(f"    y{i}=x+{i}\n" for i in range(20)) + "    return y19\n")
+    first = store.inspect("many.py#f")
+    second = store.inspect("many.py#f", offset=first["next_offset"])
+    target = next(e["id"] for e in second["quantities_and_expressions"] if e.get("kind") == "source_computation")
+    expanded = store.inspect(target)
+    assert target in {e["id"] for e in expanded["quantities_and_expressions"]}
+
+
+def test_document_paging_preserves_long_documents_and_lines(store):
+    content = "x" * 25000 + "\n" + "\n".join(f"line {i}" for i in range(150))
+    (store.root / "long.md").write_text(content)
+    pieces, offset = [], 0
+    while True:
+        result = store.inspect("long.md", offset=offset)
+        assert len(result["source"]["quote"]) <= 8000
+        pieces.append(result["source"]["quote"])
+        offset = result["next_offset"]
+        if offset is None:
+            break
+    assert "".join(pieces) == content
+
+
+def test_changed_code_cannot_be_recorded_from_stale_inspection(store):
+    model = model_from(store.inspect("model.py#advance"), store.inspect("paper.md"))
+    path = store.root / "model.py"
+    path.write_text(path.read_text().replace("flux * dt", "flux * dt * 2"))
+    with pytest.raises(ValueError, match="not recorded"):
+        store.record_model(model)
+    assert not store.state["model_recorded"]
+
+
+def test_broken_python_remains_readable(store):
+    (store.root / "broken.py").write_text("def broken(:\n")
+    result = store.inspect("broken.py", "source")
+    assert "def broken(" in result["source"]["quote"]
+    assert result["source"]["source_kind"] == "code"
+    assert store.inspect("broken.py")["computations"]
+
+
+def test_wrong_qualified_owner_is_not_resolved_by_leaf_name(store):
+    (store.root / "m.py").write_text("class Actual:\n    def solve(self,x):\n        return x*2\n")
+    assert store.inspect("m.py#Nonexistent.solve")["status"] == "ambiguous_target"
+    assert store.inspect("m.py#Actual.solve")["status"] == "ok"
+
+
+def test_large_embedded_literal_template_is_expandable_not_dumped(store):
+    (store.root / "m.py").write_text("import numpy as np\ndef f():\n    return np.array(" + repr(list(range(10000))) + ")\n")
+    result = store.inspect("m.py#f")
+    assert any(t.get("structure_not_inlined") for t in result["templates"])
+    assert len(json.dumps(result)) < 30000

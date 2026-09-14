@@ -1,62 +1,44 @@
-# Scientific interpretation contract
+# Interactive scientific tool contract
 
-One active response format: object-enrichment-2.0. The code graph remains scientific-objects-1.0;
-that is not the retired annotation schema. Old runs remain in their artifacts and frozen Git revisions.
+One repair agent builds its own scientific working model from code-owned, source-linked evidence.
+The mandatory separate interpretation pass is retired.
 
-## One representation, linked views
+## Tool interface
+science(action, ...) supports:
+- find(query, offset): ranked public-source/document matches and explicit paging.
+- inspect(target, view, offset): relationships, definitions or literal source. Targets are returned
+  IDs, relative paths, path:line or path#symbol. Ambiguity is reported; missing owners are not guessed.
+- record_model(model): purpose, computations, expected_change and preserve, with source citations.
+  Computations carry meanings, selected expression/quantity IDs, conventions and assumptions.
 
-1. **Evidence on disk:** original packet, code-owned objects and selected Joern analysis.
-2. **Structural view:** task-rooted source statements and explicit dependency closure; ordered
-   expression templates with distinct occurrence bindings, result targets, conditions and source IDs.
-   Source-level Joern dependence edges retain their properties. Ambiguous dispatch stays unresolved.
-3. **Reading view:** scientific-reading.md shows those same computations, quantity definitions,
-   exact source excerpts and relationships. Both providers use this view, not the raw CPG JSON.
-4. **Repair view:** scientific-model.json plus one inline guide joining the selected source
-   expressions and scientific interpretations. The guide contains actual calculation expressions,
-   not just prose or a graph-file pointer.
+The existing source-cited model schema is reused for this record; its format name does not imply a
+separate LLM call. Aim for roughly400words. No hidden per-claim character cap is imposed.
 
-Python uses its AST; native languages use the existing Tree-sitter/Cython expression records.
-No source is executed by this projection. Templates factor ordered syntax—not scientific/value
-equality. Operand order, indices, coefficients, keyword names and compound-update operators remain.
-Nested Python binding constructs retain their original spelling instead of unsafe alpha-renaming.
-Large literal tables become source-linked data records; symbolic initializer dependencies remain.
+Initially only the science tool is advertised and callable. Ordinary shell tools become available
+after a valid record_model result. Dispatch checks the actual tool name and current gate state,
+including multiple tool calls returned in one model turn. Failed records leave the gate closed;
+failure of a later revision does not pretend that revision was saved.
 
-Predicate sources and guard links stay with their statements. Resolved definition/condition
-references are closed again when assembling a selected computation. Unavailable bindings stay
-explicitly unresolved; source excerpts do not imply complete implementation coverage.
-Identical documentation text may be shared while retaining each source origin.
+## Scientific evidence
+Code derives source expressions, quantities, bindings and controlling predicates. Joern adds
+targeted data/control-flow information when available. Source/analyzer identities are scoped to the
+source version; cached analysis is not a global namespace. Fortran/MATLAB/Cython use their existing
+frontends; unsupported structure remains source-linked and explicit.
 
-## Scientific interpretation
+Default answers are small views. Source/document pages use character offsets; relationship pages
+use expression offsets. Large source/template text is explicitly expandable rather than dumped or
+silently treated as complete. Parser-size limits are reported. Full source remains in the task repo.
 
-The short prompt requests source-cited task purpose, up to six relevant computations, selected
-source-expression IDs, quantity meanings, conventions and assumptions. The LLM chooses and
-interprets existing structure; it cannot supply graph edges, dimensions, probes or patches.
+Different invocations retain their bindings. Shared syntax does not imply equal values. A current
+model cannot silently combine stale source versions. Code excerpts are distinguished from documents;
+documented requirements and current implementation behaviour must not be conflated.
 
-Assembly checks field types, IDs, expression membership and source existence. It joins actual
-code relationships without changing them. Citation validity is NOT proof that a scientific
-interpretation follows from the cited source; live output review remains necessary.
+## Artifacts and interpretation boundary
+The tool records query payloads, visible source identities, model revisions and a readable model.
+The host preserves model submission and tool-result trajectories. All preparation, science queries,
+reasoning and repair count in the task allowance. Cached input and reasoning tokens are subsets,
+not additional tokens to double count.
 
-Only this schema is accepted. Malformed output stays a recorded failure; there is no flat
-annotation salvage, legacy renderer or code-only science-to-baseline fallback.
-
-## Size and delivery
-
-Full evidence is not deleted to satisfy the model-input check. The projection removes parser
-scaffolding and shares expression identity first; the transport check applies to the actual
-reading view afterward. The model's explanation is requested in fewer than700 words.
-
-The repair guide carries purpose, selected code computations, quantity meanings, conventions,
-assumptions and source-level predicates. Conditions describe program behaviour, not automatically
-required scientific laws. One complete computation is always shown; the display target is9,000
-characters. Additional joined content remains in scientific-model.json.
-
-## Verification
-
-Tests cover shared syntax with different bindings, noncommutative nesting, coefficients/indices,
-updates, nested scopes, symbolic tables, guards across frontends, transitive joins and actual
-provider/helper/collection/controller delivery. Historical readers may still inspect old results;
-they are not alternative execution paths.
-
-The five-input offline replay measures representation size, determinism and closed references.
-It does not establish LLM scientific correctness or improved repair. Actual interpretation quality,
-then observed repair use and matched outcomes, remain the scientific acceptance checks.
+Reference validity is not scientific entailment. The checkpoint demonstrates an observable
+source-linked model-building step, not internal understanding. Development review checks whether
+the scientific relationships are correct/useful and whether repair follows them.

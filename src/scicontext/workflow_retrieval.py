@@ -15,7 +15,14 @@ MAX_REFERENCES = 128
 MAX_DEPTH = 3
 
 
-def retrieve(root, paths, seed_paths, task_text=""):
+def retrieve(root, paths, seed_paths, task_text="", executed=()):
+    """Lexical workflow retrieval; `executed` seeds traced (path, qualname) pairs.
+
+    Executed definitions are explored first so their statically resolvable
+    callees are reported with call sites even when ordinary reproducer
+    retrieval cannot reach them (modules passed as arguments, instance
+    attributes bound in __init__). This remains lexical analysis.
+    """
     sources = sorted(p for p in paths if source_language(p))
     cache, references, unresolved = {}, [], []
     queue, visited, reference_keys = deque(), {}, {}
@@ -93,6 +100,8 @@ def retrieve(root, paths, seed_paths, task_text=""):
             for child in expression:
                 yield from calls_in(child)
 
+    for path, symbol in executed:
+        enqueue(path, symbol, 0, "executed_function")
     for path in sorted(seed_paths, key=lambda p: (not Path(p).stem.startswith("repro"), p)):
         enqueue(path, None, 0, "public_workflow")
     for name in re.findall(r"`([A-Za-z_]\w*)`", task_text[:65536]):

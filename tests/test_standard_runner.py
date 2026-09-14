@@ -112,53 +112,6 @@ def test_launcher_replaces_pier_bypass_only_for_extraction(tmp_path, stage):
     assert not ("--sandbox" in actual and "--dangerously-bypass-approvals-and-sandbox" in actual)
 
 
-@pytest.mark.parametrize("architecture,expected", [("aarch64", "arm64"), ("arm64", "arm64"), ("x86_64", "x64")])
-def test_setup_uses_native_extractor_asset_and_keeps_x64_repair(tmp_path, monkeypatch, architecture, expected):
-    import scicontext.pier_agent as module
-    packages = {}
-    for arch in ("arm64", "x64"):
-        package = tmp_path / arch / "package"
-        package.mkdir(parents=True)
-        (package.parent / "receipt.json").write_text(json.dumps({"architecture": arch}))
-        packages[arch] = package
-    prepared = []
-    def assets(cache, arch):
-        prepared.append(arch)
-        return packages[arch]
-    monkeypatch.setattr(module, "prepare_codex", assets)
-    monkeypatch.setattr(module, "prepare_helpers", lambda *args: tmp_path)
-    monkeypatch.setattr(module.subprocess, "run", lambda *args, **kwargs:
-                        SimpleNamespace(stdout=f"8589934592 4 {architecture}"))
-    task = SimpleNamespace(workdir="/app/task_058", docker_image="pinned@sha256:fixture", memory_mb=8192)
-    task.model_copy = lambda **kwargs: task
-    class Docker:
-        def __init__(self, **kwargs):
-            self.task_env_config = task
-            self.environment_dir = tmp_path
-            self.environment_name = "fixture"
-            self.session_id = "fixture"
-            self.default_user = None
-        async def start(self, **kwargs):
-            pass
-    monkeypatch.setattr(module, "DockerEnvironment", Docker)
-    d = SimpleNamespace(logs_dir=tmp_path / "logs", condition="science", workspace=tmp_path,
-                        config=SimpleNamespace(codex_version="0.153.4", extraction_seconds=360),
-                        extraction_model_seconds=None, frozen_source=None, network_allowlist=lambda: None)
-    d.checked = AsyncMock(side_effect=["312", "base-commit"])
-    staged = []
-    async def setup_stage(environment, stage):
-        staged.append((stage, d.extract_codex_package if stage == "extract" else d.codex_package))
-    d._setup_environment = setup_stage
-    asyncio.run(ScientificCodex.setup(d, Docker()))
-    assert staged == [("repair", packages["x64"]), ("extract", packages[expected])]
-    assert prepared == (["x64", "arm64"] if expected == "arm64" else ["x64"])
-    receipt = json.loads((d.logs_dir / "setup.json").read_text())
-    assert receipt["harness_architecture"] == "x64"
-    assert receipt["extraction_harness_architecture"] == expected
-    assert receipt["extraction_access_mode"] == "read-only"
-    assert receipt["extraction_codex_receipt"]["architecture"] == expected
-    assert receipt["interpretation_cap_seconds"] == 225
-    assert receipt["extractor"] == "scientific_model_v2"
 
 
 @pytest.mark.parametrize("model_cap", [None, 360])

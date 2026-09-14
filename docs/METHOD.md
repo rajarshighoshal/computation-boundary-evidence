@@ -72,106 +72,56 @@ The following are mechanisms to borrow, not evidence that our method works.
   our repair effect. This observation is based on the publisher's abstract, not a full-paper audit.
   [NIST publication record](https://www.nist.gov/publications/agentic-ai-assisted-coding-offers-unique-opportunity-instill-epistemic-grounding-during).
 
-## Implemented pipeline; scientific quality remains to be evaluated
+## Current method: interactive scientific understanding
 
-1. **Recover the task's computational core.** Start from public task references and workflow
-   entry/output points. Retain the relevant implementation computations, operand relationships
-   and controlling conditions using the existing analyzers. An available source file is not
-   automatically a relevant computation. External calls remain interfaces unless their bodies
-   are the repair target.
+Preparation indexes public files and supplies a small task map. It does not run the reproducer,
+build the project, call an interpretation model, or analyze the whole repository. One continuous
+repair agent constructs and uses its scientific working model through three tool actions:
 
-2. **Connect scientific definitions to that core.** Present the relevant definitions,
-   parameter/return documentation and scientific passages beside the code-owned relationships.
-   The LLM explains what the quantities and transformations mean and identifies the supporting
-   passages. Keep intended behaviour, observed execution and interpretive assumptions distinct.
-   An existing object ID proves an anchor exists; it does not prove the explanation is true.
+1. `find` discovers scientific terms, symbols and source locations across public text, without a
+   language whitelist. `inspect` returns targeted source, definitions or computational relationships.
+   Queries can be expanded rather than replaced by a whole-graph prompt.
+2. Existing parsers supply quantities, ordered source-expression templates, separate call/operand
+   bindings and controlling conditions. Joern runs on demand for an installed matching frontend.
+   Its selected method AST and data/control-flow facts enter the same representation. External
+   dispatch candidates remain candidates; library implementations are not recursively expanded.
+3. The agent interprets those relationships using source and public definitions. `record_model`
+   saves the scientific object/goal, governing relationships, code correspondence, expected change
+   and behaviour to preserve. Claims cite inspected sources; unresolved questions remain explicit.
+   A valid record unlocks ordinary repair tools in the same conversation and task container.
+4. The agent repairs, checks the result and can query evidence or revise the model. All preparation,
+   queries, reasoning and repair share the same total allowance as the ordinary baseline.
 
-3. **Compact by shared identity and retained distinctions.** A known function definition can be
-   represented once with separate call bindings. Repeated references to the same documented
-   quantity can share its definition while retaining different uses. Do not merge quantities
-   just because their names or embeddings are similar. Keep conditions, operand roles, units,
-   coordinate frames and normalization attached to the relationship they qualify.
-   Missing identities stay separate rather than becoming invented equivalences.
+Compactness comes from shared expression structure and source identities, with distinct bindings,
+indices, coefficients, evaluation order and conditions retained. Paging controls presentation;
+raw evidence remains retrievable. Similar names or observed statistics never establish equality.
+The working model is a source-linked interpretation, not a proven scientific specification.
+Reference validation does not judge the truth of its scientific claims.
 
-   The implemented sharing includes ordered source-expression templates with distinct bindings.
-   Operators, indices, coefficients, updates and conditions remain per source occurrence. This
-   identifies common computational structure, not equality of values or scientific concepts.
+### Language support
 
-4. **Deliver one small connected working model.** Explain the task objective and the relevant
-   input → computation → output relationships with scientific interpretations and source pointers.
-   The durable artifact retains details for targeted lookup. Do not force repair to mine a
-   whole-repository JSON graph. Render the retained relationships, not merely the first eight
-   individually annotated objects.
+The common representation and query interface are language-independent; analysis depth is not.
+Python uses its AST, and C/C++, Fortran, MATLAB and Cython use the existing native frontends.
+Joern adds structural analysis for supported installed frontends, including languages beyond
+that local parser set. Other readable source remains discoverable and inspectable as source,
+with unsupported structural analysis recorded explicitly. This is not full dataflow coverage
+for every language. Joern's capabilities are described in its [official documentation](https://docs.joern.io/).
 
-For the user's clique-counting example, the core would describe what is counted, how work is
-partitioned and combined, and any documented correctness/performance requirements. Network
-contention is a diagnosis only if supported by evidence. A target such as x/N + c remains a
-stated performance model with assumptions, not a universal scientific law.
+For the clique-counting example, a useful model would state what is counted, how work is partitioned
+and combined, and documented correctness/performance requirements. Network contention needs evidence;
+the target x/N + c is a stated performance model with assumptions, not a universal law.
 
-This is an adaptation of existing ideas to a particular repair question. Novelty and usefulness
-must be established through the actual representation and comparison; neither is assumed.
+### Comparison and checks
 
-## What currently exists
+The ordinary baseline has no added model-building gate. This comparison tests the complete added
+workflow, not the isolated effect of its representation or planning requirement. The split and
+approved five-task pilot are fixed in [RESEARCH_PLAN.md](../RESEARCH_PLAN.md).
 
-- Public-source readers, Python/native syntax backends, workflow/task-reference retrieval,
-  code objects and candidate relationships, execution observations and an anchored LLM schema.
-- Joern now exports selected enclosing-method ASTs and direct boundary facts, using its own
-  dataflow/control-flow overlays. The query reads the CPG without persistence and visits incident
-  edges rather than copying every edge. Parsing/loading still scales with the staged source graph;
-  export budgets are not a bound on the analyzer's total working memory.
-- One-hop local document links now enter scientific-mode selection. Exact local Python imports
-  can survive discovery limits. Both retrievers' references now affect file selection/allocation.
-  These changes improve source delivery; per-file limits can still truncate computations.
-- The input retains structured argument/branch roles and summarizes ambiguous boundary dispatch
-  as alternative target sets with counts and artifact lookups. It does not turn hundreds of static
-  candidates into hundreds of presumed executions or choose an arbitrary target. All candidates
-  remain in the selected analysis artifact. Duplicate code text and artificial source locations
-  on edge records were removed. Whole-method omissions remain explicit when analyzer export limits
-  bind. The raw evidence is no longer pruned by the interpreter's transport allowance.
-- A source-level projection replaces the low-level graph dump. Task regions and explicit
-  definition/guard dependencies select statements; parser-backed templates share ordered syntax
-  while preserving separate bindings. Large tables become data records, not thousands of operations.
-  One readable input and one repair guide are views of the same structured representation.
-- The 2.0 interpreter returns task purpose and selected computation meanings, quantity meanings,
-  conventions and assumptions. Claims cite supplied source IDs. Code joins these interpretations
-  to recorded member/boundary entities and relationships; it does not accept LLM-authored edges.
-- The connected model is delivered as scientific-model.json. Its guide presents the scientific
-  explanation with selected source expressions, references and code predicates, preserving a displayed computation's
-  conditions and assumptions. The real collection/controller path delivers it once. The deleted
-  SymPy/computation layer has not been restored. See [the current contract](OBJECT_ENRICHMENT.md).
+Unit tests and no-model checks establish source/relationship delivery, paging, saved-model identity
+and tool ordering. Real repair trials must establish scientific correctness/usefulness and actual
+use. Inspect the pre-edit models and trajectories before interpreting paired verifier outcomes,
+total tokens and runtime. Broken delivery is not a clean negative test of the research question.
 
-The repair model, tools and configured allowances remain unchanged. No new paid experiment,
-compiler-IR pipeline, API-rule catalogue or platform dependency was introduced by this checkpoint.
-The context format/prompt is a method revision. Host and guest now both use frozen code, and missing
-scientific context cannot silently fall back to an unassisted repair labelled as science.
-
-Offline receipts: [source selection](../results/source-selection-review-2026-09-14.json) and
-[selected analyzer export](../results/selected-export-review-2026-09-14.json). The latter checks
-two preserved real-task CPGs and existing Python/C++/JavaScript fixtures. Task 091's selected
-from_cube computation reaches the assembled input; other method omissions remain in the receipt.
-Task 058 replays its old, workflow-heavy selection, not newly recovered OpenMC science. These
-checks establish source/relationship delivery, not scientific correctness or model-provider fit.
-The [connected-model receipt](../results/connected-science-review-2026-09-14.json) additionally records
-compilation of all five archived development inputs and a source-grounded rendering fixture for 091.
-The fixture's interpretation is manually supplied, not an automatic extraction result.
-
-The subsequent live five-task check at50000be delivered zero usable models: four responses were
-rejected by the hidden purpose-length limit and091 exhausted reasoning output. Its very large
-inputs and unsupported058 diagnosis motivated this source-level revision. These are implementation
-failures, not evidence against the research hypothesis. Old annotation fallback, renderer, probe-first
-replay scripts and unused SymPy dependencies are now removed; historical run data is preserved.
-
-## Verification required before another live run
-
-First establish that source selection retains the actual scientific computations and their
-documented conventions on development cases. Preserve contrary cases: identical vocabulary
-with different conditions, repeated calls with different bindings, and incidental numeric code.
-Inspect the assembled model input and repair guide, not just intermediate graphs.
-
-Then verify the bounded analyzer-to-context path with existing real source artifacts and an
-independent reviewer. Synthetic annotations can test plumbing, not scientific interpretation.
-A separately approved live extraction must show accurate, useful scientific content before
-another repair comparison. Paired verifier outcomes, total tokens and time remain the eventual
-repair measures. Broken delivery is not a clean negative test of the research question.
-
-Current milestone status and receipts are recorded only in [WORK_LOG.md](../WORK_LOG.md).
+The retired separate-interpreter, probe-first and graph-dump experiments remain historical records,
+not results of this method. Novelty and repair benefit are not established. Current progress and
+verification receipts are recorded only in [WORK_LOG.md](../WORK_LOG.md).

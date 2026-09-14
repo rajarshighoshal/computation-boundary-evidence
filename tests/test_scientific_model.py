@@ -111,39 +111,6 @@ def test_real_assembly_helper_uses_supplied_citations(case, tmp_path, capsys):
     assert "outward transport" in result["handoff"]
 
 
-def test_real_collection_and_controller_deliver_science_once(case, tmp_path):
-    graph, view, response = case
-    bundle = object_bundle(graph, response, view)
-    class Environment:
-        def __init__(self): self.uploaded = {}
-        async def download_dir(self, remote, local): local.mkdir(parents=True, exist_ok=True)
-        async def download_file(self, remote, local): write_json(local, bundle)
-        async def upload_file(self, local, remote): self.uploaded[remote] = local.read_text()
-    env = Environment()
-    driver = SimpleNamespace(extract_environment=env, environment=env, logs_dir=tmp_path / "logs",
-        root="/app/task_synthetic", task_id="synthetic", _selected_remote="/bundle.json")
-    driver.logs_dir.mkdir()
-    handoff = asyncio.run(ScientificCodex.collect_graph(driver, 20))
-    assert "/opt/scicontext/context/scientific-model.json" in env.uploaded
-    assert json.loads(env.uploaded["/opt/scicontext/context/scientific-model.json"])["computations"]
-    assert "outward transport" in handoff["guide_markdown"]
-    assert "outward transport" not in handoff["handoff"]  # Pointer, not a second inline guide.
-    class Trial:
-        async def run_stage(self, name, prompt, seconds):
-            if name == "repair": self.prompt = prompt
-            return {"status": "completed"}
-        async def collect_graph(self, seconds): return handoff
-        async def finish_extraction(self): pass
-        async def cleanup(self): pass
-    trial = Trial()
-    result = asyncio.run(run_trial(trial, TrialConfig(total_seconds=30, extraction_seconds=15),
-        "synthetic", "science", "Repair the material calculation.", tmp_path / "trial"))
-    assert result["status"] == "completed"
-    assert trial.prompt.startswith("Repair the material calculation.")
-    assert trial.prompt.count("Track stored material under outward transport.") == 1
-    assert "README.md:1" in trial.prompt and "Code relationships:" in trial.prompt
-
-
 def test_guide_keeps_conditions_and_assumptions_with_each_displayed_computation(case):
     graph, view, response = case
     c = response["computations"][0]
@@ -188,75 +155,6 @@ def test_long_valid_computation_is_not_silently_reduced_to_a_file_pointer(case):
     assert "Subtract the transported amount" in bundle["handoff"]
     assert all(f"IMPORTANT {i}" in bundle["handoff"] for i in range(4))
     assert "Code predicate: result < 0" in bundle["handoff"]
-
-
-def test_codex_response_and_direct_prompt_keep_connected_envelope(case, tmp_path):
-    graph, view, response = case
-    class Driver:
-        workspace = Path(__file__).resolve().parent.parent
-        frozen_source = None
-        extraction_model_seconds = None
-        root = "/app/task_synthetic"
-        logs_dir = tmp_path
-        extract_environment = object()
-        async def _run_codex(self, name, prompt, seconds):
-            assert '"schema_version":"object-enrichment-2.0"' in prompt
-            assert "scientific-reading.md" in prompt
-            write_json(tmp_path / "extract_draft-final.txt", response)
-            return {"status": "completed"}
-        async def _put(self, environment, name, text, destination): self.saved = json.loads(text)
-    driver = Driver()
-    result = asyncio.run(ScientificCodex._interpret_call(driver, "Repair stored material", 60))
-    assert result["annotations_status"] == "received" and driver.saved == response
-
-
-def test_shared_provider_preparation_builds_compact_reading_input(case, tmp_path, monkeypatch):
-    graph, view, response = case
-    # Exercise the real preparation method, mocking only container transfer and
-    # the already separately tested analyzer subprocess.
-    raw = enrichment_input(graph, build_packet(tmp_path, multilingual=True))
-    class Environment:
-        async def download_file(self, remote, local):
-            if remote.endswith("scientific-context-input.json"):
-                write_json(local, raw)
-            else:
-                local.write_bytes((tmp_path / remote.rsplit("/", 1)[-1]).read_bytes())
-        async def upload_file(self, local, remote):
-            if remote.endswith(".json"):
-                self.uploaded = json.loads(local.read_text())
-            else:
-                self.reading = local.read_text()
-    class Process:
-        async def wait(self): return 0
-    async def process(*args, **kwargs):
-        output = Path(args[args.index("--output") + 1])
-        write_json(output / "receipt.json", {"analyses": [], "gaps": []})
-        return Process()
-    monkeypatch.setattr(asyncio, "create_subprocess_exec", process)
-    env = Environment()
-    driver = SimpleNamespace(logs_dir=tmp_path, extract_environment=env, root="/app/task_synthetic")
-    asyncio.run(ScientificCodex._augment_source_analysis(driver))
-    assert env.uploaded["schema_version"] == "scientific-reading-2.0"
-    assert env.uploaded["computations"] and env.uploaded["sources"]
-    assert "flux * duration" in env.reading
-    assert (tmp_path / "source-analysis/evidence-input.json").is_file()
-
-
-def test_missing_scientific_model_never_runs_a_silent_baseline(tmp_path):
-    class Trial:
-        requires_scientific_model = True
-        calls = []
-        async def run_stage(self, name, prompt, seconds):
-            self.calls.append(name)
-            return {"status": "completed"}
-        async def collect_graph(self, seconds): return None
-        async def finish_extraction(self): pass
-        async def cleanup(self): pass
-    trial = Trial()
-    with pytest.raises(RuntimeError, match="No scientific model was delivered"):
-        asyncio.run(run_trial(trial, TrialConfig(total_seconds=30, extraction_seconds=15),
-            "synthetic", "science", "Repair", tmp_path / "trial"))
-    assert trial.calls == ["extract"]
 
 
 def test_distinct_conventions_remain_with_their_own_computation(case):

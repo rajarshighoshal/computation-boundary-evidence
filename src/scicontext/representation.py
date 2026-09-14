@@ -185,12 +185,14 @@ def reading_input(payload):
                 document_duplicates[passage["id"]] = document_ids[text]
                 sources[document_ids[text]].setdefault("additional_origins", []).append(
                     {k: passage[k] for k in ("id", "path", "sha256", "start_line", "end_line") if k in passage})
+                source(passage, "document")
+                sources[passage["id"]]["text_duplicate_of"] = document_ids[text]
                 continue
             document_ids[text] = passage["id"]
             source(passage, "document")
     # Explanatory docstrings and interfaces remain attached to their actual site.
     for record in passages.values():
-        if record.get("kind") in {"docstring", "signature", "parameter"}:
+        if record.get("kind") in {"docstring", "signature", "parameter", "source_excerpt"}:
             source(record)
     for obj in payload.get("objects", []):
         if obj.get("kind") != "code_interface" and not obj.get("symbol"):
@@ -342,6 +344,7 @@ def reading_input(payload):
     return {"schema_version": READING_VERSION, "computations": list(definitions.values()),
         "entities": list(entities.values()), "templates": list(templates.values()), "relations": relations,
         "sources": list(sources.values()), "observations": copy.deepcopy(context.get("observations", [])),
+        "execution": copy.deepcopy(context.get("execution", {})),
         "coverage": {"projection": "Ordered source-expression templates with scoped bindings; shared syntax is not value equality.",
             "source_expressions": len(expressions), "shared_templates": len(templates), "data_initializers": len(data_ids),
             "task_slice_entries": len(passages), "available_entries": len(all_passages),
@@ -364,6 +367,9 @@ def render_reading(view):
     sources = {s["id"]: s for s in view["sources"]}
     entities = {e["id"]: e for e in view["entities"]}
     lines = ["# Task evidence", ""]
+    if view.get("execution"):
+        lines += ["Reproduction/coverage: " + json_text(view["execution"]),
+                  "Executed source is evidence of activity, not proof of scientific correctness.", ""]
     for source in sources.values():
         if source["kind"] == "document":
             lines += [f"[{source['id']}] {source['path']}:{source.get('start_line', '?')}", source["text"], ""]

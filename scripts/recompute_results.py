@@ -204,8 +204,12 @@ def reconstruct_row(root, receipt):
         "over_budget_seconds": overrun,
         "official_reward": value, "public": public, "private": private,
         "exact_private_success": exact_success(private, statuses, (directory / FILES[2]).exists(), xml_error),
-        "matched_test_outcomes": matched, "development_exposed": task in ("002", "077") or data.get("development_exposed") is True,
-        "prior_private_test_exposure": task == "002", "diagnostics": sorted(problems),
+        "matched_test_outcomes": matched,
+        "development_exposed": (data.get("development_exposed") is True if data.get("exposure_policy") == "explicit_split_v1"
+                                else task in ("002", "077") or data.get("development_exposed") is True),
+        "prior_private_test_exposure": (data.get("prior_private_test_exposure") is True if data.get("exposure_policy") == "explicit_split_v1" else task == "002"),
+        "exposure_policy": data.get("exposure_policy", "legacy"), "evaluation_partition": data.get("evaluation_partition"),
+        "diagnostics": sorted(problems),
         "artifact_sha256": {file: hashlib.sha256((directory / file).read_bytes()).hexdigest() if (directory / file).is_file() else None for file in FILES},
     })
     return row
@@ -302,7 +306,10 @@ def recompute(root):
     pairs = reconstruct_pairs(rows)
     return {
         "schema_version": "1.0", "task_ids": sorted({row["task_id"] for row in rows}),
-        "exposure": {"development_tasks": sorted({"002", "077"} | {row["task_id"] for row in rows if row["development_exposed"]}), "prior_private_test_exposure": ["002"]},
+        "exposure": {"development_tasks": sorted(({"002", "077"} if any(r["exposure_policy"] == "legacy" for r in rows) else set()) |
+                       {row["task_id"] for row in rows if row["development_exposed"]}),
+                     "prior_private_test_exposure": sorted(({"002"} if any(r["exposure_policy"] == "legacy" for r in rows) else set()) |
+                       {row["task_id"] for row in rows if row["prior_private_test_exposure"]})},
         "trials": rows, "pairs": pairs,
         "metrics": {"all": compute_metrics(rows, pairs), "untouched": compute_metrics([row for row in rows if not row["development_exposed"]], [pair for pair in pairs if not pair["development_exposed"]])},
     }

@@ -42,6 +42,7 @@ def read_usage(path: Path) -> dict:
     seen = 0
     malformed = 0
     reasoning = []
+    cache_complete = True
     if path.is_file():
         with path.open(errors="replace") as stream:
             for line in stream:
@@ -52,12 +53,18 @@ def read_usage(path: Path) -> dict:
                     continue
                 if event.get("type") == "turn.completed" and isinstance(event.get("usage"), dict):
                     usage = event["usage"]
-                    if all(type(usage.get(k)) is int and usage[k] >= 0 for k in totals):
-                        for key in totals:
+                    if all(type(usage.get(k)) is int and usage[k] >= 0 for k in ("input_tokens", "output_tokens")):
+                        for key in ("input_tokens", "output_tokens"):
                             totals[key] += usage[key]
+                        if type(usage.get("cached_input_tokens")) is int and usage["cached_input_tokens"] >= 0:
+                            totals["cached_input_tokens"] += usage["cached_input_tokens"]
+                        else:
+                            cache_complete = False
                         value = usage.get("reasoning_output_tokens")
                         reasoning.append(value if type(value) is int and 0 <= value <= usage["output_tokens"] else None)
                         seen += 1
+    if not cache_complete:
+        totals["cached_input_tokens"] = None
     return {**(totals if seen else {k: None for k in totals}), "completed_turns": seen,
             "reasoning_output_tokens": sum(reasoning) if reasoning and all(v is not None for v in reasoning) else None,
             "malformed_log_lines": malformed, "accounting": "completed_turn_events_only"}
@@ -134,49 +141,18 @@ async def run_trial(driver: Driver, config: TrialConfig, task_id: str, condition
     handoff = None
     try:
         if condition == "science":
-            # Flexible budgets give extraction the whole window (usage is then a
-            # reported outcome); fixed budgets keep the extraction carve-out.
-            extraction_deadline = (min(deadline, started + config.extraction_seconds) if not config.flexible_budget
-                                   else deadline)
-            extraction_result = None
-            # Reserve a bounded portion for deterministic validation/copy/cleanup.
-            reserve = min(60.0, (config.extraction_seconds if not config.flexible_budget else config.total_seconds) / 6)
-            try:
-                try:
-                    extraction_result = await stage("extract", instruction, max(0.001, extraction_deadline - time.monotonic() - reserve))
-                except asyncio.TimeoutError:
-                    record["extraction_status"] = "timeout"
-                # A final answer may be missing while an early checkpoint is
-                # perfectly usable. Validation uses only the reserved time.
-                # Artifact transfer must leave time for the ordinary container
-                # shutdown as well; it cannot consume the whole reserve.
-                shutdown_reserve = min(20.0, (config.extraction_seconds if not config.flexible_budget else config.total_seconds) / 12)
-                left = extraction_deadline - time.monotonic() - shutdown_reserve
-                if left > 0:
-                    handoff = await asyncio.wait_for(driver.collect_graph(left), timeout=left)
-            except asyncio.TimeoutError:
-                record["extraction_status"] = "timeout"
-            finally:
-                try:
-                    await asyncio.wait_for(driver.finish_extraction(),
-                                           timeout=max(.001, extraction_deadline - time.monotonic()))
-                except asyncio.TimeoutError:
-                    record["extraction_status"] = "shutdown_timeout"
-                    raise
-            if time.monotonic() > extraction_deadline:
-                handoff = None
-                record["extraction_status"] = "budget_exceeded"
-            if handoff is not None:
-                record["graph_sha256"] = handoff["graph_sha256"]
-                record["extraction_status"] = "usable_graph"
-                record["graph_coverage"] = handoff.get("analysis", {}).get("coverage", {})
-                write_json(output / "graph-bundle.json", handoff)
-            else:
-                record.setdefault("extraction_status", "no_valid_graph")
+            prepared = await stage("prepare", instruction, max(0.001, deadline - time.monotonic()))
+            if prepared.get("status") != "completed":
+                raise RuntimeError("Scientific source preparation failed")
+            handoff = await asyncio.wait_for(driver.collect_graph(max(0.001, deadline-time.monotonic())),
+                                             timeout=max(0.001, deadline-time.monotonic()))
+            if handoff is None:
+                raise RuntimeError("Science tool preparation did not produce a usable index")
+            record["graph_sha256"] = handoff["graph_sha256"]
+            record["extraction_status"] = "prepared_index"
+            record["graph_coverage"] = handoff.get("analysis", {}).get("coverage", {})
+            write_json(output / "graph-bundle.json", handoff)
             save()
-            if (getattr(driver, "_fatal_model_error", False)
-                    or extraction_result and extraction_result.get("fatal_model_error")):
-                raise RuntimeError("Extraction model execution failed; inspect per-call receipts. No further model call was started.")
         remaining = deadline - time.monotonic()
         if extraction_only:
             record["status"] = "completed"
@@ -194,6 +170,7 @@ async def run_trial(driver: Driver, config: TrialConfig, task_id: str, condition
                     prompt += "\n\n" + guide
                 prompt += "\n" + handoff["handoff"]
             result = await stage("repair", prompt, remaining)
+            record["scientific_model_recorded"] = result.get("scientific_model_recorded")
             if result.get("fatal_model_error") or getattr(driver, "_fatal_model_error", False):
                 raise RuntimeError("Repair model execution failed; inspect this attempt's receipt.")
             record["status"] = result.get("status", "completed")
@@ -210,7 +187,7 @@ async def run_trial(driver: Driver, config: TrialConfig, task_id: str, condition
         raise
     finally:
         try:
-            cleanup_deadline = min(deadline, started + config.extraction_seconds) if extraction_only else deadline
+            cleanup_deadline = deadline
             await asyncio.wait_for(driver.cleanup(), timeout=min(20.0, max(.001, cleanup_deadline - time.monotonic())))
         except Exception as error:
             record["status"] = "infrastructure_failure"

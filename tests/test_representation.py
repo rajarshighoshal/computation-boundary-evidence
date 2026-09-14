@@ -133,8 +133,9 @@ def test_duplicate_document_text_retains_distinct_origins():
     view = reading_input({"context": {"scientific_passages": [
         {"id": "a", "path": "paper.md", "quote": "Same text"},
         {"id": "b", "path": "task.md", "quote": "Same text"}]}})
-    assert len(view["sources"]) == 1
+    assert len(view["sources"]) == 2  # Supplied citation identities must remain valid.
     assert view["sources"][0]["additional_origins"] == [{"id": "b", "path": "task.md"}]
+    assert view["sources"][1]["text_duplicate_of"] == "a"
 
 
 def test_task_slice_follows_definitions_but_not_unrelated_inventory(tmp_path):

@@ -260,6 +260,9 @@ def _reconcile_trial(output: Path, item: dict, budget: TrialConfig, task_row: di
                        "environment_image": expected_image, "verifier_image": task_row["verifier_image"],
                        "experiment_kind": plan["kind"], "orchestration_status": status,
                        "development_exposed": item["task_id"] in config.get("development_task_ids", ["002", "077"]),
+                       **({"exposure_policy": "explicit_split_v1",
+                           "prior_private_test_exposure": item["task_id"] in config.get("extra_private_diagnostic_exposure_task_ids", []),
+                           "evaluation_partition": config["study_partition"]} if config.get("study_split") else {}),
                        **{key: plan[key] for key in ("implementation_revision", "implementation_dirty", "uv_lock_sha256", "prompt_sha256")}})
         if "execution_policy" in plan:
             record["execution_policy"] = plan["execution_policy"]
@@ -279,7 +282,7 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
     if smoke and extraction_only:
         raise ValueError("Choose subscription smoke or extraction-only verification, not both")
     config = read_json(config_path)
-    if config.get("extractor", "scientific_objects") != "scientific_objects":
+    if config.get("extractor", "scientific_objects") not in {"scientific_objects", "interactive_science"}:
         raise ValueError("Unknown extraction method")
     budget = TrialConfig(config["model"], config["reasoning_effort"], config["codex_version"],
                          config["total_seconds"], config["extraction_seconds"],
@@ -311,6 +314,16 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
         draw = read_json(manifest_path)
         if digest_file(manifest_path) != config["sampling_manifest_sha256"] or draw["task_ids"] != ids or draw["condition_order"] != config["condition_order"]:
             raise ValueError("Frozen sampling manifest differs from the comparison config")
+    if config.get("study_split"):
+        split_path = workspace / config["study_split"]
+        split = read_json(split_path)
+        partition = config.get("study_partition")
+        field = {"development": "development_task_ids", "locked_evaluation": "locked_evaluation_task_ids"}.get(partition)
+        if (not field or digest_file(split_path) != config.get("study_split_sha256")
+                or not set(ids) <= set(split[field])
+                or config.get("development_task_ids") != split["development_task_ids"]
+                or config.get("extra_private_diagnostic_exposure_task_ids", []) != split["extra_private_diagnostic_exposure_task_ids"]):
+            raise ValueError("Configuration differs from the frozen study split")
     if receipt["release_commit"] != config["release_commit"] or receipt["dataset_revision"] != config["dataset_revision"]:
         raise ValueError("Configuration and restored release revisions differ")
     selected = Path(receipt["selection_path"])
@@ -366,12 +379,8 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
         if not deepseek_key:
             raise ValueError("DEEPSEEK_API_KEY is not set for the deepseek agent route")
     output.mkdir(parents=True)
-    # Docker's predefined address pools exhaust after many runs (each attempt
-    # creates fresh networks). Prune unused networks and stopped containers;
-    # running attempts are unaffected.
-    if not smoke:
-        subprocess.run(["docker", "network", "prune", "-f"], capture_output=True, check=False)
-        subprocess.run(["docker", "container", "prune", "-f"], capture_output=True, check=False)
+    # Per-attempt teardown owns its containers and networks. Do not prune
+    # unrelated stopped containers or networks when starting a study.
     frozen_source = _snapshot_frozen_source(workspace, output)
     plan["frozen_source"] = frozen_source
     plan["started_at"] = utc_now()
@@ -693,12 +702,12 @@ def main(argv: list[str] | None = None) -> int:
     objects.add_argument("--llm-input", type=Path, help="Save the scientific context payload for interpretation")
     run = subs.add_parser("pilot", help="Print schedule; --execute runs the approved development pilot")
     run.add_argument("--workspace", type=Path, default=_workspace())
-    run.add_argument("--config", type=Path, default=_workspace() / "configs/pilot.json")
+    run.add_argument("--config", type=Path, default=_workspace() / "configs/interactive-five.json")
     run.add_argument("--output", type=Path, required=True)
     run.add_argument("--auth-file", type=Path)
     run.add_argument("--execute", action="store_true")
     run.add_argument("--smoke", action="store_true")
-    run.add_argument("--extract-only", action="store_true", help="Verify only extraction on configured development tasks; no repair or private verifier")
+    run.add_argument("--extract-only", "--prepare-only", action="store_true", help="Verify only source preparation; no model, repair or private verifier")
     for name in ("packet", "assemble-objects"):
         subs.add_parser(name, help="Offline extraction helper; use command --help")
     args = parser.parse_args(argv)

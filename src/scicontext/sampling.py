@@ -3,6 +3,33 @@ from __future__ import annotations
 
 import hashlib
 
+DEVELOPMENT_ANCHORS = ("001", "002", "004", "009", "010", "016", "019", "025", "051", "058", "077", "091", "114")
+INTERACTIVE_SEED = "interactive-science-v1-20260914"
+
+
+def split_tasks(rows, seed=INTERACTIVE_SEED, count=30):
+    by_id = {r["task_id"]: r for r in rows}
+    if len(by_id) != len(rows) or not set(DEVELOPMENT_ANCHORS) <= by_id.keys() or count < len(DEVELOPMENT_ANCHORS):
+        raise ValueError("Invalid population or development size")
+    eligible = [t for t, r in by_id.items() if t not in DEVELOPMENT_ANCHORS
+                and str(r.get("restricted_license", "false")).lower() == "false"
+                and r.get("license_gate", "none") == "none"]
+    rank = lambda t: hashlib.sha256((seed + ":" + t).encode()).hexdigest()
+    drawn = sorted(eligible, key=lambda t: (rank(t), t))[:count-len(DEVELOPMENT_ANCHORS)]
+    if len(drawn) + len(DEVELOPMENT_ANCHORS) != count:
+        raise ValueError("Not enough eligible development tasks")
+    development = sorted([*DEVELOPMENT_ANCHORS, *drawn])
+    evaluation = sorted(set(by_id) - set(development))
+    order = {t: (["science", "baseline"] if int(rank(t), 16) % 2 else ["baseline", "science"]) for t in by_id}
+    return {"schema_version": "study-split-1.0", "seed": seed,
+            "algorithm": "Known design cases plus first remaining unrestricted IDs by SHA256(seed:task_id)",
+            "development_task_ids": development, "locked_evaluation_task_ids": evaluation,
+            "design_case_anchors": list(DEVELOPMENT_ANCHORS), "random_development_task_ids": drawn,
+            "condition_order": order,
+            "restricted_task_ids": sorted(t for t, r in by_id.items() if str(r.get("restricted_license", "false")).lower() != "false"),
+            "missing_source_commit_task_ids": sorted(t for t, r in by_id.items() if not str(r.get("base_commit") or "").strip()),
+            "policy": "Prior pipeline runs are recorded separately; no outcome-based replacement or claim of historically untouched evaluation."}
+
 
 def select_tasks(rows: list[dict], seed: str, count: int = 5,
                  excluded: tuple[str, ...] = ("002", "077")) -> dict:

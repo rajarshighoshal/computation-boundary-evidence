@@ -21,7 +21,6 @@ from pier.models.trial.paths import TrialPaths
 from .assets import prepare_codex, prepare_helpers
 from .configuration import codex_config
 from .controller import TrialConfig, read_usage, run_trial, verify_smoke
-from .extraction import extraction_reserve, run_extraction
 from .io import digest_file, read_json, write_json
 
 REMOTE = "/opt/scicontext"
@@ -113,9 +112,11 @@ class ScientificCodex(BaseAgent):
             raise ValueError("Unknown experiment condition")
         if codex_version != "0.153.4":
             raise ValueError("This experiment pins Codex 0.153.4")
-        if extractor != "scientific_objects":
+        if extractor not in {"scientific_objects", "interactive_science"}:
             raise ValueError("Only the scientific-objects extractor is supported")
         self.condition = condition
+        if condition == "science" and not getattr(self, "interactive_science", False):
+            raise ValueError("The active scientific-tool experiment uses DeepSeekAgent; separate Codex extraction is retired")
         self.requires_scientific_model = condition == "science"
         self.extraction_model_seconds = float(extraction_model_seconds) if extraction_model_seconds is not None else None
         if self.extraction_model_seconds is not None and not (0 < self.extraction_model_seconds < float("inf")):
@@ -206,17 +207,6 @@ class ScientificCodex(BaseAgent):
         self.helper_deps = await asyncio.to_thread(prepare_helpers, self.workspace / ".cache", pyminor)
         self._baseline_tree = (await self.checked(environment, "git rev-parse HEAD", cwd=self.root)).strip()
         await self._setup_environment(environment, "repair")
-        if self.condition == "science":
-            self.extract_environment = DockerEnvironment(
-                environment_dir=environment.environment_dir,
-                environment_name=environment.environment_name + "-extract",
-                session_id=environment.session_id + "-extract",
-                trial_paths=TrialPaths(trial_dir=self.logs_dir.parent / "extraction_environment"),
-                task_env_config=environment.task_env_config.model_copy(deep=True),
-                network_allowlist=self.network_allowlist(), default_user=environment.default_user,
-            )
-            await self.extract_environment.start(force_build=False)
-            await self._setup_environment(self.extract_environment, "extract")
         write_json(self.logs_dir / "setup.json", {
             "codex_version": self.config.codex_version, "harness_architecture": "x64",
             "scientific_image_architecture": "amd64", "environment_image": environment.task_env_config.docker_image,
@@ -229,9 +219,7 @@ class ScientificCodex(BaseAgent):
             "extraction_harness_architecture": self.extraction_architecture,
             "extraction_access_mode": "read-only" if self.condition == "science" else None,
             "extraction_codex_receipt": read_json(self.extract_codex_package.parent / "receipt.json") if self.extract_codex_package else None,
-            "interpretation_cap_seconds": (self.config.extraction_seconds - min(60, self.config.extraction_seconds / 6)
-                - extraction_reserve(self.config.extraction_seconds - min(60, self.config.extraction_seconds / 6))),
-            "revision_policy": "one_scientific_interpretation_call; no probe/refinement loop",
+            "revision_policy": "ordinary_codex_baseline",
             "python_minor": pyminor, "baseline_tree": self._baseline_tree,
             "docker_memory_bytes": int(info[0]), "docker_cpus": int(info[1]),
             "task_requested_memory_mb": environment.task_env_config.memory_mb,
@@ -241,184 +229,10 @@ class ScientificCodex(BaseAgent):
         })
 
     async def run_stage(self, name, instruction, seconds):
-        if name == "extract":
-            self._selected_remote = None
-            try:
-                result = await run_extraction(self, instruction, seconds)
-            except asyncio.CancelledError:
-                write_json(self.logs_dir / "extraction-phases.json", {
-                    "status": "interrupted", "model_calls": getattr(self, "extraction_model_calls", []),
-                    "phases": getattr(self, "extraction_phases", [])})
-                raise
-            write_json(self.logs_dir / "extraction-phases.json", result)
-            return result
+        if name != "repair":
+            raise RuntimeError("Interactive scientific preparation uses DeepSeekAgent")
         prompt = instruction + f"\n\nTime allowance remaining: at most {max(1, int(seconds))} seconds."
         return await self._run_codex(name, prompt, seconds)
-
-    async def _helper(self, command, seconds):
-        bounded = f"timeout --signal=TERM --kill-after=2s {max(.05, seconds - 3)}s bash -c {shlex.quote(command)}"
-        output = await self.checked(self.extract_environment, bounded, cwd=REMOTE,
-                                    timeout_sec=max(1, math.ceil(seconds)))
-        return json.loads(output)
-
-    async def prepare(self, seconds):
-        # Science arm: observe the public reproducer first (the trace is the
-        # evidence layer), then build the static packet, then merge the
-        # execution-derived constraint loci into the graph and the enrichment
-        # input. A failed trace never blocks the static pipeline.
-        if self.condition == "science" and seconds >= 60:
-            try:
-                await self._helper(
-                    f"{HELPER} trace --root {self.root} --script {self.root}/reproduce.py --out {SCRATCH}/trace "
-                    f"--seconds {max(10.0, seconds * 0.5)} --observe --shims-dir {REMOTE}/src/scicontext/shims/out",
-                    max(15.0, seconds * 0.55))
-            except Exception as error:
-                # A failed trace (missing reproduce.py, crashed script, etc.)
-                # degrades to static-only extraction; the attempt continues.
-                write_json(self.logs_dir / "trace-failure.json",
-                           {"status": "failed", "error": f"{type(error).__name__}: {error}"})
-        result = await self._helper(
-            f"{HELPER} packet --root {self.root} --context-root {REMOTE}/context --task-id {self.task_id} "
-            f"--output {SCRATCH}/packet.json --catalog {SCRATCH}/catalog.md "
-            f"--objects-output {SCRATCH}/scientific-objects.json --enrichment-input {SCRATCH}/scientific-context-input.json",
-            max(10.0, seconds * 0.4))
-        if self.condition == "science" and seconds >= 60:
-            try:
-                await self._helper(
-                    f"{HELPER} merge-dynamic --root {self.root} --graph {SCRATCH}/scientific-objects.json "
-                    f"--packet {SCRATCH}/packet.json --trace-out {SCRATCH}/trace "
-                    f"--output {SCRATCH}/scientific-objects.json "
-                    f"--enrichment-input {SCRATCH}/scientific-context-input.json",
-                    max(10.0, seconds * 0.2))
-            except Exception:
-                pass
-        return result
-
-    async def interpret(self, instruction, seconds):
-        started = time.monotonic()
-        await self._augment_source_analysis()
-        return await self._interpret_call(instruction, max(1, seconds - (time.monotonic() - started)))
-
-    async def _augment_source_analysis(self):
-        """Run installed analyzers on the host against the exact public source slice."""
-        import sys
-        from . import evidence
-        from .source_backends import attach_source_analysis
-        local = self.logs_dir / "source-analysis"
-        local.mkdir(parents=True, exist_ok=True)
-        input_file = local / "input.json"
-        await self.extract_environment.download_file(SCRATCH + "/scientific-context-input.json", input_file)
-        payload = read_json(input_file)
-        if not payload.get("context"):
-            return
-        root = local / "source"
-        paths = sorted({item["path"] for key in ("function_bodies", "code_passages", "analysis_sources")
-                        for item in payload["context"].get(key, []) if item.get("path")
-                        and item.get("analyzer") != "joern" and not item["path"].startswith("@context/")})
-        for path in paths:
-            if evidence._blocked(Path(path)) or Path(path).is_absolute() or ".." in Path(path).parts:
-                raise ValueError("Invalid public analysis path")
-            destination = root / path
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            await self.extract_environment.download_file(self.root + "/" + path, destination)
-            expected = {item["sha256"] for key in ("function_bodies", "code_passages", "analysis_sources")
-                        for item in payload["context"].get(key, []) if item.get("path") == path and item.get("sha256")}
-            if expected and expected != {digest_file(destination)}:
-                raise ValueError("Analysis source differs from the extracted source: " + path)
-        output = local / "backend"
-        command = [sys.executable, "-m", "scicontext.source_backends", "--root", str(root),
-                   "--output", str(output), "--input", str(input_file)]
-        with (local / "backend.log").open("w") as log:
-            process = await asyncio.create_subprocess_exec(*command, stdout=log,
-                        stderr=asyncio.subprocess.STDOUT, start_new_session=True)
-            try:
-                code = await process.wait()
-            except asyncio.CancelledError:
-                import os, signal
-                try:
-                    os.killpg(process.pid, signal.SIGTERM)
-                    await asyncio.wait_for(process.wait(), 3)
-                except asyncio.TimeoutError:
-                    os.killpg(process.pid, signal.SIGKILL)
-                    await process.wait()
-                except ProcessLookupError:
-                    pass
-                raise
-            if code:
-                raise RuntimeError(f"Source analysis exited {code}; see {local / 'backend.log'}")
-        result = read_json(output / "receipt.json")
-        payload = attach_source_analysis(payload, result)
-        write_json(local / "evidence-input.json", payload)
-        from .scientific_model import reading_input
-        payload = reading_input(payload)
-        write_json(input_file, payload)
-        from .representation import render_reading
-        reading_file = local / "scientific-reading.md"
-        reading_file.write_text(render_reading(payload))
-        from .object_context import ENRICHMENT_MAX_BYTES
-        compiled_bytes = reading_file.stat().st_size
-        write_json(local / "reading-input-receipt.json", {"schema_version": payload["schema_version"],
-            "format": "source-level-reading-text", "structured_view_bytes": input_file.stat().st_size,
-            "serialized_bytes": compiled_bytes, "max_bytes": ENRICHMENT_MAX_BYTES,
-            "within_input_budget": compiled_bytes <= ENRICHMENT_MAX_BYTES})
-        if compiled_bytes > ENRICHMENT_MAX_BYTES:
-            raise ValueError("Compiled scientific input exceeds its allowance; see " + str(input_file))
-        await self.extract_environment.upload_file(input_file, SCRATCH + "/scientific-context-input.json")
-        await self.extract_environment.upload_file(reading_file, SCRATCH + "/scientific-reading.md")
-        self._source_analysis_file = output / "receipt.json"
-
-    async def _interpret_call(self, instruction, seconds):
-        now = datetime.now(timezone.utc)
-        clock = lambda duration: (now + timedelta(seconds=max(0, duration))).strftime("%H:%M:%S UTC")
-        prompt_file = (self.frozen_source / "prompts" / "enrich_objects.md") if self.frozen_source else (self.workspace / "prompts/enrich_objects.md")
-        template = prompt_file.read_text()
-        # Prompt milestones are earlier soft targets, not extra process cutoffs.
-        # Allow for the existing CLI collection/termination work when reporting
-        # the actual time available to the model, including small test budgets.
-        model_seconds = max(0.0, seconds - min(10.0, seconds / 5)
-                            - min(3.0, seconds / 10) - min(1.0, seconds / 10))
-        if self.extraction_model_seconds is not None:
-            model_seconds = min(model_seconds, self.extraction_model_seconds)
-        prompt = template.format(root=self.root, scratch=SCRATCH, runtime=CONTROL,
-                                 seconds=max(1, int(model_seconds)), explore_until=clock(model_seconds * .60),
-                                 save_by=clock(model_seconds * .80), finish_by=clock(model_seconds * .95),
-                                 instruction=instruction)
-        prompt += (f"\n\nRead {SCRATCH}/scientific-reading.md. Task root: {self.root}. "
-                   "Return the JSON response; the caller saves it. Access is read-only.")
-        result = await self._run_codex("extract_draft", prompt, seconds)
-        if result.get("fatal_model_error"):
-            return result
-        # Codex returns one compact JSON response; orchestration owns file writes.
-        try:
-            final_path = self.logs_dir / "extract_draft-final.txt"
-            if final_path.stat().st_size > 65536:
-                raise ValueError("Compact annotations exceed 64 KiB")
-            annotations = read_json(final_path)
-        except (OSError, ValueError) as error:
-            # File persistence belongs to the caller, not the read-only model.
-            result.update(annotations_status="no_valid_annotations", annotations_error=str(error))
-            write_json(self.logs_dir / "extract_draft-process.json", result)
-            return result
-        if result.get("status") == "completed":
-            self._annotations_remote = SCRATCH + "/extract_draft-annotations.json"
-            await self._put(self.extract_environment, "extract_draft-annotations.json", json.dumps(annotations),
-                            self._annotations_remote)
-        result["annotations_status"] = "received"
-        return result
-
-    async def assemble(self, seconds):
-        sequence = getattr(self, "_assembly_sequence", 0) + 1
-        self._assembly_sequence = sequence
-        target = CONTROL + f"/assembly-{sequence}.json"
-        annotations = getattr(self, "_annotations_remote", SCRATCH + "/extract_draft-annotations.json")
-        result = await self._helper(
-            f"{HELPER} assemble-objects --graph {SCRATCH}/scientific-objects.json "
-            f"--annotations {annotations} --context-input {SCRATCH}/scientific-context-input.json --output {target}", seconds)
-        if result.get("usable"):
-            self._selected_remote = target
-        result["artifact"] = target
-        write_json(self.logs_dir / f"assembly-{sequence}.json", result)
-        return result
 
     async def _run_codex(self, name, prompt, seconds):
         started = time.monotonic()
@@ -509,54 +323,8 @@ class ScientificCodex(BaseAgent):
             raise asyncio.CancelledError
         return result
 
-    async def collect_graph(self, seconds):
-        environment = self.extract_environment
-        await environment.download_dir(SCRATCH, self.logs_dir / "extract-scratch")
-        await environment.download_dir(self.root + "/outputs", self.logs_dir / "extract-outputs")
-        if not self._selected_remote:
-            return None
-        selected = self.logs_dir / "compiled-graph.json"
-        await environment.download_file(self._selected_remote, selected)
-        bundle = read_json(selected)
-        if bundle["graph"]["task_id"] != self.task_id:
-            return None
-        if not bundle["assembly"]["usable"]:
-            return None
-        if bundle["graph"].get("schema_version") == "scientific-objects-1.0":
-            from .object_context import render_guide
-            from .io import digest_json
-            files = {
-                "scientific-graph.json": json.dumps(bundle["graph"], ensure_ascii=False) + "\n",
-                "scientific-guide.md": render_guide(bundle["graph"]),
-                "scientific-sources.json": json.dumps(bundle.get("context"), ensure_ascii=False) + "\n",
-            }
-            if bundle["graph"].get("scientific_model"):
-                files["scientific-model.json"] = json.dumps(bundle["graph"]["scientific_model"], ensure_ascii=False) + "\n"
-            if getattr(self, "_source_analysis_file", None):
-                files["source-analysis.json"] = self._source_analysis_file.read_text()
-            for name, text in files.items():
-                local = self.logs_dir / name
-                local.write_text(text, encoding="utf-8")
-                await self.environment.upload_file(local, REMOTE + "/context/" + name)
-            bundle["handoff_files"] = {name: REMOTE + "/context/" + name for name in files}
-            bundle["guide_markdown"] = files["scientific-guide.md"]
-            bundle["handoff"] = (
-                "The connected scientific model is /opt/scicontext/context/scientific-model.json; "
-                "look up a computation ID there when needed. Use its cited implementation locations to inspect relevant code."
-                if "scientific-model.json" in files else
-                "The complete object graph is /opt/scicontext/context/scientific-graph.json and the public "
-                "source passages are /opt/scicontext/context/scientific-sources.json; look objects up by ID "
-                "when you need their full relationships.")
-            write_json(self.logs_dir / "handoff-files.json", {
-                "paths": bundle["handoff_files"], "graph_sha256": digest_json(bundle["graph"]),
-                "file_bytes": {name: len(text.encode("utf-8")) for name, text in files.items()},
-            })
-        return bundle
-
     async def finish_extraction(self):
-        if self.extract_environment and not self._finished_extraction:
-            await self.extract_environment.stop(delete=False)
-            self._finished_extraction = True
+        pass
 
     async def cleanup(self):
         await self.finish_extraction()
@@ -567,7 +335,8 @@ class ScientificCodex(BaseAgent):
         try:
             record = await run_trial(self, self.config, self.task_id, self.condition, instruction, self.logs_dir.parent,
                                      extraction_only=self.extraction_only)
-            record.update({"harness_architecture": "x64", "execution": "upstream_pier_codex_docker_boundary",
+            record.update({"harness_architecture": "host_api" if getattr(self, "interactive_science", False) else "x64",
+                           "execution": "host_api_with_in_container_tools" if getattr(self, "interactive_science", False) else "upstream_pier_codex_docker_boundary",
                            "environment_image": environment.task_env_config.docker_image,
                            "experiment_kind": "extraction_verification" if self.extraction_only else "subscription_smoke" if self.smoke else "development_pilot"})
             if self.smoke:

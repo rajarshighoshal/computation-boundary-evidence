@@ -1,0 +1,717 @@
+{
+  "algorithm": "Known design cases plus first remaining unrestricted IDs by SHA256(seed:task_id)",
+  "condition_order": {
+    "001": [
+      "science",
+      "baseline"
+    ],
+    "002": [
+      "baseline",
+      "science"
+    ],
+    "003": [
+      "baseline",
+      "science"
+    ],
+    "004": [
+      "baseline",
+      "science"
+    ],
+    "005": [
+      "science",
+      "baseline"
+    ],
+    "006": [
+      "science",
+      "baseline"
+    ],
+    "007": [
+      "science",
+      "baseline"
+    ],
+    "008": [
+      "science",
+      "baseline"
+    ],
+    "009": [
+      "baseline",
+      "science"
+    ],
+    "010": [
+      "science",
+      "baseline"
+    ],
+    "011": [
+      "science",
+      "baseline"
+    ],
+    "012": [
+      "science",
+      "baseline"
+    ],
+    "013": [
+      "baseline",
+      "science"
+    ],
+    "014": [
+      "science",
+      "baseline"
+    ],
+    "015": [
+      "science",
+      "baseline"
+    ],
+    "016": [
+      "science",
+      "baseline"
+    ],
+    "017": [
+      "baseline",
+      "science"
+    ],
+    "018": [
+      "baseline",
+      "science"
+    ],
+    "019": [
+      "baseline",
+      "science"
+    ],
+    "020": [
+      "baseline",
+      "science"
+    ],
+    "021": [
+      "baseline",
+      "science"
+    ],
+    "022": [
+      "baseline",
+      "science"
+    ],
+    "023": [
+      "science",
+      "baseline"
+    ],
+    "024": [
+      "science",
+      "baseline"
+    ],
+    "025": [
+      "baseline",
+      "science"
+    ],
+    "026": [
+      "baseline",
+      "science"
+    ],
+    "027": [
+      "science",
+      "baseline"
+    ],
+    "028": [
+      "science",
+      "baseline"
+    ],
+    "029": [
+      "science",
+      "baseline"
+    ],
+    "030": [
+      "science",
+      "baseline"
+    ],
+    "031": [
+      "baseline",
+      "science"
+    ],
+    "032": [
+      "science",
+      "baseline"
+    ],
+    "033": [
+      "science",
+      "baseline"
+    ],
+    "034": [
+      "baseline",
+      "science"
+    ],
+    "035": [
+      "science",
+      "baseline"
+    ],
+    "036": [
+      "science",
+      "baseline"
+    ],
+    "037": [
+      "science",
+      "baseline"
+    ],
+    "038": [
+      "science",
+      "baseline"
+    ],
+    "039": [
+      "baseline",
+      "science"
+    ],
+    "040": [
+      "baseline",
+      "science"
+    ],
+    "041": [
+      "baseline",
+      "science"
+    ],
+    "042": [
+      "baseline",
+      "science"
+    ],
+    "043": [
+      "science",
+      "baseline"
+    ],
+    "044": [
+      "science",
+      "baseline"
+    ],
+    "045": [
+      "baseline",
+      "science"
+    ],
+    "046": [
+      "science",
+      "baseline"
+    ],
+    "047": [
+      "baseline",
+      "science"
+    ],
+    "048": [
+      "science",
+      "baseline"
+    ],
+    "049": [
+      "baseline",
+      "science"
+    ],
+    "050": [
+      "science",
+      "baseline"
+    ],
+    "051": [
+      "baseline",
+      "science"
+    ],
+    "052": [
+      "science",
+      "baseline"
+    ],
+    "053": [
+      "baseline",
+      "science"
+    ],
+    "054": [
+      "baseline",
+      "science"
+    ],
+    "055": [
+      "baseline",
+      "science"
+    ],
+    "056": [
+      "science",
+      "baseline"
+    ],
+    "057": [
+      "science",
+      "baseline"
+    ],
+    "058": [
+      "science",
+      "baseline"
+    ],
+    "059": [
+      "science",
+      "baseline"
+    ],
+    "060": [
+      "science",
+      "baseline"
+    ],
+    "061": [
+      "science",
+      "baseline"
+    ],
+    "062": [
+      "science",
+      "baseline"
+    ],
+    "063": [
+      "science",
+      "baseline"
+    ],
+    "064": [
+      "science",
+      "baseline"
+    ],
+    "065": [
+      "science",
+      "baseline"
+    ],
+    "066": [
+      "baseline",
+      "science"
+    ],
+    "067": [
+      "baseline",
+      "science"
+    ],
+    "068": [
+      "science",
+      "baseline"
+    ],
+    "069": [
+      "science",
+      "baseline"
+    ],
+    "070": [
+      "science",
+      "baseline"
+    ],
+    "071": [
+      "science",
+      "baseline"
+    ],
+    "072": [
+      "science",
+      "baseline"
+    ],
+    "073": [
+      "science",
+      "baseline"
+    ],
+    "074": [
+      "baseline",
+      "science"
+    ],
+    "075": [
+      "science",
+      "baseline"
+    ],
+    "076": [
+      "baseline",
+      "science"
+    ],
+    "077": [
+      "science",
+      "baseline"
+    ],
+    "078": [
+      "baseline",
+      "science"
+    ],
+    "079": [
+      "baseline",
+      "science"
+    ],
+    "080": [
+      "science",
+      "baseline"
+    ],
+    "081": [
+      "science",
+      "baseline"
+    ],
+    "082": [
+      "science",
+      "baseline"
+    ],
+    "083": [
+      "science",
+      "baseline"
+    ],
+    "084": [
+      "science",
+      "baseline"
+    ],
+    "085": [
+      "science",
+      "baseline"
+    ],
+    "086": [
+      "baseline",
+      "science"
+    ],
+    "087": [
+      "science",
+      "baseline"
+    ],
+    "088": [
+      "baseline",
+      "science"
+    ],
+    "089": [
+      "science",
+      "baseline"
+    ],
+    "090": [
+      "baseline",
+      "science"
+    ],
+    "091": [
+      "science",
+      "baseline"
+    ],
+    "092": [
+      "science",
+      "baseline"
+    ],
+    "093": [
+      "baseline",
+      "science"
+    ],
+    "094": [
+      "baseline",
+      "science"
+    ],
+    "095": [
+      "baseline",
+      "science"
+    ],
+    "096": [
+      "baseline",
+      "science"
+    ],
+    "097": [
+      "science",
+      "baseline"
+    ],
+    "098": [
+      "baseline",
+      "science"
+    ],
+    "099": [
+      "baseline",
+      "science"
+    ],
+    "100": [
+      "baseline",
+      "science"
+    ],
+    "101": [
+      "baseline",
+      "science"
+    ],
+    "102": [
+      "science",
+      "baseline"
+    ],
+    "103": [
+      "baseline",
+      "science"
+    ],
+    "104": [
+      "science",
+      "baseline"
+    ],
+    "105": [
+      "science",
+      "baseline"
+    ],
+    "106": [
+      "science",
+      "baseline"
+    ],
+    "107": [
+      "science",
+      "baseline"
+    ],
+    "108": [
+      "science",
+      "baseline"
+    ],
+    "109": [
+      "baseline",
+      "science"
+    ],
+    "110": [
+      "science",
+      "baseline"
+    ],
+    "111": [
+      "baseline",
+      "science"
+    ],
+    "112": [
+      "science",
+      "baseline"
+    ],
+    "113": [
+      "science",
+      "baseline"
+    ],
+    "114": [
+      "baseline",
+      "science"
+    ],
+    "115": [
+      "science",
+      "baseline"
+    ],
+    "116": [
+      "baseline",
+      "science"
+    ],
+    "117": [
+      "science",
+      "baseline"
+    ],
+    "118": [
+      "science",
+      "baseline"
+    ],
+    "119": [
+      "science",
+      "baseline"
+    ]
+  },
+  "dataset_revision": "d8bdbcb4ecb2b565686382459c815d2b6291fd31",
+  "design_case_anchors": [
+    "001",
+    "002",
+    "004",
+    "009",
+    "010",
+    "016",
+    "019",
+    "025",
+    "051",
+    "058",
+    "077",
+    "091",
+    "114"
+  ],
+  "development_task_ids": [
+    "001",
+    "002",
+    "004",
+    "005",
+    "006",
+    "008",
+    "009",
+    "010",
+    "014",
+    "016",
+    "019",
+    "024",
+    "025",
+    "027",
+    "028",
+    "045",
+    "051",
+    "058",
+    "061",
+    "070",
+    "073",
+    "076",
+    "077",
+    "078",
+    "080",
+    "091",
+    "099",
+    "104",
+    "114",
+    "119"
+  ],
+  "extra_private_diagnostic_exposure_task_ids": [
+    "001"
+  ],
+  "historical_pipeline_activity": {
+    "attempted_repair_task_ids": [
+      "001",
+      "002",
+      "003",
+      "004",
+      "005",
+      "006",
+      "007",
+      "008",
+      "009",
+      "010",
+      "011",
+      "012",
+      "013",
+      "014",
+      "015",
+      "016",
+      "017",
+      "018",
+      "019",
+      "020",
+      "021",
+      "022",
+      "023",
+      "024",
+      "025",
+      "026",
+      "027",
+      "028",
+      "029",
+      "030"
+    ],
+    "extraction": "All119 had earlier pipeline runs; this is not private-test leakage or automatic design use.",
+    "repair_schedule": "runs/full-119-repair/schedule.json",
+    "repair_schedule_sha256": "0cbc8ad740f27db61f40420e151ef93cadba2f95559e8421a58689f766dbf7bc"
+  },
+  "locked_evaluation_task_ids": [
+    "003",
+    "007",
+    "011",
+    "012",
+    "013",
+    "015",
+    "017",
+    "018",
+    "020",
+    "021",
+    "022",
+    "023",
+    "026",
+    "029",
+    "030",
+    "031",
+    "032",
+    "033",
+    "034",
+    "035",
+    "036",
+    "037",
+    "038",
+    "039",
+    "040",
+    "041",
+    "042",
+    "043",
+    "044",
+    "046",
+    "047",
+    "048",
+    "049",
+    "050",
+    "052",
+    "053",
+    "054",
+    "055",
+    "056",
+    "057",
+    "059",
+    "060",
+    "062",
+    "063",
+    "064",
+    "065",
+    "066",
+    "067",
+    "068",
+    "069",
+    "071",
+    "072",
+    "074",
+    "075",
+    "079",
+    "081",
+    "082",
+    "083",
+    "084",
+    "085",
+    "086",
+    "087",
+    "088",
+    "089",
+    "090",
+    "092",
+    "093",
+    "094",
+    "095",
+    "096",
+    "097",
+    "098",
+    "100",
+    "101",
+    "102",
+    "103",
+    "105",
+    "106",
+    "107",
+    "108",
+    "109",
+    "110",
+    "111",
+    "112",
+    "113",
+    "115",
+    "116",
+    "117",
+    "118"
+  ],
+  "missing_source_commit_task_ids": [
+    "005",
+    "015",
+    "017",
+    "038",
+    "063"
+  ],
+  "policy": "Prior pipeline runs are recorded separately; no outcome-based replacement or claim of historically untouched evaluation.",
+  "random_development_task_ids": [
+    "006",
+    "073",
+    "005",
+    "045",
+    "076",
+    "099",
+    "078",
+    "014",
+    "024",
+    "027",
+    "080",
+    "104",
+    "061",
+    "070",
+    "119",
+    "028",
+    "008"
+  ],
+  "release_commit": "42e7e97915ff7d73436a5d37b5cbe6b77e9c2a00",
+  "release_receipt": "data/full-119-release.json",
+  "release_receipt_sha256": "6fe1d6f3ee60b501b7a19879277ea3fe3e2a92fa7bc643e816684885bb8ce297",
+  "restricted_task_ids": [
+    "003",
+    "019",
+    "020",
+    "021",
+    "023",
+    "026",
+    "032",
+    "035",
+    "057",
+    "066",
+    "074",
+    "075",
+    "082",
+    "083",
+    "084",
+    "085",
+    "096",
+    "097",
+    "098",
+    "100",
+    "101",
+    "102",
+    "118"
+  ],
+  "schema_version": "study-split-1.0",
+  "seed": "interactive-science-v1-20260914"
+}

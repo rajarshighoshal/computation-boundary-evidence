@@ -79,6 +79,16 @@ def test_explicit_development_exposure_is_not_reported_as_untouched(tmp_path):
     assert summary["metrics"]["untouched"]["conditions"]["baseline"]["attempts"] == 0
 
 
+def test_new_split_exposure_is_explicit_not_hardcoded(tmp_path):
+    trial(tmp_path, task="001", exposure_policy="explicit_split_v1", development_exposed=True,
+          prior_private_test_exposure=True, evaluation_partition="development")
+    trial(tmp_path, task="002", exposure_policy="explicit_split_v1", development_exposed=False,
+          prior_private_test_exposure=False, evaluation_partition="locked_evaluation")
+    result = assert_independent(tmp_path)
+    assert result["exposure"] == {"development_tasks": ["001"], "prior_private_test_exposure": ["001"]}
+    assert [r["development_exposed"] for r in result["trials"]] == [True, False]
+
+
 def test_official_reward_and_exact_private_success_are_separate(tmp_path):
     trial(tmp_path, success=False, reward_value=1.0)
     trial(tmp_path, condition="science", success=True, reward_value=0.75)

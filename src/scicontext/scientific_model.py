@@ -38,8 +38,7 @@ def join(graph, response, context):
                 "boundary_ids": sorted({r[k] for r in links for k in ("source", "target")} - {identifier})}
     validator = Draft202012Validator(schema())
     envelope = {**response, "computations": []} if isinstance(response, dict) else response
-    if (not validator.is_valid(envelope) or not isinstance(response.get("computations"), list)
-            or len(response["computations"]) > 6):
+    if not validator.is_valid(envelope) or not isinstance(response.get("computations"), list):
         report["dropped"].append({"reason": "invalid_scientific_model_envelope"})
         return result
 
@@ -47,6 +46,10 @@ def join(graph, response, context):
         return all(identifier in sources for identifier in claim["source_ids"])
 
     purpose = response["purpose"] if grounded(response["purpose"]) else None
+    outcome_claims = ([response["expected_change"]] if response.get("expected_change") else []) + response.get("preserve", [])
+    if not all(grounded(claim) for claim in outcome_claims):
+        report["dropped"].append({"reason": "unanchored_outcome_citation"})
+        return result
     if purpose is None:
         report["dropped"].append({"reason": "unanchored_purpose_citation"})
     accepted, seen = [], set()
@@ -93,6 +96,8 @@ def join(graph, response, context):
     member_ids = {identifier for c in accepted for identifier in c["entity_ids"] + c["boundary_ids"]}
     link_ids = {identifier for c in accepted for identifier in c["relation_ids"]}
     cited = set(purpose["source_ids"] if purpose else [])
+    for claim in outcome_claims:
+        cited.update(claim["source_ids"])
     for c in accepted:
         cited.update(c["source_ids"])
         item = c["interpretation"]
@@ -101,11 +106,13 @@ def join(graph, response, context):
     for identifier in member_ids:
         cited.update(entities[identifier].get("source_ids", []))
     result["scientific_model"] = {"schema_version": MODEL_VERSION, "purpose": copy.deepcopy(purpose),
+        "expected_change": copy.deepcopy(response.get("expected_change")), "preserve": copy.deepcopy(response.get("preserve", [])),
         "computations": accepted, "entities": [entities[i] for i in sorted(member_ids)],
         "templates": [t for t in view.get("templates", []) if t["id"] in
                       {entities[i].get("template_id") for i in member_ids}],
         "relations": [r for r in view["relations"] if r["id"] in link_ids],
         "sources": [sources[i] for i in sorted(cited)], "observations": copy.deepcopy(view["observations"]),
+        "execution": copy.deepcopy(view.get("execution", {})),
         "coverage": view["coverage"], "validation": "IDs and citations checked; scientific entailment is not mechanically established."}
     return result
 
@@ -125,12 +132,16 @@ def render(model):
     lines = ["# Scientific working model", ""]
     if model.get("purpose"):
         lines += [claim(model["purpose"]), ""]
+    if model.get("expected_change"):
+        lines += ["Expected change: " + claim(model["expected_change"]), ""]
+    for item in model.get("preserve", []):
+        lines.append("Preserve: " + claim(item))
     omitted, displayed = [], 0
     for computation in model["computations"]:
         item = computation["interpretation"]
         section = [f"## {computation['name']}", "", claim(item["meaning"])]
-        expression_ids = item.get("expression_ids") or [i for i in computation["entity_ids"]
-                          if entities[i].get("kind") == "source_computation"]
+        expression_ids = item.get("expression_ids", []) if model.get("expected_change") else (
+            item.get("expression_ids") or [i for i in computation["entity_ids"] if entities[i].get("kind") == "source_computation"])
         if expression_ids:
             section.append("Code computation:")
         for identifier in expression_ids:

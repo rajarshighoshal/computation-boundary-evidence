@@ -11,6 +11,7 @@ from scicontext.object_context import enrichment_input
 from scicontext.representation import reading_input, render_reading
 from scicontext.packet import build_packet
 from scicontext.scientific_objects import extract_objects
+from scicontext.execution_seed import read_execution
 
 
 def size(value):
@@ -23,6 +24,8 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--public-originals", type=Path,
                         help="Optional preserved task_TTT/context_TTT directories for fresh static selection")
+    parser.add_argument("--public-cache", type=Path, help="Pinned public workspaces created by check_task_retrieval.py --prepare-only")
+    parser.add_argument("--execution-seeded", action="store_true")
     args = parser.parse_args()
     rows = []
     for directory in sorted(args.run.glob("jobs/task-*-science/*/agent")):
@@ -34,15 +37,26 @@ def main():
         packet, graph, raw, before = (json.loads(p.read_text()) for p in (packet_file, graph_file, raw_file, before_file))
         task = directory.parent.parent.name.removeprefix("task-").removesuffix("-science")
         refreshed = False
-        if args.public_originals and (root := args.public_originals / ("task_" + task)).is_dir():
+        root = args.public_originals / ("task_" + task) if args.public_originals else None
+        context_dir = args.public_originals / ("context_" + task) if args.public_originals else None
+        if args.public_cache:
+            cached = list(args.public_cache.glob(task + "-*/receipt.json"))
+            if len(cached) != 1:
+                raise ValueError("Expected one pinned public workspace for " + task)
+            root = cached[0].parent / "task"
+            context_dir = args.output / task / "context"
+            context_dir.mkdir(parents=True, exist_ok=True)
+            (context_dir / "task_statement.md").write_bytes((Path("data/release/tasks") / ("task_" + task) / "instruction.md").read_bytes())
+        if root and root.is_dir():
             # Refuse a repaired/different source snapshot before replaying selection.
             for entry in packet["entries"]:
                 path = root / entry["path"]
                 if path.is_file():
                     assert digest_file(path) == entry["sha256"], f"Source mismatch: {task}/{entry['path']}"
             documents, observations = packet["documents"], graph.get("dynamic", {})
-            packet = build_packet(root, args.public_originals / ("context_" + task), multilingual=True)
-            packet["documents"] = documents
+            execution = read_execution(directory / "extract-scratch/trace") if args.execution_seeded else None
+            packet = build_packet(root, context_dir, multilingual=True,
+                                  seed=execution["functions"] if execution else None, execution=execution)
             graph = extract_objects(root, packet)
             graph["dynamic"] = observations
             refreshed = True
@@ -67,6 +81,7 @@ def main():
                "before_provider_payload_bytes": len(json.dumps(before, ensure_ascii=False).encode()),
                "reader_bytes": len(reading.encode()),
                "refreshed_static_selection": refreshed,
+               "execution": view.get("execution"),
                "elapsed_seconds": time.monotonic() - start, "counts": {key: len(view[key]) for key in
                 ("computations", "entities", "templates", "relations", "sources")}, "coverage": view["coverage"],
                "input_sha256": {str(p): digest_file(p) for p in (packet_file, graph_file, raw_file, before_file)}}

@@ -13,15 +13,6 @@ def graph():
     return {"objects": [], "operations": [], "links": [], "unsupported": []}
 
 
-def test_live_interpret_invokes_source_analysis_before_model():
-    order=[]
-    async def analyze(): order.append("source")
-    async def model(*args): order.append("model"); return {}
-    agent=SimpleNamespace(_augment_source_analysis=analyze,_interpret_call=model)
-    asyncio.run(ScientificCodex.interpret(agent,"task",30))
-    assert order==["source","model"]
-
-
 def test_cli_delegates_absolute_root_to_existing_backend(tmp_path,monkeypatch):
     calls=[]
     monkeypatch.setattr(source_backends,"analyze_sources",lambda root,out: calls.append((root,out)))

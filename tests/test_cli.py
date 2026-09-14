@@ -144,6 +144,18 @@ def test_pull_failure_retains_each_attempt_and_continues(workspace, monkeypatch)
     assert read_json(output / "task-002-baseline-receipt.json")["return_code"] == 3
 
 
+def test_launch_does_not_prune_unrelated_docker_resources(workspace, monkeypatch):
+    original_run = subprocess.run
+    def checked_run(command, **kwargs):
+        assert not (command[:1] == ["docker"] and "prune" in command)
+        return original_run(command, **kwargs)
+    monkeypatch.setattr(subprocess, "run", checked_run)
+    def fail_pull(command, **kwargs):
+        raise subprocess.CalledProcessError(3, command)
+    monkeypatch.setattr(cli, "_run_owned_process", fail_pull)
+    run_pilot(workspace)
+
+
 def test_success_and_setup_failure_still_make_comparable_unknown_pair(workspace, monkeypatch):
     pier_calls = []
     def execute(command, **kwargs):

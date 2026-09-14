@@ -19,6 +19,7 @@ def main(argv: list[str] | None = None) -> int:
     packet.add_argument("--catalog", type=Path, required=True)
     packet.add_argument("--objects-output", type=Path)
     packet.add_argument("--enrichment-input", type=Path)
+    packet.add_argument("--trace-out", type=Path)
     trace = subs.add_parser("trace")
     trace.add_argument("--root", type=Path, required=True)
     trace.add_argument("--script", type=Path, required=True)
@@ -41,7 +42,14 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.command == "packet":
         from .packet import build_packet, render_catalog
-        value = build_packet(args.root, args.context_root, multilingual=bool(args.objects_output))
+        seed = None
+        execution = None
+        if args.trace_out is not None and (args.trace_out / "trace.jsonl.gz").is_file():
+            from .execution_seed import read_execution
+            execution = read_execution(args.trace_out)
+            seed = execution["functions"]
+            write_json(args.trace_out / "executed.json", seed)
+        value = build_packet(args.root, args.context_root, multilingual=bool(args.objects_output), seed=seed, execution=execution)
         value["task_id"] = args.task_id
         write_json(args.output, value)
         args.catalog.parent.mkdir(parents=True, exist_ok=True)

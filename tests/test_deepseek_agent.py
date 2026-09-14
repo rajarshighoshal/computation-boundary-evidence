@@ -37,7 +37,7 @@ class FakeEnvironment:
         return "ok 42"
 
 
-def make_agent(tmp_path, condition="science"):
+def make_agent(tmp_path, condition="baseline"):
     key = tmp_path / "deepseek-key.json"
     key.write_text(json.dumps({"api_key": "secret"}))
     (tmp_path / "prompts").mkdir()
@@ -58,48 +58,6 @@ def graph_and_payload():
                "context": {"scientific_passages": [{"text": "public"}], "code_passages": []},
                "selection": {"truncated": False, "kept_objects": 1}}
     return graph, payload
-
-
-def test_interpret_calls_api_inline_and_uploads_annotations(tmp_path, monkeypatch):
-    graph, payload = graph_and_payload()
-    agent = make_agent(tmp_path)
-    env = FakeEnvironment(tmp_path, payload, graph)
-    agent.extract_environment = env
-    agent.root = "/app/task_058"
-    agent.logs_dir.mkdir(parents=True, exist_ok=True)
-    responses = [{"choices": [{"message": {"content": json.dumps(
-        {"object_id": "so_a", "meaning": "solver step"}), "tool_calls": None},
-        "finish_reason": "stop"}], "usage": {"prompt_tokens": 100, "completion_tokens": 20,
-            "prompt_tokens_details": {"cached_tokens": 80}, "completion_tokens_details": {"reasoning_tokens": 12}}}]
-    async def fake_api(*args, **kwargs):
-        assert args[0] == "secret" and args[1] == "deepseek-flash"
-        assert kwargs["response_format"] == {"type": "json_object"}
-        return responses.pop(0)
-    monkeypatch.setattr(module, "_api_completion", fake_api)
-    result = asyncio.run(agent._interpret_call("Inspect", 300))
-    assert result["status"] == "completed" and result["annotations_status"] == "received"
-    assert result["usage"]["input_tokens"] == 100 and result["usage"]["output_tokens"] == 20
-    assert result["usage"]["cached_input_tokens"] == 80 and result["usage"]["reasoning_output_tokens"] == 12
-    assert "/opt/scicontext/scratch/extract_draft-annotations.json" in env.uploaded
-    assert "so_a" in env.uploaded["/opt/scicontext/scratch/extract_draft-annotations.json"]
-
-
-
-def test_interpret_non_json_content_is_code_only_not_fatal(tmp_path, monkeypatch):
-    graph, payload = graph_and_payload()
-    agent = make_agent(tmp_path)
-    env = FakeEnvironment(tmp_path, payload, graph)
-    agent.extract_environment = env
-    agent.root = "/app/task_058"
-    agent.logs_dir.mkdir(parents=True, exist_ok=True)
-    async def fake_api(*args, **kwargs):
-        return {"choices": [{"message": {"content": "no json here"}, "finish_reason": "stop"}],
-                "usage": {"prompt_tokens": 10, "completion_tokens": 3}}
-    monkeypatch.setattr(module, "_api_completion", fake_api)
-    result = asyncio.run(agent._interpret_call("Inspect", 300))
-    assert result["status"] == "completed"
-    assert result["annotations_status"] == "no_valid_annotations"
-    assert not result.get("fatal_model_error")
 
 
 def test_repair_loop_runs_shell_tools_and_writes_final(tmp_path, monkeypatch):
@@ -184,7 +142,7 @@ def test_repair_malformed_tool_arguments_become_tool_error_not_crash(tmp_path, m
     events = [json.loads(l) for l in (tmp_path / "logs/repair.jsonl").read_text().splitlines()]
     item = next(e for e in events if e["type"] == "item.completed")
     assert item["item"]["exit_code"] == 1
-    assert "Malformed tool arguments" in item["item"]["aggregated_output"]
+    assert "JSONDecodeError" in item["item"]["aggregated_output"]
 
 
 def test_repair_tool_exec_never_runs_past_deadline(tmp_path, monkeypatch):
@@ -208,74 +166,3 @@ def test_repair_tool_exec_never_runs_past_deadline(tmp_path, monkeypatch):
     # Receipts must exist even on timeout.
     assert (tmp_path / "logs/repair-process.json").is_file()
     assert (tmp_path / "logs/repair.jsonl").is_file()
-
-
-def test_interpret_success_writes_process_receipt(tmp_path, monkeypatch):
-    graph, payload = graph_and_payload()
-    agent = make_agent(tmp_path)
-    env = FakeEnvironment(tmp_path, payload, graph)
-    agent.extract_environment = env
-    agent.root = "/app/task_058"
-    agent.logs_dir.mkdir(parents=True, exist_ok=True)
-    async def fake_api(*args, **kwargs):
-        return {"choices": [{"message": {"content": json.dumps(
-            {"object_id": "so_a", "meaning": "step"})}, "finish_reason": "stop"}],
-            "usage": {"prompt_tokens": 3, "completion_tokens": 1}}
-    monkeypatch.setattr(module, "_api_completion", fake_api)
-    asyncio.run(agent._interpret_call("Inspect", 300))
-    receipt = json.loads((tmp_path / "logs/extract_draft-process.json").read_text())
-    assert receipt["status"] == "completed" and receipt["annotations_status"] == "received"
-
-
-def test_malformed_json_response_is_not_salvaged_into_retired_format(tmp_path, monkeypatch):
-    agent = make_agent(tmp_path)
-    env = FakeEnvironment(tmp_path, {}, {})
-    agent.extract_environment = env
-    agent.root = "/app/task_004"
-    agent.logs_dir.mkdir(parents=True, exist_ok=True)
-    broken = ('{"schema_version": "object-enrichment-1.0", "annotations": ['
-              '{"object_id": "so_a", "meaning": "valid one"},'
-              '{"object_id": "so_b", "meaning": "broken  -- missing quote,}]')
-    async def fake_api(*args, **kwargs):
-        return {"choices": [{"message": {"content": broken}, "finish_reason": "stop"}],
-                "usage": {"prompt_tokens": 10, "completion_tokens": 5}}
-    monkeypatch.setattr(module, "_api_completion", fake_api)
-    result = asyncio.run(agent._interpret_call("Inspect", 300))
-    assert result["annotations_status"] == "no_valid_annotations"
-    assert "salvaged_annotations" not in result
-    assert not env.uploaded
-
-
-def test_connected_response_is_uploaded_without_flattening(tmp_path, monkeypatch):
-    agent = make_agent(tmp_path)
-    payload = {"schema_version": "scientific-reading-2.0", "computations": [{"id": "c", "name": "compute", "entity_ids": []}],
-               "entities": [], "relations": [], "coverage": {},
-               "sources": [{"id": "s", "text": "Scientific definition", "kind": "document", "path": "README.md"}]}
-    env = FakeEnvironment(tmp_path, payload, {})
-    agent.extract_environment, agent.root = env, "/app/task_004"
-    agent.logs_dir.mkdir(parents=True, exist_ok=True)
-    claim = {"text": "Scientific computation", "source_ids": ["s"]}
-    response = {"schema_version": "object-enrichment-2.0", "purpose": claim,
-                "computations": [{"computation_id": "c", "meaning": claim, "quantities": [], "conventions": [], "assumptions": []}]}
-    async def fake_api(*args, **kwargs):
-        assert "Scientific definition" in args[2][0]["content"]
-        return {"choices": [{"message": {"content": json.dumps(response)}, "finish_reason": "stop"}], "usage": {}}
-    monkeypatch.setattr(module, "_api_completion", fake_api)
-    result = asyncio.run(agent._interpret_call("Inspect", 300))
-    assert result["annotations_status"] == "received"
-    assert json.loads(env.uploaded["/opt/scicontext/scratch/extract_draft-annotations.json"]) == response
-
-
-def test_broken_connected_response_never_salvages_quantities_as_v1(tmp_path, monkeypatch):
-    agent = make_agent(tmp_path)
-    env = FakeEnvironment(tmp_path, {}, {})
-    agent.extract_environment, agent.root = env, "/app/task_004"
-    agent.logs_dir.mkdir(parents=True, exist_ok=True)
-    broken = '{"schema_version":"object-enrichment-2.0","computations":[{"quantities":[{"object_id":"q","meaning":"fragment"}],'
-    async def fake_api(*args, **kwargs):
-        return {"choices": [{"message": {"content": broken}, "finish_reason": "length"}], "usage": {}}
-    monkeypatch.setattr(module, "_api_completion", fake_api)
-    result = asyncio.run(agent._interpret_call("Inspect", 300))
-    assert result["annotations_status"] == "no_valid_annotations"
-    assert "salvaged_annotations" not in result
-    assert "/opt/scicontext/scratch/extract_draft-annotations.json" not in env.uploaded
