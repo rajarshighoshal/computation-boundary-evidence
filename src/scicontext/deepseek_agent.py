@@ -315,7 +315,18 @@ class DeepSeekAgent(ScientificCodex):
             return result
 
     async def finish_extraction(self):
-        pass  # Preparation and repair use the same task container.
+        # Persist the science store (prepared graph, queries, recorded model) as
+        # an artifact even when no repair stage ran, e.g. extraction-only checks.
+        if self.condition != "science" or getattr(self, "environment", None) is None:
+            return
+        if (self.logs_dir / "science" / "state.json").is_file():
+            return
+        try:
+            await bounded_call(self.environment.download_dir(REMOTE + "/context/science",
+                                                             self.logs_dir / "science"), 10, set())
+        except Exception as error:
+            write_json(self.logs_dir / "science-download-error.json",
+                       {"error": f"{type(error).__name__}: {error}"})
 
     async def run_stage(self, name, instruction, seconds):
         if name in {"prepare", "extract"}:

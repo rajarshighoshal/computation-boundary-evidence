@@ -111,3 +111,18 @@ def test_preparation_has_zero_model_calls(tmp_path):
     result = asyncio.run(model.prepare(10))
     assert result["model_calls"] == []
     assert result["usage"]["input_tokens"] == result["usage"]["output_tokens"] == 0
+
+
+def test_finish_extraction_persists_science_store_once(tmp_path):
+    model = agent(tmp_path)
+    calls = []
+    class Env:
+        async def download_dir(self, remote, local):
+            calls.append((remote, local))
+            local.mkdir(parents=True, exist_ok=True)
+            (local / "state.json").write_text("{}")
+    model.environment = Env()
+    asyncio.run(model.finish_extraction())
+    assert calls and calls[0][1].name == "science"
+    asyncio.run(model.finish_extraction())
+    assert len(calls) == 1
