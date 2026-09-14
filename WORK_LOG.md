@@ -25,10 +25,16 @@ computational evidence; the LLM interprets scientific meaning. Rajarshi owns sci
 - [complete] Independent code/live-path reviews passed. Five archived public inputs compile with
   closed references;153-word091 guide is a manually supplied source-grounded fixture, NOT automatic
   extraction. Receipt: results/connected-science-review-2026-09-14.json. Full suite538 passed.
-- [next] Obtain approval for a fresh five-task scientific extraction check on frozen2.0, then inspect
-  model-generated meanings against public code/docs. No fresh2.0 model outputs or repair results yet.
+- [in progress] User requests checking2.0 and concurrency40. Verify40-slot rolling admission,
+  cancellation and independent failures without model calls; inspect actual host/Docker capacity.
+  Root writes; independent review before any launch. Do not change scientific method during a run.
+- [in progress] User approved extractor-first check, then actual repair-delivery/use check conditional
+  on scientific content quality. Fresh five, one call/task, DeepSeek Flash/high, existing600s model
+  allowance, extraction-only. Config: configs/connected-five-extraction-v2.json. Prioritize actual
+  scientific purpose/quantity relationships/conventions and compactness; code/schema counts do not
+  establish this. Inspect model-generated meanings against public code/docs before repair-use stage.
   Final verification remains a coherent correct scientific context followed by matched repair
-  comparison—not test counts or successful export alone. No new model calls currently authorized.
+  comparison—not test counts or successful export alone. No full benchmark launch approved.
 
 ## Authority and evidence
 
@@ -41,7 +47,7 @@ computational evidence; the LLM interprets scientific meaning. Rajarshi owns sci
   are implementation failures, not a clean test or rejection of the research hypothesis.
 - The original five tasks are development-exposed. Task 001 has additional prior private-test
   exposure; private verifier/gold patch information must not enter extraction.
-- No active experiment or new paid-run approval. The previous extra dollar cap was withdrawn;
+- Only the fresh five-task check above is approved now. The previous extra dollar cap was withdrawn;
   do not spend time on pricing research. Full benchmark/submission are not automatically approved.
 - Not at the reporting stage. The user requires a substantive tested intervention, not a paper
   reframing broken treatment delivery. Use direct, frequent updates and one consequential decision
