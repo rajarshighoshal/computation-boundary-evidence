@@ -18,16 +18,6 @@ development/capacity evidence, not locked evaluation. No cloud rental is approve
 evaluation tasks stay outside this iteration.
 
 ## Live milestones
-- [verified] Took over b11625c. New commits fix R1-as-observation, Python symbol-source lookup,
-  bounded large-file prefix reads, analyzer replay and namespace/cut-call cases; no gate remains.
-- [verified] runs/extractor-validation-30 completed30/30 at2026-09-14T15:54:32Z with zero model
-  calls on frozenb11625c. Earlier drift8 is separate. These are preparation results, not evidence
-  that all graphs contain the right science.
-- [verified] Plain baseline checkpoint:585 tests pass; independent45-test launch/config review
-  passes. Config dry-runs produce009's2 attempts then remaining29's58,40 total slots. The only
-  behavioral change is removal of the mandatory planning instruction; graph-quality fixes remain.
-- [verified] Side capacity diagnostic ran4/8/16 public reproducer workloads without OOM/stall;
-  runs/capacity-check-b116/receipt.json. This does NOT validate40 full trials.
 - [verified] 009 pair completed on273d23c, runs/development-e2e-check-v1/summary/summary.json:
   baseline8/9 private, science9/9. Agent durations1094.87s/387.22s, science preparation5.32s.
   Actual graph/node queries, persisted analysis/model/patch and official verifier checked; zero
@@ -41,10 +31,12 @@ evaluation tasks stay outside this iteration.
 - [verified] Corrected DeepSeekAgent's inherited OpenAI allowlist with Pier's standard empty
   allowlist for BOTH arms. Both new regression cases failed before the fix;587 tests nowpass,
   independent9-test reviewpasses. No new service, benchmark-image or verifier change.
-- [active] Real zero-model009 preparation check at runs/offline-network-check-v1: inspect the
-  actual container NetworkMode, absence of proxies, prepared graph and model_calls=0.
-- [next] Review the corrected capacity checkpoint before any repeat paid batch. Original40-slot
-  attempt is preserved separately; do not silently retry/merge cancelled trials into first results.
+- [verified] Real009 preparation check oncf32d16, runs/offline-network-check-v1: completed7.30s,
+  prepared_graph, model_calls=0. network-check.json has45 observations of network_mode:none,
+  no proxy. All owned containers are down. This verifies the fix, not40-way workload capacity.
+- [decision] Ready for a fresh40-slot development test after the network fix; repeat paid
+  attempts have not been launched. Original interrupted run stays separate; do not silently
+  retry/merge cancelled trials or claim40-way capacity is validated.
 - [next] Inspect concrete failures, apply small task-agnostic fixes with regression tests, and
   recheck. Known graph-content gaps include114 missing sources,001 selection,091 missing guard,
   and false R2/R4 requirements; do not label node counts/self-checks as scientific quality.
@@ -60,6 +52,8 @@ or unrelated files without instruction. No premature report/submission pivot.
 
 ## Essential context
 Frozen30/89 split: configs/interactive-science.split.json. Licensing/prior exposure metadata remain.
+The earlier preparation-only30-task sweep is runs/extractor-validation-30 (b11625c); construction
+completed30/30 but scientific relevance/source gaps remain. Earlier drift8 is separate.
 The prior index-first repair pilot is stopped and does not evaluate this prepared-graph method.
 Current Docker8CPUs/~9GiB, host14logicalCPUs/24GiB. Scheduler supports40; full workload capacity
 is not yet established. Specialist comparison is complete in docs/SPECIALIST_EXTRACTOR_COMPARISON.md.
