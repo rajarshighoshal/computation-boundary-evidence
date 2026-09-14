@@ -187,6 +187,15 @@ class DeepSeekAgent(ScientificCodex):
             raise RuntimeError("Prepared scientific graph missing; refusing index-only science: "
                                + json.dumps({"construction": report,
                                              "graph": result.get("scientific_graph")}))
+        if getattr(self, "extraction_only", False):
+            # No-model query-path verification on the real task.
+            try:
+                check = await self._science_command(None, min(60.0, max(1.0, seconds - (time.monotonic() - started))),
+                                                    self_check=True)
+            except Exception as error:
+                check = {"status": "error", "error": f"{type(error).__name__}: {error}"}
+            write_json(self.logs_dir / "self-check.json", check)
+            result["self_check"] = check
         self._science_prepared = result
         return {"status": "completed", "usage": {"input_tokens": 0, "cached_input_tokens": 0,
                 "output_tokens": 0, "reasoning_output_tokens": 0}, "model_calls": [],
@@ -257,13 +266,17 @@ class DeepSeekAgent(ScientificCodex):
                 "construction": index.get("construction"),
                 "handoff": template + "\nTask map: " + json.dumps(index["task_map"])}
 
-    async def _science_command(self, request, seconds, prepare=False):
+    async def _science_command(self, request, seconds, prepare=False, self_check=False):
         import base64, shlex
         command = (f"PYTHONPATH={REMOTE}/src:{REMOTE}/deps PYTHONDONTWRITEBYTECODE=1 "
                    f"python -m scicontext.science_tools --root {shlex.quote(self.root)} "
                    f"--store {SCIENCE_STORE} ")
-        command += "--prepare" if prepare else "--request " + shlex.quote(
-            base64.b64encode(json.dumps(request).encode()).decode())
+        if prepare:
+            command += "--prepare"
+        elif self_check:
+            command += "--self-check"
+        else:
+            command += "--request " + shlex.quote(base64.b64encode(json.dumps(request).encode()).decode())
         started = time.monotonic()
         raw = await bounded_call(self.checked(self.environment, command, cwd=REMOTE,
                             timeout_sec=max(1, seconds)), max(1, seconds), set())

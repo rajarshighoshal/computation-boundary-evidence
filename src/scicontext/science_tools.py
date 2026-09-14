@@ -689,6 +689,75 @@ class ScienceStore:
                 "stale_paths": sorted(stale_paths), "unverifiable_paths": sorted(unverifiable_paths),
                 "scope": "References checked; scientific correctness is not mechanically established."}
 
+    def check(self):
+        """No-model verification of the prepared-graph query path.
+
+        Inspects the graph, confirms registered citations match shown content,
+        exercises on-demand expansion, and records (then discards) a fixture
+        model. Store state is restored, so the check leaves no model behind.
+        """
+        snapshot = (self.store / "state.json").read_text() if (self.store / "state.json").is_file() else None
+        result = {"status": "partial", "steps": {}}
+        try:
+            overview = self.inspect("#graph")
+            nodes = (self.state.get("scientific_graph") or {}).get("nodes") or []
+            result["steps"]["graph"] = {"status": overview.get("status"), "nodes": len(nodes),
+                                        "edges": overview.get("edges"),
+                                        "findings": (overview.get("summary") or {}).get("findings")}
+            chosen = next((n for n in nodes if n.get("computation_id") and n.get("source_ids")), None) \
+                or next((n for n in nodes if n.get("source_ids")), None)
+            if chosen is None:
+                result["steps"]["inspect"] = {"status": "no_citable_node"}
+                return result
+            detail = self.inspect(chosen["id"])
+            shown = {source["id"] for source in detail.get("sources") or []}
+            result["steps"]["inspect"] = {
+                "status": detail.get("status"), "node": chosen["id"],
+                "sources_shown": len(shown),
+                "registered_matches_shown": shown <= set(self.state["visible_sources"])}
+            barren = next((n for n in nodes if not n.get("source_ids")), None)
+            if barren is not None:
+                expansion = self.inspect(barren["id"])
+                evidence = expansion.get("evidence") or {}
+                result["steps"]["expansion"] = {
+                    "status": expansion.get("status"), "node": barren["id"],
+                    "compiled": bool(evidence.get("sources")),
+                    "analyzer_requested": bool(expansion.get("backend_request")),
+                    "error": expansion.get("evidence_error")}
+            if chosen.get("computation_id") and shown:
+                source_id = sorted(shown)[0]
+                claim = {"text": "Self-check: the node computes a public quantity.", "source_ids": [source_id]}
+                model = {"purpose": claim, "expected_change": claim, "preserve": [claim],
+                         "computations": [{"computation_id": chosen["computation_id"], "meaning": claim,
+                                           "quantities": [], "conventions": [], "assumptions": ["Self-check fixture."]}]}
+                try:
+                    recorded = self.record_model(model)
+                    result["steps"]["record"] = {"status": recorded.get("status")}
+                except ValueError as error:
+                    result["steps"]["record"] = {"status": "error", "error": str(error)[:300]}
+                unseen = [identifier for identifier in chosen.get("source_ids") or [] if identifier not in shown]
+                if unseen:
+                    bad = {"text": "unseen", "source_ids": [unseen[0]]}
+                    bad_model = {"purpose": bad, "expected_change": bad, "preserve": [bad],
+                                 "computations": [{"computation_id": chosen["computation_id"], "meaning": bad,
+                                                   "quantities": [], "conventions": [], "assumptions": []}]}
+                    try:
+                        self.record_model(bad_model)
+                        result["steps"]["unseen_citation"] = {"status": "accepted"}
+                    except ValueError:
+                        result["steps"]["unseen_citation"] = {"status": "refused"}
+            result["status"] = "ok" if result["steps"].get("record", {}).get("status") == "recorded" else "partial"
+            return result
+        finally:
+            if snapshot is not None:
+                (self.store / "state.json").write_text(snapshot)
+            for path in list(self.store.glob("model-*.json")):
+                path.unlink()
+            for name in ("scientific-model.json", "scientific-model.md"):
+                target = self.store / name
+                if target.exists():
+                    target.unlink()
+
     def dispatch(self, request, analysis=None):
         if not isinstance(request, dict):
             raise ValueError("Tool request must be an object")
@@ -711,12 +780,18 @@ def main(argv=None):
     parser.add_argument("--store", type=Path, required=True)
     parser.add_argument("--request", help="Base64 JSON request")
     parser.add_argument("--prepare", action="store_true")
+    parser.add_argument("--self-check", action="store_true")
     parser.add_argument("--analysis", type=Path, help="Caller-owned normalized analyzer receipt")
     args = parser.parse_args(argv)
     try:
         store = ScienceStore(args.root, args.store)
-        result = store.prepare() if args.prepare else store.dispatch(json.loads(base64.b64decode(args.request).decode()),
-                                                                  read_json(args.analysis) if args.analysis else None)
+        if args.prepare:
+            result = store.prepare()
+        elif args.self_check:
+            result = store.check()
+        else:
+            result = store.dispatch(json.loads(base64.b64decode(args.request).decode()),
+                                    read_json(args.analysis) if args.analysis else None)
     except (OSError, ValueError, KeyError, TypeError, SyntaxError) as error:
         result = {"status": "error", "error": str(error)[:2000]}
     print(json.dumps(result, ensure_ascii=False, allow_nan=False))
