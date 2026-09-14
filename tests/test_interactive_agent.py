@@ -96,21 +96,18 @@ def test_science_agent_has_graph_tool_and_shell_from_the_start(tmp_path, monkeyp
         assert kwargs["reasoning_effort"] == "high"
         snapshots.append(copy.deepcopy(messages))
         available = [t["function"]["name"] for t in kwargs["tools"]]
-        assert available == ["shell", "science"]
+        assert available == ["shell", "science_find", "science_inspect", "science_note"]
         step = len(snapshots)
         if step == 1:
             calls = [call("shell", {"command": "run-public-check"}, "shell"),
-                     call("science", {"action": "find", "query": "storage"}, "find")]
+                     call("science_find", {"query": "storage"}, "find")]
         elif step == 2:
-            calls = [call("science", {"action": "inspect", "target": "m.py#step"}, "inspect")]
+            calls = [call("science_inspect", {"target": "m.py#step"}, "inspect")]
         elif step == 3:
             result = queries[-1][1]
-            cid = result["computations"][0]["id"]
-            sid = result["sources"][0]["id"]
-            claim = {"text": "Stored quantity changes by outward flux times elapsed duration.", "source_ids": [sid]}
-            working = {"purpose": claim, "expected_change": claim, "preserve": [claim],
-                "computations": [{"computation_id": cid, "meaning": claim, "quantities": [], "conventions": [], "assumptions": []}]}
-            calls = [call("science", {"action": "record_model", "model": working}, "record")]
+            calls = [call("science_note", {"target": result["note_target"], "source_ids": result["note_source_ids"],
+                "meaning": "Stored quantity changes by outward flux times elapsed duration.",
+                "expected_change": "Fix the requested update.", "preserve": ["Outward-flux sign convention."]}, "record")]
         else:
             calls = None
         return {"choices": [{"message": {"content": "DONE" if not calls else None, "tool_calls": calls},
@@ -133,7 +130,7 @@ def test_science_run_completes_without_recorded_model(tmp_path, monkeypatch):
         async def download_dir(self, *args): pass
     model.environment = Env()
     async def api(*args, **kwargs):
-        assert [t["function"]["name"] for t in kwargs["tools"]] == ["shell", "science"]
+        assert [t["function"]["name"] for t in kwargs["tools"]] == ["shell", "science_find", "science_inspect", "science_note"]
         return {"choices": [{"message": {"content": "DONE"}, "finish_reason": "stop"}], "usage": {}}
     monkeypatch.setattr(module, "_api_completion", api)
     result = asyncio.run(model._run_deepseek_repair("TASK", 30))
@@ -157,7 +154,7 @@ def test_science_named_call_cannot_smuggle_shell_command(tmp_path):
         assert request["action"] == "find"
         return {"status": "ok", "matches": []}
     model._science_command = command
-    output, event = asyncio.run(model._execute_tool(call("science", {"action": "find", "query": "energy", "command": "do-not-execute"}, "x"), 10))
+    output, event = asyncio.run(model._execute_tool(call("science_find", {"query": "energy", "command": "do-not-execute"}, "x"), 10))
     assert event["type"] == "science_tool"
     assert not model._science_model_recorded
 

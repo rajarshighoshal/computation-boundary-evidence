@@ -1,6 +1,6 @@
-The science tool holds a prepared graph of this task: inspect "#graph" for the observed workflow,
-implementation computations, dependencies and violated constraint findings.
+Use science_inspect with target "#graph" to see the prepared task graph, then inspect relevant
+nodes for computations, conditions and scientific evidence alongside the code and tests.
 
-Use it alongside the code, tests and public reproduction while you investigate. If it helps you fix
-your understanding, record_model a short source-linked model (what the task computes, what should
-change, what must stay correct). Recording is optional and can be revised.
+science_note optionally saves your understanding: copy note_target and note_source_ids from an
+inspection and describe the meaning, intended change and what to preserve. No note is required
+to edit or test code. Re-inspect an edited node to obtain current evidence.

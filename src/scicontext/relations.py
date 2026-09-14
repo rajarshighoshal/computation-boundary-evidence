@@ -342,13 +342,15 @@ def derive_loci(trace_records: list, predicate_evaluations: list, script_status:
                 locus["properties"]["evidence"]["process"] = process
                 loci.append(locus)
     successful_statuses = {"workflow_completed", "post_fix_success"}
-    runner_statuses = {"runner_failure", "build_failure", "infrastructure_failure"}
+    runner_statuses = {"runner_failure", "build_failure", "infrastructure_failure",
+                       "environment_failure", "execution_error", "timeout", "timed_out"}
+    failed_check_statuses = {"pre_fix_expected_failure", "scientific_failure"}
     reproduction = None
     if script_report:
         status = script_report.get("status")
-        if not status:
+        if not isinstance(status, str) or not status:
             # Unclassifiable status: record it, never assert a violation.
-            reproduction = {"status": None, "classification": "unknown"}
+            reproduction = {"status": status, "classification": "unknown"}
         elif status in runner_statuses:
             # A build/runner failure is not scientific evidence: the reproducer
             # never exercised the science, so no constraint was violated.
@@ -357,18 +359,22 @@ def derive_loci(trace_records: list, predicate_evaluations: list, script_status:
                             "classification": "runner_failure"}
         elif status in successful_statuses:
             reproduction = {"status": status, "classification": "success"}
-        else:
-            # The reproducer ran and failed its own check: a scientific failure.
+        elif status in failed_check_statuses:
+            # Explicit reproducer check-failure report. Preserve the stated kind;
+            # do not infer a mathematical constraint from words such as "collapse".
             reproduction = {"status": status,
                             "error": script_report.get("error") or script_report.get("failure_kind"),
                             "classification": "scientific_failure"}
             kind = script_report.get("failure_kind") or "workflow_failure"
             locus = _cl(("reproduce.py", "<script>", 0), "R6", ("reproduce.py", "<script>", 0),
-                        "distinctness" if "collapse" in kind else "containment", declared_violation=True)
+                        "script_check", declared_violation=True)
             locus["properties"]["evidence"]["measures"]["reproduction_status"] = status
             if kind != "workflow_failure":
                 locus["properties"]["evidence"]["measures"]["failure_kind"] = kind
             loci.append(locus)
+        else:
+            reproduction = {"status": status, "classification": "unknown",
+                            "error": script_report.get("error") or script_report.get("failure_kind")}
         # Observations are evaluated ONLY against the reproducer's own stated
         # conditions (parsed predicates with polarity). No field-name guessing:
         # an observation without a bound condition is recorded as measured

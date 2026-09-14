@@ -17,7 +17,7 @@ from .io import digest_json, read_json, write_json
 from .language_frontends import extract_native_evidence, source_language
 from .object_context import enrichment_input, object_bundle
 from .representation import reading_input
-from .scientific_graph import admit_selected_sources, build_graph
+from .scientific_graph import admit_selected_sources, build_graph, _scope_key
 from .scientific_model import VERSION, schema
 from .scientific_objects import extract_objects
 
@@ -29,25 +29,37 @@ NODE_SOURCE_CHARS = 1500
 PREPARED_SOURCE = "<prepared>"
 
 
-def tool_definition():
-    model = schema()
-    model["required"] = ["purpose", "computations", "expected_change", "preserve"]
-    definitions = model.pop("$defs")
-    model.pop("$schema", None)
-    return {"type": "function", "function": {
-        "name": "science", "description": (
-            "Find and inspect public scientific evidence. A prepared graph connects the observed workflow to "
-            "implementation computations, findings and dependencies: inspect target '#graph' for its nodes, then "
-            "inspect node IDs for quantities, conditions, edges and citable source IDs. record_model saves your "
-            "source-linked scientific understanding for the run record. Recording is optional and revisable. "
-            "No action executes candidate code."),
-        "parameters": {"type": "object", "properties": {
-            "action": {"type": "string", "enum": ["find", "inspect", "record_model"]},
-            "query": {"type": "string", "description": "Symbol, scientific phrase, or path to find."},
-            "target": {"type": "string", "description": "Returned target/ID, relative path, path:line, or path#symbol."},
-            "view": {"type": "string", "enum": ["relationships", "definitions", "source"]},
-            "offset": {"type": "integer", "minimum": 0}, "model": model},
-            "required": ["action"], "additionalProperties": False, "$defs": definitions}}}
+NOTE_PROPERTIES = {
+    "target": {"type": "string", "minLength": 1, "description": "Copy note_target from science_inspect; do not invent a computation ID."},
+    "meaning": {"type": "string", "minLength": 1, "description": "Brief scientific meaning of this computation and its quantities."},
+    "expected_change": {"type": "string", "minLength": 1, "description": "The behaviour the repair should change."},
+    "preserve": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1},
+                 "description": "Behaviours or conventions the repair should preserve."},
+    "source_ids": {"type": "array", "minItems": 1, "uniqueItems": True, "items": {"type": "string"},
+                   "description": "Copy supporting IDs from note_source_ids, or from inspected documents. These are not graph-node IDs."},
+    "conventions": {"type": "array", "items": {"type": "string"}, "description": "Optional units, frames or conventions; omit if none."},
+    "assumptions": {"type": "array", "items": {"type": "string"}, "description": "Optional unresolved assumptions; omit if none."},
+}
+NOTE_REQUIRED = ["target", "meaning", "expected_change", "preserve", "source_ids"]
+SCIENCE_ACTIONS = {"science_find": "find", "science_inspect": "inspect", "science_note": "record_note"}
+
+
+def tool_definitions():
+    def tool(name, description, properties, required):
+        return {"type": "function", "function": {"name": name, "description": description,
+            "parameters": {"type": "object", "properties": properties, "required": required,
+                           "additionalProperties": False}}}
+    return [
+        tool("science_find", "Find scientific computations or public evidence by name, phrase or path.",
+             {"query": {"type": "string", "description": "For example: energy balance, a function name, or a file path."},
+              "offset": {"type": "integer", "minimum": 0}}, ["query"]),
+        tool("science_inspect", "Read the prepared graph with target '#graph', or inspect a returned node/callable for computations, conditions and evidence. Edited sources are refreshed. No candidate code is executed.",
+             {"target": {"type": "string", "description": "Returned node/ID, relative path, path:line or path#symbol."},
+              "view": {"type": "string", "enum": ["relationships", "definitions", "source"], "default": "relationships"},
+              "offset": {"type": "integer", "minimum": 0}}, ["target"]),
+        tool("science_note", "Optionally save a short scientific note about an inspected computation. Copy note_target and note_source_ids from inspection and supply plain text; the tool handles internal IDs and storage. Recording is never required for repair.",
+             NOTE_PROPERTIES, NOTE_REQUIRED),
+    ]
 
 
 class ScienceStore:
@@ -128,6 +140,9 @@ class ScienceStore:
             for document in packet.get("documents") or []:
                 if document.get("path") and document.get("sha256"):
                     hashes.setdefault(document["path"], document["sha256"])
+            for node in graph.get("nodes", []):
+                if node.get("path") in hashes:
+                    node.setdefault("source_sha256", hashes[node["path"]])
             self.state["payloads"][key] = {"path": PREPARED_SOURCE, "prepared": True,
                                            "source_hashes": hashes}
         except (OSError, ValueError, TypeError):
@@ -206,7 +221,8 @@ class ScienceStore:
         if target in self.state["targets"]:
             previous = self.state["targets"][target]
             raw, _ = self.read(previous["path"])
-            if digest_json(raw.hex()) != previous["content_hash"]:
+            current = self._source_hash(previous["path"]) if previous.get("source_sha256") else digest_json(raw.hex())
+            if current != (previous.get("source_sha256") or previous.get("content_hash")):
                 raise ValueError("Source changed since this ID was inspected; inspect " + previous["path"] + " for current IDs")
             return previous["path"], previous["line"], None
         symbol = None
@@ -215,7 +231,7 @@ class ScienceStore:
         match = re.fullmatch(r"(.+):(\d+)", target)
         return (match[1], int(match[2]), symbol) if match else (target, 1, symbol)
 
-    def inspect(self, target, view="relationships", offset=0, analysis=None):
+    def inspect(self, target, view="relationships", offset=0, analysis=None, *, exact_symbol=False):
         graph = self.state.get("scientific_graph") or {}
         if target == "#graph":
             nodes = graph.get("nodes") or []
@@ -237,6 +253,21 @@ class ScienceStore:
         graph_nodes = {n["id"]: n for n in graph.get("nodes", [])}
         if target in graph_nodes:
             node = graph_nodes[target]
+            refreshed = None
+            expected = node.get("source_sha256") or next((info["source_hashes"][node["path"]]
+                for info in self.state["payloads"].values() if node.get("path") in info.get("source_hashes", {})), None)
+            try:
+                current = self._source_hash(node["path"])
+            except (ValueError, OSError) as error:
+                return {"status": "source_unavailable", "target": target, "path": node.get("path"),
+                        "sources": [], "error": str(error)}
+            if expected is not None and expected != current:
+                refresh_target = node["path"] + ("#" + node["name"] if node.get("name") not in {None, "<module>", "<script>"} else "")
+                refreshed = self.inspect(refresh_target, "relationships", analysis=analysis, exact_symbol=True)
+                if refreshed.get("status") != "ok" or not refreshed.get("computations"):
+                    return {**refreshed, "target": target, "refresh_target": refresh_target,
+                            "sources": [], "note": "The original symbol could not be resolved in the edited file; inspect the file or find its new name."}
+                self._remember_expansion(node, refreshed, replace=True)
             context = self._prepared_context()
             source_ids = node.get("source_ids") or []
             page = source_ids[offset:offset + NODE_SOURCE_PAGE] if type(offset) is int and offset >= 0 else []
@@ -274,6 +305,13 @@ class ScienceStore:
                       "boundary": node.get("boundary") or [],
                       "note": "Citable: the sources and entity/quantity IDs shown above. "
                               "Use offset for more sources; inspect returned path:line targets for uncompiled detail."}
+            if node.get("preparation_evidence"):
+                result["preparation_evidence"] = node["preparation_evidence"]
+                result["dependencies_version"] = "preparation_snapshot_not_reexecuted"
+            if refreshed:
+                result["refreshed"] = True
+                result["backend_request"] = refreshed.get("backend_request")
+                result["analysis_backends"] = refreshed.get("analysis_backends", [])
             if node.get("path") and (not node.get("source_ids") or analysis is not None):
                 # No parsed region for this node in the prepared packet, or the
                 # runner returned analyzer facts: compile the public location on
@@ -296,9 +334,13 @@ class ScienceStore:
             if view == "source":
                 result["source"] = self._node_source(node)  # Includes evidence just compiled above.
                 self._visible([], self._shown_source_ids(result["source"]))
+            result["note_target"] = target if node.get("computation_id") else None
+            note_sources = [*shown_sources, *result.get("source", []), *result.get("evidence", {}).get("sources", [])]
+            result["note_source_ids"] = sorted(self._shown_source_ids(note_sources) & set(self.state["visible_sources"]))
             return result
         path, line, symbol = self._target(target)
         raw, text, truncated = self._read_window(path)
+        source_sha256 = self._source_hash(path) if truncated else hashlib.sha256(raw).hexdigest()
         lines = text.splitlines()
         if not 1 <= line <= max(1, len(lines)):
             raise ValueError("Source line outside file")
@@ -324,13 +366,16 @@ class ScienceStore:
                         walk(child, owner)
             walk(tree)
             matches = [n for qualified, n in definitions if (qualified == symbol.replace(".<locals>.", ".")
-                       if "." in symbol else n.name == symbol)] if symbol else [n for _, n in definitions if n.lineno <= line <= n.end_lineno]
+                       if exact_symbol or "." in symbol else n.name == symbol)] if symbol else [n for _, n in definitions if n.lineno <= line <= n.end_lineno]
             if symbol and len(matches) != 1:
                 return {"status": "ambiguous_target", "targets": [f"{path}:{n.lineno}" for n in matches]}
             owner = min(matches, key=lambda n: n.end_lineno-n.lineno) if matches else None
             start, end = (owner.lineno, owner.end_lineno) if owner else (line, min(len(lines), line+59))
         else:
             start, end = line, min(len(lines), line+79)
+            if symbol and language is None:
+                return {"status": "unresolved_target", "target": path, "sources": [],
+                        "note": "No parser can resolve this symbol in the current file; inspect the file with view=source."}
         reference = {"path": path, "start_line": start, "end_line": end}
         if view not in {"relationships", "definitions", "source"}:
             raise ValueError("Use relationships, definitions or source")
@@ -352,8 +397,9 @@ class ScienceStore:
                            "code_passages": [] if is_document else [{k: v for k, v in
                                 {**document, "kind": "source_excerpt", "text": quote}.items() if k != "quote"}],
                            "analysis_regions": [] if is_document else [{"path": path, "start_line": lo, "end_line": hi}]}}
-            self._cache(payload, raw, path)
-            self.state["targets"][identifier] = {"path": path, "line": lo, "content_hash": digest_json(raw.hex())}
+            self._cache(payload, raw, path, source_sha256)
+            self.state["targets"][identifier] = {"path": path, "line": lo, "content_hash": digest_json(raw.hex()),
+                                                "source_sha256": source_sha256}
             self._visible([], [identifier])
             return {"status": "ok", "source": document, "offset_unit": "characters",
                     "truncated": truncated,
@@ -362,14 +408,20 @@ class ScienceStore:
             packet = evidence.extract_evidence(self.root, [path], max_files=1, max_entries=2000,
                                                references=[reference], preserve_interfaces=True)
         elif language:
-            packet = extract_native_evidence(self.root, [path], max_entries=2000, references=[reference])
+            packet = extract_native_evidence(self.root, [path], max_entries=2000,
+                                             references=[] if symbol else [reference])
             candidates = []
             for entry in packet["entries"]:
                 name = entry.get("native", {}).get("function_name")
                 if name and not entry.get("native", {}).get("declaration_only"):
                     last = max((e["end_line"] for e in packet["entries"] if e.get("function_scope") == entry["scope"]), default=entry["end_line"])
-                    if (symbol and name == symbol) or (not symbol and entry["start_line"] <= line <= last):
+                    normalized = lambda value: re.sub(r"@\d+(?::\d+)?", "", _scope_key(value))
+                    symbol_match = normalized(entry["scope"]) == normalized(symbol) or (not exact_symbol and name == symbol)
+                    if (symbol and symbol_match) or (not symbol and entry["start_line"] <= line <= last):
                         candidates.append((last-entry["start_line"], entry["start_line"], last))
+            if symbol and len(candidates) != 1:
+                return {"status": "ambiguous_target" if candidates else "missing_target", "target": path,
+                        "targets": [f"{path}:{start}" for _, start, _ in candidates], "sources": []}
             if candidates:
                 _, reference["start_line"], reference["end_line"] = min(candidates)
         else:
@@ -390,7 +442,7 @@ class ScienceStore:
             if not language:
                 self._lift_analyzer_sources(payload, analysis, path, raw)
             attach_source_analysis(payload, analysis)
-        self._cache(payload, raw, path)
+        self._cache(payload, raw, path, source_sha256)
         compiled = reading_input(payload)
         sources = {s["id"]: s for s in compiled["sources"]}
         entities = {e["id"]: e for e in compiled["entities"]}
@@ -426,9 +478,11 @@ class ScienceStore:
         for item in compiled["entities"]:
             if item.get("source_ids"):
                 site = sources[item["source_ids"][0]]
-                self.state["targets"][item["id"]] = {"path": path, "line": site["start_line"], "content_hash": digest_json(raw.hex())}
+                self.state["targets"][item["id"]] = {"path": path, "line": site["start_line"], "content_hash": digest_json(raw.hex()),
+                                                    "source_sha256": source_sha256}
         for identifier, site in sources.items():
-            self.state["targets"][identifier] = {"path": path, "line": site["start_line"], "content_hash": digest_json(raw.hex())}
+            self.state["targets"][identifier] = {"path": path, "line": site["start_line"], "content_hash": digest_json(raw.hex()),
+                                                "source_sha256": source_sha256}
         self.save()
         displayed_templates = []
         for identifier in sorted({e["template_id"] for e in shown if e.get("template_id")}):
@@ -444,7 +498,9 @@ class ScienceStore:
                                 if analysis is None and view == "relationships" and Path(path).suffix.lower() in JOERN_SOURCE_SUFFIXES else None),
             "analysis_backends": [a["backend"] for a in (analysis or {}).get("analyses", [])],
             "analysis_gaps": (analysis or {}).get("gaps", []),
-            "computations": [{"id": c["id"], "name": c["name"], "body_status": c["body_status"]} for c in computations],
+            "computations": [{"id": c["id"], "note_target": c["id"], "name": c["name"], "body_status": c["body_status"]} for c in computations],
+            "note_target": computations[0]["id"] if len(computations) == 1 else None,
+            "note_source_ids": sorted(visible_sources),
             "quantities_and_expressions": shown,
             "templates": displayed_templates,
             "relationships": [r for r in compiled["relations"] if r["source"] in page_ids or r["target"] in page_ids],
@@ -495,10 +551,56 @@ class ScienceStore:
                     "start_col": max(0, props.get("COLUMN_NUMBER", 1)-1),
                     "end_col": max(0, props.get("COLUMN_NUMBER", 1)-1)+len(code.encode())})
 
-    def _cache(self, payload, raw, path):
+    def _cache(self, payload, raw, path, source_sha256=None):
         key = digest_json(payload)
         write_json(self.store / "views" / (key + ".json"), payload)
-        self.state["payloads"][key] = {"path": path, "content_hash": digest_json(raw.hex())}
+        self.state["payloads"][key] = {"path": path, "content_hash": digest_json(raw.hex()),
+                                       "source_sha256": source_sha256 or self._source_hash(path)}
+
+    def _source_hash(self, path):
+        if path.startswith("@context/"):
+            return evidence._hash_regular(self.store.parent, path[len("@context/"):])
+        return evidence._hash_regular(self.root, path)
+
+    def _current_payloads(self):
+        """Keep archived payloads, but expose/join only current evidence per file."""
+        payloads, hashes, stale, unverifiable = [], {}, set(), set()
+        for key, info in self.state["payloads"].items():
+            payload = read_json(self.store / "views" / (key + ".json"))
+            versions = info.get("source_hashes", {}) if info.get("prepared") else {info["path"]: info.get("source_sha256")}
+            blocked = set()
+            for path, expected in versions.items():
+                try:
+                    if path not in hashes:
+                        hashes[path] = self._source_hash(path)
+                    matches = hashes[path] == expected if expected else digest_json(self.read(path)[0].hex()) == info.get("content_hash")
+                    if not matches:
+                        stale.add(path)
+                        blocked.add(path)
+                except (OSError, ValueError):
+                    unverifiable.add(path)
+                    blocked.add(path)
+            if blocked and not info.get("prepared"):
+                continue
+            removed = set()
+            def keep(item):
+                source = item.get("source")
+                path = source.get("path") if isinstance(source, dict) else item.get("path")
+                if path in blocked:
+                    removed.add(item.get("id"))
+                    return False
+                return True
+            for field in ("objects", "operations", "unsupported"):
+                payload[field] = [item for item in payload.get(field, []) if keep(item)]
+            context = payload.get("context", {})
+            for field in ("code_passages", "scientific_passages", "analysis_regions", "analysis_sources"):
+                context[field] = [item for item in context.get(field, []) if keep(item)]
+            payload["links"] = [link for link in payload.get("links", [])
+                                if link.get("source") not in removed and link.get("target") not in removed]
+            context["analysis_sources"] = [item for item in context["analysis_sources"]
+                if item.get("kind") != "edge" or (item.get("source") not in removed and item.get("target") not in removed)]
+            payloads.append(payload)
+        return payloads, stale, unverifiable
 
     def _visible(self, entities, sources):
         self.state["visible_entities"] = sorted(
@@ -526,12 +628,8 @@ class ScienceStore:
         The node inspector shows and registers only what this context holds, so
         registered citations always correspond to displayed content.
         """
-        context = {"sources": {}, "documents": {}, "objects": {}, "operations": {}, "entities": {}}
-        for key in self.state.get("payloads", {}):
-            try:
-                payload = read_json(self.store / "views" / (key + ".json"))
-            except (OSError, ValueError):
-                continue
+        context = {"sources": {}, "documents": {}, "objects": {}, "operations": {}, "entities": {}, "computations": {}}
+        for payload in self._current_payloads()[0]:
             for entry in (payload.get("context") or {}).get("code_passages") or []:
                 if entry.get("id"):
                     context["sources"][entry["id"]] = entry
@@ -545,9 +643,11 @@ class ScienceStore:
                 if item.get("id"):
                     context["operations"][item["id"]] = item
             try:
-                for item in reading_input(payload)["entities"]:
+                compiled = reading_input(payload)
+                for item in compiled["entities"]:
                     if item.get("id"):
                         context["entities"][item["id"]] = item
+                context["computations"].update({item["id"]: item for item in compiled["computations"]})
             except (ValueError, KeyError, TypeError):
                 continue
         return context
@@ -582,7 +682,7 @@ class ScienceStore:
             result["guards"] = guards
         return result
 
-    def _remember_expansion(self, node, detail):
+    def _remember_expansion(self, node, detail, replace=False):
         """Persist on-demand compiled evidence onto the graph node."""
         source_ids = [item["id"] for item in detail.get("sources") or [] if item.get("id")]
         computation_ids = [item["id"] for item in detail.get("computations") or [] if item.get("id")]
@@ -592,8 +692,27 @@ class ScienceStore:
         for candidate in graph.get("nodes", []):
             if candidate.get("id") != node.get("id"):
                 continue
-            candidate["source_ids"] = sorted(set(candidate.get("source_ids") or []) | set(source_ids))
-            candidate["entity_ids"] = sorted(set(candidate.get("entity_ids") or []) | set(computation_ids))
+            if replace:
+                candidate.setdefault("preparation_evidence", {"source_sha256": candidate.get("source_sha256"),
+                    **{key: copy.deepcopy(candidate.get(key)) for key in ("arguments", "findings", "observations", "instances")}})
+                candidate.update(arguments=None, findings=[], observations=[], instances=None, conditions=[],
+                                 operations={}, quantities=[], signature=None)
+            candidate["source_ids"] = sorted((set() if replace else set(candidate.get("source_ids") or [])) | set(source_ids))
+            entity_ids = computation_ids + [item["id"] for item in detail.get("quantities_and_expressions", [])]
+            candidate["entity_ids"] = sorted((set() if replace else set(candidate.get("entity_ids") or [])) | set(entity_ids))
+            normalize = lambda value: re.sub(r"@\d+(?::\d+)?", "", _scope_key(value))
+            named = [item["id"] for item in detail.get("computations", [])
+                     if normalize(item.get("name")) == normalize(candidate.get("name"))]
+            if len(named) == 1 or len(computation_ids) == 1:
+                candidate["computation_id"] = named[0] if len(named) == 1 else computation_ids[0]
+            elif replace:
+                candidate["computation_id"] = None
+            candidate["source_sha256"] = self._source_hash(candidate["path"])
+            if replace:
+                candidate["line"] = detail.get("target", {}).get("start_line", candidate["line"])
+                candidate["quantities"] = [item for item in detail.get("quantities_and_expressions", []) if item.get("kind") != "source_computation"]
+                candidate["conditions"] = sorted({source["text"] for source in detail.get("sources", [])
+                    if any(ref.get("predicate_id") == source["id"] for item in detail.get("quantities_and_expressions", []) for ref in item.get("condition_refs", []))})
             candidate["expanded"] = True
             if detail.get("analysis_backends"):
                 candidate["analysis_backends"] = detail["analysis_backends"]
@@ -622,69 +741,19 @@ class ScienceStore:
                [c.get("computation_id"), *c.get("expression_ids", []), *(q.get("object_id") for q in c.get("quantities", []))]]
         if not ids or not set(ids) <= set(self.state["visible_entities"]):
             raise ValueError("Select computation/quantity/expression IDs returned by inspect")
-        # Version separation: prepared evidence whose file changed (or cannot be
-        # verified) on disk is not current. Its citations are refused until the
-        # source is inspected again, and its items are excluded from the join.
-        stale_paths = set()
-        unverifiable_paths = set()
-        stale_source_ids = set()
-        for key, info in self.state["payloads"].items():
-            if not info.get("prepared"):
-                continue
-            for path, expected in (info.get("source_hashes") or {}).items():
-                try:
-                    if path.startswith("@context/"):
-                        # Harness context lives next to the store, outside the task root.
-                        raw = (self.store.parent / path[len("@context/"):]).read_bytes()
-                    else:
-                        raw = self.read(path)[0]
-                    current = hashlib.sha256(raw).hexdigest()
-                except ValueError:
-                    unverifiable_paths.add(path)
-                    continue
-                except OSError:
-                    current = None
-                if current != expected:
-                    stale_paths.add(path)
-            if stale_paths or unverifiable_paths:
-                payload = read_json(self.store / "views" / (key + ".json"))
-                for source in (payload.get("context") or {}).get("code_passages") or []:
-                    if source.get("path") in stale_paths | unverifiable_paths and source.get("id"):
-                        stale_source_ids.add(source["id"])
-        if set(citations(model)) & stale_source_ids:
-            reasons = []
-            if stale_paths:
-                reasons.append("changed on disk: " + ", ".join(sorted(stale_paths)))
-            if unverifiable_paths:
-                reasons.append("unverifiable now: " + ", ".join(sorted(unverifiable_paths)))
-            raise ValueError("Prepared evidence is not current (" + "; ".join(reasons)
-                             + "); re-inspect before citing it")
-        blocked_paths = stale_paths | unverifiable_paths
+        payloads, stale_paths, unverifiable_paths = self._current_payloads()
+        current_sources = {item["id"] for payload in payloads for field in ("code_passages", "scientific_passages")
+                           for item in payload.get("context", {}).get(field, []) if item.get("id")}
+        if not set(citations(model)) <= current_sources:
+            raise ValueError("Evidence is not current; inspect the target again for current citation IDs. "
+                             "Changed/unavailable files: " + ", ".join(sorted(stale_paths | unverifiable_paths)))
         merged = {key: {} for key in ("objects", "operations", "unsupported", "links", "documents", "entries", "regions", "analysis")}
-        current_hashes = {}
-
-        def stale(item):
-            source = item.get("source")
-            path = source.get("path") if isinstance(source, dict) else item.get("path")
-            return path in blocked_paths
-
-        for key in self.state["payloads"]:
-            info = self.state["payloads"][key]
-            if not info.get("prepared"):
-                if info["path"] not in current_hashes:
-                    current_hashes[info["path"]] = digest_json(self.read(info["path"])[0].hex())
-                if current_hashes[info["path"]] != info["content_hash"]:
-                    continue  # Previous source versions remain archived, not current evidence.
-            payload = read_json(self.store / "views" / (key + ".json"))
+        for payload in payloads:
             for field in ("objects", "operations", "links", "unsupported"):
                 for item in payload.get(field, []):
-                    if info.get("prepared") and stale(item):
-                        continue
                     merged[field][item.get("id", digest_json(item))] = item
             for field, source in (("documents", "scientific_passages"), ("entries", "code_passages"), ("regions", "analysis_regions"), ("analysis", "analysis_sources")):
                 for item in payload.get("context", {}).get(source, []):
-                    if info.get("prepared") and item.get("path") in stale_paths:
-                        continue
                     merged[field][item.get("id", digest_json(item))] = item
         graph = {k: list(merged[k].values()) for k in ("objects", "operations", "links", "unsupported")}
         graph.update(schema_version="scientific-objects-1.0", coverage={})
@@ -706,6 +775,28 @@ class ScienceStore:
                 "stale_paths": sorted(stale_paths), "unverifiable_paths": sorted(unverifiable_paths),
                 "scope": "References checked; scientific correctness is not mechanically established."}
 
+    def record_note(self, request):
+        parameters = {"type": "object", "properties": NOTE_PROPERTIES, "required": NOTE_REQUIRED,
+                      "additionalProperties": False}
+        error = next(Draft202012Validator(parameters).iter_errors(request), None)
+        if error:
+            location = ".".join(map(str, error.absolute_path)) or "note"
+            raise ValueError(f"Invalid {location}: {error.message}")
+        target = request["target"]
+        node = next((n for n in (self.state.get("scientific_graph") or {}).get("nodes", []) if n["id"] == target), None)
+        context = self._prepared_context()
+        identifier = node.get("computation_id") if node else target
+        if identifier not in context["computations"] and context["entities"].get(identifier, {}).get("kind") != "source_computation":
+            raise ValueError("Inspect the target with science_inspect, then copy its note_target and note_source_ids.")
+        def claim(text):
+            return {"text": text, "source_ids": request["source_ids"]}
+        model = {"purpose": claim(request["meaning"]), "expected_change": claim(request["expected_change"]),
+            "preserve": [claim(text) for text in request["preserve"]], "computations": [{
+                "computation_id": identifier, "meaning": claim(request["meaning"]), "quantities": [],
+                "conventions": [claim(text) for text in request.get("conventions", [])],
+                "assumptions": request.get("assumptions", [])}]}
+        return {**self.record_model(model), "note_target": target}
+
     def check(self):
         """No-model verification of the prepared-graph query path.
 
@@ -713,6 +804,9 @@ class ScienceStore:
         exercises on-demand expansion, and records (then discards) a fixture
         model. Store state is restored, so the check leaves no model behind.
         """
+        if (self.state.get("model_recorded") or any(self.store.glob("model-*.json"))
+                or any((self.store / name).exists() for name in ("scientific-model.json", "scientific-model.md"))):
+            raise ValueError("Self-check refused: an existing model must not be overwritten or removed")
         snapshot = (self.store / "state.json").read_text() if (self.store / "state.json").is_file() else None
         result = {"status": "partial", "steps": {}}
         try:
@@ -768,6 +862,7 @@ class ScienceStore:
         finally:
             if snapshot is not None:
                 (self.store / "state.json").write_text(snapshot)
+                self.state = json.loads(snapshot)
             for path in list(self.store.glob("model-*.json")):
                 path.unlink()
             for name in ("scientific-model.json", "scientific-model.md"):
@@ -788,7 +883,9 @@ class ScienceStore:
             return self.inspect(request.get("target"), request.get("view", "relationships"), offset, analysis)
         if action == "record_model":
             return self.record_model(request.get("model"))
-        raise ValueError("Use find, inspect or record_model")
+        if action == "record_note":
+            return self.record_note({key: value for key, value in request.items() if key != "action"})
+        raise ValueError("Use find, inspect or record_note")
 
 
 def main(argv=None):

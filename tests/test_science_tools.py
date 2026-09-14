@@ -4,7 +4,7 @@ import json
 import pytest
 from jsonschema import Draft202012Validator
 
-from scicontext.science_tools import ScienceStore, tool_definition
+from scicontext.science_tools import ScienceStore, tool_definitions
 
 
 @pytest.fixture
@@ -44,9 +44,13 @@ def test_find_inspect_record_is_nonexecuting_and_connected(store):
 
 
 def test_tool_schema_references_are_resolvable():
-    parameters = tool_definition()["function"]["parameters"]
-    Draft202012Validator.check_schema(parameters)
-    assert not list(Draft202012Validator(parameters).iter_errors({"action": "find", "query": "energy"}))
+    tools = {tool["function"]["name"]: tool["function"]["parameters"] for tool in tool_definitions()}
+    assert set(tools) == {"science_find", "science_inspect", "science_note"}
+    for parameters in tools.values():
+        Draft202012Validator.check_schema(parameters)
+        assert "$defs" not in parameters and "action" not in parameters["properties"]
+    assert not list(Draft202012Validator(tools["science_find"]).iter_errors({"query": "energy"}))
+    assert "model" not in tools["science_note"]["properties"]
 
 
 @pytest.mark.parametrize("target", ["../secret.py", "/etc/passwd", "private/test.py"])
@@ -424,3 +428,176 @@ def test_self_check_verifies_queries_and_leaves_no_model(tmp_path):
     restored = ScienceStore(store.root, store.store)
     assert not restored.state.get("model_recorded"), "self-check must restore the store"
     assert not (store.store / "scientific-model.json").exists()
+    assert not store.state.get("model_recorded"), "the in-memory state must also be restored"
+
+
+@pytest.mark.parametrize("artifact", [None, "model-1.json", "scientific-model.json", "scientific-model.md"])
+def test_self_check_refuses_existing_model_without_mutating_store(tmp_path, artifact):
+    store = prepared_graph_store(tmp_path)
+    if artifact:
+        (store.store / artifact).write_text("existing model, preserve exactly")
+    else:
+        store.state["model_recorded"] = True
+        store.save()
+    before = {p.relative_to(store.store).as_posix(): p.read_bytes() for p in store.store.rglob("*") if p.is_file()}
+    with pytest.raises(ValueError, match="existing.*model|model.*exist"):
+        store.check()
+    after = {p.relative_to(store.store).as_posix(): p.read_bytes() for p in store.store.rglob("*") if p.is_file()}
+    assert after == before
+
+
+def test_prepared_hash_uses_full_file_not_inspection_prefix(tmp_path, monkeypatch):
+    from scicontext import evidence
+    store = prepared_graph_store(tmp_path)
+    node = next(n for n in store.inspect("#graph")["nodes"] if n["name"] == "advance")
+    detail = store.inspect(node["id"])
+    claim = {"text": "Stored energy update.", "source_ids": [detail["sources"][0]["id"]]}
+    model = {"purpose": claim, "expected_change": claim, "preserve": [claim], "computations": [
+        {"computation_id": detail["computation_id"], "meaning": claim, "quantities": [],
+         "conventions": [], "assumptions": []}]}
+    monkeypatch.setattr(evidence, "MAX_FILE_BYTES", 32)
+    assert store._read_window("model.py")[2]
+    assert store.record_model(model)["status"] == "recorded"
+    with (store.root / "model.py").open("a") as stream:
+        stream.write("\n# changed beyond the inspection prefix\n")
+    with pytest.raises(ValueError, match="not current"):
+        store.record_model(model)
+
+
+def test_edited_node_refreshes_shifted_symbol_and_records_current_sources(tmp_path, monkeypatch):
+    from scicontext import evidence
+    store = prepared_graph_store(tmp_path)
+    node = next(n for n in store.inspect("#graph")["nodes"] if n["name"] == "advance")
+    old = store.inspect(node["id"])
+    old_ids = {s["id"] for s in old["sources"]}
+    unchanged = store.inspect("reproduce.py", view="source")["source"]["id"]
+    file = store.root / "model.py"
+    file.write_text("\n\n\n" + file.read_text().replace("flux * dt", "flux * dt * 2"))
+    current = store.inspect(node["id"], view="source")
+    assert current["refreshed"] and current["line"] > old["line"]
+    assert any("flux * dt * 2" in s["text"] for s in current["source"])
+    assert not old_ids & {s["id"] for s in current["sources"]}
+    assert current["dependencies"] == old["dependencies"]
+    assert current["dependencies_version"] == "preparation_snapshot_not_reexecuted"
+    assert not current["observations"] and current["preparation_evidence"]
+    claim = {"text": "Updated energy transport.", "source_ids": [current["sources"][0]["id"], unchanged]}
+    model = {"purpose": claim, "expected_change": claim, "preserve": [claim], "computations": [
+        {"computation_id": current["computation_id"], "meaning": claim, "quantities": [],
+         "conventions": [], "assumptions": []}]}
+    assert store.record_model(model)["status"] == "recorded"
+    model["purpose"] = {"text": "Old version.", "source_ids": list(old_ids)}
+    with pytest.raises(ValueError, match="not current"):
+        store.record_model(model)
+    monkeypatch.setattr(evidence, "extract_evidence", lambda *a, **kw: pytest.fail("unchanged file recompiled"))
+    again = store.inspect(node["id"])
+    assert again["computation_id"] == current["computation_id"]
+    assert not again.get("refreshed")
+
+
+def test_deleted_symbol_never_retargets_old_line(tmp_path):
+    store = prepared_graph_store(tmp_path)
+    node = next(n for n in store.inspect("#graph")["nodes"] if n["name"] == "advance")
+    store.inspect(node["id"])
+    (store.root / "model.py").write_text("def replacement(value):\n    return value + 1\n")
+    result = store.inspect(node["id"])
+    assert result["status"] in {"missing_target", "ambiguous_target", "unresolved_target"}
+    assert not result["sources"]
+    assert result["refresh_target"] == "model.py#advance"
+
+
+def test_cpp_node_refreshes_after_inserted_lines(tmp_path):
+    store = prepared_graph_store(tmp_path, unseen=True, unseen_path="unseen.cpp")
+    node = next(n for n in store.inspect("#graph")["nodes"] if n["name"] == "mystery")
+    first = store.inspect(node["id"])
+    file = store.root / "unseen.cpp"
+    file.write_text("\n\n" + file.read_text().replace("value * 2", "value * 3"))
+    second = store.inspect(node["id"], view="source")
+    assert second.get("refreshed")
+    assert second["line"] > first["line"]
+    assert any("value * 3" in s["text"] for s in second["source"])
+
+
+def test_flat_note_resolves_internal_ids_and_records_after_edit(tmp_path):
+    store = prepared_graph_store(tmp_path)
+    node = next(n for n in store.inspect("#graph")["nodes"] if n["name"] == "advance")
+    detail = store.inspect(node["id"])
+    request = {"target": detail["note_target"], "meaning": "Energy is updated by outward flux over time.",
+               "expected_change": "Apply the requested transport update.", "preserve": ["Keep the sign convention."],
+               "source_ids": detail["note_source_ids"]}
+    assert store.dispatch({"action": "record_note", **request})["status"] == "recorded"
+    saved = json.loads((store.store / "scientific-model.json").read_text())
+    item = saved["computations"][0]["interpretation"]
+    assert item["computation_id"] == detail["computation_id"]
+    assert item["assumptions"] == item["conventions"] == item["quantities"] == []
+    file = store.root / "model.py"
+    file.write_text("\n\n" + file.read_text().replace("flux * dt", "flux * dt * 3"))
+    with pytest.raises(ValueError):
+        store.record_note(request)
+    refreshed = store.inspect(node["id"])
+    request["source_ids"] = refreshed["note_source_ids"]
+    assert store.record_note(request)["status"] == "recorded"
+    assert (store.store / "model-1.json").is_file(), "previous notes remain archived"
+
+
+def test_flat_note_refuses_graph_id_as_a_source_citation(tmp_path):
+    store = prepared_graph_store(tmp_path)
+    node = next(n for n in store.inspect("#graph")["nodes"] if n["name"] == "advance")
+    detail = store.inspect(node["id"])
+    request = {"target": detail["note_target"], "meaning": "Energy update.", "expected_change": "Fix update.",
+               "preserve": ["Sign convention."], "source_ids": [node["id"]]}
+    with pytest.raises(ValueError, match="Cite source IDs"):
+        store.record_note(request)
+
+
+@pytest.mark.parametrize("path,code", [
+    ("mystery.f90", "function mystery(value) result(out)\nreal :: value, out\nout = value * 2\nend function\n"),
+    ("mystery.m", "function out = mystery(value)\nout = value * 2;\nend\n"),
+    ("mystery.pyx", "def mystery(value):\n    return value * 2\n"),
+])
+def test_native_node_refresh_uses_current_symbol_not_old_line(tmp_path, path, code):
+    store = prepared_graph_store(tmp_path, unseen=True, unseen_path=path)
+    file = store.root / path
+    file.write_text(code)
+    node = next(n for n in store.inspect("#graph")["nodes"] if n["name"] == "mystery")
+    first = store.inspect(node["id"])
+    assert first.get("evidence", {}).get("sources")
+    file.write_text("\n\n" + code.replace("value * 2", "value * 3"))
+    second = store.inspect(node["id"], view="source")
+    assert second.get("refreshed"), second
+    assert any("value * 3" in s["text"] for s in second["source"])
+
+
+def test_refresh_of_one_file_preserves_other_prepared_file_citations(tmp_path):
+    store = prepared_graph_store(tmp_path)
+    nodes = store.inspect("#graph")["nodes"]
+    caller = next(n for n in nodes if n["name"] == "run")
+    before = store.inspect(caller["id"])
+    (store.root / "model.py").write_text("def advance(*args):\n    return 0\n")
+    after = store.inspect(caller["id"])
+    assert after["note_source_ids"] == before["note_source_ids"]
+    assert after["computation_id"] == before["computation_id"]
+    assert store.record_note({"target": after["note_target"], "meaning": "Run the public workflow.",
+            "expected_change": "Keep the workflow callable.", "preserve": ["Public inputs."],
+            "source_ids": after["note_source_ids"]})["status"] == "recorded"
+
+
+def test_deleted_top_level_function_does_not_refresh_to_same_named_method(tmp_path):
+    store = prepared_graph_store(tmp_path)
+    node = next(n for n in store.inspect("#graph")["nodes"] if n["name"] == "advance")
+    store.inspect(node["id"])
+    (store.root / "model.py").write_text("class Other:\n    def advance(self, energy, flux, dt):\n        return energy + 99\n")
+    result = store.inspect(node["id"])
+    assert result["status"] == "ambiguous_target"
+    assert result["targets"] == result["sources"] == []
+    assert not result.get("refreshed")
+
+
+def test_first_expansion_supplies_usable_note_fields(tmp_path):
+    store = prepared_graph_store(tmp_path, unseen=True)
+    node = next(n for n in store.inspect("#graph")["nodes"] if n["name"] == "mystery")
+    result = store.inspect(node["id"])
+    assert result["note_target"] and result["note_source_ids"]
+    assert set(result["note_source_ids"]) <= set(store.state["visible_sources"])
+    assert store.record_note({"target": result["note_target"], "source_ids": result["note_source_ids"],
+            "meaning": "Double the supplied value.", "expected_change": "Repair the reported behaviour.",
+            "preserve": ["The scalar return type."]})["status"] == "recorded"

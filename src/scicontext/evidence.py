@@ -16,6 +16,7 @@ import os
 import re
 import stat
 import tokenize
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -96,13 +97,9 @@ def _span_text(source: str, node: ast.AST) -> str:
     return ast.get_source_segment(source, node) or ""
 
 
-def _read_bounded(root: Path, relative: str, limit: int) -> tuple[bytes, bool]:
-    """Read at most ``limit`` bytes through the symlink-safe walk.
-
-    Returns ``(raw, truncated)``. Callers that need the source-size contract
-    (packet extraction) reject truncation; inspectors may present a bounded
-    prefix with the truncation reported explicitly.
-    """
+@contextmanager
+def _open_regular(root: Path, relative: str):
+    """Share the existing symlink-safe descriptor walk for reads and hashing."""
     descriptors = []
     try:
         directory = os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
@@ -116,6 +113,27 @@ def _read_bounded(root: Path, relative: str, limit: int) -> tuple[bytes, bool]:
         metadata = os.fstat(descriptor)
         if not stat.S_ISREG(metadata.st_mode):
             raise ValueError("source is not a regular file")
+        yield descriptor
+    finally:
+        for descriptor in reversed(descriptors):
+            os.close(descriptor)
+
+
+def _hash_regular(root: Path, relative: str) -> str:
+    """Hash the complete public file, without loading large files into memory."""
+    _, problem = _safe_file(root, relative)
+    if problem:
+        raise ValueError(problem)
+    digest = hashlib.sha256()
+    with _open_regular(root, relative) as descriptor:
+        while chunk := os.read(descriptor, 65536):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _read_bounded(root: Path, relative: str, limit: int) -> tuple[bytes, bool]:
+    """Return a bounded prefix and truncation flag through the safe descriptor walk."""
+    with _open_regular(root, relative) as descriptor:
         chunks = []
         remaining = limit + 1
         while remaining:
@@ -126,9 +144,6 @@ def _read_bounded(root: Path, relative: str, limit: int) -> tuple[bytes, bool]:
             remaining -= len(chunk)
         raw = b"".join(chunks)
         return raw[:limit], len(raw) > limit
-    finally:
-        for descriptor in reversed(descriptors):
-            os.close(descriptor)
 
 
 def _read_regular(root: Path, relative: str) -> bytes:

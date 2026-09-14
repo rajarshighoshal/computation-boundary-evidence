@@ -1,4 +1,6 @@
 """Relation classification and loci rules R1-R7 on synthetic traces."""
+import pytest
+
 from scicontext.fingerprint import fingerprint
 from scicontext.relations import _input_relation, _output_relation, derive_loci
 
@@ -282,8 +284,16 @@ def test_scientific_failure_emits_r6_containment():
                          script_report={"status": "pre_fix_expected_failure", "failure_kind": "collapse"})
     r6 = [l for l in result["loci"] if l["properties"]["rule_id"] == "R6"]
     assert len(r6) == 1
-    assert r6[0]["properties"]["constraint_type"] == "distinctness"
+    assert r6[0]["properties"]["constraint_type"] == "script_check"
+    assert r6[0]["properties"]["evidence"]["measures"]["failure_kind"] == "collapse"
     assert result["dynamic"]["reproduction"]["classification"] == "scientific_failure"
+
+
+@pytest.mark.parametrize("status", ["environment_failure", "timeout", "execution_error", "unrecognized_status", [], {"error": "x"}])
+def test_status_without_a_declared_failed_check_is_not_a_scientific_violation(status):
+    result = derive_loci([], [], script_report={"status": status, "failure_kind": "collapse"})
+    assert not result["loci"]
+    assert result["dynamic"]["reproduction"]["classification"] in {"unknown", "runner_failure"}
 
 
 def test_r1_identical_output_is_observation_unless_declared():

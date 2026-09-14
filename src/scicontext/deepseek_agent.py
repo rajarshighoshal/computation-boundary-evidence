@@ -25,7 +25,7 @@ from pier.models.agent.network import NetworkAllowlist
 from .assets import prepare_helpers
 from .io import digest_file, digest_json, read_json, write_json, _safe_relative
 from .pier_agent import CONTROL, REMOTE, SCRATCH, ScientificCodex, bounded_call
-from .science_tools import tool_definition
+from .science_tools import SCIENCE_ACTIONS, tool_definitions
 
 API = "https://api.deepseek.com/chat/completions"
 API_ENDPOINTS = {"deepseek": API,
@@ -547,19 +547,20 @@ class DeepSeekAgent(ScientificCodex):
     async def _execute_tool(self, call, seconds):
         function = call.get("function", {})
         name = function.get("name")
-        event = {"type": "science_tool" if name == "science" else "command_execution", "exit_code": 1}
+        event = {"type": "science_tool" if name in SCIENCE_ACTIONS else "command_execution", "exit_code": 1}
         try:
             raw_arguments = function.get("arguments")
             arguments = raw_arguments if isinstance(raw_arguments, dict) else json.loads(raw_arguments or "{}")
             if not isinstance(arguments, dict):
                 raise ValueError("Tool arguments must be an object")
-            if name == "science":
+            if name in SCIENCE_ACTIONS:
                 if self.condition != "science":
                     raise ValueError("Science tool is not enabled in the baseline")
+                arguments = {**arguments, "action": SCIENCE_ACTIONS[name]}
                 event.update(action=arguments.get("action"), target=arguments.get("target"), query=arguments.get("query"))
                 result = await self._science_command(arguments, min(MAX_TOOL_SECONDS, seconds))
-                if arguments.get("action") == "record_model" and result.get("status") == "recorded":
-                    write_json(self.logs_dir / "scientific-model-submitted.json", arguments["model"])
+                if arguments.get("action") == "record_note" and result.get("status") == "recorded":
+                    write_json(self.logs_dir / "scientific-model-submitted.json", arguments)
                     self._science_model_recorded = True
                 event.update(exit_code=0 if result.get("status") != "error" else 1,
                              result_status=result.get("status"),
@@ -613,7 +614,7 @@ class DeepSeekAgent(ScientificCodex):
                     break
                 available_tools = list(self.shell_tools)
                 if self.condition == "science":
-                    available_tools.append(tool_definition())
+                    available_tools.extend(tool_definitions())
                 completion = await _api_completion(self.deepseek_key, self.model, messages,
                     tools=available_tools, timeout_sec=remaining, reasoning_effort=self.config.reasoning_effort,
                     retry_wait=retry_wait, api_provider=self.api_provider)

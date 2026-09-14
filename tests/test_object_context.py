@@ -65,5 +65,5 @@ def test_enrichment_prompt_is_short_direct_and_formattable():
     prompt = (Path(__file__).resolve().parents[1] / "prompts/scientific_repair.md").read_text()
     assert len(prompt.split()) < 220
     assert '"#graph"' in prompt
-    assert "record_model" in prompt
+    assert "science_note" in prompt and "optional" in prompt.lower()
     assert prompt.format(instruction="Repair the stored-material calculation.")
