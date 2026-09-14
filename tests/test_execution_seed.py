@@ -79,3 +79,19 @@ def test_seeded_budget_preserves_documented_meaning_and_guards(tmp_path):
         seeded_regions=[{"path": "m.py", "start_line": 1, "end_line": 5}])
     kinds = {e["kind"] for e in result["entries"]}
     assert {"signature", "docstring", "predicate", "assignment"} <= kinds
+
+
+def test_large_early_file_cannot_consume_the_entire_seeded_packet(tmp_path, monkeypatch):
+    import scicontext.packet as module
+    monkeypatch.setattr(module, "MAX_ENTRIES", 12)
+    (tmp_path / "a_helpers.py").write_text(
+        "def helper(value):\n" + "".join(f"    x{i} = value + {i}\n" for i in range(30)) + "    return x29\n")
+    (tmp_path / "z_model.py").write_text(
+        'def core(value):\n    """Advance the scientific state."""\n    result = value * 17\n    return result\n')
+    seed = [
+        {"file": "a_helpers.py", "name": "helper", "line": 1, "count": 64, "min_depth": 1},
+        {"file": "z_model.py", "name": "core", "line": 1, "count": 1, "min_depth": 2}]
+    packet = build_packet(tmp_path, multilingual=True, seed=seed)
+    assert len(packet["entries"]) <= 12
+    assert any(e["path"] == "z_model.py" and "value * 17" in e.get("text", "") for e in packet["entries"])
+    assert sum(packet["coverage"]["entry_allocations"].values()) <= 12

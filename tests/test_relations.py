@@ -35,7 +35,7 @@ def test_r1_identical_output_is_an_observation_without_a_declaration():
     assert pairs[0]["delta_param"] == {"name": "x", "a": "1.0", "b": "2.0"}
 
 
-def test_r2_invariance_violated_when_related_inputs_differ_in_output():
+def test_reordered_inputs_with_changed_output_are_observations_not_invariance_requirements():
     records = [
         _record(1, "<module>", None),
         _record(2, "sig", 1, inputs={"keys": fingerprint([1, 2, 3])}, return_value=[1.0, 2.0]),
@@ -44,10 +44,12 @@ def test_r2_invariance_violated_when_related_inputs_differ_in_output():
     result = derive_loci(records, [])
     invariance = [l for l in result["loci"] if l["properties"]["rule_id"] == "R2"]
     assert len(invariance) == 1
-    assert invariance[0]["properties"]["status"] == "violated"
+    assert invariance[0]["properties"]["status"] == "observed"
+    assert invariance[0]["properties"]["predicate_source"] == "execution_observation"
+    assert invariance[0]["properties"]["evidence"]["pairs"][0]["output_relation"] == "different"
 
 
-def test_r3_invariance_holds_when_related_inputs_agree():
+def test_related_inputs_with_matching_outputs_do_not_prove_an_invariant():
     records = [
         _record(1, "<module>", None),
         _record(2, "sig", 1, inputs={"keys": fingerprint([1, 2, 3])}, return_value=[1.0, 2.0]),
@@ -55,11 +57,12 @@ def test_r3_invariance_holds_when_related_inputs_agree():
     ]
     result = derive_loci(records, [])
     holds = [l for l in result["loci"] if l["properties"]["rule_id"] == "R3"]
-    assert len(holds) == 1 and holds[0]["properties"]["status"] == "holds"
+    assert len(holds) == 1 and holds[0]["properties"]["status"] == "observed"
+    assert holds[0]["properties"]["evidence"]["pairs"][0]["output_relation"] == "identical"
     assert not [l for l in result["loci"] if l["properties"]["rule_id"] == "R2"]
 
 
-def test_r4_distinctness_violated_for_collapse():
+def test_distinct_inputs_with_matching_outputs_do_not_require_distinctness():
     records = [
         _record(1, "<module>", None),
         _record(2, "project", 1, inputs={"mode": fingerprint("m1")}, return_value=[1.0]),
@@ -69,6 +72,26 @@ def test_r4_distinctness_violated_for_collapse():
     result = derive_loci(records, [])
     collapse = [l for l in result["loci"] if l["properties"]["rule_id"] == "R4"]
     assert len(collapse) >= 1
+    assert all(l["properties"]["status"] == "observed" for l in collapse)
+    assert all(l["properties"]["predicate_source"] == "execution_observation" for l in collapse)
+    assert all(l["properties"]["evidence"]["pairs"] for l in collapse)
+
+
+def test_closeness_declaration_is_not_an_exact_equality_requirement():
+    import numpy as np
+    a, b = np.array([1.0, 2.0]), np.array([1.001, 2.0])
+    assert np.allclose(a, b, atol=.01)
+    records = [
+        _record(1, "<module>", None),
+        _record(2, "f", 1, inputs={"x": fingerprint(1.0)}, return_value=a),
+        _record(3, "f", 1, inputs={"x": fingerprint(2.0)}, return_value=b),
+    ]
+    predicates = [{"kind": "closeness", "text": "np.allclose(a, b, atol=.01)",
+                   "operands": ["a", "b"], "evaluated": {"a": fingerprint(a), "b": fingerprint(b)}}]
+    result = derive_loci(records, predicates)
+    assert result["dynamic"]["declared_equivalent_pairs"] == [[2, 3]]
+    assert result["loci"], "Retain the measured relationship, not a false violation"
+    assert all(l["properties"]["status"] == "observed" for l in result["loci"])
 
 
 def test_r7_nondeterminism_suppresses_relation_rules():
@@ -91,6 +114,8 @@ def test_r5_finiteness_from_nan_stats():
     result = derive_loci(records, [])
     finiteness = [l for l in result["loci"] if l["properties"]["rule_id"] == "R5"]
     assert len(finiteness) == 1
+    assert finiteness[0]["properties"]["status"] == "observed"  # NaN may encode missing data.
+    assert finiteness[0]["properties"]["predicate_source"] == "execution_observation"
 
 
 def test_r6_containment_when_script_failure_matches_predicate():
@@ -169,6 +194,15 @@ def test_r1_requires_proven_identical_outputs():
     ]
     result = derive_loci(records, [])
     assert not [l for l in result["loci"] if l["properties"]["rule_id"] == "R1"]
+
+
+def test_matching_summaries_are_not_labelled_value_equivalence():
+    import numpy as np
+    a, b = np.array([1., 2., 3., 4.]), np.array([1., 3., 2., 4.])
+    assert _output_relation({"return_fp": fingerprint(a)}, {"return_fp": fingerprint(b)}) == "similar_summary"
+    from scicontext.relations import _scale_free_equal
+    assert not _scale_free_equal({"t": "ndarray", "struct": "shape", "stats": None},
+                                {"t": "ndarray", "struct": "shape", "stats": None})
 
 
 def _predicates_from(script_text):

@@ -18,10 +18,10 @@ MAX_DEPTH = 3
 def retrieve(root, paths, seed_paths, task_text="", executed=()):
     """Lexical workflow retrieval; `executed` seeds traced (path, qualname) pairs.
 
-    Executed definitions are explored first so their statically resolvable
-    callees are reported with call sites even when ordinary reproducer
-    retrieval cannot reach them (modules passed as arguments, instance
-    attributes bound in __init__). This remains lexical analysis.
+    Follow the public workflow before the bulk of executed definitions, so
+    import-time helpers cannot exhaust the parser allowance before the task's
+    entry point. Execution seeds still cover dynamically reached definitions.
+    This remains lexical analysis, not proof of runtime dispatch.
     """
     sources = sorted(p for p in paths if source_language(p))
     cache, references, unresolved = {}, [], []
@@ -80,7 +80,9 @@ def retrieve(root, paths, seed_paths, task_text="", executed=()):
 
     def enqueue(path, symbol, depth, via, caller=None):
         if path in sources and depth <= MAX_DEPTH:
-            queue.append((path, symbol, depth, via, caller))
+            item = (path, symbol, depth, via, caller)
+            # Finish the already-located call chain before unrelated seeds.
+            (queue.appendleft if caller or via in {"used_import", "literal_source_path"} else queue.append)(item)
         elif path in sources:
             issue = {"path": path, "symbol": symbol, "reason": "workflow_depth_limit"}
             if issue not in unresolved:
@@ -100,13 +102,13 @@ def retrieve(root, paths, seed_paths, task_text="", executed=()):
             for child in expression:
                 yield from calls_in(child)
 
-    for path, symbol in executed:
-        enqueue(path, symbol, 0, "executed_function")
     for path in sorted(seed_paths, key=lambda p: (not Path(p).stem.startswith("repro"), p)):
         enqueue(path, None, 0, "public_workflow")
     for name in re.findall(r"`([A-Za-z_]\w*)`", task_text[:65536]):
         for path in file_targets(name):
             enqueue(path, name, 0, "task_named_file_function")
+    for path, symbol in executed:
+        enqueue(path, symbol, 0, "executed_function")
 
     while queue and len(references) < MAX_REFERENCES:
         path, symbol, depth, via, caller = queue.popleft()

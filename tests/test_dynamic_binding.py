@@ -1,5 +1,30 @@
-"""Quantity graph and dependence signatures: the learned core from a trace."""
+"""Quantity graph and parameter-response summaries from recorded calls."""
 from scicontext.dynamic_binding import build_quantity_graph, dependence_signatures
+
+
+def test_missing_output_identity_cannot_establish_no_effect():
+    records = [
+        {"seq": i, "file": "model.py", "name": "advance", "line": 1,
+         "inputs": {"dt": {"exact": str(i)}}, "return_fp": {"exact": None, "content": None}}
+        for i in (1, 2)]
+    assert dependence_signatures(records)[0]["arguments"] == {}
+
+
+def test_unknown_control_argument_does_not_count_as_equal():
+    records = [
+        {"seq": i, "file": "model.py", "name": "advance", "line": 1,
+         "inputs": {"dt": {"exact": str(i)}, "boundary": {"exact": None}},
+         "return_fp": {"exact": "same_output"}}
+        for i in (1, 2)]
+    assert dependence_signatures(records)[0]["arguments"] == {}
+
+
+def test_receiver_state_must_also_be_controlled_when_comparing_parameters():
+    for states in ((None, None), ("state_a", "state_b")):
+        records = [{"seq": i, "file": "model.py", "name": "Solver.advance", "line": 1,
+                    "inputs": {"dt": {"exact": str(i)}, "self.__dict__": {"exact": state}},
+                    "return_fp": {"exact": str(i * 2)}} for i, state in enumerate(states, 1)]
+        assert dependence_signatures(records)[0]["arguments"] == {}
 
 
 def _record(seq, name, parent, inputs, return_value, file="m.py", line=1):

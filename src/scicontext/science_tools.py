@@ -255,13 +255,14 @@ class ScienceStore:
             registered = ([node.get("computation_id")] + [item["id"] for item in entities]
                           + [item["id"] for item in quantities if item.get("id")])
             self._visible([identifier for identifier in registered if identifier],
-                          [item["id"] for item in shown_sources])
+                          self._shown_source_ids(shown_sources))
             result = {"status": "ok", "target": target, "type": "scientific_node",
                       "name": node.get("name", ""), "path": node.get("path", ""),
                       "line": node.get("line", 0), "kind": node.get("kind", ""),
                       "language": source_language(node.get("path", "")),
                       "signature": node.get("signature"), "instances": node.get("instances"),
                       "arguments": node.get("arguments"), "findings": node.get("findings") or [],
+                      "observations": node.get("observations") or [],
                       "quantities": quantities, "conditions": node.get("conditions") or [],
                       "operations": node.get("operations") or {}, "computation_id": node.get("computation_id"),
                       "entities": entities,
@@ -293,7 +294,8 @@ class ScienceStore:
                 except (OSError, ValueError, KeyError, TypeError, SyntaxError) as error:
                     result["evidence_error"] = f"{type(error).__name__}: {error}"
             if view == "source":
-                result["source"] = self._node_source(node)
+                result["source"] = self._node_source(node)  # Includes evidence just compiled above.
+                self._visible([], self._shown_source_ids(result["source"]))
             return result
         path, line, symbol = self._target(target)
         raw, text, truncated = self._read_window(path)
@@ -505,22 +507,17 @@ class ScienceStore:
             {item for item in set(self.state["visible_sources"]) | set(sources) if item})
         self.save()
 
-    def _node_source(self, node):
-        """Inline the prepared passages a graph node cites, when available."""
+    def _node_source(self, node, context=None):
+        """Inline cited passages with the same guard context as the compact view."""
+        context = context or self._prepared_context()
         pieces = []
-        for key, info in self.state.get("payloads", {}).items():
-            if not info.get("prepared"):
-                continue
-            payload = read_json(self.store / "views" / (key + ".json"))
-            context = payload.get("context") or {}
-            entries = {e.get("id"): e for e in (context.get("code_passages") or [])}
-            documents = {d.get("id"): d for d in (context.get("scientific_passages") or [])}
-            for identifier in node.get("source_ids") or []:
-                entry = entries.get(identifier) or documents.get(identifier)
-                if entry:
-                    pieces.append({"id": identifier, "path": entry.get("path"),
-                                   "start_line": entry.get("start_line"), "end_line": entry.get("end_line"),
-                                   "text": (entry.get("text") or entry.get("quote") or "")[:6000]})
+        for identifier in dict.fromkeys(node.get("source_ids") or []):
+            piece = self._source_excerpt(context, identifier)
+            if piece:
+                entry = context["sources"].get(identifier) or context["documents"].get(identifier)
+                text = entry.get("text") or entry.get("quote") or ""
+                piece.update(text=text[:6000], truncated=len(text) > 6000)
+                pieces.append(piece)
         return pieces
 
     def _prepared_context(self):
@@ -556,14 +553,34 @@ class ScienceStore:
         return context
 
     @staticmethod
+    def _shown_source_ids(sources):
+        return {item["id"] for source in sources
+                for item in [source, *source.get("guards", [])] if item.get("id")}
+
+    @staticmethod
     def _source_excerpt(context, identifier):
         entry = context["sources"].get(identifier) or context["documents"].get(identifier)
         if not entry:
             return None
         text = entry.get("text") or entry.get("quote") or ""
-        return {"id": identifier, "path": entry.get("path"),
-                "start_line": entry.get("start_line"), "end_line": entry.get("end_line"),
-                "text": text[:NODE_SOURCE_CHARS], "truncated": len(text) > NODE_SOURCE_CHARS}
+        result = {"id": identifier, "path": entry.get("path"),
+                  "start_line": entry.get("start_line"), "end_line": entry.get("end_line"),
+                  "text": text[:NODE_SOURCE_CHARS], "truncated": len(text) > NODE_SOURCE_CHARS}
+        guards = []
+        for ref in context["entities"].get(identifier, {}).get("condition_refs", []):
+            guard_id = ref.get("predicate_id")
+            guard = context["sources"].get(guard_id)
+            if guard is None:
+                guards.append({"branch": ref["branch"], "id": None, "text": None})
+                continue
+            guard_text = guard.get("text") or ""
+            guards.append({"branch": ref["branch"], "id": guard_id,
+                           "path": guard.get("path"), "start_line": guard.get("start_line"),
+                           "end_line": guard.get("end_line"), "text": guard_text[:NODE_SOURCE_CHARS],
+                           "truncated": len(guard_text) > NODE_SOURCE_CHARS})
+        if guards:
+            result["guards"] = guards
+        return result
 
     def _remember_expansion(self, node, detail):
         """Persist on-demand compiled evidence onto the graph node."""
@@ -710,7 +727,7 @@ class ScienceStore:
                 result["steps"]["inspect"] = {"status": "no_citable_node"}
                 return result
             detail = self.inspect(chosen["id"])
-            shown = {source["id"] for source in detail.get("sources") or []}
+            shown = self._shown_source_ids(detail.get("sources") or [])
             result["steps"]["inspect"] = {
                 "status": detail.get("status"), "node": chosen["id"],
                 "sources_shown": len(shown),

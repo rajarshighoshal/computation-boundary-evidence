@@ -14,8 +14,10 @@ normal tools immediately, no hard gate, no mandatory added planning note in eith
 User approved the fixed30 development tasks in both arms (60 paid end-to-end trials), DeepSeek
 Flash/high, 1800s per trial, with40 concurrent trials TOTAL. Latest instruction: verify a complete
 pair first, then the concurrent development test, inspect failures and fix step by step. This is
-development/capacity evidence, not locked evaluation. No cloud rental is approved. The89 locked
-evaluation tasks stay outside this iteration.
+development/capacity evidence, not locked evaluation. User now approved repeating the remaining29
+pairs (58 trials) at40 slots after the offline-network fix, delegated to a Luna/xhigh run manager.
+Root works on scientific-context fixes in parallel. Model remains DeepSeek Flash/high1800s.
+No cloud rental is approved. The89 locked evaluation tasks stay outside this iteration.
 
 ## Live milestones
 - [verified] 009 pair completed on273d23c, runs/development-e2e-check-v1/summary/summary.json:
@@ -34,20 +36,39 @@ evaluation tasks stay outside this iteration.
 - [verified] Real009 preparation check oncf32d16, runs/offline-network-check-v1: completed7.30s,
   prepared_graph, model_calls=0. network-check.json has45 observations of network_mode:none,
   no proxy. All owned containers are down. This verifies the fix, not40-way workload capacity.
-- [decision] Ready for a fresh40-slot development test after the network fix; repeat paid
-  attempts have not been launched. Original interrupted run stays separate; do not silently
-  retry/merge cancelled trials or claim40-way capacity is validated.
-- [next] Inspect concrete failures, apply small task-agnostic fixes with regression tests, and
-  recheck. Known graph-content gaps include114 missing sources,001 selection,091 missing guard,
-  and false R2/R4 requirements; do not label node counts/self-checks as scientific quality.
+- [verified: Luna/xhigh] a491759 in the separate checkout removes baseline-visible science
+  helpers; actual DeepSeek API fields were compatible. Independent review +588 tests passed.
+  runs/development-e2e-40-v2 was a no-model sandbox-launch interruption; preserved separately.
+  runs/development-e2e-40-v2-retry reached40 mains,network:none,zero proxies; stopped after014
+  baselineOOM. All containers/processes down. Own014 limit8GiB, sampled1.926GiB beforeOOM;
+  aggregateVM pressure more likely, transient spike not excluded. See capacity/oom-diagnosis.json.
+- [active: Luna/xhigh] User approved16GB and the same58-trial retry. Root changed only active
+  settings-store.json MemoryMiB9216→16384; Luna owns restart/verification/run monitoring.
+  runs/development-e2e-40-v3 is running40 slots from immutablea491759, without main's science
+  changes. Preserve the previous9216 setting for restoration when research no longer needs16GB.
+- [verified: root] General science fixes: observations are not requirements; unknown outputs or
+  uncontrolled receiver state cannot imply a parameter response; summary similarity is not
+  equality; displayed computations retain their guards and shown citations. Source selection
+  preserves single-call workflow paths and shares the512-entry budget without early-file
+  starvation.599 tests pass; independent reviews plus requested correction applied.
+  Fresh public-source rechecks: runs/context-recheck-v4.001/009/091 relevant computations are
+  selected;114 has constraints.py evidence but its initial view remains wrapper-heavy.
+- [next] Review a computation-first selection change using public task/docs and actual links,
+  then check the fixed30 development set before freezing. Do not hardcode task IDs or known
+  fix-function names. R6's unknown-status classification and meaning-to-citation entailment
+  remain gaps. No additional LLM verifier or graph/framework redesign is approved.
+  Merge reviewed a491759 adapter cleanup into main after the science checkpoint commit.
+Methodology: these are manual, failure-driven task-agnostic refinements, not model training;
+development-set overfitting remains possible. Freeze before the89 locked-task evaluation and
+disclose earlier exposure. The current40-slot run is capacity/development evidence only.
 Final verification: actual preparation→query/expansion→repair→official verifier receipts; observed
 concurrency/resource failures, token/time/cost reporting, and independent review of each fix.
 
 ## Guardrails against drift
 Do not change the RQ, graph requirement, model, baseline, cohort or gate policy without Rajarshi.
 Fix demonstrated problems within this design; show missing capability instead of substituting a
-proxy. No source/commit changes during scientific trial runs; capacity diagnostics use frozen
-inputs. Keep the ledger compact. No further archiving project; do not delete existing artifacts
+proxy. No changes in the frozen execution checkout during a run. Main-checkout science edits are
+isolated from it and are NOT part of that run. Keep the ledger compact. No further archiving project; do not delete existing artifacts
 or unrelated files without instruction. No premature report/submission pivot.
 
 ## Essential context

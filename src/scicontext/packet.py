@@ -290,8 +290,12 @@ def build_packet(root: Path, context_root: Path | None = None, *, multilingual=F
     workflow_refs = []
     if multilingual:
         from .workflow_retrieval import retrieve
-        executed_symbols = [(path, region["symbol"]) for path in sorted(seeded_paths)
-                            for region in plans[path]["regions"]]
+        located = {(path, region["name"], region["line"]): region["symbol"]
+                   for path in seeded_paths for region in plans[path]["regions"]}
+        ordered_seed = sorted(seed, key=lambda r: (
+            r["min_depth"] is None, r["min_depth"] or 0, r.get("first_seq", 0), r["file"], r["line"]))
+        executed_symbols = [(r["file"], located[key]) for r in ordered_seed
+                            if (key := (r["file"], r["name"], r["line"])) in located]
         workflow_refs, workflow = retrieve(root, paths,
             task_paths | repro_paths | {p for p in paths if _reproducer(p)}, context[1] if context else '',
             **({"executed": executed_symbols} if executed_symbols else {}))
@@ -372,21 +376,22 @@ def build_packet(root: Path, context_root: Path | None = None, *, multilingual=F
                              if r["path"] == path and r.get("symbol") == region["symbol"]), default=0)}
                           for path, plan in sorted(plans.items()) if plan for region in plan["regions"]]
     if seeded_paths:
-        # Execution weighting replaces text-proximity weighting: each seeded
-        # file is sized for its executed bodies (bounded by twice the per-file
-        # cap); every other selected file shares what is left of the global
-        # entry budget equally.
+        # Share the existing budget across selected files before giving spare
+        # capacity to larger ones. Sequential greedy allocation let the first
+        # two large files starve every later implementation region.
+        limits = {path: (min(2 * MAX_ENTRIES_PER_FILE, plans[path]["needed"])
+                         if path in seeded_paths and plans.get(path) else MAX_ENTRIES_PER_FILE)
+                  for path in coverage["selected_source_paths"]}
+        allocations = {path: 0 for path in limits}
         remaining = MAX_ENTRIES
-        for path in coverage["selected_source_paths"]:
-            if path in seeded_paths:
-                needed = plans[path]["needed"] if plans.get(path) else 1
-                allocations[path] = max(1, min(2 * MAX_ENTRIES_PER_FILE, needed, remaining))
-                remaining = max(0, remaining - allocations[path])
-        others = [path for path in coverage["selected_source_paths"] if path not in allocations]
-        if others:
-            share = max(1, remaining // len(others))
-            for path in others:
-                allocations[path] = min(MAX_ENTRIES_PER_FILE, share)
+        active = [path for path in limits if limits[path] > 0]
+        while active and remaining:
+            share = max(1, remaining // len(active))
+            for path in active:
+                amount = min(share, limits[path] - allocations[path], remaining)
+                allocations[path] += amount
+                remaining -= amount
+            active = [path for path in active if allocations[path] < limits[path]]
         coverage["entry_allocations"] = allocations
     elif multilingual and refs:
         def source_weight(path):
@@ -408,6 +413,10 @@ def build_packet(root: Path, context_root: Path | None = None, *, multilingual=F
             coverage["skipped"].append({"path": path, "reason": "entry_limit"})
             continue
         limit = min(allocations.get(path, MAX_ENTRIES_PER_FILE), MAX_ENTRIES - len(entries))
+        if limit <= 0:
+            coverage["entries_truncated"] = True
+            coverage["skipped"].append({"path": path, "reason": "entry_limit"})
+            continue
         if multilingual and source_language(path) != "python":
             result = extract_native_evidence(root, [path], max_entries=limit, references=refs)
         else:

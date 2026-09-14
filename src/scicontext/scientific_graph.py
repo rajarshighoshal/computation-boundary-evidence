@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import json
 import re
-from collections import defaultdict
+from collections import defaultdict, deque
 from pathlib import Path
 
 from .execution_seed import read_execution_edges
@@ -121,8 +121,7 @@ def build_graph(graph_path, packet_path=None, trace_dir=None) -> dict:
     objects = graph.get("objects") or []
     links = graph.get("links") or []
     signatures = graph.get("dependence_signatures") or []
-    loci = [o for o in objects if o.get("kind") == "constraint_locus"
-            and (o.get("properties") or {}).get("status") == "violated"]
+    loci = [o for o in objects if o.get("kind") == "constraint_locus"]
 
     operations_by_key = defaultdict(list)
     for operation in operations:
@@ -144,7 +143,9 @@ def build_graph(graph_path, packet_path=None, trace_dir=None) -> dict:
             continue
         key = (func[0], _scope_key(func[1]))
         entry = {"line": func[2], "instances": signature.get("instances"),
-                 "arguments": signature.get("arguments") or {}}
+                 "arguments": {name: {"dependent": "observed_output_change",
+                     "no_effect": "observed_no_output_change", "mixed": "mixed_observed_response"}.get(value, value)
+                     for name, value in (signature.get("arguments") or {}).items()}}
         known = signature_by_key.get(key)
         if known is None or (entry["instances"] or 0) > (known["instances"] or 0):
             signature_by_key[key] = entry
@@ -157,30 +158,54 @@ def build_graph(graph_path, packet_path=None, trace_dir=None) -> dict:
             computation_by_key.setdefault(key, computation)
 
     findings_by_key = defaultdict(list)
+    observations_by_key = defaultdict(list)
     for locus in loci:
         properties = locus.get("properties") or {}
         key = (locus.get("path"), _scope_key(locus.get("scope") or locus.get("symbol")))
         candidates = [{"path": c.get("path"), "line": c.get("line")}
                       for c in properties.get("static_candidates") or [] if c.get("path")]
-        findings_by_key[key].append({
+        is_violation = properties.get("status") == "violated"
+        target = findings_by_key if is_violation else observations_by_key
+        target[key].append({
             "rule": properties.get("rule_id"),
-            "type": properties.get("constraint_type"),
-            "status": "violated",
-            "declared_by": properties.get("predicate_source"),
+            "type": (properties.get("constraint_type") if is_violation else {
+                "R2": "related_input_response", "R3": "related_input_response",
+                "R4": "matching_outputs", "R5": "nonfinite_output", "R8": "process_stall",
+            }.get(properties.get("rule_id"), "measured_response")),
+            "status": "violated" if is_violation else "observed",
+            ("declared_by" if is_violation else "evidence_source"): properties.get("predicate_source"),
             "measures": (properties.get("evidence") or {}).get("measures", {}),
+            "pairs": (properties.get("evidence") or {}).get("pairs", []),
             "candidate_count": len(candidates),
             "static_candidates": candidates,
         })
+    parameter_responses = {}
+    for pair in (graph.get("dynamic") or {}).get("insensitive_pairs") or []:
+        func = pair.get("func") or []
+        if len(func) != 3:
+            continue
+        key = (func[0], _scope_key(func[1]))
+        if key not in parameter_responses:
+            parameter_responses[key] = {
+                "rule": "R1", "type": "parameter_response", "status": "observed",
+                "evidence_source": "execution_observation", "measures": {}, "pairs": []}
+            observations_by_key[key].append(parameter_responses[key])
+        parameter_responses[key]["pairs"].append(
+            {name: value for name, value in pair.items() if name not in {"rule", "func"}})
     candidate_paths = {c["path"] for findings in findings_by_key.values()
                        for finding in findings for c in finding["static_candidates"]}
 
     trace_edges = read_execution_edges(trace_dir) if trace_dir else []
     call_edges = {}
     call_sites = {}
+    call_node_lines = {}
+    callees = defaultdict(set)
     parents = defaultdict(set)
     for edge in trace_edges:
         caller = (edge["caller"]["file"], _scope_key(edge["caller"]["name"]))
         callee = (edge["callee"]["file"], _scope_key(edge["callee"]["name"]))
+        call_node_lines.setdefault(caller, edge["caller"]["line"])
+        call_node_lines.setdefault(callee, edge["callee"]["line"])
         if caller == callee:
             continue
         call_edges[(caller, callee)] = call_edges.get((caller, callee), 0) + edge.get("count", 1)
@@ -188,6 +213,7 @@ def build_graph(graph_path, packet_path=None, trace_dir=None) -> dict:
             "caller": {"path": edge["caller"]["file"], "line": edge["caller"]["line"]},
             "callee": {"path": edge["callee"]["file"], "line": edge["callee"]["line"]}}
         parents[callee].add(caller)
+        callees[caller].add(callee)
 
     site_by_id = {}
     for operation in operations:
@@ -230,14 +256,17 @@ def build_graph(graph_path, packet_path=None, trace_dir=None) -> dict:
                          (_entity_site(item)[1] for item in (*operations_here, *objects_here)) if line]
         line = signature.get("line") or computation_line or locus_line \
             or (interface or {}).get("source_span", {}).get("start_line") \
-            or (min(content_lines) if content_lines else 1)
+            or (min(content_lines) if content_lines else call_node_lines.get(key, 1))
         operations_summary = defaultdict(int)
         for operation in operations_here:
             operations_summary[operation.get("kind")] += 1
-        conditions = [item.get("symbol") for item in objects_here
-                      if item.get("kind") == "source_predicate" and item.get("symbol")][:3]
-        if operations_summary.get("source_comparison"):
-            conditions.append(f"{operations_summary['source_comparison']} comparison(s)")
+        # Use the existing representation's guard links, not comparison counts
+        # or a detached list of predicates elsewhere in this function.
+        conditions = list(dict.fromkeys(
+            f"{ref['branch']}: {source_by_id[ref['predicate_id']]['text']}"
+            for identifier in source_ids
+            for ref in entity_by_id.get(identifier, {}).get("condition_refs", [])
+            if ref.get("predicate_id") in source_by_id))[:3]
         selected[key] = {
             "id": "g_" + digest_json([path, name])[:16],
             "name": name,
@@ -255,6 +284,7 @@ def build_graph(graph_path, packet_path=None, trace_dir=None) -> dict:
             "conditions": conditions or None,
             "operations": dict(operations_summary) or None,
             "findings": findings_by_key.get(key, []),
+            "observations": observations_by_key.get(key, []),
             "boundary": [],
         }
 
@@ -274,6 +304,41 @@ def build_graph(graph_path, packet_path=None, trace_dir=None) -> dict:
     for key in order:
         add_node(key)
 
+    # A task's important computation may run only once. Dependence signatures
+    # require repeats, so they cannot define the candidate set or the route in.
+    # Follow observed workflow calls before frequency-ranked helpers. Import
+    # initializers remain boundary targets/fallbacks, not preferred science.
+    workflow_keys = {key for key in call_node_lines if Path(key[0]).stem.startswith("repro")}
+    workflow_roots = sorted(key for key in workflow_keys if not parents.get(key))
+    if not workflow_roots and workflow_keys:
+        workflow_roots = [min(workflow_keys, key=lambda key: (call_node_lines[key], key))]
+    # Reporting helpers in the reproducer are not all independent task roots.
+    # Prefer routes that actually enter another source file; terminal helpers
+    # stay reachable via edges/boundary references and remaining slots.
+    reaches_implementation = set(call_node_lines) - workflow_keys
+    frontier = deque(reaches_implementation)
+    while frontier:
+        child = frontier.popleft()
+        if child[1] == "<module>":
+            continue
+        for parent in parents.get(child, ()):
+            if parent not in reaches_implementation:
+                reaches_implementation.add(parent)
+                frontier.append(parent)
+    pending, deferred = deque(workflow_roots), deque()
+    visited = set(workflow_roots)
+    while (pending or deferred) and len(selected) < MAX_NODES:
+        if not pending:
+            pending, deferred = deferred, deque()
+        key = pending.popleft()
+        add_node(key)
+        for child in sorted(callees.get(key, ())):
+            if child in visited:
+                continue
+            visited.add(child)
+            auxiliary = (child[1] == "<module>" and child not in workflow_roots) or child not in reaches_implementation
+            (deferred if auxiliary else pending).append(child)
+
     def noisy(name):
         tail = name.split(".")[-1]
         return tail.startswith("__") or any(marker in name for marker in
@@ -286,7 +351,7 @@ def build_graph(graph_path, packet_path=None, trace_dir=None) -> dict:
                 adjacency[callee] += 1
             if callee in selected:
                 adjacency[caller] += 1
-        known = set(signature_by_key) | set(computation_by_key) | set(objects_by_key) | set(operations_by_key)
+        known = set(signature_by_key) | set(computation_by_key) | set(objects_by_key) | set(operations_by_key) | set(call_node_lines)
         ranked = sorted(known, key=lambda key: (
             0 if key[0] in candidate_paths else 1,
             0 if adjacency.get(key) else 1,
@@ -390,6 +455,7 @@ def build_graph(graph_path, packet_path=None, trace_dir=None) -> dict:
             "workflow_nodes": sum(1 for node in nodes if node["kind"] == "workflow"),
             "implementation_nodes": sum(1 for node in nodes if node["kind"] == "implementation"),
             "findings": sum(len(node["findings"]) for node in nodes),
+            "observations": sum(len(node["observations"]) for node in nodes),
             "observed_call_pairs": len(call_edges),
             "calls_edges": sum(1 for edge in edges if edge["relation"] == "calls"),
             "edges": len(edges),

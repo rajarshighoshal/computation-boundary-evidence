@@ -1,16 +1,22 @@
-"""Derive the compact core from a full trace: quantity graph + dependence signatures.
+"""Derive quantity and call-pair views from recorded execution evidence.
 
-The raw trace is the dataset; this module learns the representation from ALL
-instances: unique observed quantities (deduplicated by exact fingerprint)
-become state nodes, instances become transition edges, and per-function
-dependence signatures summarize which inputs the output actually responds to.
-No truncation: the raw trace remains the lossless evidence artifact.
+Known value fingerprints become state nodes and recorded calls become
+transitions. Parameter-response summaries use bounded samples. This is
+deterministic feature extraction, not a trained model; the trace preserves
+recorded events, not every execution event or the full original values.
 """
 from __future__ import annotations
 
 from collections import defaultdict
 
 MAX_SIGNATURE_INSTANCES = 64
+
+
+def _known_identity(fp):
+    if not fp:
+        return None
+    content = fp.get("content")
+    return content if content is not None else fp.get("exact")
 
 
 def build_quantity_graph(trace_records: list) -> dict:
@@ -26,7 +32,7 @@ def build_quantity_graph(trace_records: list) -> dict:
     def quantity_id(fp) -> str | None:
         if not fp:
             return None
-        identifier = fp.get("content") or fp.get("exact")
+        identifier = _known_identity(fp)
         if identifier is None:
             return None
         if identifier not in quantities:
@@ -57,8 +63,8 @@ def build_quantity_graph(trace_records: list) -> dict:
 
 def dependence_signatures(trace_records: list) -> list:
     """Per func_key: for every input, does varying ONLY that input change the
-    output anywhere in the instance population? A zero-effect input is a
-    dead parameter; a one-way difference marks full dependence."""
+    output in the observed call pairs? This is not a causal or universal claim:
+    unknown fingerprints cannot establish either equality or a parameter effect."""
     groups: dict = defaultdict(list)
     for record in trace_records:
         groups[(record["file"], record["name"], record["line"])].append(record)
@@ -70,30 +76,31 @@ def dependence_signatures(trace_records: list) -> list:
         argument_names = set()
         for record in records:
             argument_names.update((record.get("inputs") or {}).keys())
-        argument_names.discard("self.__dict__")
         signature = {"func": func_key, "instances": len(records), "arguments": {}}
-        for arg in sorted(argument_names):
+        for arg in sorted(argument_names - {"self.__dict__"}):
             effect_seen = False
             non_effect_seen = False
             for a in records:
                 for b in records:
                     if a is b:
                         continue
-                    ia, ib = (a.get("inputs") or {}).get(arg), (b.get("inputs") or {}).get(arg)
-                    if not ia or not ib or not ia.get("exact") or not ib.get("exact"):
+                    ia = _known_identity((a.get("inputs") or {}).get(arg))
+                    ib = _known_identity((b.get("inputs") or {}).get(arg))
+                    if ia is None or ib is None:
                         continue
-                    if ia["exact"] == ib["exact"]:
+                    if ia == ib:
                         continue
                     others_same = all(
-                        (a.get("inputs") or {}).get(k, {}) and (b.get("inputs") or {}).get(k, {})
-                        and ((a["inputs"][k].get("exact") == b["inputs"][k].get("exact"))
-                             or k == "self.__dict__")
+                        _known_identity((a.get("inputs") or {}).get(k)) is not None
+                        and _known_identity(a["inputs"][k]) == _known_identity((b.get("inputs") or {}).get(k))
                         for k in argument_names if k != arg)
                     if not others_same:
                         continue
-                    out_a = (a.get("return_fp") or {}).get("exact")
-                    out_b = (b.get("return_fp") or {}).get("exact")
-                    if out_a and out_b and out_a != out_b:
+                    out_a = _known_identity(a.get("return_fp"))
+                    out_b = _known_identity(b.get("return_fp"))
+                    if out_a is None or out_b is None:
+                        continue
+                    if out_a != out_b:
                         effect_seen = True
                     else:
                         non_effect_seen = True

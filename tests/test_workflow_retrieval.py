@@ -8,6 +8,19 @@ from scicontext.scientific_objects import extract_objects
 from scicontext.workflow_retrieval import retrieve
 
 
+def test_public_workflow_is_not_queued_behind_unrelated_executed_files(tmp_path, monkeypatch):
+    import scicontext.workflow_retrieval as module
+    monkeypatch.setattr(module, "MAX_FILES", 2)
+    (tmp_path / "reproduce.py").write_text("from z_model import solve\nresult = solve(3)\n")
+    (tmp_path / "z_model.py").write_text("def solve(x):\n    return x * 17\n")
+    for i in range(4):
+        (tmp_path / f"a_noise{i}.py").write_text("def helper(x):\n    return x\n")
+    paths = {p.name for p in tmp_path.glob("*.py")}
+    refs, _ = retrieve(tmp_path, paths, {"reproduce.py"},
+                       executed=[(f"a_noise{i}.py", "helper") for i in range(4)])
+    assert any(r["path"] == "z_model.py" and r["symbol"] == "solve" for r in refs)
+
+
 def put(root, path, text):
     destination = root / path
     destination.parent.mkdir(parents=True, exist_ok=True)

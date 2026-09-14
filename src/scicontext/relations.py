@@ -23,21 +23,6 @@ def _fp_equal(a, b, field="exact"):
     return value == b.get(field) and value is not None
 
 
-def _stats_equal(a, b):
-    if a is None or b is None:
-        return a == b
-    keys = {"n", "min", "max", "sum", "n_nan", "n_inf"}
-    for key in keys:
-        left, right = a.get(key), b.get(key)
-        if left is None and right is None:
-            continue
-        if left is None or right is None:
-            return False
-        if abs(float(left) - float(right)) > 1e-9 * max(1.0, abs(float(left)), abs(float(right))):
-            return False
-    return True
-
-
 def _round9(value) -> float:
     return float(f"{value:.9g}")
 
@@ -65,13 +50,14 @@ def _normalized(stats: dict) -> tuple:
 
 
 def _scale_free_equal(a, b):
-    """Scale-free equivalence: each stats tuple normalized by its own scale."""
+    """Matching normalized summaries, not equality or scientific equivalence."""
     if not a or not b:
         return False
     if a.get("t") == b.get("t") == "scalar" and a.get("equiv") is not None:
         return a["equiv"] == b["equiv"]
     if a.get("t") == b.get("t") == "ndarray" and a.get("struct") == b.get("struct"):
-        return _normalized(a.get("stats")) == _normalized(b.get("stats"))
+        left = _normalized(a.get("stats"))
+        return bool(left) and left == _normalized(b.get("stats"))
     return False
 
 
@@ -91,7 +77,7 @@ def _input_relation(a, b) -> tuple[str, dict | None]:
     all_equiv = all(_scale_free_equal(a["inputs"].get(k), b["inputs"].get(k))
                     or _same(a["inputs"].get(k), b["inputs"].get(k)) for k in keys)
     if all_equiv:
-        return ("equivalent", None)
+        return ("similar_summary", None)
     deltas = []
     rest_identical = True
     for key in keys:
@@ -132,7 +118,7 @@ def _output_relation(a, b) -> str:
             and fa.get("exact") is None and fb.get("exact") is None:
         return "unknown"
     if _scale_free_equal(fa, fb):
-        return "equivalent"
+        return "similar_summary"
     if fa and fb and fa.get("multiset") == fb.get("multiset") and fa.get("multiset") is not None:
         return "relabeled"
     if fa and fb and fa.get("rev") == fb.get("exact") and fa.get("exact") is not None:
@@ -212,32 +198,25 @@ def _first_divergence(a, b, instances, children) -> int:
         locus = x
         for cx, cy in _aligned_children(x, y, instances, children):
             relation, _ = _input_relation(instances[cx], instances[cy])
-            if relation in {"identical", "equivalent", "relabeled", "reversed"} and \
+            if relation in {"identical", "similar_summary", "relabeled", "reversed"} and \
                     _output_relation(instances[cx], instances[cy]) == "different":
                 pending.append((cx, cy))
     return locus
 
 
-def _provenance_chain(fp_exact: str, instances, children) -> list:
-    chain = []
-    for seq, instance in instances.items():
-        return_fp = instance.get("return_fp") or {}
-        if (return_fp.get("content") or return_fp.get("exact")) == fp_exact:
-            chain.append(seq)
-    return chain[:3]
-
-
-def _cl(key, rule, func_key, constraint_type) -> dict:
+def _cl(key, rule, func_key, constraint_type, *, declared_violation=False) -> dict:
     file, name, line = func_key
     import hashlib
     digest = hashlib.sha256(json.dumps([constraint_type, func_key, rule], sort_keys=True).encode()).hexdigest()[:24]
     return {"id": f"cl_{digest}", "kind": "constraint_locus", "symbol": f"{constraint_type}@{name}",
             "path": file, "scope": name,
             "source_entry_ids": [], "source_span": {"start_line": line, "end_line": line},
-            "properties": {"constraint_type": constraint_type, "status": "violated", "rule_id": rule,
-                           "predicate_source": "script_declared", "locus_transitions": [],
+            "properties": {"constraint_type": constraint_type,
+                           "status": "violated" if declared_violation else "observed", "rule_id": rule,
+                           "predicate_source": "script_declared" if declared_violation else "execution_observation",
+                           "locus_transitions": [],
                            "static_candidates": [], "evidence": {"pairs": [], "measures": {}}},
-            "roles": ["constraint_finding"]}
+            "roles": ["constraint_finding" if declared_violation else "execution_observation"]}
 
 
 def derive_loci(trace_records: list, predicate_evaluations: list, script_status: str | None = None,
@@ -286,7 +265,8 @@ def derive_loci(trace_records: list, predicate_evaluations: list, script_status:
                     # a broken expectation surfaces through the script's own
                     # failed predicates and status instead.
                     insensitive_pairs.append({"rule": "R1", "func": list(func_key), "a": a, "b": b,
-                                              "input_relation": relation, "delta_param": delta})
+                                              "input_relation": relation, "output_relation": output,
+                                              "delta_param": delta})
                 elif scientific_pair and (pair_key in declared_equivalent or relation in {"relabeled", "reversed"}):
                     if output == "different":
                         deepest = _first_divergence(a, b, instances, children)
@@ -298,17 +278,22 @@ def derive_loci(trace_records: list, predicate_evaluations: list, script_status:
                         loci.append(locus)
                     else:
                         locus = _cl(func_key, "R3", func_key, "invariance")
-                        locus["properties"]["status"] = "holds"
                         locus["properties"]["locus_transitions"] = [a, b]
+                        locus["properties"]["evidence"]["pairs"] = [{"a": a, "b": b, "input_relation": relation,
+                                                                     "output_relation": output,
+                                                                     "declared": pair_key in declared_equivalent}]
                         loci.append(locus)
-                elif scientific_pair and relation not in {"equivalent", "param_delta"} and output == "identical" \
+                elif scientific_pair and relation not in {"similar_summary", "param_delta"} and output == "identical" \
                         and not _is_trivial(ia.get("return_fp")):
                     distinct_pairs = sum(1 for x in seqs if x != a
-                                         and _input_relation(instances[x], ia)[0] not in {"equivalent", "param_delta"}
+                                         and _input_relation(instances[x], ia)[0] not in {"similar_summary", "param_delta"}
                                          and _output_relation(instances[x], ia) == "identical")
                     if distinct_pairs >= 2 or pair_key in declared_distinct:
                         locus = _cl(func_key, "R4", func_key, "distinctness")
                         locus["properties"]["locus_transitions"] = [a, b]
+                        locus["properties"]["evidence"]["pairs"] = [{"a": a, "b": b, "input_relation": relation,
+                                                                     "output_relation": output,
+                                                                     "declared": pair_key in declared_distinct}]
                         loci.append(locus)
     # R5: finiteness via fingerprint stats.
     for record in trace_records:
@@ -339,11 +324,11 @@ def derive_loci(trace_records: list, predicate_evaluations: list, script_status:
         producers = [script_observable_producers.get(name) for name in names if name]
         func_key = ("reproduce.py", "<script>", evaluation.get("line", 0))
         if evaluation.get("kind") in {"equality", "closeness"}:
-            locus = _cl(func_key, "R6p", func_key, "continuity")
+            locus = _cl(func_key, "R6p", func_key, "continuity", declared_violation=True)
             locus["properties"]["locus_transitions"] = [p for p in producers if p]
             loci.append(locus)
         elif evaluation.get("kind") == "bounds":
-            locus = _cl(func_key, "R6", func_key, "containment")
+            locus = _cl(func_key, "R6", func_key, "containment", declared_violation=True)
             locus["properties"]["locus_transitions"] = [p for p in producers if p]
             loci.append(locus)
     observed_loci = []  # initialized here; populated only under script_report
@@ -379,7 +364,7 @@ def derive_loci(trace_records: list, predicate_evaluations: list, script_status:
                             "classification": "scientific_failure"}
             kind = script_report.get("failure_kind") or "workflow_failure"
             locus = _cl(("reproduce.py", "<script>", 0), "R6", ("reproduce.py", "<script>", 0),
-                        "distinctness" if "collapse" in kind else "containment")
+                        "distinctness" if "collapse" in kind else "containment", declared_violation=True)
             locus["properties"]["evidence"]["measures"]["reproduction_status"] = status
             if kind != "workflow_failure":
                 locus["properties"]["evidence"]["measures"]["failure_kind"] = kind
@@ -419,7 +404,8 @@ def derive_loci(trace_records: list, predicate_evaluations: list, script_status:
                         passes = bool(value) == truthy_required
                 if not passes:
                     locus = _cl(("reproduce.py", "<script>", predicate.get("line", 0)),
-                                "R6s", ("reproduce.py", "<script>", predicate.get("line", 0)), "invariance")
+                                "R6s", ("reproduce.py", "<script>", predicate.get("line", 0)), "invariance",
+                                declared_violation=True)
                     locus["properties"]["evidence"]["measures"][field] = value
                     locus["properties"]["evidence"]["measures"]["required_truthy"] = predicate.get("asserted_truthy", True)
                     if required is not None:

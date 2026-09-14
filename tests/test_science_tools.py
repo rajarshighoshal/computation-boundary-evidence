@@ -184,14 +184,14 @@ def test_large_embedded_literal_template_is_expandable_not_dumped(store):
     assert len(json.dumps(result)) < 30000
 
 
-def prepared_graph_store(tmp_path, unseen=False, unseen_path="unseen.py"):
+def prepared_graph_store(tmp_path, unseen=False, unseen_path="unseen.py", source_code=None):
     """Store with prepared extraction outputs; no model calls anywhere."""
     import gzip
     from scicontext.packet import build_packet
     from scicontext.scientific_objects import extract_objects
     root = tmp_path / "graph-task"
     root.mkdir()
-    (root / "model.py").write_text(
+    (root / "model.py").write_text(source_code or
         'def advance(energy, flux, dt):\n'
         '    """Positive flux leaves the stored energy; dt is elapsed time."""\n'
         '    residual = energy - flux * dt\n'
@@ -244,6 +244,41 @@ def prepared_graph_store(tmp_path, unseen=False, unseen_path="unseen.py"):
     return result
 
 
+def test_prepared_operation_shows_its_guard_even_outside_the_source_page(tmp_path):
+    store = prepared_graph_store(tmp_path, source_code=(
+        'def advance(energy, flux, dt, active=True):\n'
+        '    if active:\n'
+        '        energy = energy - flux * dt\n'
+        '    else:\n'
+        '        energy = energy + flux * dt\n'
+        '    return energy\n'))
+    packet = json.loads((store.store / "packet.json").read_text())
+    body = next(e for e in packet["entries"] if e.get("kind") == "assignment" and "energy - flux" in e.get("text", ""))
+    other = next(e for e in packet["entries"] if e.get("kind") == "assignment" and "energy + flux" in e.get("text", ""))
+    predicate = next(e for e in packet["entries"] if e.get("condition_for") == "if@2")
+    node = next(n for n in store.state["scientific_graph"]["nodes"] if n["name"] == "advance")
+    # Reproduce the failure: the operation survived selection, its guard did not.
+    node["source_ids"] = [body["id"], other["id"]]
+    store.save()
+    result = store.inspect(node["id"])
+    assert any("active" in condition for condition in result["conditions"])
+    shown = {s["id"]: s for s in result["sources"]}
+    assert shown[body["id"]]["guards"][0]["branch"] == "if@2:body"
+    assert shown[other["id"]]["guards"][0]["branch"] == "if@2:else"
+    for source in shown.values():
+        guard = source["guards"][0]
+        assert guard["id"] == predicate["id"] and guard["text"] == "active"
+        assert guard["id"] in store.state["visible_sources"]
+
+
+def test_unresolved_guard_remains_explicit_instead_of_disappearing():
+    context = {"sources": {"e": {"id": "e", "path": "m.cpp", "text": "x += 1;"}},
+               "documents": {}, "entities": {"e": {"condition_refs": [
+                   {"branch": "if_statement@20:consequence", "predicate_id": None}]}}}
+    shown = ScienceStore._source_excerpt(context, "e")
+    assert shown["guards"] == [{"branch": "if_statement@20:consequence", "id": None, "text": None}]
+
+
 def test_prepared_graph_is_queryable_and_citable(tmp_path):
     store = prepared_graph_store(tmp_path)
     prepared = store.prepare()
@@ -261,6 +296,7 @@ def test_prepared_graph_is_queryable_and_citable(tmp_path):
     assert any(edge["relation"] == "calls" for edge in detail["dependencies"])
     source = store.inspect(node["id"], view="source")
     assert any("flux * dt" in piece["text"] for piece in source["source"])
+    assert {piece["id"] for piece in source["source"]} <= set(store.state["visible_sources"])
     claim = {"text": "Advance subtracts outward flux over elapsed time.", "source_ids": [detail["sources"][0]["id"]]}
     model = {"purpose": claim, "expected_change": claim, "preserve": [claim],
              "computations": [{"computation_id": detail["computation_id"], "meaning": claim,
@@ -287,10 +323,11 @@ def test_record_rejects_sources_not_shown_by_inspection(tmp_path):
 def test_graph_node_without_parsed_region_compiles_evidence_on_demand(tmp_path):
     store = prepared_graph_store(tmp_path, unseen=True)
     node = next(item for item in store.inspect("#graph")["nodes"] if item["name"] == "mystery")
-    detail = store.inspect(node["id"])
+    detail = store.inspect(node["id"], view="source")
     assert detail["sources"] == []
     assert detail["evidence"]["sources"], "on-demand compilation must register real citations"
     assert any("value * 2" in source["text"] for source in detail["evidence"]["sources"])
+    assert any("value * 2" in source["text"] for source in detail["source"])
     expanded = next(item for item in store.state["scientific_graph"]["nodes"] if item["id"] == node["id"])
     assert expanded.get("expanded") and expanded["source_ids"], "compiled evidence must persist on the node"
 
