@@ -1,3 +1,4 @@
+import hashlib
 import json
 
 import pytest
@@ -183,7 +184,7 @@ def test_large_embedded_literal_template_is_expandable_not_dumped(store):
     assert len(json.dumps(result)) < 30000
 
 
-def prepared_graph_store(tmp_path, unseen=False):
+def prepared_graph_store(tmp_path, unseen=False, unseen_path="unseen.py"):
     """Store with prepared extraction outputs; no model calls anywhere."""
     import gzip
     from scicontext.packet import build_packet
@@ -212,14 +213,23 @@ def prepared_graph_store(tmp_path, unseen=False):
                        "static_candidates": [{"path": "model.py", "line": 3}]},
         "source_span": {"start_line": 1, "end_line": 1},
         "symbol": "distinctness@advance", "source_entry_ids": []})
+    statement = "# Task statement\nRepair the advance computation.\n"
+    (tmp_path / "task_statement.md").write_text(statement)
+    packet["documents"].append({
+        "id": "doc_context_fixture", "path": "@context/task_statement.md",
+        "sha256": hashlib.sha256(statement.encode()).hexdigest(),
+        "start_line": 1, "end_line": 2, "quote": statement})
     rows = [{"pid": 1, "seq": 1, "file": "reproduce.py", "name": "<module>", "line": 1},
             {"pid": 1, "seq": 2, "parent_seq": 1, "file": "reproduce.py", "name": "run", "line": 2},
             {"pid": 1, "seq": 3, "parent_seq": 2, "file": "model.py", "name": "advance", "line": 1}]
     if unseen:
-        (root / "unseen.py").write_text("def mystery(value):\n    return value * 2\n")
+        if unseen_path.endswith(".cpp"):
+            (root / unseen_path).write_text("double mystery(double value) {\n    return value * 2;\n}\n")
+        else:
+            (root / unseen_path).write_text("def mystery(value):\n    return value * 2\n")
         graph["dependence_signatures"].append(
-            {"func": ["unseen.py", "mystery", 1], "instances": 3, "arguments": {}})
-        rows.append({"pid": 1, "seq": 4, "parent_seq": 2, "file": "unseen.py", "name": "mystery", "line": 1})
+            {"func": [unseen_path, "mystery", 1], "instances": 3, "arguments": {}})
+        rows.append({"pid": 1, "seq": 4, "parent_seq": 2, "file": unseen_path, "name": "mystery", "line": 1})
     artifacts = tmp_path / "graph-artifacts"
     artifacts.mkdir()
     (artifacts / "scientific-objects.json").write_text(json.dumps(graph))
@@ -297,3 +307,25 @@ def test_edited_prepared_source_cannot_be_cited(tmp_path):
                                "quantities": [], "conventions": [], "assumptions": ["Fixture."]}]}
     with pytest.raises(ValueError, match="not current"):
         store.record_model(model)
+
+
+def test_context_documents_are_verified_next_to_the_store(tmp_path):
+    store = prepared_graph_store(tmp_path)
+    store._visible([], ["doc_context_fixture"])
+    node = next(item for item in store.inspect("#graph")["nodes"] if item["name"] == "advance")
+    detail = store.inspect(node["id"])
+    claim = {"text": "Task statement context.", "source_ids": ["doc_context_fixture"]}
+    model = {"purpose": claim, "expected_change": claim, "preserve": [claim],
+             "computations": [{"computation_id": detail["computation_id"], "meaning": claim,
+                               "quantities": [], "conventions": [], "assumptions": ["Fixture."]}]}
+    assert store.record_model(model)["status"] == "recorded"
+
+
+def test_cpp_node_inspection_requests_analysis_and_expands(tmp_path):
+    store = prepared_graph_store(tmp_path, unseen=True, unseen_path="unseen.cpp")
+    node = next(item for item in store.inspect("#graph")["nodes"] if item["name"] == "mystery")
+    detail = store.inspect(node["id"])
+    assert detail.get("backend_request"), "C++ node inspection must request host analysis"
+    assert detail["evidence"]["sources"], "on-demand compilation must register citations"
+    expanded = next(item for item in store.state["scientific_graph"]["nodes"] if item["id"] == node["id"])
+    assert expanded.get("expanded") and expanded["source_ids"]

@@ -586,36 +586,51 @@ class ScienceStore:
                [c.get("computation_id"), *c.get("expression_ids", []), *(q.get("object_id") for q in c.get("quantities", []))]]
         if not ids or not set(ids) <= set(self.state["visible_entities"]):
             raise ValueError("Select computation/quantity/expression IDs returned by inspect")
-        # Version separation: prepared evidence whose file changed on disk is
-        # not current. Its citations are refused until the source is inspected
-        # again, and its items are excluded from the joined representation.
+        # Version separation: prepared evidence whose file changed (or cannot be
+        # verified) on disk is not current. Its citations are refused until the
+        # source is inspected again, and its items are excluded from the join.
         stale_paths = set()
+        unverifiable_paths = set()
         stale_source_ids = set()
         for key, info in self.state["payloads"].items():
             if not info.get("prepared"):
                 continue
             for path, expected in (info.get("source_hashes") or {}).items():
                 try:
-                    current = hashlib.sha256(self.read(path)[0]).hexdigest()
-                except (OSError, ValueError):
+                    if path.startswith("@context/"):
+                        # Harness context lives next to the store, outside the task root.
+                        raw = (self.store.parent / path[len("@context/"):]).read_bytes()
+                    else:
+                        raw = self.read(path)[0]
+                    current = hashlib.sha256(raw).hexdigest()
+                except ValueError:
+                    unverifiable_paths.add(path)
+                    continue
+                except OSError:
                     current = None
                 if current != expected:
                     stale_paths.add(path)
-            if stale_paths:
+            if stale_paths or unverifiable_paths:
                 payload = read_json(self.store / "views" / (key + ".json"))
                 for source in (payload.get("context") or {}).get("code_passages") or []:
-                    if source.get("path") in stale_paths and source.get("id"):
+                    if source.get("path") in stale_paths | unverifiable_paths and source.get("id"):
                         stale_source_ids.add(source["id"])
-        if stale_paths and set(citations(model)) & stale_source_ids:
-            raise ValueError("Prepared evidence for edited files is not current: re-inspect "
-                             + ", ".join(sorted(stale_paths)) + " before citing it")
+        if set(citations(model)) & stale_source_ids:
+            reasons = []
+            if stale_paths:
+                reasons.append("changed on disk: " + ", ".join(sorted(stale_paths)))
+            if unverifiable_paths:
+                reasons.append("unverifiable now: " + ", ".join(sorted(unverifiable_paths)))
+            raise ValueError("Prepared evidence is not current (" + "; ".join(reasons)
+                             + "); re-inspect before citing it")
+        blocked_paths = stale_paths | unverifiable_paths
         merged = {key: {} for key in ("objects", "operations", "unsupported", "links", "documents", "entries", "regions", "analysis")}
         current_hashes = {}
 
         def stale(item):
             source = item.get("source")
             path = source.get("path") if isinstance(source, dict) else item.get("path")
-            return path in stale_paths
+            return path in blocked_paths
 
         for key in self.state["payloads"]:
             info = self.state["payloads"][key]
@@ -652,7 +667,7 @@ class ScienceStore:
         self.save()
         return {"status": "recorded", "revision": revision, "repair_tools_enabled": True,
                 "artifact": "scientific-model.json",
-                "stale_paths": sorted(stale_paths),
+                "stale_paths": sorted(stale_paths), "unverifiable_paths": sorted(unverifiable_paths),
                 "scope": "References checked; scientific correctness is not mechanically established."}
 
     def dispatch(self, request, analysis=None):
