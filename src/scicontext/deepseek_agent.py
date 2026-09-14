@@ -1,4 +1,4 @@
-"""One continuous DeepSeek agent with on-demand scientific evidence and repair tools.
+"""One continuous host-API agent with on-demand scientific evidence and repair tools.
 
 Preparation builds a graph without model calls. Science queries and an optional
 working model accompany ordinary tools; all stages share one task container and allowance.
@@ -18,6 +18,8 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+import httpx
+
 from pier.models.agent.network import NetworkAllowlist
 
 from .assets import prepare_helpers
@@ -26,6 +28,8 @@ from .pier_agent import CONTROL, REMOTE, SCRATCH, ScientificCodex, bounded_call
 from .science_tools import tool_definition
 
 API = "https://api.deepseek.com/chat/completions"
+API_ENDPOINTS = {"deepseek": API,
+                 "zai-coding-plan": "https://api.z.ai/api/coding/paas/v4/chat/completions"}
 SCIENCE_STORE = REMOTE + "/context/science"
 HELPER = f"SCICONTEXT_CONTEXT_ROOT={REMOTE}/context PYTHONPATH={REMOTE}/src:{REMOTE}/deps python -m scicontext.tool_cli"
 MAX_OUTPUT_TOKENS = 65536
@@ -80,25 +84,35 @@ def _response_payload(raw):
         return None
 
 
+def _response_error(payload):
+    if not isinstance(payload, dict):
+        return None
+    if isinstance(payload.get("error"), dict):
+        return payload["error"]
+    if not payload.get("choices") and "code" in payload and "message" in payload:
+        return {"type": "provider_error", "code": payload["code"], "message": payload["message"]}
+    return None
+
+
 def _response_metadata(raw, *, status, attempt, max_attempts, api_key, retryable=None):
     payload = _response_payload(raw)
-    error = payload.get("error") if isinstance(payload, dict) and isinstance(payload.get("error"), dict) else None
+    error = _response_error(payload)
     choices = payload.get("choices") if isinstance(payload, dict) else None
     if error is not None:
         kind = "provider_error"
         error_type = error.get("type")
         code = error.get("code")
-        message = error.get("message") or "DeepSeek provider returned an error"
+        message = error.get("message") or "Provider returned an error"
     elif not isinstance(payload, dict) or not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
         kind = "invalid_response"
         error_type = "invalid_response"
         code = None
-        message = "DeepSeek response did not contain a usable choices array"
+        message = "Provider response did not contain a usable choices array"
     else:
         kind = "invalid_response"
         error_type = "invalid_response"
         code = None
-        message = "DeepSeek response did not contain a usable assistant message"
+        message = "Provider response did not contain a usable assistant message"
     body = raw.decode("utf-8", errors="replace") if isinstance(raw, bytes) else str(raw or "")
     metadata = {
         "kind": kind,
@@ -118,25 +132,19 @@ async def _api_completion(api_key: str, model: str, messages: list, *,
                           tools=None, response_format=None, max_tokens=MAX_OUTPUT_TOKENS,
                           timeout_sec: float, temperature: float = 0.0,
                           max_attempts: int = len(API_RETRY_DELAYS) + 1,
-                          reasoning_effort="high", retry_wait=None) -> dict:
+                          reasoning_effort="high", retry_wait=None, api_provider="deepseek") -> dict:
+    endpoint = API_ENDPOINTS[api_provider]
     if not 1 <= max_attempts <= len(API_RETRY_DELAYS) + 1:
         raise ValueError("Use one initial request and at most five retries")
     body = {"model": model, "messages": messages, "max_tokens": max_tokens, "temperature": temperature}
     body["reasoning_effort"] = reasoning_effort
+    if api_provider == "zai-coding-plan":
+        # The existing loop already preserves returned reasoning across tool calls.
+        body["thinking"] = {"type": "enabled", "clear_thinking": False}
     if tools:
         body["tools"] = tools
     if response_format:
         body["response_format"] = response_format
-
-    def send(remaining):
-        request = urllib.request.Request(API, data=json.dumps(body).encode(), method="POST", headers={
-            "Authorization": f"Bearer {api_key}", "Content-Type": "application/json"})
-        try:
-            # Request execution counts against the work allowance; backoff does not.
-            with urllib.request.urlopen(request, timeout=remaining) as response:
-                return response.status, response.read()
-        except urllib.error.HTTPError as error:
-            return error.code, error.read()
 
     deadline = time.monotonic() + timeout_sec
     waited = 0.0
@@ -144,9 +152,11 @@ async def _api_completion(api_key: str, model: str, messages: list, *,
         remaining = deadline - time.monotonic()
         if remaining <= 0:
             raise TimeoutError("Provider request exhausted its remaining task allowance")
+        request = urllib.request.Request(endpoint, data=json.dumps(body).encode(), method="POST", headers={
+            "Authorization": f"Bearer {api_key}", "Content-Type": "application/json"})
         try:
-            status, raw = await asyncio.to_thread(send, remaining)
-        except (urllib.error.URLError, TimeoutError, OSError, http.client.HTTPException) as error:
+            status, raw = await _send_request(request, remaining)
+        except (httpx.RequestError, urllib.error.URLError, TimeoutError, OSError, http.client.HTTPException) as error:
             failure, retryable = error, True
         else:
             payload = _response_payload(raw)
@@ -155,7 +165,7 @@ async def _api_completion(api_key: str, model: str, messages: list, *,
                     and isinstance(payload["choices"][0], dict)
                     and isinstance(payload["choices"][0].get("message"), dict)):
                 return {**payload, "_api_attempts": attempt + 1, "_api_retry_wait_seconds": waited}
-            error = payload.get("error") if isinstance(payload, dict) else None
+            error = _response_error(payload)
             retryable = _provider_retryable(status, error)
             metadata = _response_metadata(raw, status=status, attempt=attempt + 1,
                                           max_attempts=max_attempts, api_key=api_key, retryable=retryable)
@@ -171,6 +181,30 @@ async def _api_completion(api_key: str, model: str, messages: list, *,
             elapsed = time.monotonic() - before_wait
             waited += elapsed
             deadline += elapsed
+
+
+async def _send_request(request, seconds):
+    # Socket timeouts alone reset across connect/read operations. An absolute
+    # async timeout also closes the in-flight HTTP request on cancellation.
+    async with asyncio.timeout(seconds):
+        async with httpx.AsyncClient(timeout=seconds) as client:
+            response = await client.post(request.full_url, content=request.data,
+                                         headers=dict(request.header_items()))
+            return response.status_code, response.content
+
+
+def _add_usage(totals, usage):
+    usage = usage if isinstance(usage, dict) else {}
+    prompt, output = usage.get("prompt_tokens"), usage.get("completion_tokens")
+    hit = usage.get("prompt_cache_hit_tokens", (usage.get("prompt_tokens_details") or {}).get("cached_tokens"))
+    miss = usage.get("prompt_cache_miss_tokens")
+    if miss is None and type(prompt) is int and type(hit) is int and 0 <= hit <= prompt:
+        miss = prompt - hit
+    fields = {"input_tokens": prompt, "output_tokens": output, "cached_input_tokens": hit,
+              "cache_hit_tokens": hit, "cache_miss_tokens": miss,
+              "reasoning_output_tokens": (usage.get("completion_tokens_details") or {}).get("reasoning_tokens")}
+    for key, value in fields.items():
+        totals[key] = totals[key] + value if totals[key] is not None and type(value) is int and value >= 0 else None
 
 
 def _compact_tools(messages: list) -> None:
@@ -191,7 +225,7 @@ def _provider_response_error(completion, api_key=None):
     if not isinstance(completion, dict):
         return {"kind": "invalid_response", "type": "invalid_response", "code": None,
                 "message": "DeepSeek response was not a JSON object"}
-    error = completion.get("error")
+    error = _response_error(completion)
     if isinstance(error, dict):
         values = {key: error.get(key) for key in ("type", "code", "message")}
         message = str(values["message"] or "DeepSeek provider returned an error")
@@ -204,6 +238,9 @@ def _provider_response_error(completion, api_key=None):
     if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
         return {"kind": "invalid_response", "type": "missing_choices", "code": None,
                 "message": "DeepSeek response did not contain a usable choices array"}
+    if choices[0].get("finish_reason") in {"sensitive", "model_context_window_exceeded", "network_error"}:
+        return {"kind": "provider_error", "type": "incomplete_response", "code": choices[0]["finish_reason"],
+                "message": "Provider did not complete the requested turn"}
     return None
 
 
@@ -228,7 +265,10 @@ class DeepSeekAgent(ScientificCodex):
         # offline container mode, without an unnecessary OpenAI egress proxy.
         return NetworkAllowlist()
 
-    def __init__(self, *args, deepseek_key_file=None, **kwargs):
+    def __init__(self, *args, deepseek_key_file=None, api_provider="deepseek", **kwargs):
+        if api_provider not in API_ENDPOINTS:
+            raise ValueError("Unknown API provider")
+        self.api_provider = api_provider
         if not deepseek_key_file:
             raise ValueError("deepseek_key_file is required for the DeepSeek route")
         # The parent requires an existing auth-file path; the DeepSeek key file
@@ -294,10 +334,11 @@ class DeepSeekAgent(ScientificCodex):
         self.extraction_architecture = None
         await self._setup_environment(environment, "repair")
         write_json(self.logs_dir / "setup.json", {
-            "agent": "deepseek", "model": self.model,
+            "agent": "host_api", "api_provider": self.api_provider,
+            "api_endpoint": API_ENDPOINTS[self.api_provider], "model": self.model,
             "harness_architecture": "host_api", "scientific_image_architecture": "amd64",
             "environment_image": environment.task_env_config.docker_image,
-            "execution": "host_side_deepseek_api_with_in_container_shell_tools",
+            "execution": "host_api_with_in_container_shell_tools",
             "extractor": "interactive_science_v1", "frozen_source": self.frozen_source is not None,
             "claim_cap": None, "probe_cap": 0,
             "extraction_model_call_cap": 0,
@@ -508,7 +549,8 @@ class DeepSeekAgent(ScientificCodex):
         name = function.get("name")
         event = {"type": "science_tool" if name == "science" else "command_execution", "exit_code": 1}
         try:
-            arguments = json.loads(function.get("arguments") or "{}")
+            raw_arguments = function.get("arguments")
+            arguments = raw_arguments if isinstance(raw_arguments, dict) else json.loads(raw_arguments or "{}")
             if not isinstance(arguments, dict):
                 raise ValueError("Tool arguments must be an object")
             if name == "science":
@@ -546,7 +588,8 @@ class DeepSeekAgent(ScientificCodex):
         session_log = []
         session_stream = (self.logs_dir / "repair-session.jsonl").open("a")
         result = {"status": "timeout", "usage": usage, "cleanup_complete": None,
-                  "loop_exit": "iteration_cap", "provider_retry_wait_seconds": 0.0}
+                  "loop_exit": "iteration_cap", "provider_retry_wait_seconds": 0.0,
+                  "api_provider": self.api_provider, "api_endpoint": API_ENDPOINTS[self.api_provider]}
 
         async def retry_wait(delay):
             nonlocal deadline
@@ -573,7 +616,7 @@ class DeepSeekAgent(ScientificCodex):
                     available_tools.append(tool_definition())
                 completion = await _api_completion(self.deepseek_key, self.model, messages,
                     tools=available_tools, timeout_sec=remaining, reasoning_effort=self.config.reasoning_effort,
-                    retry_wait=retry_wait)
+                    retry_wait=retry_wait, api_provider=self.api_provider)
                 provider_error = _provider_response_error(completion, self.deepseek_key)
                 if provider_error is not None:
                     event = {"type": "provider_error", "error": provider_error}
@@ -583,7 +626,7 @@ class DeepSeekAgent(ScientificCodex):
                     _mark_usage_incomplete(usage)
                     result.update(status="failed", loop_exit="provider_error", fatal_model_error=True,
                                   error_kind=provider_error["kind"],
-                                  error="DeepSeek provider response did not contain a usable completion",
+                                  error=f"{self.api_provider} response did not contain a usable completion",
                                   provider_error=provider_error)
                     self._fatal_model_error = True
                     break
@@ -591,13 +634,7 @@ class DeepSeekAgent(ScientificCodex):
                 if attempts > 1:
                     result["api_retry_requests"] = result.get("api_retry_requests", 0) + attempts - 1
                 call_usage = completion.get("usage", {}) or {}
-                usage["input_tokens"] += call_usage.get("prompt_tokens", 0)
-                usage["output_tokens"] += call_usage.get("completion_tokens", 0)
-                usage["cache_hit_tokens"] += call_usage.get("prompt_cache_hit_tokens", 0)
-                usage["cache_miss_tokens"] += call_usage.get("prompt_cache_miss_tokens", 0)
-                for key, value in (("cached_input_tokens", call_usage.get("prompt_cache_hit_tokens", call_usage.get("prompt_tokens_details", {}).get("cached_tokens"))),
-                                   ("reasoning_output_tokens", call_usage.get("completion_tokens_details", {}).get("reasoning_tokens"))):
-                    usage[key] = usage[key] + value if usage[key] is not None and type(value) is int else None
+                _add_usage(usage, call_usage)
                 message = completion["choices"][0]["message"]
                 messages.append(message)
                 step_record = {"step": len(session_log) + 1,
@@ -644,12 +681,13 @@ class DeepSeekAgent(ScientificCodex):
             session_stream.flush()
             result.update(status="failed", loop_exit="provider_error", fatal_model_error=True,
                           error_kind=error.metadata.get("kind", "provider_error"),
-                          error="DeepSeek provider response did not contain a usable completion",
+                          error=f"{self.api_provider} response did not contain a usable completion",
                           provider_error=error.metadata)
             self._fatal_model_error = True
-        except (urllib.error.URLError, TimeoutError, OSError, http.client.HTTPException) as error:
+        except (httpx.RequestError, urllib.error.URLError, TimeoutError, OSError, http.client.HTTPException) as error:
             _mark_usage_incomplete(usage)
-            result.update(status="failed", fatal_model_error=True, error=f"DeepSeek transport failure: {error}")
+            result.update(status="failed", fatal_model_error=True,
+                          error=f"{self.api_provider} transport failure: {_redact_provider_text(error, self.deepseek_key)}")
             self._fatal_model_error = True
         finally:
             if result.get("api_retry_requests") and not usage.get("unknown_inflight_request"):

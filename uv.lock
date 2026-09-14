@@ -2762,6 +2762,7 @@ dependencies = [
 [package.optional-dependencies]
 runner = [
     { name = "datacurve-pier" },
+    { name = "httpx" },
 ]
 test = [
     { name = "numpy" },
@@ -2773,6 +2774,7 @@ requires-dist = [
     { name = "cython", specifier = ">=3.1,<4" },
     { name = "datacurve-pier", marker = "extra == 'runner'", specifier = "==0.3.0" },
     { name = "fortls", specifier = ">=3.2,<4" },
+    { name = "httpx", marker = "extra == 'runner'", specifier = ">=0.27,<1" },
     { name = "jsonschema", specifier = ">=4.23,<5" },
     { name = "numpy", marker = "extra == 'test'", specifier = ">=2.5.3" },
     { name = "pint", specifier = "==0.24.4" },

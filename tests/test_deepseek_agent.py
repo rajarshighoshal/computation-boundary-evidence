@@ -35,6 +35,17 @@ def http_error(status, payload):
                      io.BytesIO(json.dumps(payload).encode()))
 
 
+def stub_transport(monkeypatch, send):
+    """Stub the HTTP boundary, keeping the actual retry/response logic under test."""
+    async def post(request, seconds):
+        try:
+            response = send(request, seconds)
+            return response.status, response.read()
+        except HTTPError as error:
+            return error.code, error.read()
+    monkeypatch.setattr(module, "_send_request", post)
+
+
 class RetryClock:
     def __init__(self, monkeypatch):
         self.now = 0.0
@@ -63,7 +74,7 @@ def test_five_exponential_retries_exclude_waits_from_request_budget(monkeypatch,
             raise TimeoutError("transient read failure")
         return FakeHTTPResponse(200, payload)
 
-    monkeypatch.setattr(module.urllib.request, "urlopen", send)
+    stub_transport(monkeypatch, send)
     result = asyncio.run(module._api_completion("key", "deepseek-flash", [], timeout_sec=3,
                                                 retry_wait=clock.wait))
     assert clock.waits == [2, 4, 8, 16, 32]
@@ -80,7 +91,7 @@ def test_retry_exhaustion_stops_after_six_requests(monkeypatch):
         calls.append(timeout)
         raise http_error(503, {"error": {"type": "service_unavailable_error"}})
 
-    monkeypatch.setattr(module.urllib.request, "urlopen", send)
+    stub_transport(monkeypatch, send)
     with pytest.raises(module.DeepSeekProviderError) as raised:
         asyncio.run(module._api_completion("key", "deepseek-flash", [], timeout_sec=1,
                                            retry_wait=clock.wait))
@@ -97,7 +108,7 @@ def test_cancellation_during_backoff_never_sends_next_request(monkeypatch):
         calls.append(timeout)
         raise http_error(503, {"error": {"type": "service_unavailable_error"}})
 
-    monkeypatch.setattr(module.urllib.request, "urlopen", send)
+    stub_transport(monkeypatch, send)
 
     async def check():
         waiting = asyncio.Event()
@@ -129,7 +140,7 @@ def test_spent_work_budget_does_not_start_another_retry(monkeypatch, transport):
             raise TimeoutError("request spent its work allowance")
         raise http_error(503, {"error": {"type": "service_unavailable_error"}})
 
-    monkeypatch.setattr(module.urllib.request, "urlopen", send)
+    stub_transport(monkeypatch, send)
     with pytest.raises((module.DeepSeekProviderError, TimeoutError)):
         asyncio.run(module._api_completion("key", "deepseek-flash", [], timeout_sec=1,
                                            retry_wait=clock.wait))
@@ -158,7 +169,7 @@ class FakeEnvironment:
 
     async def exec(self, command, **kwargs):
         self.commands.append(command)
-        return "ok 42"
+        return SimpleNamespace(return_code=0, stdout="ok 42", stderr="")
 
 
 def make_agent(tmp_path, condition="baseline"):
@@ -235,7 +246,7 @@ def test_api_retries_429_then_returns_success(monkeypatch):
             raise response
         return response
 
-    monkeypatch.setattr(module.urllib.request, "urlopen", fake_urlopen)
+    stub_transport(monkeypatch, fake_urlopen)
     result = asyncio.run(module._api_completion("actual-key", "deepseek-flash", [{"role": "user", "content": "x"}],
                                                 timeout_sec=30, max_attempts=2))
     assert result["choices"][0]["message"]["content"] == "OK"
@@ -252,7 +263,7 @@ def test_api_does_not_retry_permanent_http_errors(monkeypatch, status):
         raise http_error(status, {"error": {"type": "auth_error", "code": "permanent",
                                            "message": "Account rate limit requires a valid key or balance"}})
 
-    monkeypatch.setattr(module.urllib.request, "urlopen", fake_urlopen)
+    stub_transport(monkeypatch, fake_urlopen)
     with pytest.raises(module.DeepSeekProviderError) as raised:
         asyncio.run(module._api_completion("actual-key", "deepseek-flash", [{"role": "user", "content": "x"}],
                                            timeout_sec=30, max_attempts=2))
@@ -263,7 +274,7 @@ def test_api_does_not_retry_permanent_http_errors(monkeypatch, status):
 def test_api_retries_http_200_rate_limit_error_then_success(monkeypatch):
     responses = [FakeHTTPResponse(200, {"error": {"type": "rate_limit_error", "code": "busy", "message": "later"}}),
                  FakeHTTPResponse(200, {"choices": [{"message": {"content": "OK", "tool_calls": None}}]})]
-    monkeypatch.setattr(module.urllib.request, "urlopen", lambda request, timeout: responses.pop(0))
+    stub_transport(monkeypatch, lambda request, timeout: responses.pop(0))
     result = asyncio.run(module._api_completion("actual-key", "deepseek-flash", [{"role": "user", "content": "x"}],
                                                 timeout_sec=30, max_attempts=2))
     assert result["choices"][0]["message"]["content"] == "OK"
@@ -271,8 +282,8 @@ def test_api_retries_http_200_rate_limit_error_then_success(monkeypatch):
 
 def test_api_malformed_response_preserves_bounded_metadata_and_redacts_key(monkeypatch):
     key = "actual-secret-key"
-    payload = {"type": key, "code": key, "message": f"quoted '{key}' and Bearer {key}", "extra": "x" * 5000}
-    monkeypatch.setattr(module.urllib.request, "urlopen", lambda request, timeout: FakeHTTPResponse(200, payload))
+    payload = {"type": key, "message": f"quoted '{key}' and Bearer {key}", "extra": "x" * 5000}
+    stub_transport(monkeypatch, lambda request, timeout: FakeHTTPResponse(200, payload))
     with pytest.raises(module.DeepSeekProviderError) as raised:
         asyncio.run(module._api_completion(key, "deepseek-flash", [{"role": "user", "content": "x"}],
                                            timeout_sec=30, max_attempts=1))
@@ -459,7 +470,7 @@ def test_retry_then_tool_and_final_survive_all_work_timers(tmp_path, monkeypatch
             raise response
         return response
 
-    monkeypatch.setattr(module.urllib.request, "urlopen", send)
+    stub_transport(monkeypatch, send)
     record = asyncio.run(run_trial(agent, TrialConfig(total_seconds=2, extraction_seconds=.5),
                                    "synthetic", condition, "Fix", tmp_path / "trial"))
     assert record["status"] == "completed"
@@ -473,3 +484,78 @@ def test_retry_then_tool_and_final_survive_all_work_timers(tmp_path, monkeypatch
     waits = [json.loads(line) for line in (agent.logs_dir / "repair-session.jsonl").read_text().splitlines()
              if json.loads(line).get("type") == "provider_retry_wait"]
     assert len(waits) == 1 and waits[0]["charged_to_work_budget"] is False
+
+
+def test_glm_request_preserves_reasoning_and_uses_coding_endpoint(monkeypatch):
+    messages = [{"role": "assistant", "reasoning_content": "prior thought", "tool_calls": []},
+                {"role": "user", "content": "Continue"}]
+
+    def send(request, seconds):
+        assert request.full_url == "https://api.z.ai/api/coding/paas/v4/chat/completions"
+        body = json.loads(request.data)
+        assert body["model"] == "glm-5.3-flash" and body["reasoning_effort"] == "low"
+        assert body["thinking"] == {"type": "enabled", "clear_thinking": False}
+        assert body["messages"] == messages
+        assert request.get_header("Authorization") == "Bearer synthetic-key"
+        assert "opencode" not in str(request.headers).lower()
+        return FakeHTTPResponse(200, {"choices": [{"message": {"content": "OK"}}]})
+
+    stub_transport(monkeypatch, send)
+    response = asyncio.run(module._api_completion("synthetic-key", "glm-5.3-flash", messages,
+                           timeout_sec=5, reasoning_effort="low", api_provider="zai-coding-plan"))
+    assert response["choices"][0]["message"]["content"] == "OK"
+
+
+def test_glm_top_level_error_preserves_code_without_echoing_key(monkeypatch):
+    stub_transport(monkeypatch, lambda request, seconds: FakeHTTPResponse(400,
+        {"code": "1113", "message": "balance unavailable synthetic-key"}))
+    with pytest.raises(module.DeepSeekProviderError) as raised:
+        asyncio.run(module._api_completion("synthetic-key", "glm-5.3-flash", [], timeout_sec=5,
+                                           api_provider="zai-coding-plan", reasoning_effort="low"))
+    assert raised.value.metadata["code"] == "1113"
+    assert raised.value.metadata["attempt"] == 1
+    assert "synthetic-key" not in json.dumps(raised.value.metadata)
+
+
+def test_glm_usage_counts_cache_and_preserves_unknown_reasoning():
+    totals = dict.fromkeys(["input_tokens", "output_tokens", "cached_input_tokens", "cache_hit_tokens",
+                            "cache_miss_tokens", "reasoning_output_tokens"], 0)
+    module._add_usage(totals, {"prompt_tokens": 100, "completion_tokens": 20,
+                                "prompt_tokens_details": {"cached_tokens": 80}})
+    assert totals == {"input_tokens": 100, "output_tokens": 20, "cached_input_tokens": 80,
+                      "cache_hit_tokens": 80, "cache_miss_tokens": 20, "reasoning_output_tokens": None}
+    module._add_usage(totals, {})
+    assert all(value is None for value in totals.values())
+
+
+@pytest.mark.parametrize("arguments", ['{"command":"true"}', {"command": "true"}])
+def test_glm_tool_arguments_support_both_documented_shapes(tmp_path, arguments):
+    agent = make_agent(tmp_path)
+    agent.environment = FakeEnvironment(tmp_path, {}, {})
+    agent.root = "/app/task_synthetic"
+    output, event = asyncio.run(agent._execute_tool({"function": {"name": "shell", "arguments": arguments}}, 5))
+    assert event["exit_code"] == 0 and "true" in agent.environment.commands
+
+
+@pytest.mark.parametrize("reason", ["network_error", "sensitive", "model_context_window_exceeded"])
+def test_glm_incomplete_finish_is_not_success(reason):
+    error = module._provider_response_error({"choices": [{"message": {"content": "partial"}, "finish_reason": reason}]})
+    assert error["code"] == reason
+
+
+def test_http_request_deadline_cancels_transport_and_closes_client(monkeypatch):
+    closed = []
+    original = module.httpx.AsyncClient
+
+    async def stalled(request):
+        try:
+            await asyncio.sleep(10)
+        finally:
+            closed.append("cancelled")
+
+    client = original(transport=module.httpx.MockTransport(stalled))
+    monkeypatch.setattr(module.httpx, "AsyncClient", lambda **kwargs: client)
+    request = module.urllib.request.Request("https://example.invalid/completion", data=b"{}", method="POST")
+    with pytest.raises(TimeoutError):
+        asyncio.run(module._send_request(request, .05))
+    assert closed == ["cancelled"] and client.is_closed

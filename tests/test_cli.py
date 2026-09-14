@@ -127,6 +127,37 @@ def test_deepseek_backoff_extends_only_outer_agent_timeout_for_both_arms(workspa
     assert policy["provider_retries"]["charge_backoff_to_work_budget"] is False
 
 
+def test_glm_reuses_same_agent_with_selected_private_opencode_key(workspace, monkeypatch):
+    credential = workspace / "opencode-auth.json"
+    write_json(credential, {"zai-coding-plan": {"type": "api", "key": "synthetic-plan-key"},
+                            "zai": {"type": "api", "key": "must-not-use-general-key"}})
+    config = read_json(workspace / "config.json")
+    config.update(agent="glm", model="glm-5.3-flash", reasoning_effort="low",
+                  extractor="interactive_science", opencode_auth_file=str(credential))
+    write_json(workspace / "config.json", config)
+    calls = []
+
+    def execute(command, **kwargs):
+        if command[0] != "docker":
+            calls.append(command)
+            assert "scicontext.deepseek_agent:DeepSeekAgent" in command
+            assert "api_provider=zai-coding-plan" in command
+            assert "reasoning_effort=low" in command
+            key_path = Path(next(arg.split("=", 1)[1] for arg in command if arg.startswith("deepseek_key_file=")))
+            assert read_json(key_path) == {"api_key": "synthetic-plan-key"}
+            assert key_path.stat().st_mode & 0o777 == 0o600
+            assert all("synthetic-plan-key" not in arg for arg in command)
+            fake_agent_record(command)
+        return subprocess.CompletedProcess(command, 0)
+
+    monkeypatch.setattr(cli, "_run_owned_process", execute)
+    run_pilot(workspace)
+    assert len(calls) == 4
+    assert not any("opencode" in command[0] for command in calls)
+    for path in (workspace / "output").rglob("*.json"):
+        assert "synthetic-plan-key" not in path.read_text()
+
+
 def test_explicit_receipt_and_condition_order_support_new_cohort(workspace):
     config = read_json(workspace / "config.json")
     receipt = read_json(workspace / "data/release-receipt.json")

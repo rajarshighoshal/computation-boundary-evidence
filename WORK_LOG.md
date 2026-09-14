@@ -5,7 +5,8 @@ Build a connected, task-relevant scientific-code graph before the repair model s
 actual quantities/computations/dependencies/conditions and public scientific evidence; persist
 and expand the same graph through compact queries. A file inventory, arbitrary groupings or
 node counts are not substitutes for scientific relevance. Use existing multilingual analyzers.
-DeepSeek Flash remains the model; no specialist-model integration or new framework.
+Same existing host-API agent harness; user now requests GLM Flash/low as a temporary provider
+replacement. No OpenCode runner, specialist model, graph redesign or new framework.
 
 ## Ownership and scope
 Rajarshi handed writing back to Codex after the OpenCode writer finished. Codex is the only code
@@ -20,6 +21,22 @@ Root works on scientific-context fixes in parallel. Model remains DeepSeek Flash
 No cloud rental is approved. The89 locked evaluation tasks stay outside this iteration.
 
 ## Live milestones
+- [verified] GLM provider/key/configuration adapter added to the SAME host-API loop. Saved
+  zai-coding-plan credential stays in host-private storage; no OpenCode CLI or impersonation.
+  Shell/science tools, graph and verifier unchanged. GLM nested cache accounting, dict/string
+  tool arguments, preserved reasoning and top-level errors tested. HTTPX + an absolute async
+  timeout replaces the socket-only request timeout. Full suite637 passes; independent Luna
+  review73 focused tests passes. User explicitly requests direct calls despite the earlier caveat.
+- [active] RealGLM-5.3-Flash/low protocol check via scripts/provider_tool_check.py, then if it
+  passes run configs/glm-development-e2e-check.json:009 baseline+science,1800s work budget each,
+  two simultaneous attempts, existing graph/tools/officialverifier. User is sleeping and asks
+  to continue reliably, stop on access blockers. Final verification: actual provider response,
+  in-container graph delivery/use, repair, official verifier and token/time receipts. No full40
+  batch during adapter debugging; no commits in the frozen live trial.
+- [review verified] The pasted0acc214..b11625c review is partly stale: insensitive_pairs are
+  already exposed as observations (4ecfd4e). Self-check deleting pre-existing model artifacts
+  remains real; prepared full-file hashes vs bounded prefixes remain a latent edge. Both
+  independently reproduced on temporary fixtures only; neither is fixed by this provider change.
 - [verified] Latest user-approved retry policy implemented: five retries after the initial
   request, exponential backoff2/4/8/16/32s. Actual retry waits pause the1800s work allowance
   in the API, repair loop and controller; request/tool execution still counts. Pier's outer
@@ -29,6 +46,20 @@ No cloud rental is approved. The89 locked evaluation tasks stay outside this ite
   including cancellation and charged-work checks. Mocked-HTTP end-to-end tests in both arms
   continued through a3s wait under a2s work budget, shell call and final response. No paid run
   launched by this change; next operational check is provider health before another batch.
+- [checked / fallback decision pending] Latest live DeepSeek diagnostic onf52a8f2 returned
+  no completion: transport read timeout, 241.31s elapsed, no retry sleeps and unknown usage.
+  Receipt/script: runs/development-e2e-40-v3/diagnostic-provider-retry5.{json,py}. Process ended.
+  The standalone socket request exceeded its120s requested allowance; do not claim that this
+  diagnostic had an absolute request deadline. Trial/controller timers are separately tested.
+  User proposes temporaryGLM-5.3-Flash; official API supportslow/high/max, NOTmedium. Verified
+  published USD/Mtoken pricing: input0.15/cached0.03/output0.50. User has only the Z.ai Coding
+  Plan and requests its saved OpenCode key with Flash/low. Credential presence verified for
+  zai-coding-plan WITHOUT printing/copying it. Official FAQ/usage policy limits plan use to
+  supported tools; our custom direct API loop is not listed. Supported Flash is GLM-5.3-Flash,
+  not5.2-Flash. User REJECTED switching the harness to OpenCode and explicitly requests direct
+  GLM calls with the same agent and saved key. Keep results separate from DeepSeek; no new
+  provider framework. Sources for the earlier caveat: docs.z.ai/devpack/faq and
+  docs.z.ai/devpack/tool/others. Coding Plan concurrency is tier/load-dependent, not verified40.
 - [verified] 009 pair completed on273d23c, runs/development-e2e-check-v1/summary/summary.json:
   baseline8/9 private, science9/9. Agent durations1094.87s/387.22s, science preparation5.32s.
   Actual graph/node queries, persisted analysis/model/patch and official verifier checked; zero

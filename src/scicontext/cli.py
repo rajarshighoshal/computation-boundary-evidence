@@ -23,6 +23,16 @@ def _workspace() -> Path:
     return Path(__file__).resolve().parents[2]
 
 
+def _zai_coding_key(auth_path=None):
+    """Read only the selected credential; callers keep it in host-private storage."""
+    path = Path(auth_path).expanduser() if auth_path else Path.home() / ".local/share/opencode/auth.json"
+    entry = read_json(path).get("zai-coding-plan", {})
+    key = entry.get("key")
+    if entry.get("type") != "api" or not isinstance(key, str) or not key.strip():
+        raise ValueError("No saved zai-coding-plan API credential found in OpenCode")
+    return key
+
+
 def _implementation_provenance(workspace: Path) -> dict:
     revision = subprocess.run(["git", "rev-parse", "HEAD"], cwd=workspace, check=True,
                               capture_output=True, text=True).stdout.strip()
@@ -359,11 +369,12 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
     if output.exists():
         raise FileExistsError("Run directory already exists; choose a fresh name to preserve attempts")
     agent = config.get("agent", "codex")
-    if agent not in {"codex", "deepseek"}:
-        raise ValueError("Unknown experiment agent; use codex or deepseek")
+    if agent not in {"codex", "deepseek", "glm"}:
+        raise ValueError("Unknown experiment agent; use codex, deepseek or glm")
+    api_provider = "zai-coding-plan" if agent == "glm" else "deepseek"
     actual_budget = replace(budget, total_seconds=60, extraction_seconds=10) if smoke else budget
     agent_wall_seconds = actual_budget.total_seconds
-    if agent == "deepseek" and not extraction_only:
+    if agent in {"deepseek", "glm"} and not extraction_only:
         from .deepseek_agent import API_RETRY_DELAYS, MAX_LOOP_ITERATIONS
         # Pier has a fixed wall timer. The controller still enforces the original
         # work budget; allow the maximum configured backoff plus cleanup outside it.
@@ -386,6 +397,8 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
         if not auth_mode.get("tokens"):
             raise ValueError("Expected a saved ChatGPT token cache")
         del auth_mode
+    elif agent == "glm":
+        deepseek_key = _zai_coding_key(config.get("opencode_auth_file"))
     else:
         deepseek_key = os.environ.get("DEEPSEEK_API_KEY")
         if not deepseek_key:
@@ -482,6 +495,7 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
                 kwargs["auth_file"] = str(private_auth)
             else:
                 kwargs["deepseek_key_file"] = str(private_deepseek_key)
+                kwargs["api_provider"] = api_provider
             for key, value in kwargs.items():
                 command += ["--agent-kwarg", f"{key}={str(value).lower() if isinstance(value, bool) else value}"]
             if config.get("extraction_model_seconds") is not None:
