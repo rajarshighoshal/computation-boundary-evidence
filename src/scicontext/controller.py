@@ -1,4 +1,4 @@
-"""One monotonic budget for both conditions; backends provide execution/isolation."""
+"""One work budget for both conditions; provider retry backoff is measured separately."""
 from __future__ import annotations
 
 import asyncio
@@ -105,6 +105,8 @@ async def run_trial(driver: Driver, config: TrialConfig, task_id: str, condition
               "model": config.model, "reasoning_effort": config.reasoning_effort,
               "codex_version": config.codex_version, "config": asdict(config),
               "started_at": utc_now(), "finished_at": None, "duration_seconds": None,
+              "provider_retry_wait_seconds": 0.0,
+              "time_budget_basis": "work_time_excluding_provider_retry_backoff",
               "stages": [], "status": "running", "graph_sha256": None,
               "instruction_sha256": digest_json(instruction)}
 
@@ -113,8 +115,33 @@ async def run_trial(driver: Driver, config: TrialConfig, task_id: str, condition
 
     async def stage(name: str, prompt: str, seconds: float) -> dict:
         begin = time.monotonic()
+        stage_wait = 0.0
+        timer = asyncio.timeout(max(0.001, seconds))
+        previous_wait = getattr(driver, "wait_for_provider_retry", None)
+
+        async def wait_for_retry(delay):
+            nonlocal deadline, stage_wait
+            before_wait = time.monotonic()
+            expires = timer.when()
+            timer.reschedule(None)
+            try:
+                await asyncio.sleep(delay)
+            finally:
+                elapsed = time.monotonic() - before_wait
+                deadline += elapsed
+                stage_wait += elapsed
+                record["provider_retry_wait_seconds"] += elapsed
+                timer.reschedule(expires + elapsed)
+
+        def timing():
+            wall = time.monotonic() - begin
+            return {"duration_seconds": wall, "provider_retry_wait_seconds": stage_wait,
+                    "work_seconds": max(0.0, wall - stage_wait)}
+
+        driver.wait_for_provider_retry = wait_for_retry
         try:
-            result = await asyncio.wait_for(driver.run_stage(name, prompt, seconds), timeout=max(0.001, seconds))
+            async with timer:
+                result = await driver.run_stage(name, prompt, seconds)
         except BaseException as error:
             # A killed/failed turn still consumed budget. Preserve its presence;
             # absent usage must not silently become zero in paired accounting.
@@ -122,7 +149,7 @@ async def run_trial(driver: Driver, config: TrialConfig, task_id: str, condition
                 "name": name,
                 "status": "timeout" if isinstance(error, asyncio.TimeoutError) else
                           "interrupted" if isinstance(error, asyncio.CancelledError) else "failed",
-                "duration_seconds": time.monotonic() - begin,
+                **timing(),
                 "cleanup_complete": None,
                 "usage": {"input_tokens": None, "cached_input_tokens": None, "output_tokens": None,
                           "accounting": "unavailable_after_stage_exception"},
@@ -130,7 +157,9 @@ async def run_trial(driver: Driver, config: TrialConfig, task_id: str, condition
             })
             save()
             raise
-        result = {**result, "name": name, "duration_seconds": time.monotonic() - begin}
+        finally:
+            driver.wait_for_provider_retry = previous_wait
+        result = {**result, "name": name, **timing()}
         record["stages"].append(result)
         save()
         if result.get("cleanup_complete") is False:
@@ -191,6 +220,7 @@ async def run_trial(driver: Driver, config: TrialConfig, task_id: str, condition
             record["cleanup_error"] = f"{type(error).__name__}: {error}"
         record["finished_at"] = utc_now()
         record["duration_seconds"] = time.monotonic() - started
-        record["over_budget_seconds"] = max(0.0, record["duration_seconds"] - config.total_seconds)
+        record["work_seconds"] = max(0.0, record["duration_seconds"] - record["provider_retry_wait_seconds"])
+        record["over_budget_seconds"] = max(0.0, record["work_seconds"] - config.total_seconds)
         save()
     return record

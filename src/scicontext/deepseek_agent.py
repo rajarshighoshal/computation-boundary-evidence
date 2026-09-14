@@ -39,6 +39,7 @@ MAX_CONVERSATION_TOOL_CHARS = 800_000
 MAX_PROVIDER_ERROR_CHARS = 500
 MAX_PROVIDER_BODY_CHARS = 1200
 RETRYABLE_HTTP_STATUS = {429, 500, 502, 503, 504}
+API_RETRY_DELAYS = (2, 4, 8, 16, 32)  # Five retries after the initial request.
 
 
 class DeepSeekProviderError(RuntimeError):
@@ -115,8 +116,11 @@ def _response_metadata(raw, *, status, attempt, max_attempts, api_key, retryable
 
 async def _api_completion(api_key: str, model: str, messages: list, *,
                           tools=None, response_format=None, max_tokens=MAX_OUTPUT_TOKENS,
-                          timeout_sec: float, temperature: float = 0.0, max_attempts: int = 2,
-                          reasoning_effort="high") -> dict:
+                          timeout_sec: float, temperature: float = 0.0,
+                          max_attempts: int = len(API_RETRY_DELAYS) + 1,
+                          reasoning_effort="high", retry_wait=None) -> dict:
+    if not 1 <= max_attempts <= len(API_RETRY_DELAYS) + 1:
+        raise ValueError("Use one initial request and at most five retries")
     body = {"model": model, "messages": messages, "max_tokens": max_tokens, "temperature": temperature}
     body["reasoning_effort"] = reasoning_effort
     if tools:
@@ -124,53 +128,49 @@ async def _api_completion(api_key: str, model: str, messages: list, *,
     if response_format:
         body["response_format"] = response_format
 
-    def send():
-        last_error = None
-        deadline = time.monotonic() + timeout_sec
-        for attempt in range(max_attempts):
-            remaining = deadline - time.monotonic()
-            if remaining <= 0:
-                raise TimeoutError("Provider request exhausted its remaining task allowance")
-            request = urllib.request.Request(API, data=json.dumps(body).encode(), method="POST", headers={
-                "Authorization": f"Bearer {api_key}", "Content-Type": "application/json"})
-            try:
-                # Deadline-governed: no short hard cap, large tool-loop
-                # contexts can legitimately take minutes.
-                with urllib.request.urlopen(request, timeout=remaining) as response:
-                    raw = response.read()
-                    payload = _response_payload(raw)
-                    if (isinstance(payload, dict) and not payload.get("error") and isinstance(payload.get("choices"), list)
-                            and payload["choices"] and isinstance(payload["choices"][0], dict)
-                            and isinstance(payload["choices"][0].get("message"), dict)):
-                        return {**payload, "_api_attempts": attempt + 1}
-                    error = payload.get("error") if isinstance(payload, dict) else None
-                    retryable = _provider_retryable(response.status, error)
-                    metadata = _response_metadata(raw, status=response.status, attempt=attempt + 1,
-                                                  max_attempts=max_attempts, api_key=api_key,
-                                                  retryable=retryable)
-                    if retryable and attempt + 1 < max_attempts and deadline - time.monotonic() > 2:
-                        time.sleep(2)
-                        continue
-                    raise DeepSeekProviderError(metadata)
-            except urllib.error.HTTPError as error:
-                raw = error.read()
-                retryable = _provider_retryable(error.code, _response_payload(raw).get("error")
-                                                if isinstance(_response_payload(raw), dict) else None)
-                metadata = _response_metadata(raw, status=error.code, attempt=attempt + 1,
-                                              max_attempts=max_attempts, api_key=api_key,
-                                              retryable=retryable)
-                if retryable and attempt + 1 < max_attempts and deadline - time.monotonic() > 2:
-                    time.sleep(2)
-                    continue
-                raise DeepSeekProviderError(metadata)
-            except (urllib.error.URLError, TimeoutError, OSError,
-                    http.client.HTTPException, ConnectionError) as error:
-                last_error = error
-                if attempt + 1 < max_attempts and deadline - time.monotonic() > 2:
-                    time.sleep(2)
-        raise last_error
+    def send(remaining):
+        request = urllib.request.Request(API, data=json.dumps(body).encode(), method="POST", headers={
+            "Authorization": f"Bearer {api_key}", "Content-Type": "application/json"})
+        try:
+            # Request execution counts against the work allowance; backoff does not.
+            with urllib.request.urlopen(request, timeout=remaining) as response:
+                return response.status, response.read()
+        except urllib.error.HTTPError as error:
+            return error.code, error.read()
 
-    return await asyncio.to_thread(send)
+    deadline = time.monotonic() + timeout_sec
+    waited = 0.0
+    for attempt in range(max_attempts):
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError("Provider request exhausted its remaining task allowance")
+        try:
+            status, raw = await asyncio.to_thread(send, remaining)
+        except (urllib.error.URLError, TimeoutError, OSError, http.client.HTTPException) as error:
+            failure, retryable = error, True
+        else:
+            payload = _response_payload(raw)
+            if (status < 400 and isinstance(payload, dict) and not payload.get("error")
+                    and isinstance(payload.get("choices"), list) and payload["choices"]
+                    and isinstance(payload["choices"][0], dict)
+                    and isinstance(payload["choices"][0].get("message"), dict)):
+                return {**payload, "_api_attempts": attempt + 1, "_api_retry_wait_seconds": waited}
+            error = payload.get("error") if isinstance(payload, dict) else None
+            retryable = _provider_retryable(status, error)
+            metadata = _response_metadata(raw, status=status, attempt=attempt + 1,
+                                          max_attempts=max_attempts, api_key=api_key, retryable=retryable)
+            metadata["retry_wait_seconds"] = waited
+            failure = DeepSeekProviderError(metadata)
+        if not retryable or attempt + 1 == max_attempts or deadline <= time.monotonic():
+            raise failure
+        before_wait = time.monotonic()
+        try:
+            # Async wait remains cancellable; the caller also pauses its outer timers.
+            await (retry_wait or asyncio.sleep)(API_RETRY_DELAYS[attempt])
+        finally:
+            elapsed = time.monotonic() - before_wait
+            waited += elapsed
+            deadline += elapsed
 
 
 def _compact_tools(messages: list) -> None:
@@ -546,7 +546,22 @@ class DeepSeekAgent(ScientificCodex):
         session_log = []
         session_stream = (self.logs_dir / "repair-session.jsonl").open("a")
         result = {"status": "timeout", "usage": usage, "cleanup_complete": None,
-                  "loop_exit": "iteration_cap"}
+                  "loop_exit": "iteration_cap", "provider_retry_wait_seconds": 0.0}
+
+        async def retry_wait(delay):
+            nonlocal deadline
+            before_wait = time.monotonic()
+            try:
+                await (getattr(self, "wait_for_provider_retry", None) or asyncio.sleep)(delay)
+            finally:
+                elapsed = time.monotonic() - before_wait
+                deadline += elapsed
+                result["provider_retry_wait_seconds"] += elapsed
+                event = {"type": "provider_retry_wait", "requested_seconds": delay,
+                         "duration_seconds": elapsed, "charged_to_work_budget": False}
+                session_stream.write(json.dumps(event) + "\n")
+                session_stream.flush()
+
         try:
             for iteration in range(MAX_LOOP_ITERATIONS):
                 remaining = deadline - time.monotonic()
@@ -557,7 +572,8 @@ class DeepSeekAgent(ScientificCodex):
                 if self.condition == "science":
                     available_tools.append(tool_definition())
                 completion = await _api_completion(self.deepseek_key, self.model, messages,
-                    tools=available_tools, timeout_sec=remaining, reasoning_effort=self.config.reasoning_effort)
+                    tools=available_tools, timeout_sec=remaining, reasoning_effort=self.config.reasoning_effort,
+                    retry_wait=retry_wait)
                 provider_error = _provider_response_error(completion, self.deepseek_key)
                 if provider_error is not None:
                     event = {"type": "provider_error", "error": provider_error}
@@ -586,6 +602,7 @@ class DeepSeekAgent(ScientificCodex):
                 messages.append(message)
                 step_record = {"step": len(session_log) + 1,
                                "api_attempts": attempts,
+                               "provider_retry_wait_seconds": completion.get("_api_retry_wait_seconds", 0.0),
                                "provider_model": completion.get("model"),
                                "provider_fingerprint": completion.get("system_fingerprint"),
                                "content": message.get("content"),
@@ -630,7 +647,7 @@ class DeepSeekAgent(ScientificCodex):
                           error="DeepSeek provider response did not contain a usable completion",
                           provider_error=error.metadata)
             self._fatal_model_error = True
-        except (urllib.error.URLError, TimeoutError, OSError) as error:
+        except (urllib.error.URLError, TimeoutError, OSError, http.client.HTTPException) as error:
             _mark_usage_incomplete(usage)
             result.update(status="failed", fatal_model_error=True, error=f"DeepSeek transport failure: {error}")
             self._fatal_model_error = True

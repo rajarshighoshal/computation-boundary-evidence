@@ -237,6 +237,9 @@ def _trial_row(root: Path, path: Path) -> dict[str, Any]:
         "started_at": run.get("started_at"),
         "finished_at": run.get("finished_at"),
         "duration_seconds": run.get("duration_seconds"),
+        "provider_retry_wait_seconds": run.get("provider_retry_wait_seconds"),
+        "work_seconds": run.get("work_seconds"),
+        "time_budget_basis": run.get("time_budget_basis", "wall_time"),
         "over_budget_seconds": over_budget,
         "extraction_status": extraction_status,
         "graph_sha256": run.get("graph_sha256"),
@@ -279,7 +282,7 @@ def _pairs(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     for (task_id, run_id), conditions in sorted(grouped.items(), key=lambda item: (item[0][0], item[0][1] or "")):
         baseline, science = conditions.get("baseline"), conditions.get("science")
         if baseline and science:
-            for key in ("model", "reasoning_effort", "codex_version", "provenance"):
+            for key in ("model", "reasoning_effort", "codex_version", "provenance", "time_budget_basis"):
                 if baseline[key] != science[key]:
                     raise AnalysisError(f"Incomparable pair {task_id}/{run_id}: {key} differs")
             baseline_config = {key: value for key, value in baseline["config"].items() if key != "extraction_seconds"}
@@ -314,7 +317,7 @@ def _metrics(rows: list[dict[str, Any]], pairs: list[dict[str, Any]]) -> dict[st
         failures = sum(row["exact_private_success"] is False for row in selected)
         rewards = [row["official_reward"] for row in selected if row["official_reward"] is not None]
         resources = {}
-        for field in (*TOKEN_FIELDS, "duration_seconds", "over_budget_seconds"):
+        for field in (*TOKEN_FIELDS, "duration_seconds", "over_budget_seconds", "work_seconds", "provider_retry_wait_seconds"):
             values = [row["usage"][field] if field in TOKEN_FIELDS else row.get(field) for row in selected]
             observed = [value for value in values if _number(value) and value >= 0]
             resources[field] = {
@@ -389,6 +392,7 @@ def write_summary(root: Path, output: Path) -> dict[str, Any]:
     output.mkdir(parents=True, exist_ok=True)
     (output / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True, allow_nan=False) + "\n", encoding="utf-8")
     fields = ["trial_path", "task_id", "run_id", "condition", "status", "duration_seconds", "over_budget_seconds",
+              "work_seconds", "provider_retry_wait_seconds", "time_budget_basis",
               "extraction_status", "graph_sha256", "graph_coverage", "official_reward", "exact_private_success",
               "development_exposed", "prior_private_test_exposure", *TOKEN_FIELDS, *PROVENANCE_FIELDS]
     with (output / "trials.csv").open("w", encoding="utf-8", newline="") as stream:

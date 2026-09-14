@@ -69,6 +69,29 @@ def assert_independent(root):
     return summary
 
 
+def test_retry_wait_and_work_time_are_preserved_separately(tmp_path):
+    trial(tmp_path, duration_seconds=662, work_seconds=600, provider_retry_wait_seconds=62,
+          time_budget_basis="work_time_excluding_provider_retry_backoff")
+    result = assert_independent(tmp_path)
+    row = result["trials"][0]
+    assert (row["duration_seconds"], row["work_seconds"], row["provider_retry_wait_seconds"]) == (662, 600, 62)
+    output = tmp_path / "summary"
+    write_summary(tmp_path, output)
+    with (output / "trials.csv").open() as stream:
+        exported = next(csv.DictReader(stream))
+    assert exported["work_seconds"] == "600"
+    assert exported["provider_retry_wait_seconds"] == "62"
+
+
+def test_pairs_with_different_wait_budget_policies_are_not_comparable(tmp_path):
+    trial(tmp_path)
+    trial(tmp_path, condition="science", time_budget_basis="work_time_excluding_provider_retry_backoff")
+    with pytest.raises(AnalysisError, match="time_budget_basis"):
+        summarize_runs(tmp_path)
+    with pytest.raises(ValueError, match="time_budget_basis"):
+        independent.recompute(tmp_path)
+
+
 def test_explicit_development_exposure_is_not_reported_as_untouched(tmp_path):
     trial(tmp_path, task="091", development_exposed=True)
     trial(tmp_path, task="091", condition="science", development_exposed=True)

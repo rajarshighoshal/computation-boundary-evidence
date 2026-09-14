@@ -35,6 +35,108 @@ def http_error(status, payload):
                      io.BytesIO(json.dumps(payload).encode()))
 
 
+class RetryClock:
+    def __init__(self, monkeypatch):
+        self.now = 0.0
+        self.waits = []
+        monkeypatch.setattr(module, "time", SimpleNamespace(monotonic=lambda: self.now))
+
+    async def wait(self, seconds):
+        self.waits.append(seconds)
+        self.now += seconds
+
+
+@pytest.mark.parametrize("failure_kind", ["http", "json", "transport"])
+def test_five_exponential_retries_exclude_waits_from_request_budget(monkeypatch, failure_kind):
+    clock = RetryClock(monkeypatch)
+    timeouts = []
+    payload = {"error": {"type": "service_unavailable_error", "message": "busy"}}
+
+    def send(request, timeout):
+        timeouts.append(timeout)
+        clock.now += .2  # Request time is charged; retry backoff is not.
+        if len(timeouts) == 6:
+            return FakeHTTPResponse(200, {"choices": [{"message": {"content": "OK"}}]})
+        if failure_kind == "http":
+            raise http_error(503, payload)
+        if failure_kind == "transport":
+            raise TimeoutError("transient read failure")
+        return FakeHTTPResponse(200, payload)
+
+    monkeypatch.setattr(module.urllib.request, "urlopen", send)
+    result = asyncio.run(module._api_completion("key", "deepseek-flash", [], timeout_sec=3,
+                                                retry_wait=clock.wait))
+    assert clock.waits == [2, 4, 8, 16, 32]
+    assert timeouts == pytest.approx([3, 2.8, 2.6, 2.4, 2.2, 2])
+    assert result["_api_attempts"] == 6
+    assert result["_api_retry_wait_seconds"] == 62
+
+
+def test_retry_exhaustion_stops_after_six_requests(monkeypatch):
+    clock = RetryClock(monkeypatch)
+    calls = []
+
+    def send(request, timeout):
+        calls.append(timeout)
+        raise http_error(503, {"error": {"type": "service_unavailable_error"}})
+
+    monkeypatch.setattr(module.urllib.request, "urlopen", send)
+    with pytest.raises(module.DeepSeekProviderError) as raised:
+        asyncio.run(module._api_completion("key", "deepseek-flash", [], timeout_sec=1,
+                                           retry_wait=clock.wait))
+    assert calls == [1] * 6
+    assert clock.waits == [2, 4, 8, 16, 32]
+    assert raised.value.metadata["attempt"] == raised.value.metadata["max_attempts"] == 6
+    assert raised.value.metadata["retry_wait_seconds"] == 62
+
+
+def test_cancellation_during_backoff_never_sends_next_request(monkeypatch):
+    calls = []
+
+    def send(request, timeout):
+        calls.append(timeout)
+        raise http_error(503, {"error": {"type": "service_unavailable_error"}})
+
+    monkeypatch.setattr(module.urllib.request, "urlopen", send)
+
+    async def check():
+        waiting = asyncio.Event()
+
+        async def wait(seconds):
+            waiting.set()
+            await asyncio.sleep(seconds)
+
+        request = asyncio.create_task(module._api_completion("key", "deepseek-flash", [],
+                                      timeout_sec=3, retry_wait=wait))
+        await waiting.wait()
+        request.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await request
+
+    asyncio.run(check())
+    assert len(calls) == 1
+
+
+@pytest.mark.parametrize("transport", [False, True])
+def test_spent_work_budget_does_not_start_another_retry(monkeypatch, transport):
+    clock = RetryClock(monkeypatch)
+    calls = []
+
+    def send(request, timeout):
+        calls.append(timeout)
+        clock.now += 1
+        if transport:
+            raise TimeoutError("request spent its work allowance")
+        raise http_error(503, {"error": {"type": "service_unavailable_error"}})
+
+    monkeypatch.setattr(module.urllib.request, "urlopen", send)
+    with pytest.raises((module.DeepSeekProviderError, TimeoutError)):
+        asyncio.run(module._api_completion("key", "deepseek-flash", [], timeout_sec=1,
+                                           retry_wait=clock.wait))
+    assert calls == [1]
+    assert clock.waits == []
+
+
 class FakeEnvironment:
     def __init__(self, tmp_path, payload, graph):
         self.tmp_path = tmp_path
@@ -141,7 +243,7 @@ def test_api_retries_429_then_returns_success(monkeypatch):
     assert result["_api_attempts"] == 2
 
 
-@pytest.mark.parametrize("status", [401, 402])
+@pytest.mark.parametrize("status", [400, 401, 402, 422])
 def test_api_does_not_retry_permanent_http_errors(monkeypatch, status):
     calls = []
 
@@ -328,3 +430,46 @@ def test_repair_tool_exec_never_runs_past_deadline(tmp_path, monkeypatch):
     # Receipts must exist even on timeout.
     assert (tmp_path / "logs/repair-process.json").is_file()
     assert (tmp_path / "logs/repair.jsonl").is_file()
+
+
+@pytest.mark.parametrize("condition", ["baseline", "science"])
+def test_retry_then_tool_and_final_survive_all_work_timers(tmp_path, monkeypatch, condition):
+    from scicontext.controller import TrialConfig, run_trial
+    agent = make_agent(tmp_path, condition=condition)
+    agent.environment = FakeEnvironment(tmp_path, {}, {})
+    agent.root = "/app/task_synthetic"
+    agent.logs_dir.mkdir(parents=True)
+    agent.prepare = AsyncMock(return_value={"status": "completed"})
+    agent.collect_graph = AsyncMock(return_value={"graph_sha256": "a" * 64, "handoff": "context",
+                                                  "graph": {"nodes": [{"id": "synthetic"}]}})
+    agent.cleanup = AsyncMock()
+    # A real async backoff longer than the entire work budget; no network or paid calls.
+    monkeypatch.setattr(module, "API_RETRY_DELAYS", (3, 6, 12, 24, 48))
+    responses = [
+        http_error(503, {"error": {"type": "service_unavailable_error"}}),
+        FakeHTTPResponse(200, {"choices": [{"message": {"tool_calls": [
+            {"id": "c1", "function": {"name": "shell", "arguments": '{"command":"true"}'}}]}}]}),
+        FakeHTTPResponse(200, {"choices": [{"message": {"content": "DONE"}}]}),
+    ]
+
+    def send(request, timeout):
+        assert 0 < timeout <= 2
+        response = responses.pop(0)
+        if isinstance(response, Exception):
+            raise response
+        return response
+
+    monkeypatch.setattr(module.urllib.request, "urlopen", send)
+    record = asyncio.run(run_trial(agent, TrialConfig(total_seconds=2, extraction_seconds=.5),
+                                   "synthetic", condition, "Fix", tmp_path / "trial"))
+    assert record["status"] == "completed"
+    assert record["duration_seconds"] >= 3
+    assert record["provider_retry_wait_seconds"] >= 3
+    assert record["work_seconds"] < 2 and record["over_budget_seconds"] == 0
+    assert responses == [] and "true" in agent.environment.commands
+    process = json.loads((agent.logs_dir / "repair-process.json").read_text())
+    assert process["provider_retry_wait_seconds"] >= 3
+    assert process["api_retry_requests"] == 1
+    waits = [json.loads(line) for line in (agent.logs_dir / "repair-session.jsonl").read_text().splitlines()
+             if json.loads(line).get("type") == "provider_retry_wait"]
+    assert len(waits) == 1 and waits[0]["charged_to_work_budget"] is False

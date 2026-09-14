@@ -20,6 +20,15 @@ Root works on scientific-context fixes in parallel. Model remains DeepSeek Flash
 No cloud rental is approved. The89 locked evaluation tasks stay outside this iteration.
 
 ## Live milestones
+- [verified] Latest user-approved retry policy implemented: five retries after the initial
+  request, exponential backoff2/4/8/16/32s. Actual retry waits pause the1800s work allowance
+  in the API, repair loop and controller; request/tool execution still counts. Pier's outer
+  agent-only wall ceiling allows the configured waits; official verifier time is unchanged.
+  Wall/work/wait durations are separate in receipts and both independent summary paths;
+  mixed-budget-policy pairs are refused. Full suite627 passed; independent review passed,
+  including cancellation and charged-work checks. Mocked-HTTP end-to-end tests in both arms
+  continued through a3s wait under a2s work budget, shell call and final response. No paid run
+  launched by this change; next operational check is provider health before another batch.
 - [verified] 009 pair completed on273d23c, runs/development-e2e-check-v1/summary/summary.json:
   baseline8/9 private, science9/9. Agent durations1094.87s/387.22s, science preparation5.32s.
   Actual graph/node queries, persisted analysis/model/patch and official verifier checked; zero
@@ -42,7 +51,7 @@ No cloud rental is approved. The89 locked evaluation tasks stay outside this ite
   runs/development-e2e-40-v2-retry reached40 mains,network:none,zero proxies; stopped after014
   baselineOOM. All containers/processes down. Own014 limit8GiB, sampled1.926GiB beforeOOM;
   aggregateVM pressure more likely, transient spike not excluded. See capacity/oom-diagnosis.json.
-- [blocked run / active adapter fix: Luna/xhigh] User approved16GB; active MemoryMiB16384,
+- [capacity pending provider recovery] User approved16GB; active MemoryMiB16384,
   previous9216 retained for later restoration. v3 reached40 mains/no proxies/no OOM, but failed
   on non-completion API responses (39 KeyError:choices,19 interrupted). All58 cleanup receipts
   complete; no live trials. This does not validate sustained40-way repair/verifier capacity.
@@ -50,9 +59,8 @@ No cloud rental is approved. The89 locked evaluation tasks stay outside this ite
   minimal diagnostic returnedHTTP503 service_unavailable_error("Service is too busy") in1.37s;
   see diagnostic-provider-response-120s.json. No new batch; provider recovery is not established.
   API fixes integrated fromd85ca9c/2cc440a and corrected in main: permanentHTTP statuses override
-  wording; known transients retry within the originaltwo-attempt budget; keys are redacted;
-  failed/retried totals are unknown with reported prefixes preserved. Independent API review
-  passed. Final combined main suite:611 tests pass.
+  wording; keys are redacted; failed/retried totals are unknown with reported prefixes preserved.
+  The formertwo-attempt policy is superseded by the verified five-retry policy above.
 - [verified: root] General science fixes: observations are not requirements; unknown outputs or
   uncontrolled receiver state cannot imply a parameter response; summary similarity is not
   equality; displayed computations retain their guards and shown citations. Source selection
@@ -83,5 +91,5 @@ Frozen30/89 split: configs/interactive-science.split.json. Licensing/prior expos
 The earlier preparation-only30-task sweep is runs/extractor-validation-30 (b11625c); construction
 completed30/30 but scientific relevance/source gaps remain. Earlier drift8 is separate.
 The prior index-first repair pilot is stopped and does not evaluate this prepared-graph method.
-Current Docker8CPUs/~9GiB, host14logicalCPUs/24GiB. Scheduler supports40; full workload capacity
+Current Docker8CPUs/16GiB, host14logicalCPUs/24GiB. Scheduler supports40; full workload capacity
 is not yet established. Specialist comparison is complete in docs/SPECIALIST_EXTRACTOR_COMPARISON.md.

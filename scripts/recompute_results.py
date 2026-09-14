@@ -202,6 +202,9 @@ def reconstruct_row(root, receipt):
         "provenance": {key: data.get(key) for key in PROVENANCE}, "stages": stages, "usage": usage,
         "extraction_status": stage_outcome, "graph_sha256": data.get("graph_sha256"), "graph_coverage": coverage,
         "over_budget_seconds": overrun,
+        "provider_retry_wait_seconds": data.get("provider_retry_wait_seconds"),
+        "work_seconds": data.get("work_seconds"),
+        "time_budget_basis": data.get("time_budget_basis", "wall_time"),
         "official_reward": value, "public": public, "private": private,
         "exact_private_success": exact_success(private, statuses, (directory / FILES[2]).exists(), xml_error),
         "matched_test_outcomes": matched,
@@ -229,7 +232,7 @@ def reconstruct_pairs(rows):
         item = index[(task, repetition)]
         left, right = item.get("baseline"), item.get("science")
         if left and right:
-            for key in ("model", "reasoning_effort", "codex_version", "provenance"):
+            for key in ("model", "reasoning_effort", "codex_version", "provenance", "time_budget_basis"):
                 if left[key] != right[key]:
                     raise ValueError(f"Incomparable {task}: {key}")
             settings = [{key: value for key, value in record["config"].items() if key != "extraction_seconds"} for record in (left, right)]
@@ -266,7 +269,7 @@ def compute_metrics(rows, pairs):
             status_counts[row["status"]] = status_counts.get(row["status"], 0) + 1
             extraction_counts[row["extraction_status"]] = extraction_counts.get(row["extraction_status"], 0) + 1
         resources, stage_counts = {}, {}
-        for quantity in (*TOKENS, "duration_seconds", "over_budget_seconds"):
+        for quantity in (*TOKENS, "duration_seconds", "over_budget_seconds", "work_seconds", "provider_retry_wait_seconds"):
             items = []
             for row in records:
                 value = row["usage"][quantity] if quantity in TOKENS else row.get(quantity)

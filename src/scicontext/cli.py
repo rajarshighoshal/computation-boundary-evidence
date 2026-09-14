@@ -361,6 +361,18 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
     agent = config.get("agent", "codex")
     if agent not in {"codex", "deepseek"}:
         raise ValueError("Unknown experiment agent; use codex or deepseek")
+    actual_budget = replace(budget, total_seconds=60, extraction_seconds=10) if smoke else budget
+    agent_wall_seconds = actual_budget.total_seconds
+    if agent == "deepseek" and not extraction_only:
+        from .deepseek_agent import API_RETRY_DELAYS, MAX_LOOP_ITERATIONS
+        # Pier has a fixed wall timer. The controller still enforces the original
+        # work budget; allow the maximum configured backoff plus cleanup outside it.
+        agent_wall_seconds += MAX_LOOP_ITERATIONS * sum(API_RETRY_DELAYS) + 20
+        plan["execution_policy"]["provider_retries"] = {
+            "max_retries": len(API_RETRY_DELAYS), "backoff_seconds": list(API_RETRY_DELAYS),
+            "charge_backoff_to_work_budget": False}
+    plan["execution_policy"].update(agent_work_budget_seconds=actual_budget.total_seconds,
+                                    agent_wall_timeout_seconds=agent_wall_seconds)
     deepseek_key = None
     if agent == "codex":
         if auth_file is None:
@@ -386,7 +398,6 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
     plan["started_at"] = utc_now()
     plan["status"] = "running"
     write_json(output / "schedule.json", plan)
-    actual_budget = replace(budget, total_seconds=60, extraction_seconds=10) if smoke else budget
     current = None
     task_row = None
     return_code = None
@@ -456,7 +467,7 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
                        "--agent-import-path",
                        "scicontext.pier_agent:ScientificCodex" if agent == "codex" else "scicontext.deepseek_agent:DeepSeekAgent",
                        "--no-force-build", "--yes", "--n-concurrent", "1", "--n-attempts", "1",
-                       "--max-retries", "0", "--agent-timeout-multiplier", str(total / 5400),
+                       "--max-retries", "0", "--agent-timeout-multiplier", str(agent_wall_seconds / 5400),
                        "--jobs-dir", str((output / "jobs").resolve()), "--job-name", f"task-{task}-{condition}"]
             if extraction_only:
                 command += ["--disable-verification"]

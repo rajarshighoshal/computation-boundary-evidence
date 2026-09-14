@@ -98,6 +98,35 @@ def test_extract_only_has_no_repair_or_private_verifier(workspace, monkeypatch):
     assert [i["condition"] for i in schedule["schedule"]] == ["science", "science"]
 
 
+def test_deepseek_backoff_extends_only_outer_agent_timeout_for_both_arms(workspace, monkeypatch):
+    from scicontext.deepseek_agent import API_RETRY_DELAYS, MAX_LOOP_ITERATIONS
+    config = read_json(workspace / "config.json")
+    config.update(agent="deepseek", model="deepseek-flash", extractor="interactive_science")
+    write_json(workspace / "config.json", config)
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "synthetic-not-a-credential")
+    calls = []
+
+    def execute(command, **kwargs):
+        if command[0] != "docker":
+            calls.append(command)
+            fake_agent_record(command)
+        return subprocess.CompletedProcess(command, 0)
+
+    monkeypatch.setattr(cli, "_run_owned_process", execute)
+    run_pilot(workspace)
+    assert len(calls) == 4
+    expected = 1800 + MAX_LOOP_ITERATIONS * sum(API_RETRY_DELAYS) + 20
+    for command in calls:
+        multiplier = float(command[command.index("--agent-timeout-multiplier") + 1])
+        assert multiplier * 5400 == pytest.approx(expected)
+        assert "total_seconds=1800" in command
+        assert "--timeout-multiplier" not in command
+        assert "--verifier-timeout-multiplier" not in command
+    policy = read_json(workspace / "output/schedule.json")["execution_policy"]
+    assert policy["agent_work_budget_seconds"] == 1800
+    assert policy["provider_retries"]["charge_backoff_to_work_budget"] is False
+
+
 def test_explicit_receipt_and_condition_order_support_new_cohort(workspace):
     config = read_json(workspace / "config.json")
     receipt = read_json(workspace / "data/release-receipt.json")

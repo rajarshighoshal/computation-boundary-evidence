@@ -90,6 +90,29 @@ def test_timeout_retains_record(tmp_path):
     assert json.loads((tmp_path / "run.json").read_text())["finished_at"]
 
 
+@pytest.mark.parametrize("condition", ["baseline", "science"])
+def test_retry_wait_pauses_outer_stage_and_work_budget(tmp_path, condition):
+    d = FakeDriver({"graph_sha256": "a" * 64, "handoff": "context", "graph": {}})
+
+    async def retrying(name, instruction, seconds):
+        if name == "repair":
+            await asyncio.sleep(.01)
+            await d.wait_for_provider_retry(.15)
+            await asyncio.sleep(.01)
+        return {"status": "completed"}
+
+    d.run_stage = retrying
+    result = asyncio.run(run_trial(d, TrialConfig(total_seconds=.1, extraction_seconds=.02),
+                                  "synthetic", condition, "Fix", tmp_path))
+    assert result["status"] == "completed" and d.cleaned
+    assert result["duration_seconds"] >= .15
+    assert result["provider_retry_wait_seconds"] >= .15
+    assert result["work_seconds"] < .1
+    assert result["over_budget_seconds"] == 0
+    assert result["stages"][-1]["provider_retry_wait_seconds"] >= .15
+    assert getattr(d, "wait_for_provider_retry", None) is None
+
+
 def test_extraction_only_never_launches_repair(tmp_path):
     d = FakeDriver({"graph_sha256": "c" * 64, "handoff": "context", "graph": {}})
     r = asyncio.run(run_trial(d, TrialConfig(total_seconds=2, extraction_seconds=.5), "002", "science", "Inspect", tmp_path, extraction_only=True))
