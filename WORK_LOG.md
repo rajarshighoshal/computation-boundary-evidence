@@ -42,22 +42,29 @@ No cloud rental is approved. The89 locked evaluation tasks stay outside this ite
   runs/development-e2e-40-v2-retry reached40 mains,network:none,zero proxies; stopped after014
   baselineOOM. All containers/processes down. Own014 limit8GiB, sampled1.926GiB beforeOOM;
   aggregateVM pressure more likely, transient spike not excluded. See capacity/oom-diagnosis.json.
-- [active: Luna/xhigh] User approved16GB and the same58-trial retry. Root changed only active
-  settings-store.json MemoryMiB9216→16384; Luna owns restart/verification/run monitoring.
-  runs/development-e2e-40-v3 is running40 slots from immutablea491759, without main's science
-  changes. Preserve the previous9216 setting for restoration when research no longer needs16GB.
+- [blocked run / active adapter fix: Luna/xhigh] User approved16GB; active MemoryMiB16384,
+  previous9216 retained for later restoration. v3 reached40 mains/no proxies/no OOM, but failed
+  on non-completion API responses (39 KeyError:choices,19 interrupted). All58 cleanup receipts
+  complete; no live trials. This does not validate sustained40-way repair/verifier capacity.
+  Original response bodies were not saved, so v3's precise original cause is UNKNOWN. A later
+  minimal diagnostic returnedHTTP503 service_unavailable_error("Service is too busy") in1.37s;
+  see diagnostic-provider-response-120s.json. No new batch; provider recovery is not established.
+  API fixes integrated fromd85ca9c/2cc440a and corrected in main: permanentHTTP statuses override
+  wording; known transients retry within the originaltwo-attempt budget; keys are redacted;
+  failed/retried totals are unknown with reported prefixes preserved. Independent API review
+  passed. Final combined main suite:611 tests pass.
 - [verified: root] General science fixes: observations are not requirements; unknown outputs or
   uncontrolled receiver state cannot imply a parameter response; summary similarity is not
   equality; displayed computations retain their guards and shown citations. Source selection
   preserves single-call workflow paths and shares the512-entry budget without early-file
-  starvation.599 tests pass; independent reviews plus requested correction applied.
+  starvation. Science committed4ecfd4e; reviewed adapter cleanup integrated as4162ed8.
+  Combined science/adapter checkpoint600 tests passed; independent review corrections applied.
   Fresh public-source rechecks: runs/context-recheck-v4.001/009/091 relevant computations are
   selected;114 has constraints.py evidence but its initial view remains wrapper-heavy.
 - [next] Review a computation-first selection change using public task/docs and actual links,
   then check the fixed30 development set before freezing. Do not hardcode task IDs or known
   fix-function names. R6's unknown-status classification and meaning-to-citation entailment
   remain gaps. No additional LLM verifier or graph/framework redesign is approved.
-  Merge reviewed a491759 adapter cleanup into main after the science checkpoint commit.
 Methodology: these are manual, failure-driven task-agnostic refinements, not model training;
 development-set overfitting remains possible. Freeze before the89 locked-task evaluation and
 disclose earlier exposure. The current40-slot run is capacity/development evidence only.

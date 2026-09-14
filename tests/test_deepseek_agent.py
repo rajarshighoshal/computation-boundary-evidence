@@ -138,6 +138,7 @@ def test_api_retries_429_then_returns_success(monkeypatch):
                                                 timeout_sec=30, max_attempts=2))
     assert result["choices"][0]["message"]["content"] == "OK"
     assert len(calls) == 2
+    assert result["_api_attempts"] == 2
 
 
 @pytest.mark.parametrize("status", [401, 402])
@@ -146,7 +147,8 @@ def test_api_does_not_retry_permanent_http_errors(monkeypatch, status):
 
     def fake_urlopen(request, timeout):
         calls.append(timeout)
-        raise http_error(status, {"error": {"type": "auth_error", "code": "permanent", "message": "no retry"}})
+        raise http_error(status, {"error": {"type": "auth_error", "code": "permanent",
+                                           "message": "Account rate limit requires a valid key or balance"}})
 
     monkeypatch.setattr(module.urllib.request, "urlopen", fake_urlopen)
     with pytest.raises(module.DeepSeekProviderError) as raised:
@@ -197,9 +199,38 @@ def test_failed_provider_request_marks_inflight_usage_unknown(tmp_path, monkeypa
     usage = result["usage"]
     assert usage["unknown_inflight_request"] is True
     assert usage["known_input_tokens"] == 0 and usage["known_output_tokens"] == 0
+    assert usage["input_tokens"] is None and usage["output_tokens"] is None
+    assert usage["cached_input_tokens"] is None and usage["reasoning_output_tokens"] is None
     assert usage["accounting"] == "known_completed_calls_plus_unknown_inflight"
     process = json.loads((tmp_path / "logs/repair-process.json").read_text())
     assert process["usage"]["unknown_inflight_request"] is True
+
+
+def test_fallback_error_redacts_the_actual_key_in_every_field():
+    key = "test-key-unique-value"
+    error = module._provider_response_error({"error": {"type": key, "code": key,
+                                                       "message": f"Invalid credential '{key}'"}}, key)
+    assert key not in json.dumps(error)
+
+
+def test_success_after_retry_keeps_prefix_usage_but_not_false_total(tmp_path, monkeypatch):
+    agent = make_agent(tmp_path, condition="baseline")
+    agent.environment = FakeEnvironment(tmp_path, {}, {})
+    agent.root = "/app/task_058"
+    agent.logs_dir.mkdir(parents=True, exist_ok=True)
+    async def fake_api(*args, **kwargs):
+        return {"_api_attempts": 2, "choices": [{"message": {"content": "DONE"}, "finish_reason": "stop"}],
+                "usage": {"prompt_tokens": 10, "completion_tokens": 3}}
+    monkeypatch.setattr(module, "_api_completion", fake_api)
+    result = asyncio.run(agent._run_deepseek_repair("Fix", 60))
+    assert result["status"] == "completed" and result["api_retry_requests"] == 1
+    assert result["usage"]["input_tokens"] is None
+    assert result["usage"]["known_usage"]["input_tokens"] == 10
+
+
+@pytest.mark.parametrize("error_type", [[], {}])
+def test_malformed_error_type_is_not_itself_a_parser_crash(error_type):
+    assert module._provider_retryable(200, {"type": error_type}) is False
 
 
 def test_http_200_provider_error_is_receipted_without_choices_keyerror(tmp_path, monkeypatch):

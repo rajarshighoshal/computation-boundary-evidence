@@ -59,12 +59,17 @@ def _redact_provider_text(value, api_key: str | None = None, limit=MAX_PROVIDER_
 
 
 def _provider_retryable(status, error):
-    if status in RETRYABLE_HTTP_STATUS:
-        return True
+    if status is not None and status >= 400:
+        return status in RETRYABLE_HTTP_STATUS
     if not isinstance(error, dict):
         return False
-    text = " ".join(str(error.get(key) or "") for key in ("type", "code", "message")).lower()
-    return any(marker in text for marker in ("rate_limit", "rate limit", "server_error", "server error", "overload"))
+    code = error.get("code")
+    if isinstance(code, str) and code.isdigit():
+        code = int(code)
+    error_type = error.get("type")
+    return (code in RETRYABLE_HTTP_STATUS if isinstance(code, int) else False) or (
+        isinstance(error_type, str) and error_type in {
+            "rate_limit_error", "server_error", "service_unavailable_error"})
 
 
 def _response_payload(raw):
@@ -134,10 +139,10 @@ async def _api_completion(api_key: str, model: str, messages: list, *,
                 with urllib.request.urlopen(request, timeout=remaining) as response:
                     raw = response.read()
                     payload = _response_payload(raw)
-                    if (isinstance(payload, dict) and isinstance(payload.get("choices"), list)
+                    if (isinstance(payload, dict) and not payload.get("error") and isinstance(payload.get("choices"), list)
                             and payload["choices"] and isinstance(payload["choices"][0], dict)
                             and isinstance(payload["choices"][0].get("message"), dict)):
-                        return payload
+                        return {**payload, "_api_attempts": attempt + 1}
                     error = payload.get("error") if isinstance(payload, dict) else None
                     retryable = _provider_retryable(response.status, error)
                     metadata = _response_metadata(raw, status=response.status, attempt=attempt + 1,
@@ -181,7 +186,7 @@ def _compact_tools(messages: list) -> None:
             total -= dropped
 
 
-def _provider_response_error(completion):
+def _provider_response_error(completion, api_key=None):
     """Return a bounded, secret-safe receipt for a non-completion response."""
     if not isinstance(completion, dict):
         return {"kind": "invalid_response", "type": "invalid_response", "code": None,
@@ -192,11 +197,9 @@ def _provider_response_error(completion):
         message = str(values["message"] or "DeepSeek provider returned an error")
         # Error messages are provider-controlled; keep receipts useful without
         # allowing accidental credential/token echo into run artifacts.
-        message = re.sub(r"(?i)bearer\s+\S+", "Bearer [redacted]", message)
-        message = re.sub(r"(?i)(api[_-]?key|secret|token)\s*[:=]\s*\S+", r"\1=[redacted]", message)
-        return {"kind": "provider_error", "type": str(values["type"] or "provider_error")[:120],
-                "code": str(values["code"])[:120] if values["code"] is not None else None,
-                "message": message[:MAX_PROVIDER_ERROR_CHARS]}
+        return {"kind": "provider_error", "type": _redact_provider_text(values["type"] or "provider_error", api_key, 120),
+                "code": _redact_provider_text(values["code"], api_key, 120) if values["code"] is not None else None,
+                "message": _redact_provider_text(message, api_key)}
     choices = completion.get("choices")
     if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
         return {"kind": "invalid_response", "type": "missing_choices", "code": None,
@@ -208,6 +211,11 @@ def _mark_usage_incomplete(usage):
     """Retain known completion-prefix usage while marking the failed call unknown."""
     usage["known_input_tokens"] = usage.get("input_tokens")
     usage["known_output_tokens"] = usage.get("output_tokens")
+    fields = ("input_tokens", "output_tokens", "cached_input_tokens", "cache_hit_tokens",
+              "cache_miss_tokens", "reasoning_output_tokens")
+    usage["known_usage"] = {key: usage.get(key) for key in fields}
+    for key in fields:
+        usage[key] = None
     usage["accounting"] = "known_completed_calls_plus_unknown_inflight"
     usage["unknown_inflight_request"] = True
 
@@ -550,7 +558,7 @@ class DeepSeekAgent(ScientificCodex):
                     available_tools.append(tool_definition())
                 completion = await _api_completion(self.deepseek_key, self.model, messages,
                     tools=available_tools, timeout_sec=remaining, reasoning_effort=self.config.reasoning_effort)
-                provider_error = _provider_response_error(completion)
+                provider_error = _provider_response_error(completion, self.deepseek_key)
                 if provider_error is not None:
                     event = {"type": "provider_error", "error": provider_error}
                     events.append(event)
@@ -563,6 +571,9 @@ class DeepSeekAgent(ScientificCodex):
                                   provider_error=provider_error)
                     self._fatal_model_error = True
                     break
+                attempts = completion.get("_api_attempts", 1)
+                if attempts > 1:
+                    result["api_retry_requests"] = result.get("api_retry_requests", 0) + attempts - 1
                 call_usage = completion.get("usage", {}) or {}
                 usage["input_tokens"] += call_usage.get("prompt_tokens", 0)
                 usage["output_tokens"] += call_usage.get("completion_tokens", 0)
@@ -574,6 +585,7 @@ class DeepSeekAgent(ScientificCodex):
                 message = completion["choices"][0]["message"]
                 messages.append(message)
                 step_record = {"step": len(session_log) + 1,
+                               "api_attempts": attempts,
                                "provider_model": completion.get("model"),
                                "provider_fingerprint": completion.get("system_fingerprint"),
                                "content": message.get("content"),
@@ -623,6 +635,11 @@ class DeepSeekAgent(ScientificCodex):
             result.update(status="failed", fatal_model_error=True, error=f"DeepSeek transport failure: {error}")
             self._fatal_model_error = True
         finally:
+            if result.get("api_retry_requests") and not usage.get("unknown_inflight_request"):
+                _mark_usage_incomplete(usage)
+                if events and events[-1]["type"] == "turn.completed":
+                    events[-1]["usage"] = {key: usage[key] for key in
+                        ("input_tokens", "cached_input_tokens", "output_tokens", "reasoning_output_tokens")}
             if ("usage" in result and events
                     and events[-1]["type"] not in {"turn.completed", "provider_error"}):
                 events.append({"type": "turn.completed", "usage": {
