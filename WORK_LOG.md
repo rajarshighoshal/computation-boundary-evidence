@@ -1,77 +1,54 @@
 # Current work
 
-## User's clarified target
-Preparation must construct a connected, task-relevant graph before the first repair-model call:
-public workflow -> implementation computations -> quantities/dependencies/conditions, with public
-scientific documentation and data/interface evidence attached. A file inventory or disconnected
-outputs collected into JSON do not satisfy this. Use existing multilingual analyzers; persist the
-graph and expose compact connected queries that can expand it. Scientific meaning must explain
-the computation, conventions, required change and behaviour to preserve. A specialist semantic
-model was discussed but has not been selected, implemented or validated.
+## Fixed target
+Build a connected, task-relevant scientific-code graph before the repair model starts. Preserve
+actual quantities/computations/dependencies/conditions and public scientific evidence; persist
+and expand the same graph through compact queries. A file inventory, arbitrary groupings or
+node counts are not substitutes for scientific relevance. Use existing multilingual analyzers.
+DeepSeek Flash remains the model; no specialist-model integration or new framework.
 
-## Current scope
-- [verified] Independent read-only review throughbfb70ee: preparation andgraph-IDsearch genuinely
-  work;009has20nodes/59edges,17nodeswithparsedcomputations;563tests pass. Remaining blockers:
-  failedCMake in058becomesR6script-declaredcontainment;defaultnodeinspectmarksunshownsourceIDsread;
-  on-demandC++backendrequestisnested,soJoernisnotinvokedandgraphisnotexpanded;preparedpayloads
-  canmixold/freshsourceafteredits;totalconstructionfailurecancontinueasindex-onlyscience.
-  058packetcontains203C++entriesbutrepresentationselectiondropsall;all20graphnodeslacksourceIDs.
-  Cuttracecallsarenotallretainedasboundaryrefs(009:13outgoingcutpairs,9withouttargetreferences);
-  internaledgesconsume5-boundarycap. Scope normalizationalso mergesleft::Solver::step/right::Solver::step
-  inonefile. No fixes/modelcalls/Dockerchanges. Do not launchpaidcomparisonfromthisreview.
-- [verified] Prepared connected graph implemented on the existing extraction machinery (9b01692,
-  d9e6e4c): preparation runs trace -> packet -> merge-dynamic before any model call, then filters
-  the merged graph to one node per observed function or finding site with real dependency edges,
-  boundary references and every violated locus. find returns node IDs; inspect '#graph' lists
-  nodes; node inspect registers citable entity/source IDs; record_model joins the same prepared
-  representation. Nodes without a parsed region compile their public location on demand. 563
-  tests pass, including fixture tests that prepare, query and record a model with no model call.
-- [verified] Prompt pass: prompts/scientific_repair.md rewritten graph-first and short; unused
-  prompts/repair.md removed.
-- [verified] No-model container preflights (extraction-only, zero model calls): public 009
-  (configs/graph-preflight-009.json, runs/graph-preflight-009) prepared_graph 20 nodes / 59
-  edges / 6 findings, and the exported store answers '#graph', find, node inspect and
-  record_model; public 058 C++ (configs/graph-preflight-058.json, runs/graph-preflight-058)
-  prepared_graph 20 nodes / 1 finding anchored to R6 candidate paths, with call evidence absent
-  because the trace only observes the Python driver.
-- [verified] Specialist comparison at docs/SPECIALIST_EXTRACTOR_COMPARISON.md; GLiNER2.5 is an
-  auxiliary candidate, not a demonstrated improvement over DeepSeek V4.1 Flash.
-- [verified] Stop the index-first pilot at the user's request. No further trials or paid calls.
-- [verified] Review fixes in 1194944: runner/build failures are no longer labelled scientific
-  violations (R6 only for the reproducer's own failed check; runner_failure/post_fix_success are
-  recorded as reproduction status); node inspection shows the sources and entity/quantity
-  references it registers, pages them, and refuses citations to unseen content; cut calls stay as
-  boundary references; on-demand node compilation persists compiled evidence on the node and
-  hoists the analyzer request so Joern actually runs and the graph expands; packet-selected
-  sources are admitted into the reading selection so the 058 graph grounds 19/20 nodes (was
-  0/20); namespace scopes keep their block offsets; prepared evidence whose file changed on disk
-  is refused at record_model; prepare refuses index-only science. 572 tests pass.
-- [verified] No-model container preflights on 1194944 (extraction-only, zero model calls, stores
-  exported): 009 prepared_graph 20 nodes / 59 edges / 6 findings, reproduction classified
-  scientific_failure (projection_control_response_collapsed), 18/20 nodes grounded; 058 OpenMC
-  prepared_graph 20 nodes / 5 edges / 0 findings with reproduction runner_failure (CMake
-  configuration), 20/20 nodes grounded, 57 compiled computations and 9 citable computation IDs
-  (was 1 computation / 0 grounded nodes). Exported stores answer '#graph', find, node inspect
-  (showing exactly the registered sources), and record_model with file-level version checks.
-- [next] Review graph content on 091/114/001 and (with approval) relaunch the frozen five-task
-  paired pilot; no method edits during live trials.
+## Ownership and scope
+Rajarshi handed writing back to Codex after the OpenCode writer finished. Codex is the only code
+writer; reviewers are read-only. User explicitly chose PLAIN baseline vs graph-assisted treatment:
+normal tools immediately, no hard gate, no mandatory added planning note in either arm.
+User approved the fixed30 development tasks in both arms (60 paid end-to-end trials), DeepSeek
+Flash/high, 1800s per trial, with40 concurrent trials TOTAL. Latest instruction: verify a complete
+pair first, then the concurrent development test, inspect failures and fix step by step. This is
+development/capacity evidence, not locked evaluation. No cloud rental is approved. The89 locked
+evaluation tasks stay outside this iteration.
 
-Final check: inspect the saved connected implementation/dependency graph before any model call,
-then verify queries return and expand that same representation. This is not itself evidence of
-scientific correctness or improved repair.
+## Live milestones
+- [verified] Took over b11625c. New commits fix R1-as-observation, Python symbol-source lookup,
+  bounded large-file prefix reads, analyzer replay and namespace/cut-call cases; no gate remains.
+- [verified] runs/extractor-validation-30 completed30/30 at2026-09-14T15:54:32Z with zero model
+  calls on frozenb11625c. Earlier drift8 is separate. These are preparation results, not evidence
+  that all graphs contain the right science.
+- [verified] Plain baseline checkpoint:585 tests pass; independent45-test launch/config review
+  passes. Config dry-runs produce009's2 attempts then remaining29's58,40 total slots. The only
+  behavioral change is removal of the mandatory planning instruction; graph-quality fixes remain.
+- [verified] Side capacity diagnostic ran4/8/16 public reproducer workloads without OOM/stall;
+  runs/capacity-check-b116/receipt.json. This does NOT validate40 full trials.
+- [active] Freeze and run configs/development-e2e-check.json → runs/development-e2e-check-v1.
+  Check009's actual prepared graph, delivered prompt/tool replies, graph use, repair and official
+  verification before admitting the larger batch. Successful setup alone is insufficient.
+- [next] Run the approved fixed30 both-arm development/capacity test at40 total concurrency;
+  configs/development-e2e-40.json → runs/development-e2e-40-v1. Monitor resources, preserve failures,
+  and stop admission if the host cannot sustain the load. No retries or code changes during a run.
+- [next] Inspect concrete failures, apply small task-agnostic fixes with regression tests, and
+  recheck. Known graph-content gaps include114 missing sources,001 selection,091 missing guard,
+  and false R2/R4 requirements; do not label node counts/self-checks as scientific quality.
+Final verification: actual preparation→query/expansion→repair→official verifier receipts; observed
+concurrency/resource failures, token/time/cost reporting, and independent review of each fix.
 
-## Verified checkpoint and preserved evidence
-Current code is bfb70ee. Latest graph evidence: runs/graph-preflight-009 (receipt + exported
-store). The stopped pilot used d1e21ff (index-first, no prepared graph); its 091 science 0/3 vs
-baseline 3/3 and the interrupted 058/009 attempts remain preserved there. 551 tests passed before
-that pilot; 563 now, including the prepared-graph paths. Prior no-model integration receipts:
-runs/interactive-container-check/receipt.json and runs/interactive-backend-check/integration-receipt.json.
+## Guardrails against drift
+Do not change the RQ, graph requirement, model, baseline, cohort or gate policy without Rajarshi.
+Fix demonstrated problems within this design; show missing capability instead of substituting a
+proxy. No source/commit changes during scientific trial runs; capacity diagnostics use frozen
+inputs. Keep the ledger compact. No further archiving project; do not delete existing artifacts
+or unrelated files without instruction. No premature report/submission pivot.
 
-## Boundaries
-One writer; independent reviewers read-only. Preserve historical runs and unrelated files. No
-automatic rewrite, new model selection, paid experiment or report/submission pivot. Rajarshi owns
-scientific decisions. Keep changes small; do not substitute index/search/planning gates for the
-requested representation. Frozen 30/89 split remains in configs/interactive-science.split.json;
-license gates and prior exposure metadata remain. Forty rolling slots are the eventual target, not
-validated 40-heavy-task capacity on this laptop (Docker 8 CPUs/~9GiB). No cloud rental/full-test
-launch authorization.
+## Essential context
+Frozen30/89 split: configs/interactive-science.split.json. Licensing/prior exposure metadata remain.
+The prior index-first repair pilot is stopped and does not evaluate this prepared-graph method.
+Current Docker8CPUs/~9GiB, host14logicalCPUs/24GiB. Scheduler supports40; full workload capacity
+is not yet established. Specialist comparison is complete in docs/SPECIALIST_EXTRACTOR_COMPARISON.md.

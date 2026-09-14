@@ -4,12 +4,12 @@ This study asks whether a compact, queryable scientific-code representation help
 understand and repair SWE-bench Science tasks under the same total allowance as ordinary repair.
 
 ## Current method
-Static preparation indexes public files and gives the agent a tiny task map. The same agent uses
-science.find and science.inspect to retrieve quantities, expressions, conditions and source
-definitions on demand. science.record_model saves its source-linked scientific working model and
-unlocks ordinary repair tools. The science tool remains available during repair.
+Preparation traces the public workflow, builds a source packet and merges a task graph before
+the model starts. The same agent uses science.find and science.inspect to retrieve quantities,
+expressions, conditions and source definitions on demand. science.record_model optionally saves
+a revisable, source-linked working model. Both arms have ordinary repair tools from the start.
 
-There is no separate interpretation model, mandatory reproduction/build, or second task container.
+There is no separate interpretation model, hard planning gate or second task container.
 Python/native/Cython parsers supply structure; targeted Joern analysis adds data/control flow when
 available. Unsupported analysis is explicit. Scientific interpretation belongs to the agent; source
 IDs and tool use do not prove scientific correctness.
@@ -34,23 +34,30 @@ It includes13 documented design cases and17 seeded random unrestricted cases. Hi
 activity, method-development use and private-diagnostic exposure are distinct metadata.
 The locked set is not claimed to be historically untouched. License gates remain explicit.
 
-## Run the approved pilot
-The initial paired pilot uses001/009/058/091/114, one attempt per arm, DeepSeek Flash/high,
-1800seconds including preparation, queries and repair, and rolling concurrency2.
+## Run the approved development test
+The staged test covers the fixed30 development tasks once in each arm (60 trials), DeepSeek
+Flash/high. First run009's pair and inspect end-to-end delivery. Only after that check, run the
+remaining29 pairs with40 total concurrent slots across both arms. Preparation, queries and repair
+share1800seconds per attempt; Docker setup and the official verifier are separate. This is a
+development/capacity test, not the locked evaluation, and40 full trials are not yet validated here.
 
 ```bash
-uv run --no-sync scicontext pilot --config configs/interactive-five.json --output runs/new-pilot
-uv run --no-sync scicontext pilot --config configs/interactive-five.json --output runs/new-pilot --execute
+SCICONSORT_RESTRICTED_OPTIN=1 uv run --no-sync scicontext pilot --config configs/development-e2e-check.json --output runs/development-e2e-check-v1
+SCICONSORT_RESTRICTED_OPTIN=1 uv run --no-sync scicontext pilot --config configs/development-e2e-check.json --output runs/development-e2e-check-v1 --execute
+# After reviewing009's pair; do not change method code while either run is active:
+SCICONSORT_RESTRICTED_OPTIN=1 uv run --no-sync scicontext pilot --config configs/development-e2e-40.json --output runs/development-e2e-40-v1 --execute
 ```
 
 The first command is a dry run; use a fresh output directory for execution. The DeepSeek key is
 read from DEEPSEEK_API_KEY on the host and is never mounted in the task container.
-No Claude calls are used. Larger cohorts require a reviewed pilot and explicit launch approval.
+The license opt-in applies to the already-approved fixed development cohort, which includes a
+restricted task. No Claude calls are used. The89 locked tasks are not included in these commands.
 
 ## What to inspect
 Each trial preserves the agent conversation/tool results, model submission, scientific-store
-artifacts, patch, verifier output, token accounting and timing. Inspect the pre-edit model and
-subsequent repair: correct scientific relationships, useful implementation links, no invented cause.
+artifacts, patch, verifier output, token accounting and timing. Inspect what the agent actually
+queries and receives: correct scientific relationships, useful implementation links, no invented
+cause. A missing optional model is not a failed trial; graph availability does not prove tool use.
 
 ```bash
 uv run --no-sync scicontext summarize /path/to/run/jobs --output /path/to/summary

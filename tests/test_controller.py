@@ -53,8 +53,7 @@ def test_baseline_is_one_unassisted_session(tmp_path):
     d = FakeDriver()
     r = asyncio.run(run_trial(d, TrialConfig(total_seconds=2, extraction_seconds=.5), "002", "baseline", "Fix this", tmp_path))
     assert [x[0] for x in d.calls] == ["repair"]
-    assert d.calls[0][1].startswith("Fix this")
-    assert "write a short note" in d.calls[0][1]  # the note request is matched across arms
+    assert d.calls[0][1] == "Fix this"
     assert r["status"] == "completed" and d.cleaned
 
 
@@ -64,6 +63,7 @@ def test_science_handoff_and_remaining_time(tmp_path):
     assert [x[0] for x in d.calls] == ["prepare", "repair"]
     assert "scientific detail" not in d.calls[0][1]
     assert "scientific detail" in d.calls[1][1]
+    assert "Before changing any code" not in d.calls[1][1]
     assert d.calls[1][2] < 2 and d.cleaned
     assert r["extraction_status"] == "prepared_index"
 

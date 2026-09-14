@@ -63,7 +63,8 @@ class Runners:
         class Process:
             pid = 10000 + len(owner.started)
             name = command[command.index("--job-name") + 1]
-            auth = Path(next(arg.split("=", 1)[1] for arg in command if arg.startswith("auth_file=")))
+            auth = Path(next(arg.split("=", 1)[1] for arg in command
+                             if arg.startswith(("auth_file=", "deepseek_key_file="))))
             alive = True
             polls = 0
             def poll(self):
@@ -358,8 +359,13 @@ def forty_task_fixture(workspace):
 
 
 @pytest.mark.parametrize("failure", [None, "provider"])
-def test_forty_live_slots_refill_and_continue_after_failure(workspace, monkeypatch, failure):
+@pytest.mark.parametrize("agent", ["codex", "deepseek"])
+def test_forty_live_slots_refill_and_continue_after_failure(workspace, monkeypatch, failure, agent):
     forty_task_fixture(workspace)
+    config = read_json(workspace / "config.json")
+    config["agent"] = agent
+    write_json(workspace / "config.json", config)
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "synthetic-not-a-credential")
     runners = Runners(monkeypatch, max_alive=40, failure=failure)
     peak = [0]
     pulls = []
@@ -370,6 +376,11 @@ def test_forty_live_slots_refill_and_continue_after_failure(workspace, monkeypat
         process = runners.start(command, **kwargs)
         if command[0] == "docker":
             return process
+        expected = ("scicontext.deepseek_agent:DeepSeekAgent" if agent == "deepseek"
+                    else "scicontext.pier_agent:ScientificCodex")
+        assert command[command.index("--agent-import-path") + 1] == expected
+        assert "--disable-verification" not in command
+        assert "DEEPSEEK_API_KEY" not in kwargs["env"]
         assert kwargs["env"]["PYTHONPATH"] == str(workspace / "output/frozen-source")
         peak[0] = max(peak[0], sum(p.alive for p in runners.started))
         original = process.poll

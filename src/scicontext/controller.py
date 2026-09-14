@@ -10,11 +10,6 @@ from typing import Protocol
 
 from .io import digest_json, utc_now, write_json
 
-# Both arms receive the same short note request so the comparison stays
-# matched; the science arm additionally receives the prepared graph tool.
-NOTE_REQUEST = ("\n\nBefore changing any code, write a short note (a few sentences) describing what the "
-                "task computes, what you believe is wrong, and what must remain correct.")
-
 
 @dataclass(frozen=True)
 class TrialConfig:
@@ -164,7 +159,7 @@ async def run_trial(driver: Driver, config: TrialConfig, task_id: str, condition
             record["status"] = "completed"
             record["extraction_only"] = True
         elif remaining > 0:
-            prompt = instruction + NOTE_REQUEST
+            prompt = instruction
             if handoff is not None:
                 record["treatment_delivered"] = True
                 guide = handoff.get("guide_markdown")

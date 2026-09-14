@@ -1,7 +1,7 @@
 """One continuous DeepSeek agent with on-demand scientific evidence and repair tools.
 
-Preparation is non-model indexing. Science queries and a recorded working model
-precede ordinary repair tools; all stages share one task container and allowance.
+Preparation builds a graph without model calls. Science queries and an optional
+working model accompany ordinary tools; all stages share one task container and allowance.
 Provider credentials remain on the host.
 """
 from __future__ import annotations
@@ -154,7 +154,7 @@ class DeepSeekAgent(ScientificCodex):
             "extraction_model_seconds": self.extraction_model_seconds,
             "extraction_harness_architecture": "host_api",
             "extraction_access_mode": "read-only" if self.condition == "science" else None,
-            "revision_policy": "one_continuous_agent; science_queries_then_recorded_model_then_repair",
+            "revision_policy": "one_continuous_agent; shell_from_start; optional_revisable_scientific_model",
             "python_minor": pyminor, "baseline_tree": self._baseline_tree,
             "docker_memory_bytes": int(info[0]), "docker_cpus": int(info[1]),
             "task_requested_memory_mb": environment.task_env_config.memory_mb,
