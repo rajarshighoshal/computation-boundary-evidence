@@ -17,6 +17,7 @@ from .io import digest_json, read_json, write_json
 from .language_frontends import extract_native_evidence, source_language
 from .object_context import enrichment_input, object_bundle
 from .representation import reading_input
+from .scientific_graph import build_graph
 from .scientific_model import VERSION, schema
 from .scientific_objects import extract_objects
 
@@ -74,9 +75,42 @@ class ScienceStore:
                 break
         self.state.update(files=files, index_truncated=truncated)
         self.save()
+        self._populate_graph()
         top = [p for p in files if "/" not in p and Path(p).suffix.lower() in {".md", ".txt", ".py"}]
         return {"status": "prepared", "files_indexed": len(files), "index_truncated": truncated,
                 "task_map": top[:12], "note": "Use science.find for scientific terms or symbols; inspect returned targets for relationships."}
+
+    def _populate_graph(self):
+        """Pre-populate the store with the compact scientific graph from
+        extraction pipeline outputs (trace + loci + objects)."""
+        import sys
+        trace_dir = self.root / "outputs" / "scientific-trace"
+        graph_path = self.root / "outputs" / "scientific-graph-input.json"
+        # Try the extraction container's scratch paths if not in the repo
+        if not trace_dir.is_dir():
+            trace_dir = self.store / "trace"
+        if not graph_path.is_file():
+            graph_path = self.store / "scientific-objects.json"
+        if not trace_dir.is_dir():
+            self.state["scientific_graph"] = None
+            return
+        try:
+            graph = build_graph(self.root, trace_dir, graph_path)
+        except Exception as error:
+            self.state["scientific_graph"] = {"error": f"{type(error).__name__}: {error}"}
+            return
+        self.state["scientific_graph"] = graph
+        # Make graph nodes findable via find()
+        for node in graph.get("nodes", []):
+            self.state["targets"][node["id"]] = {
+                "type": "scientific_node", "path": node["path"],
+                "line": node["line"], "name": node["name"],
+                "language": node["language"], "findings": node.get("findings", []),
+                "source": node.get("source", ""),
+                "edges": [e for e in graph.get("edges", [])
+                          if e["from"] == node["id"] or e["to"] == node["id"]],
+            }
+        self.save()
 
     def read(self, path):
         _, problem = evidence._safe_file(self.root, path)
@@ -131,6 +165,18 @@ class ScienceStore:
         return (match[1], int(match[2]), symbol) if match else (target, 1, symbol)
 
     def inspect(self, target, view="relationships", offset=0, analysis=None):
+        # Scientific graph nodes are inspected directly, not via file reads
+        if target in self.state.get("targets", {}) and \
+                self.state["targets"][target].get("type") == "scientific_node":
+            node = self.state["targets"][target]
+            result = {"status": "ok", "target": target, "type": "scientific_node",
+                      "name": node["name"], "path": node["path"],
+                      "line": node["line"], "language": node["language"],
+                      "findings": node.get("findings", []),
+                      "edges": node.get("edges", [])}
+            if view == "source":
+                result["source"] = node.get("source", "")
+            return result
         path, line, symbol = self._target(target)
         raw, text = self.read(path)
         lines = text.splitlines()
