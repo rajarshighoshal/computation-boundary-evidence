@@ -30,11 +30,18 @@ No cloud rental is approved. The89 locked evaluation tasks stay outside this ite
 - [verified] RealGLM-5.3-Flash/low protocol check passed on3e57ed4: tool call→result→READY,
   both requests first-attempt success,9.50s total. Receipt runs/glm-provider-check-v1.json;
   requested/reported model match, usage includes cache and reasoning fields. No OpenCode CLI.
-- [active] Run configs/glm-development-e2e-check.json:009 baseline+science,1800s work budget each,
-  two simultaneous attempts, existing graph/tools/officialverifier. User is sleeping and asks
-  to continue reliably, stop on access blockers. Final verification: actual provider response,
-  in-container graph delivery/use, repair, official verifier and token/time receipts. No full40
-  batch during adapter debugging; no commits in the frozen live trial.
+- [verified] GLM009 pair completed on2723478: runs/glm-development-e2e-check-v1. Same existing
+  host-API harness, Flash/low,1800s work each, two concurrent attempts. Baseline public1/1,
+  private6/9,117.01s; science public1/1,private9/9,215.38s including4.68s preparation. No API
+  errors/retries. Both completion/image-cleanup receipts verified. Independent recomputation
+  matches summary/summary.json; independent Luna audit matches raw cache/reasoning token usage.
+  Scope complete: provider integration + one paired E2E check, NOT full40 capacity or a general
+  scientific-effect claim. Do not mix with previous DeepSeek outcomes.
+  Treatment friction:7 optional record_model errors; no note saved. Graph overview was read
+  before the patch, but detailed nodes only AFTER code edits; no later code change followed.
+  Therefore the private-score gain cannot be attributed to detailed scientific interpretation.
+  Baseline patch concretely confuses zpvi (Z position) with ztpvi (Z_theta) in its normal input;
+  science avoids that mix-up, but9/9 alone is not proof of mathematically complete repair.
 - [review verified] The pasted0acc214..b11625c review is partly stale: insensitive_pairs are
   already exposed as observations (4ecfd4e). Self-check deleting pre-existing model artifacts
   remains real; prepared full-file hashes vs bounded prefixes remain a latent edge. Both
