@@ -23,6 +23,8 @@ from .pier_agent import CONTROL, REMOTE, SCRATCH, ScientificCodex, bounded_call
 from .science_tools import tool_definition
 
 API = "https://api.deepseek.com/chat/completions"
+SCIENCE_STORE = REMOTE + "/context/science"
+HELPER = f"SCICONTEXT_CONTEXT_ROOT={REMOTE}/context PYTHONPATH={REMOTE}/src:{REMOTE}/deps python -m scicontext.tool_cli"
 MAX_OUTPUT_TOKENS = 65536
 MAX_TOOL_OUTPUT_CHARS = 60_000
 MAX_TOOL_SECONDS = 600
@@ -166,12 +168,75 @@ class DeepSeekAgent(ScientificCodex):
                 raise RuntimeError("Smoke dependency check failed")
 
     async def prepare(self, seconds):
-        result = await self._science_command(None, seconds, prepare=True)
+        # Code-derived construction first, before any model call: observe the
+        # public workflow, build the static packet, merge execution-derived
+        # loci into the objects graph. A failed trace degrades to the static
+        # graph and never fails preparation.
+        started = time.monotonic()
+        construction = min(max(0.0, seconds) * 0.5, 600.0)
+        report = {"status": "skipped", "budget_seconds": round(construction, 1)}
+        if construction >= 30:
+            report = await self._build_scientific_context(construction)
+        remaining = max(1.0, seconds - (time.monotonic() - started))
+        result = await self._science_command(None, remaining, prepare=True)
         if result.get("status") != "prepared":
             raise RuntimeError("Science index preparation failed: " + json.dumps(result))
         self._science_prepared = result
         return {"status": "completed", "usage": {"input_tokens": 0, "cached_input_tokens": 0,
-                "output_tokens": 0, "reasoning_output_tokens": 0}, "model_calls": [], "index": result}
+                "output_tokens": 0, "reasoning_output_tokens": 0}, "model_calls": [],
+                "index": result, "construction": report}
+
+    async def _helper(self, command, seconds):
+        import shlex
+        bounded = f"timeout --signal=TERM --kill-after=2s {max(.05, seconds - 3)}s bash -c {shlex.quote(command)}"
+        output = await self.checked(self.environment, bounded, cwd=REMOTE, timeout_sec=max(1, seconds))
+        return json.loads(output)
+
+    async def _build_scientific_context(self, budget):
+        import shlex
+        deadline = time.monotonic() + budget
+        report = {"status": "completed", "budget_seconds": round(budget, 1), "steps": {}}
+
+        async def step(name, command, share):
+            left = deadline - time.monotonic()
+            seconds = min(max(5.0, budget * share), max(0.0, left))
+            if left <= 5.0:
+                report["steps"][name] = {"status": "skipped_budget"}
+                return False
+            try:
+                report["steps"][name] = await self._helper(command, seconds)
+                return True
+            except Exception as error:
+                report["steps"][name] = {"status": "failed", "error": f"{type(error).__name__}: {error}"[:300]}
+                return False
+
+        await self.checked(self.environment, f"mkdir -p {SCIENCE_STORE}", cwd=REMOTE)
+        # trace: observe the public reproducer; the execution evidence layer.
+        trace_seconds = max(10.0, budget * 0.4)
+        traced = await step("trace",
+            f"{HELPER} trace --root {self.root} --script {self.root}/reproduce.py "
+            f"--out {SCIENCE_STORE}/trace --seconds {trace_seconds:.0f} --observe "
+            f"--shims-dir {REMOTE}/src/scicontext/shims/out", share=0.45)
+        # packet: static public-source evidence, seeded by the trace when present.
+        packet_ok = await step("packet",
+            f"{HELPER} packet --root {self.root} --context-root {REMOTE}/context --task-id {self.task_id} "
+            f"--output {SCIENCE_STORE}/packet.json --catalog {SCIENCE_STORE}/catalog.md "
+            f"--objects-output {SCIENCE_STORE}/scientific-objects.json "
+            f"--enrichment-input {SCIENCE_STORE}/scientific-context-input.json "
+            f"--trace-out {SCIENCE_STORE}/trace", share=0.35)
+        # merge: execution-derived loci and quantity graph into the objects graph.
+        merged = False
+        if traced and packet_ok:
+            merged = await step("merge",
+                f"{HELPER} merge-dynamic --root {self.root} --graph {SCIENCE_STORE}/scientific-objects.json "
+                f"--packet {SCIENCE_STORE}/packet.json --trace-out {SCIENCE_STORE}/trace "
+                f"--output {SCIENCE_STORE}/scientific-objects.json "
+                f"--enrichment-input {SCIENCE_STORE}/scientific-context-input.json", share=0.2)
+        report["status"] = "completed" if packet_ok else "failed"
+        report["traced"] = bool(traced)
+        report["merged"] = bool(merged)
+        write_json(self.logs_dir / "construction.json", report)
+        return report
 
     async def collect_graph(self, seconds):
         from .io import digest_json
@@ -179,14 +244,18 @@ class DeepSeekAgent(ScientificCodex):
             return None
         template = ((self.frozen_source / "prompts/scientific_repair.md") if self.frozen_source
                     else self.workspace / "prompts/scientific_repair.md").read_text()
-        return {"graph_sha256": digest_json(self._science_prepared), "analysis": {"coverage": {}},
-                "handoff": template + "\nTask map: " + json.dumps(self._science_prepared["task_map"])}
+        index = self._science_prepared
+        return {"graph_sha256": digest_json(index), "analysis": {"coverage": {}},
+                "graph": {key: (index.get("scientific_graph") or {}).get(key)
+                          for key in ("nodes", "edges", "findings", "bytes")},
+                "construction": index.get("construction"),
+                "handoff": template + "\nTask map: " + json.dumps(index["task_map"])}
 
     async def _science_command(self, request, seconds, prepare=False):
         import base64, shlex
         command = (f"PYTHONPATH={REMOTE}/src:{REMOTE}/deps PYTHONDONTWRITEBYTECODE=1 "
                    f"python -m scicontext.science_tools --root {shlex.quote(self.root)} "
-                   f"--store {REMOTE}/context/science ")
+                   f"--store {SCIENCE_STORE} ")
         command += "--prepare" if prepare else "--request " + shlex.quote(
             base64.b64encode(json.dumps(request).encode()).decode())
         started = time.monotonic()

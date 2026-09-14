@@ -24,6 +24,7 @@ from .scientific_objects import extract_objects
 MAX_FILES = 20000
 PAGE_SIZE = 6
 MAX_FIND_RESULTS = 12
+PREPARED_SOURCE = "<prepared>"
 
 
 def tool_definition():
@@ -33,9 +34,10 @@ def tool_definition():
     model.pop("$schema", None)
     return {"type": "function", "function": {
         "name": "science", "description": (
-            "Find and inspect public scientific code/documentation. inspect returns quantities, expressions, "
-            "conditions and source IDs; use offset for more. record_model saves your source-linked scientific "
-            "understanding and unlocks ordinary repair tools. No action executes candidate code."),
+            "Find and inspect public scientific evidence. A prepared graph connects the observed workflow to "
+            "implementation computations, findings and dependencies: inspect target '#graph' for its nodes, then "
+            "inspect node IDs for quantities, conditions, edges and citable source IDs. record_model saves your "
+            "source-linked scientific understanding and unlocks ordinary repair tools. No action executes candidate code."),
         "parameters": {"type": "object", "properties": {
             "action": {"type": "string", "enum": ["find", "inspect", "record_model"]},
             "query": {"type": "string", "description": "Symbol, scientific phrase, or path to find."},
@@ -76,35 +78,47 @@ class ScienceStore:
         self.state.update(files=files, index_truncated=truncated)
         self.save()
         self._populate_graph()
+        graph = self.state.get("scientific_graph") or {}
+        graph_stats = ({"nodes": len(graph["nodes"]), "edges": len(graph.get("edges") or []),
+                        "findings": (graph.get("summary") or {}).get("findings"),
+                        "bytes": graph.get("serialized_bytes")}
+                       if graph.get("nodes") else None)
         top = [p for p in files if "/" not in p and Path(p).suffix.lower() in {".md", ".txt", ".py"}]
         return {"status": "prepared", "files_indexed": len(files), "index_truncated": truncated,
-                "task_map": top[:12], "note": "Use science.find for scientific terms or symbols; inspect returned targets for relationships."}
+                "task_map": top[:12], "scientific_graph": graph_stats,
+                "note": "A prepared scientific graph connects the observed workflow to implementation "
+                        "computations and findings: inspect target '#graph' for its nodes, then inspect "
+                        "node IDs or returned targets."}
 
     def _populate_graph(self):
-        """Pre-populate the store with the compact scientific graph from
-        extraction pipeline outputs (trace + loci + objects)."""
-        import sys
+        """Build the compact scientific graph from prepared extraction outputs.
+
+        The extraction pipeline writes scientific-objects.json (static objects,
+        operations, links, execution-derived loci), packet.json and the observed
+        trace during preparation. Nothing here calls a model.
+        """
         graph_path = self.store / "scientific-objects.json"
-        annotations_path = self.store / "annotations.json"
         if not graph_path.is_file():
             self.state["scientific_graph"] = None
             return
+        packet_path = self.store / "packet.json"
         try:
-            graph = build_graph(graph_path, annotations_path)
+            graph = build_graph(graph_path, packet_path, self.store / "trace")
         except Exception as error:
             self.state["scientific_graph"] = {"error": f"{type(error).__name__}: {error}"}
             return
         self.state["scientific_graph"] = graph
-        # Make graph nodes findable via find()
-        for node in graph.get("nodes", []):
-            self.state["targets"][node["id"]] = {
-                "type": "scientific_node", "path": node["path"],
-                "line": node["line"], "name": node["name"],
-                "language": node["language"], "findings": node.get("findings", []),
-                "source": node.get("source", ""),
-                "edges": [e for e in graph.get("edges", [])
-                          if e["from"] == node["id"] or e["to"] == node["id"]],
-            }
+        # Record the prepared representation so record_model joins against the
+        # same graph the queries returned.
+        try:
+            raw_graph = read_json(graph_path)
+            packet = read_json(packet_path) if packet_path.is_file() else {"entries": [], "documents": []}
+            payload = enrichment_input(raw_graph, packet)
+            key = digest_json(payload)
+            write_json(self.store / "views" / (key + ".json"), payload)
+            self.state["payloads"][key] = {"path": PREPARED_SOURCE, "prepared": True}
+        except (OSError, ValueError, TypeError):
+            pass
         self.save()
 
     def read(self, path):
@@ -123,17 +137,22 @@ class ScienceStore:
             raise ValueError("Supply a symbol, scientific phrase or path")
         words = set(re.findall(r"[^\W_]+", query.casefold())) - {"the", "and", "of", "for", "in"}
         hits = []
-        # Search scientific graph nodes first (names, meanings, paths)
+        # Search prepared graph nodes first: node IDs are the citable targets.
         graph = self.state.get("scientific_graph") or {}
         for node in graph.get("nodes", []):
             searchable = " ".join(filter(None, [
-                node.get("name", ""), node.get("meaning", ""),
-                node.get("path", ""), " ".join(node.get("conventions", [])),
+                node.get("name", ""), node.get("signature", ""), node.get("path", ""),
+                " ".join(node.get("quantities") or []), " ".join(node.get("conditions") or []),
                 " ".join(f.get("type", "") for f in node.get("findings", []))]))
             terms = set(re.findall(r"[^\W_]+", searchable.casefold()))
             overlap = len(words & terms)
             if overlap > 0 or query.casefold() in searchable.casefold():
-                hits.append((overlap * 10, node["path"], node.get("line", 0), node["name"][:200]))
+                findings = "; ".join(f"{f.get('rule')} {f.get('type')}"
+                                     for f in node.get("findings", []))
+                excerpt = f"{node.get('name', '')} @ {node.get('path', '')}:{node.get('line', 0)}"
+                if findings:
+                    excerpt += f" — findings: {findings}"
+                hits.append((overlap * 10 + 20, node["id"], excerpt, "scientific_node"))
         for path in self.state["files"]:
             # Discovery is language-independent. Parsing capability determines
             # the inspect view, not whether public text can be found at all.
@@ -148,10 +167,11 @@ class ScienceStore:
                 if overlap == 0 and not (words and words <= path_terms) and query.casefold() not in text_line.casefold():
                     continue
                 score = overlap * 3 + len(words & path_terms) + 8 * (query.lower() in text_line.lower())
-                hits.append((score, path, line, text_line.strip()))
-        hits.sort(key=lambda h: (-h[0], h[1], h[2]))
+                hits.append((score, f"{path}:{line}", text_line.strip(), "source"))
+        hits.sort(key=lambda h: (-h[0], h[1]))
         page = hits[offset:offset + MAX_FIND_RESULTS]
-        return {"status": "ok", "matches": [{"target": f"{p}:{line}", "excerpt": t[:300]} for _, p, line, t in page],
+        return {"status": "ok", "matches": [{"target": target, "excerpt": excerpt[:300], "kind": kind}
+                                            for _, target, excerpt, kind in page],
                 "total_matches": len(hits), "next_offset": offset + len(page) if offset + len(page) < len(hits) else None,
                 "scope": "Lexical discovery, not a scientific relevance verdict. Explicit paths remain inspectable outside the index."}
 
@@ -171,30 +191,53 @@ class ScienceStore:
         return (match[1], int(match[2]), symbol) if match else (target, 1, symbol)
 
     def inspect(self, target, view="relationships", offset=0, analysis=None):
-        # Scientific graph nodes are inspected directly, not via file reads
         graph = self.state.get("scientific_graph") or {}
+        if target == "#graph":
+            nodes = graph.get("nodes") or []
+            if not nodes:
+                return {"status": "empty", "note": "No prepared graph in this store; find/inspect the file index "
+                                                   "and record the model from inspected sources."}
+            return {"status": "ok", "type": "scientific_graph",
+                    "nodes": [{"id": node["id"], "name": node.get("name"), "path": node.get("path"),
+                               "line": node.get("line"), "kind": node.get("kind"),
+                               "instances": node.get("instances"),
+                               "findings": [f.get("rule") for f in node.get("findings") or []]}
+                              for node in nodes],
+                    "edges": len(graph.get("edges") or []),
+                    "documents": graph.get("documents") or [],
+                    "summary": graph.get("summary") or {},
+                    "note": "Inspect a node ID for findings, quantities, dependencies and source evidence; "
+                            "inspect returned path:line targets for uncompiled detail."}
+        # Scientific graph nodes are inspected from the prepared representation.
         graph_nodes = {n["id"]: n for n in graph.get("nodes", [])}
         if target in graph_nodes:
             node = graph_nodes[target]
-            edges = [e for e in graph.get("edges", [])
-                     if e.get("from") == target or e.get("to") == target]
-            return {"status": "ok", "target": target, "type": "scientific_node",
-                    "name": node.get("name", ""), "path": node.get("path", ""),
-                    "line": node.get("line", 0), "language": node.get("language", ""),
-                    "meaning": node.get("meaning", ""),
-                    "conventions": node.get("conventions", []),
-                    "findings": node.get("findings", []),
-                    "edges": edges}
-        if target in self.state.get("targets", {}) and \
-                self.state["targets"][target].get("type") == "scientific_node":
-            node = self.state["targets"][target]
+            self._visible(node.get("entity_ids") or [], node.get("source_ids") or [])
             result = {"status": "ok", "target": target, "type": "scientific_node",
                       "name": node.get("name", ""), "path": node.get("path", ""),
-                      "line": node.get("line", 0), "language": node.get("language", ""),
-                      "meaning": node.get("meaning", ""),
-                      "conventions": node.get("conventions", []),
-                      "findings": node.get("findings", []),
-                      "edges": node.get("edges", [])}
+                      "line": node.get("line", 0), "kind": node.get("kind", ""),
+                      "language": source_language(node.get("path", "")),
+                      "signature": node.get("signature"), "instances": node.get("instances"),
+                      "arguments": node.get("arguments"), "findings": node.get("findings") or [],
+                      "quantities": node.get("quantities") or [], "conditions": node.get("conditions") or [],
+                      "operations": node.get("operations") or {}, "computation_id": node.get("computation_id"),
+                      "entity_ids": node.get("entity_ids") or [], "source_ids": node.get("source_ids") or [],
+                      "dependencies": [e for e in graph.get("edges", [])
+                                       if e.get("from") == target or e.get("to") == target],
+                      "boundary": node.get("boundary") or [],
+                      "note": "IDs above are citable in record_model once inspected here."}
+            if not node.get("source_ids") and node.get("path"):
+                # No parsed region for this node in the prepared packet: compile
+                # the public file location on demand so citations are real.
+                try:
+                    detail = self.inspect(f"{node['path']}:{node.get('line') or 1}", "relationships", 0, analysis)
+                    result["evidence"] = {key: detail.get(key) for key in
+                                          ("target", "computations", "quantities_and_expressions",
+                                           "relationships", "sources", "coverage", "backend_request")}
+                except (OSError, ValueError, KeyError, TypeError, SyntaxError) as error:
+                    result["evidence_error"] = f"{type(error).__name__}: {error}"
+            if view == "source":
+                result["source"] = self._node_source(node)
             return result
         path, line, symbol = self._target(target)
         raw, text = self.read(path)
@@ -400,6 +443,24 @@ class ScienceStore:
         self.state["visible_sources"] = sorted(set(self.state["visible_sources"]) | set(sources))
         self.save()
 
+    def _node_source(self, node):
+        """Inline the prepared passages a graph node cites, when available."""
+        pieces = []
+        for key, info in self.state.get("payloads", {}).items():
+            if not info.get("prepared"):
+                continue
+            payload = read_json(self.store / "views" / (key + ".json"))
+            context = payload.get("context") or {}
+            entries = {e.get("id"): e for e in (context.get("code_passages") or [])}
+            documents = {d.get("id"): d for d in (context.get("scientific_passages") or [])}
+            for identifier in node.get("source_ids") or []:
+                entry = entries.get(identifier) or documents.get(identifier)
+                if entry:
+                    pieces.append({"id": identifier, "path": entry.get("path"),
+                                   "start_line": entry.get("start_line"), "end_line": entry.get("end_line"),
+                                   "text": (entry.get("text") or entry.get("quote") or "")[:6000]})
+        return pieces
+
     def record_model(self, model):
         if not isinstance(model, dict) or not model.get("expected_change") or not model.get("preserve"):
             raise ValueError("Record purpose, computations, expected_change and preserve with source citations")
@@ -426,10 +487,11 @@ class ScienceStore:
         current_hashes = {}
         for key in self.state["payloads"]:
             info = self.state["payloads"][key]
-            if info["path"] not in current_hashes:
-                current_hashes[info["path"]] = digest_json(self.read(info["path"])[0].hex())
-            if current_hashes[info["path"]] != info["content_hash"]:
-                continue  # Previous source versions remain archived, not current evidence.
+            if not info.get("prepared"):
+                if info["path"] not in current_hashes:
+                    current_hashes[info["path"]] = digest_json(self.read(info["path"])[0].hex())
+                if current_hashes[info["path"]] != info["content_hash"]:
+                    continue  # Previous source versions remain archived, not current evidence.
             payload = read_json(self.store / "views" / (key + ".json"))
             for field in ("objects", "operations", "links", "unsupported"):
                 for item in payload.get(field, []):

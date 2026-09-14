@@ -149,7 +149,8 @@ async def run_trial(driver: Driver, config: TrialConfig, task_id: str, condition
             if handoff is None:
                 raise RuntimeError("Science tool preparation did not produce a usable index")
             record["graph_sha256"] = handoff["graph_sha256"]
-            record["extraction_status"] = "prepared_index"
+            record["extraction_status"] = ("prepared_graph"
+                if (handoff.get("graph") or {}).get("nodes") else "prepared_index")
             record["graph_coverage"] = handoff.get("analysis", {}).get("coverage", {})
             write_json(output / "graph-bundle.json", handoff)
             save()

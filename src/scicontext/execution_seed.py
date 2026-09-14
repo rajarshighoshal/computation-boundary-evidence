@@ -9,7 +9,8 @@ from pathlib import Path
 TRACE_FILENAME = "trace.jsonl.gz"
 
 
-def read_execution(trace_dir):
+def _read_records(trace_dir):
+    """Observed frames as {(pid, seq): (parent_identity, (file, name, line))}."""
     trace_dir = Path(trace_dir)
     records = {}
     status = "complete"
@@ -36,6 +37,24 @@ def read_execution(trace_dir):
         status = "missing"
     except (OSError, EOFError, UnicodeError):
         status = "partial" if records else "unreadable"
+    return records, status
+
+
+def read_execution_edges(trace_dir):
+    """Observed caller->callee edges between frames present in the same trace."""
+    records, _ = _read_records(trace_dir)
+    counts = {}
+    for identity, (parent, key) in records.items():
+        if parent in records:
+            pair = (records[parent][1], key)
+            counts[pair] = counts.get(pair, 0) + 1
+    return [{"caller": {"file": caller[0], "name": caller[1], "line": caller[2]},
+             "callee": {"file": callee[0], "name": callee[1], "line": callee[2]},
+             "count": count} for (caller, callee), count in sorted(counts.items())]
+
+
+def read_execution(trace_dir):
+    records, status = _read_records(trace_dir)
     depths = {}
     for start in sorted(records):
         chain, seen, current = [], set(), start

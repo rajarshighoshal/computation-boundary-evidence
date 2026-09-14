@@ -181,3 +181,85 @@ def test_large_embedded_literal_template_is_expandable_not_dumped(store):
     result = store.inspect("m.py#f")
     assert any(t.get("structure_not_inlined") for t in result["templates"])
     assert len(json.dumps(result)) < 30000
+
+
+def prepared_graph_store(tmp_path, unseen=False):
+    """Store with prepared extraction outputs; no model calls anywhere."""
+    import gzip
+    from scicontext.packet import build_packet
+    from scicontext.scientific_objects import extract_objects
+    root = tmp_path / "graph-task"
+    root.mkdir()
+    (root / "model.py").write_text(
+        'def advance(energy, flux, dt):\n'
+        '    """Positive flux leaves the stored energy; dt is elapsed time."""\n'
+        '    residual = energy - flux * dt\n'
+        '    return residual\n')
+    (root / "reproduce.py").write_text(
+        'from model import advance\n'
+        'def run():\n'
+        '    return advance(3.0, 1.0, 0.5)\n')
+    packet = build_packet(root)
+    graph = extract_objects(root, packet)
+    graph["dependence_signatures"] = [
+        {"func": ["reproduce.py", "<module>", 1], "instances": 1, "arguments": {}},
+        {"func": ["reproduce.py", "run", 2], "instances": 1, "arguments": {}},
+        {"func": ["model.py", "advance", 1], "instances": 1, "arguments": {"energy": "dependent"}}]
+    graph["objects"].append({
+        "id": "cl_fixture", "kind": "constraint_locus", "path": "model.py", "scope": "advance",
+        "properties": {"rule_id": "R4", "constraint_type": "distinctness", "status": "violated",
+                       "predicate_source": "script_declared", "evidence": {"measures": {}},
+                       "static_candidates": [{"path": "model.py", "line": 3}]},
+        "source_span": {"start_line": 1, "end_line": 1},
+        "symbol": "distinctness@advance", "source_entry_ids": []})
+    rows = [{"pid": 1, "seq": 1, "file": "reproduce.py", "name": "<module>", "line": 1},
+            {"pid": 1, "seq": 2, "parent_seq": 1, "file": "reproduce.py", "name": "run", "line": 2},
+            {"pid": 1, "seq": 3, "parent_seq": 2, "file": "model.py", "name": "advance", "line": 1}]
+    if unseen:
+        (root / "unseen.py").write_text("def mystery(value):\n    return value * 2\n")
+        graph["dependence_signatures"].append(
+            {"func": ["unseen.py", "mystery", 1], "instances": 3, "arguments": {}})
+        rows.append({"pid": 1, "seq": 4, "parent_seq": 2, "file": "unseen.py", "name": "mystery", "line": 1})
+    artifacts = tmp_path / "graph-artifacts"
+    artifacts.mkdir()
+    (artifacts / "scientific-objects.json").write_text(json.dumps(graph))
+    (artifacts / "packet.json").write_text(json.dumps(packet))
+    trace = artifacts / "trace"
+    trace.mkdir()
+    with gzip.open(trace / "trace.jsonl.gz", "wt") as stream:
+        for row in rows:
+            stream.write(json.dumps(row) + "\n")
+    result = ScienceStore(root, artifacts)
+    result.prepare()
+    return result
+
+
+def test_prepared_graph_is_queryable_and_citable(tmp_path):
+    store = prepared_graph_store(tmp_path)
+    prepared = store.prepare()
+    assert prepared["scientific_graph"]["nodes"] >= 3
+    overview = store.inspect("#graph")
+    node = next(item for item in overview["nodes"] if item["name"] == "advance")
+    assert node["findings"] == ["R4"]
+    found = store.find("advance")
+    assert any(match["target"] == node["id"] and match["kind"] == "scientific_node"
+               for match in found["matches"])
+    detail = store.inspect(node["id"])
+    assert detail["computation_id"] and detail["source_ids"]
+    assert any(edge["relation"] == "calls" for edge in detail["dependencies"])
+    source = store.inspect(node["id"], view="source")
+    assert any("flux * dt" in piece["text"] for piece in source["source"])
+    claim = {"text": "Advance subtracts outward flux over elapsed time.", "source_ids": [detail["source_ids"][0]]}
+    model = {"purpose": claim, "expected_change": claim, "preserve": [claim],
+             "computations": [{"computation_id": detail["computation_id"], "meaning": claim,
+                               "quantities": [], "conventions": [], "assumptions": ["Fixture."]}]}
+    assert store.record_model(model)["status"] == "recorded"
+
+
+def test_graph_node_without_parsed_region_compiles_evidence_on_demand(tmp_path):
+    store = prepared_graph_store(tmp_path, unseen=True)
+    node = next(item for item in store.inspect("#graph")["nodes"] if item["name"] == "mystery")
+    detail = store.inspect(node["id"])
+    assert not detail["source_ids"]
+    assert detail["evidence"]["sources"], "on-demand compilation must register real citations"
+    assert any("value * 2" in source["text"] for source in detail["evidence"]["sources"])
