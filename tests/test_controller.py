@@ -53,7 +53,8 @@ def test_baseline_is_one_unassisted_session(tmp_path):
     d = FakeDriver()
     r = asyncio.run(run_trial(d, TrialConfig(total_seconds=2, extraction_seconds=.5), "002", "baseline", "Fix this", tmp_path))
     assert [x[0] for x in d.calls] == ["repair"]
-    assert d.calls[0][1] == "Fix this"
+    assert d.calls[0][1].startswith("Fix this")
+    assert "write a short note" in d.calls[0][1]  # the note request is matched across arms
     assert r["status"] == "completed" and d.cleaned
 
 

@@ -362,8 +362,6 @@ class DeepSeekAgent(ScientificCodex):
                 return json.dumps(result, ensure_ascii=False), event
             if name != "shell":
                 raise ValueError("Unknown tool name")
-            if self.condition == "science" and not self._science_model_recorded:
-                raise ValueError("Inspect scientific evidence and record_model before using ordinary repair tools")
             command = arguments.get("command")
             if not isinstance(command, str) or not command.strip():
                 raise ValueError("Empty shell command refused")
@@ -392,9 +390,9 @@ class DeepSeekAgent(ScientificCodex):
                 if remaining <= 1:
                     result["loop_exit"] = "time_cap"
                     break
-                available_tools = ([tool_definition()] if self.condition == "science" else [])
-                if self.condition == "baseline" or self._science_model_recorded:
-                    available_tools += self.shell_tools
+                available_tools = list(self.shell_tools)
+                if self.condition == "science":
+                    available_tools.append(tool_definition())
                 completion = await _api_completion(self.deepseek_key, self.model, messages,
                     tools=available_tools, timeout_sec=remaining, reasoning_effort=self.config.reasoning_effort)
                 call_usage = completion.get("usage", {}) or {}
@@ -440,8 +438,6 @@ class DeepSeekAgent(ScientificCodex):
                     "output_tokens": usage["output_tokens"], "reasoning_output_tokens": usage["reasoning_output_tokens"]}})
                 result.update(status="completed", loop_exit="final_message",
                               finish_reason=completion["choices"][0].get("finish_reason"))
-                if self.condition == "science" and not self._science_model_recorded:
-                    result.update(status="failed", error_kind="scientific_model_not_recorded")
                 break
         except (urllib.error.URLError, TimeoutError, OSError) as error:
             result.update(status="failed", fatal_model_error=True, error=f"DeepSeek transport failure: {error}")

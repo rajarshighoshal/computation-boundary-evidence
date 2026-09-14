@@ -117,7 +117,6 @@ class ScientificCodex(BaseAgent):
         self.condition = condition
         if condition == "science" and not getattr(self, "interactive_science", False):
             raise ValueError("The active scientific-tool experiment uses DeepSeekAgent; separate Codex extraction is retired")
-        self.requires_scientific_model = condition == "science"
         self.extraction_model_seconds = float(extraction_model_seconds) if extraction_model_seconds is not None else None
         if self.extraction_model_seconds is not None and not (0 < self.extraction_model_seconds < float("inf")):
             raise ValueError("extraction_model_seconds must be finite and positive")

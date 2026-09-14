@@ -24,7 +24,7 @@ def agent(tmp_path, condition="science"):
     return value
 
 
-def test_same_agent_queries_records_then_repairs_with_enforced_tools(tmp_path, monkeypatch):
+def test_science_agent_has_graph_tool_and_shell_from_the_start(tmp_path, monkeypatch):
     model = agent(tmp_path)
     root = tmp_path / "task"
     root.mkdir()
@@ -48,10 +48,10 @@ def test_same_agent_queries_records_then_repairs_with_enforced_tools(tmp_path, m
         assert kwargs["reasoning_effort"] == "high"
         snapshots.append(copy.deepcopy(messages))
         available = [t["function"]["name"] for t in kwargs["tools"]]
+        assert available == ["shell", "science"]
         step = len(snapshots)
-        assert available == (["science"] if step <= 3 else ["science", "shell"])
         if step == 1:
-            calls = [call("shell", {"command": "must-not-run"}, "bad"),
+            calls = [call("shell", {"command": "run-public-check"}, "shell"),
                      call("science", {"action": "find", "query": "storage"}, "find")]
         elif step == 2:
             calls = [call("science", {"action": "inspect", "target": "m.py#step"}, "inspect")]
@@ -62,8 +62,7 @@ def test_same_agent_queries_records_then_repairs_with_enforced_tools(tmp_path, m
             claim = {"text": "Stored quantity changes by outward flux times elapsed duration.", "source_ids": [sid]}
             working = {"purpose": claim, "expected_change": claim, "preserve": [claim],
                 "computations": [{"computation_id": cid, "meaning": claim, "quantities": [], "conventions": [], "assumptions": []}]}
-            calls = [call("science", {"action": "record_model", "model": working}, "record"),
-                     call("shell", {"command": "echo 42"}, "shell")]
+            calls = [call("science", {"action": "record_model", "model": working}, "record")]
         else:
             calls = None
         return {"choices": [{"message": {"content": "DONE" if not calls else None, "tool_calls": calls},
@@ -72,13 +71,26 @@ def test_same_agent_queries_records_then_repairs_with_enforced_tools(tmp_path, m
                           "prompt_cache_miss_tokens": 2, "completion_tokens_details": {"reasoning_tokens": 3}}}
     monkeypatch.setattr(module, "_api_completion", api)
     result = asyncio.run(model._run_deepseek_repair("TASK", 30))
-    assert commands == ["echo 42"]
-    assert result["scientific_model_recorded"]
+    assert commands == ["run-public-check"], "shell works before any model is recorded"
+    assert result["status"] == "completed" and result["scientific_model_recorded"]
     assert all(snapshot[0] == {"role": "user", "content": "TASK"} for snapshot in snapshots)
-    assert any("must-not-run" in json.dumps(snapshot) for snapshot in snapshots[1:])
     assert (tmp_path / "science/scientific-model.json").is_file()
     usage = read_usage(tmp_path / "logs/repair.jsonl")
     assert (usage["input_tokens"], usage["cached_input_tokens"], usage["output_tokens"], usage["reasoning_output_tokens"]) == (40, 32, 20, 12)
+
+
+def test_science_run_completes_without_recorded_model(tmp_path, monkeypatch):
+    model = agent(tmp_path)
+    class Env:
+        async def download_dir(self, *args): pass
+    model.environment = Env()
+    async def api(*args, **kwargs):
+        assert [t["function"]["name"] for t in kwargs["tools"]] == ["shell", "science"]
+        return {"choices": [{"message": {"content": "DONE"}, "finish_reason": "stop"}], "usage": {}}
+    monkeypatch.setattr(module, "_api_completion", api)
+    result = asyncio.run(model._run_deepseek_repair("TASK", 30))
+    assert result["status"] == "completed"
+    assert result["scientific_model_recorded"] is False
 
 
 def test_baseline_never_receives_science_tool(tmp_path, monkeypatch):

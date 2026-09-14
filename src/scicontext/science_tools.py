@@ -39,7 +39,8 @@ def tool_definition():
             "Find and inspect public scientific evidence. A prepared graph connects the observed workflow to "
             "implementation computations, findings and dependencies: inspect target '#graph' for its nodes, then "
             "inspect node IDs for quantities, conditions, edges and citable source IDs. record_model saves your "
-            "source-linked scientific understanding and unlocks ordinary repair tools. No action executes candidate code."),
+            "source-linked scientific understanding for the run record. Recording is optional and revisable. "
+            "No action executes candidate code."),
         "parameters": {"type": "object", "properties": {
             "action": {"type": "string", "enum": ["find", "inspect", "record_model"]},
             "query": {"type": "string", "description": "Symbol, scientific phrase, or path to find."},
@@ -683,7 +684,7 @@ class ScienceStore:
         (self.store / "scientific-model.md").write_text(bundle["handoff"])
         self.state.update(model_recorded=True, model_revision=revision)
         self.save()
-        return {"status": "recorded", "revision": revision, "repair_tools_enabled": True,
+        return {"status": "recorded", "revision": revision,
                 "artifact": "scientific-model.json",
                 "stale_paths": sorted(stale_paths), "unverifiable_paths": sorted(unverifiable_paths),
                 "scope": "References checked; scientific correctness is not mechanically established."}

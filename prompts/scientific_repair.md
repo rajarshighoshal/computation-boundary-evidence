@@ -1,10 +1,6 @@
-The science tool holds a prepared graph of this task.
+The science tool holds a prepared graph of this task: inspect "#graph" for the observed workflow,
+implementation computations, dependencies and violated constraint findings.
 
-Start: inspect "#graph" — observed workflow, implementation computations, dependencies,
-violated constraint findings. Then inspect the node IDs that matter.
-
-record_model next: what the task computes scientifically, what should change, what must stay
-correct. About 300 words, cite only inspected sources, flag what you could not resolve.
-
-record_model unlocks the shell. Repair, run the public checks, revisit the graph if evidence
-changes. Everything shares one time budget.
+Use it alongside the code, tests and public reproduction while you investigate. If it helps you fix
+your understanding, record_model a short source-linked model (what the task computes, what should
+change, what must stay correct). Recording is optional and can be revised.
