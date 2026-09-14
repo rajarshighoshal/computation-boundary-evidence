@@ -83,9 +83,31 @@ def test_execution_edges_follow_parent_links(tmp_path):
     ("<module>.run_workflow@85", "run_workflow"),
     ("<module>.TerpsichoreRadialGrid@13.uniform@41", "TerpsichoreRadialGrid.uniform"),
     ("<module>.namespace_definition:openmc@518.Cell::set_rotation@48:1118", "Cell::set_rotation"),
-    ("<module>.namespace_definition:openmc.namespace_definition:model@721", "model"),
+    ("<module>.namespace_definition:openmc@518.namespace_definition:model@721", "model@721"),
+    ("<module>.namespace_definition:openmc@212", "openmc@212"),
     ("<script>", "<module>"),
     (None, "<module>"),
 ])
 def test_scope_key_normalizes_python_and_joern_scopes(raw, expected):
     assert _scope_key(raw) == expected
+
+
+def test_graph_surfaces_runner_failure_instead_of_violation(tmp_path):
+    graph_path, packet_path, trace = write_prepared(tmp_path / "task")
+    graph = json.loads(graph_path.read_text())
+    graph["objects"] = [item for item in graph["objects"] if item.get("kind") != "constraint_locus"]
+    graph["dynamic"] = {"reproduction": {"status": "runner_failure", "classification": "runner_failure"}}
+    graph_path.write_text(json.dumps(graph))
+    result = build_graph(graph_path, packet_path, trace)
+    assert result["reproduction"]["classification"] == "runner_failure"
+    assert result["summary"]["findings"] == 0
+
+
+def test_cut_calls_stay_as_boundary_references(tmp_path):
+    graph_path, packet_path, trace = write_prepared(tmp_path / "task")
+    with gzip.open(trace / "trace.jsonl.gz", "at") as stream:
+        stream.write(json.dumps({"pid": 1, "seq": 4, "parent_seq": 2, "file": "helper.py",
+                                 "name": "helper", "line": 3}) + "\n")
+    result = build_graph(graph_path, packet_path, trace)
+    run = next(node for node in result["nodes"] if node["name"] == "run")
+    assert {"target": "helper.py:3", "relation": "calls"} in run["boundary"]

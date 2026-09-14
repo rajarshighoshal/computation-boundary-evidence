@@ -106,11 +106,21 @@ def test_preparation_has_zero_model_calls(tmp_path):
     model = agent(tmp_path)
     async def science(request, seconds, prepare=False):
         assert prepare and request is None
-        return {"status": "prepared", "task_map": [], "files_indexed": 2}
+        return {"status": "prepared", "task_map": [], "files_indexed": 2,
+                "scientific_graph": {"nodes": 3, "edges": 2, "findings": 1, "bytes": 1200}}
     model._science_command = science
     result = asyncio.run(model.prepare(10))
     assert result["model_calls"] == []
     assert result["usage"]["input_tokens"] == result["usage"]["output_tokens"] == 0
+
+
+def test_preparation_refuses_index_only_science(tmp_path):
+    model = agent(tmp_path)
+    async def science(request, seconds, prepare=False):
+        return {"status": "prepared", "task_map": [], "files_indexed": 2, "scientific_graph": None}
+    model._science_command = science
+    with pytest.raises(RuntimeError, match="refusing index-only science"):
+        asyncio.run(model.prepare(10))
 
 
 def test_finish_extraction_persists_science_store_once(tmp_path):

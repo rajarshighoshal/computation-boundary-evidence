@@ -181,6 +181,12 @@ class DeepSeekAgent(ScientificCodex):
         result = await self._science_command(None, remaining, prepare=True)
         if result.get("status") != "prepared":
             raise RuntimeError("Science index preparation failed: " + json.dumps(result))
+        if not (result.get("scientific_graph") or {}).get("nodes"):
+            # A file inventory is not the treatment: refuse index-only science
+            # instead of silently repairing without the prepared graph.
+            raise RuntimeError("Prepared scientific graph missing; refusing index-only science: "
+                               + json.dumps({"construction": report,
+                                             "graph": result.get("scientific_graph")}))
         self._science_prepared = result
         return {"status": "completed", "usage": {"input_tokens": 0, "cached_input_tokens": 0,
                 "output_tokens": 0, "reasoning_output_tokens": 0}, "model_calls": [],

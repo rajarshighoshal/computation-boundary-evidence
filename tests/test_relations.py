@@ -226,3 +226,28 @@ def test_unbound_numeric_observation_emits_measured_record():
     result = derive_loci(records, [], script_status=None, script_report=report)
     assert result["dynamic"]["observed_values"][0]["field"] == "transition_across_boundary"
     assert not [l for l in result["loci"] if l.get("properties", {}).get("rule_id") in ("R6p", "R6s")]
+
+
+def test_runner_failure_is_not_a_scientific_violation():
+    records = [_record(1, "<module>", None)]
+    result = derive_loci(records, [], script_status=None,
+                         script_report={"status": "runner_failure", "error": "CMake configuration failed"})
+    assert not result["loci"]
+    assert result["dynamic"]["reproduction"]["classification"] == "runner_failure"
+
+
+def test_post_fix_success_is_not_a_violation():
+    records = [_record(1, "<module>", None)]
+    result = derive_loci(records, [], script_status=None, script_report={"status": "post_fix_success"})
+    assert not result["loci"]
+    assert result["dynamic"]["reproduction"]["classification"] == "success"
+
+
+def test_scientific_failure_emits_r6_containment():
+    records = [_record(1, "<module>", None)]
+    result = derive_loci(records, [], script_status=None,
+                         script_report={"status": "pre_fix_expected_failure", "failure_kind": "collapse"})
+    r6 = [l for l in result["loci"] if l["properties"]["rule_id"] == "R6"]
+    assert len(r6) == 1
+    assert r6[0]["properties"]["constraint_type"] == "distinctness"
+    assert result["dynamic"]["reproduction"]["classification"] == "scientific_failure"

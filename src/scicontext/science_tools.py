@@ -17,13 +17,15 @@ from .io import digest_json, read_json, write_json
 from .language_frontends import extract_native_evidence, source_language
 from .object_context import enrichment_input, object_bundle
 from .representation import reading_input
-from .scientific_graph import build_graph
+from .scientific_graph import admit_selected_sources, build_graph
 from .scientific_model import VERSION, schema
 from .scientific_objects import extract_objects
 
 MAX_FILES = 20000
 PAGE_SIZE = 6
 MAX_FIND_RESULTS = 12
+NODE_SOURCE_PAGE = 2
+NODE_SOURCE_CHARS = 1500
 PREPARED_SOURCE = "<prepared>"
 
 
@@ -114,9 +116,19 @@ class ScienceStore:
             raw_graph = read_json(graph_path)
             packet = read_json(packet_path) if packet_path.is_file() else {"entries": [], "documents": []}
             payload = enrichment_input(raw_graph, packet)
+            if isinstance(payload.get("context"), dict):
+                admit_selected_sources(payload, packet)
             key = digest_json(payload)
             write_json(self.store / "views" / (key + ".json"), payload)
-            self.state["payloads"][key] = {"path": PREPARED_SOURCE, "prepared": True}
+            hashes = {}
+            for entry in packet.get("entries") or []:
+                if entry.get("path") and entry.get("sha256"):
+                    hashes.setdefault(entry["path"], entry["sha256"])
+            for document in packet.get("documents") or []:
+                if document.get("path") and document.get("sha256"):
+                    hashes.setdefault(document["path"], document["sha256"])
+            self.state["payloads"][key] = {"path": PREPARED_SOURCE, "prepared": True,
+                                           "source_hashes": hashes}
         except (OSError, ValueError, TypeError):
             pass
         self.save()
@@ -140,9 +152,11 @@ class ScienceStore:
         # Search prepared graph nodes first: node IDs are the citable targets.
         graph = self.state.get("scientific_graph") or {}
         for node in graph.get("nodes", []):
+            quantity_names = " ".join(item.get("name", "") if isinstance(item, dict) else str(item)
+                                      for item in node.get("quantities") or [])
             searchable = " ".join(filter(None, [
                 node.get("name", ""), node.get("signature", ""), node.get("path", ""),
-                " ".join(node.get("quantities") or []), " ".join(node.get("conditions") or []),
+                quantity_names, " ".join(node.get("conditions") or []),
                 " ".join(f.get("type", "") for f in node.get("findings", []))]))
             terms = set(re.findall(r"[^\W_]+", searchable.casefold()))
             overlap = len(words & terms)
@@ -212,20 +226,42 @@ class ScienceStore:
         graph_nodes = {n["id"]: n for n in graph.get("nodes", [])}
         if target in graph_nodes:
             node = graph_nodes[target]
-            self._visible(node.get("entity_ids") or [], node.get("source_ids") or [])
+            context = self._prepared_context()
+            source_ids = node.get("source_ids") or []
+            page = source_ids[offset:offset + NODE_SOURCE_PAGE] if type(offset) is int and offset >= 0 else []
+            shown_sources = [item for item in (self._source_excerpt(context, identifier) for identifier in page) if item]
+            entities = []
+            for identifier in node.get("entity_ids") or []:
+                record = context["entities"].get(identifier) or context["objects"].get(identifier)
+                if record:
+                    entities.append({"id": identifier, "kind": record.get("kind"),
+                                     "name": record.get("name") or record.get("symbol")
+                                     or (record.get("properties") or {}).get("signature")})
+            quantities = [item if isinstance(item, dict) else {"id": None, "name": str(item)}
+                          for item in node.get("quantities") or []]
+            # Register only what this response shows: the model can cite shown
+            # source text and shown quantity/entity references, nothing else.
+            registered = ([node.get("computation_id")] + [item["id"] for item in entities]
+                          + [item["id"] for item in quantities if item.get("id")])
+            self._visible([identifier for identifier in registered if identifier],
+                          [item["id"] for item in shown_sources])
             result = {"status": "ok", "target": target, "type": "scientific_node",
                       "name": node.get("name", ""), "path": node.get("path", ""),
                       "line": node.get("line", 0), "kind": node.get("kind", ""),
                       "language": source_language(node.get("path", "")),
                       "signature": node.get("signature"), "instances": node.get("instances"),
                       "arguments": node.get("arguments"), "findings": node.get("findings") or [],
-                      "quantities": node.get("quantities") or [], "conditions": node.get("conditions") or [],
+                      "quantities": quantities, "conditions": node.get("conditions") or [],
                       "operations": node.get("operations") or {}, "computation_id": node.get("computation_id"),
-                      "entity_ids": node.get("entity_ids") or [], "source_ids": node.get("source_ids") or [],
+                      "entities": entities,
+                      "sources": shown_sources,
+                      "source_total": len(source_ids),
+                      "next_offset": offset + len(page) if offset + len(page) < len(source_ids) else None,
                       "dependencies": [e for e in graph.get("edges", [])
                                        if e.get("from") == target or e.get("to") == target],
                       "boundary": node.get("boundary") or [],
-                      "note": "IDs above are citable in record_model once inspected here."}
+                      "note": "Citable: the sources and entity/quantity IDs shown above. "
+                              "Use offset for more sources; inspect returned path:line targets for uncompiled detail."}
             if not node.get("source_ids") and node.get("path"):
                 # No parsed region for this node in the prepared packet: compile
                 # the public file location on demand so citations are real.
@@ -233,7 +269,12 @@ class ScienceStore:
                     detail = self.inspect(f"{node['path']}:{node.get('line') or 1}", "relationships", 0, analysis)
                     result["evidence"] = {key: detail.get(key) for key in
                                           ("target", "computations", "quantities_and_expressions",
-                                           "relationships", "sources", "coverage", "backend_request")}
+                                           "relationships", "sources", "coverage")}
+                    if detail.get("backend_request"):
+                        # The runner triggers host-side analyzers from the top-level
+                        # request; keep it visible when the work is nested in evidence.
+                        result["backend_request"] = detail["backend_request"]
+                    self._remember_expansion(node, detail)
                 except (OSError, ValueError, KeyError, TypeError, SyntaxError) as error:
                     result["evidence_error"] = f"{type(error).__name__}: {error}"
             if view == "source":
@@ -439,8 +480,10 @@ class ScienceStore:
         self.state["payloads"][key] = {"path": path, "content_hash": digest_json(raw.hex())}
 
     def _visible(self, entities, sources):
-        self.state["visible_entities"] = sorted(set(self.state["visible_entities"]) | set(entities))
-        self.state["visible_sources"] = sorted(set(self.state["visible_sources"]) | set(sources))
+        self.state["visible_entities"] = sorted(
+            {item for item in set(self.state["visible_entities"]) | set(entities) if item})
+        self.state["visible_sources"] = sorted(
+            {item for item in set(self.state["visible_sources"]) | set(sources) if item})
         self.save()
 
     def _node_source(self, node):
@@ -460,6 +503,66 @@ class ScienceStore:
                                    "start_line": entry.get("start_line"), "end_line": entry.get("end_line"),
                                    "text": (entry.get("text") or entry.get("quote") or "")[:6000]})
         return pieces
+
+    def _prepared_context(self):
+        """Merged view of every cached payload: sources, objects, entities.
+
+        The node inspector shows and registers only what this context holds, so
+        registered citations always correspond to displayed content.
+        """
+        context = {"sources": {}, "documents": {}, "objects": {}, "operations": {}, "entities": {}}
+        for key in self.state.get("payloads", {}):
+            try:
+                payload = read_json(self.store / "views" / (key + ".json"))
+            except (OSError, ValueError):
+                continue
+            for entry in (payload.get("context") or {}).get("code_passages") or []:
+                if entry.get("id"):
+                    context["sources"][entry["id"]] = entry
+            for document in (payload.get("context") or {}).get("scientific_passages") or []:
+                if document.get("id"):
+                    context["documents"][document["id"]] = document
+            for item in payload.get("objects") or []:
+                if item.get("id"):
+                    context["objects"][item["id"]] = item
+            for item in payload.get("operations") or []:
+                if item.get("id"):
+                    context["operations"][item["id"]] = item
+            try:
+                for item in reading_input(payload)["entities"]:
+                    if item.get("id"):
+                        context["entities"][item["id"]] = item
+            except (ValueError, KeyError, TypeError):
+                continue
+        return context
+
+    @staticmethod
+    def _source_excerpt(context, identifier):
+        entry = context["sources"].get(identifier) or context["documents"].get(identifier)
+        if not entry:
+            return None
+        text = entry.get("text") or entry.get("quote") or ""
+        return {"id": identifier, "path": entry.get("path"),
+                "start_line": entry.get("start_line"), "end_line": entry.get("end_line"),
+                "text": text[:NODE_SOURCE_CHARS], "truncated": len(text) > NODE_SOURCE_CHARS}
+
+    def _remember_expansion(self, node, detail):
+        """Persist on-demand compiled evidence onto the graph node."""
+        source_ids = [item["id"] for item in detail.get("sources") or [] if item.get("id")]
+        computation_ids = [item["id"] for item in detail.get("computations") or [] if item.get("id")]
+        if not source_ids and not computation_ids:
+            return
+        graph = self.state.get("scientific_graph") or {}
+        for candidate in graph.get("nodes", []):
+            if candidate.get("id") != node.get("id"):
+                continue
+            candidate["source_ids"] = sorted(set(candidate.get("source_ids") or []) | set(source_ids))
+            candidate["entity_ids"] = sorted(set(candidate.get("entity_ids") or []) | set(computation_ids))
+            candidate["expanded"] = True
+            if detail.get("analysis_backends"):
+                candidate["analysis_backends"] = detail["analysis_backends"]
+        self.state["scientific_graph"] = graph
+        self.save()
 
     def record_model(self, model):
         if not isinstance(model, dict) or not model.get("expected_change") or not model.get("preserve"):
@@ -483,8 +586,37 @@ class ScienceStore:
                [c.get("computation_id"), *c.get("expression_ids", []), *(q.get("object_id") for q in c.get("quantities", []))]]
         if not ids or not set(ids) <= set(self.state["visible_entities"]):
             raise ValueError("Select computation/quantity/expression IDs returned by inspect")
+        # Version separation: prepared evidence whose file changed on disk is
+        # not current. Its citations are refused until the source is inspected
+        # again, and its items are excluded from the joined representation.
+        stale_paths = set()
+        stale_source_ids = set()
+        for key, info in self.state["payloads"].items():
+            if not info.get("prepared"):
+                continue
+            for path, expected in (info.get("source_hashes") or {}).items():
+                try:
+                    current = hashlib.sha256(self.read(path)[0]).hexdigest()
+                except (OSError, ValueError):
+                    current = None
+                if current != expected:
+                    stale_paths.add(path)
+            if stale_paths:
+                payload = read_json(self.store / "views" / (key + ".json"))
+                for source in (payload.get("context") or {}).get("code_passages") or []:
+                    if source.get("path") in stale_paths and source.get("id"):
+                        stale_source_ids.add(source["id"])
+        if stale_paths and set(citations(model)) & stale_source_ids:
+            raise ValueError("Prepared evidence for edited files is not current: re-inspect "
+                             + ", ".join(sorted(stale_paths)) + " before citing it")
         merged = {key: {} for key in ("objects", "operations", "unsupported", "links", "documents", "entries", "regions", "analysis")}
         current_hashes = {}
+
+        def stale(item):
+            source = item.get("source")
+            path = source.get("path") if isinstance(source, dict) else item.get("path")
+            return path in stale_paths
+
         for key in self.state["payloads"]:
             info = self.state["payloads"][key]
             if not info.get("prepared"):
@@ -495,9 +627,13 @@ class ScienceStore:
             payload = read_json(self.store / "views" / (key + ".json"))
             for field in ("objects", "operations", "links", "unsupported"):
                 for item in payload.get(field, []):
+                    if info.get("prepared") and stale(item):
+                        continue
                     merged[field][item.get("id", digest_json(item))] = item
             for field, source in (("documents", "scientific_passages"), ("entries", "code_passages"), ("regions", "analysis_regions"), ("analysis", "analysis_sources")):
                 for item in payload.get("context", {}).get(source, []):
+                    if info.get("prepared") and item.get("path") in stale_paths:
+                        continue
                     merged[field][item.get("id", digest_json(item))] = item
         graph = {k: list(merged[k].values()) for k in ("objects", "operations", "links", "unsupported")}
         graph.update(schema_version="scientific-objects-1.0", coverage={})
@@ -515,7 +651,9 @@ class ScienceStore:
         self.state.update(model_recorded=True, model_revision=revision)
         self.save()
         return {"status": "recorded", "revision": revision, "repair_tools_enabled": True,
-                "artifact": "scientific-model.json", "scope": "References checked; scientific correctness is not mechanically established."}
+                "artifact": "scientific-model.json",
+                "stale_paths": sorted(stale_paths),
+                "scope": "References checked; scientific correctness is not mechanically established."}
 
     def dispatch(self, request, analysis=None):
         if not isinstance(request, dict):

@@ -245,21 +245,55 @@ def test_prepared_graph_is_queryable_and_citable(tmp_path):
     assert any(match["target"] == node["id"] and match["kind"] == "scientific_node"
                for match in found["matches"])
     detail = store.inspect(node["id"])
-    assert detail["computation_id"] and detail["source_ids"]
+    assert detail["computation_id"] and detail["sources"]
+    assert all(source["text"] for source in detail["sources"])
+    assert {source["id"] for source in detail["sources"]} <= set(store.state["visible_sources"])
     assert any(edge["relation"] == "calls" for edge in detail["dependencies"])
     source = store.inspect(node["id"], view="source")
     assert any("flux * dt" in piece["text"] for piece in source["source"])
-    claim = {"text": "Advance subtracts outward flux over elapsed time.", "source_ids": [detail["source_ids"][0]]}
+    claim = {"text": "Advance subtracts outward flux over elapsed time.", "source_ids": [detail["sources"][0]["id"]]}
     model = {"purpose": claim, "expected_change": claim, "preserve": [claim],
              "computations": [{"computation_id": detail["computation_id"], "meaning": claim,
                                "quantities": [], "conventions": [], "assumptions": ["Fixture."]}]}
     assert store.record_model(model)["status"] == "recorded"
 
 
+def test_record_rejects_sources_not_shown_by_inspection(tmp_path):
+    store = prepared_graph_store(tmp_path)
+    node = next(item for item in store.inspect("#graph")["nodes"] if item["name"] == "advance")
+    detail = store.inspect(node["id"])
+    full = next(item for item in store.state["scientific_graph"]["nodes"] if item["id"] == node["id"])
+    shown = {source["id"] for source in detail["sources"]}
+    unseen = [identifier for identifier in full["source_ids"] if identifier not in shown]
+    assert unseen, "a paged node must keep later sources unregistered until inspected"
+    claim = {"text": "Unseen content.", "source_ids": [unseen[0]]}
+    model = {"purpose": claim, "expected_change": claim, "preserve": [claim],
+             "computations": [{"computation_id": detail["computation_id"], "meaning": claim,
+                               "quantities": [], "conventions": [], "assumptions": ["Fixture."]}]}
+    with pytest.raises(ValueError, match="Cite source IDs"):
+        store.record_model(model)
+
+
 def test_graph_node_without_parsed_region_compiles_evidence_on_demand(tmp_path):
     store = prepared_graph_store(tmp_path, unseen=True)
     node = next(item for item in store.inspect("#graph")["nodes"] if item["name"] == "mystery")
     detail = store.inspect(node["id"])
-    assert not detail["source_ids"]
+    assert detail["sources"] == []
     assert detail["evidence"]["sources"], "on-demand compilation must register real citations"
     assert any("value * 2" in source["text"] for source in detail["evidence"]["sources"])
+    expanded = next(item for item in store.state["scientific_graph"]["nodes"] if item["id"] == node["id"])
+    assert expanded.get("expanded") and expanded["source_ids"], "compiled evidence must persist on the node"
+
+
+def test_edited_prepared_source_cannot_be_cited(tmp_path):
+    store = prepared_graph_store(tmp_path)
+    node = next(item for item in store.inspect("#graph")["nodes"] if item["name"] == "advance")
+    detail = store.inspect(node["id"])
+    source_id = detail["sources"][0]["id"]
+    (store.root / "model.py").write_text('def advance(energy, flux, dt):\n    return energy\n')
+    claim = {"text": "Advance subtracts outward flux over elapsed time.", "source_ids": [source_id]}
+    model = {"purpose": claim, "expected_change": claim, "preserve": [claim],
+             "computations": [{"computation_id": detail["computation_id"], "meaning": claim,
+                               "quantities": [], "conventions": [], "assumptions": ["Fixture."]}]}
+    with pytest.raises(ValueError, match="not current"):
+        store.record_model(model)

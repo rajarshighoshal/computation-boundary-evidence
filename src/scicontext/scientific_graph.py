@@ -48,16 +48,21 @@ def _load(path):
 
 def _scope_key(scope):
     """Normalize a scope string to its source identity name."""
-    scope = re.sub(r"@\d+(?::\d+)?", "", str(scope or "")).strip()
-    if "::" in scope:
+    raw = str(scope or "").strip()
+    if "::" in raw:
         # Joern-style C/C++ scopes: keep the innermost Class::method tail.
-        parts = scope.rstrip(":.").split("::")
+        stripped = re.sub(r"@\d+(?::\d+)?", "", raw)
+        parts = stripped.rstrip(":.").split("::")
         head = parts[-2].split(".")[-1] if len(parts) >= 2 else ""
         return f"{head}::{parts[-1]}" if head else parts[-1]
+    if "namespace_definition:" in raw:
+        # Keep the innermost namespace segment with its block offset so distinct
+        # namespace definitions in one file do not merge into a single node.
+        tail = re.sub(r":\d+$", "", raw.rsplit("namespace_definition:", 1)[-1]).strip(":.")
+        return tail or "<module>"
+    scope = re.sub(r"@\d+(?::\d+)?", "", raw).strip()
     if scope.startswith("<module>."):
         scope = scope[len("<module>."):]
-    if "namespace_definition:" in scope:
-        scope = scope.rsplit("namespace_definition:", 1)[-1]
     if ":" in scope:  # Joern leaves `namespace:name` fragments
         scope = scope.rsplit(":", 1)[-1]
     return scope if scope and scope != "<script>" else "<module>"
@@ -71,11 +76,38 @@ def _entity_site(item):
     return path, line
 
 
+def admit_selected_sources(payload, packet) -> None:
+    """Admit the packet's selected public sources into the reading selection.
+
+    reading_input keeps only passages inside analysis_regions; for tasks without
+    execution regions (compiled languages) that silently dropped every selected
+    source. The packet's own selection is the relevance evidence, so its paths
+    become regions here.
+    """
+    coverage = packet.get("coverage") or {}
+    paths = {path for path in coverage.get("selected_source_paths") or [] if isinstance(path, str)}
+    if not paths:
+        return
+    ends = {}
+    for entry in packet.get("entries") or []:
+        path = entry.get("path")
+        if path in paths:
+            ends[path] = max(ends.get(path, 0), entry.get("end_line") or 0)
+    regions = payload["context"].setdefault("analysis_regions", [])
+    existing = {region.get("path") for region in regions}
+    for path in sorted(paths - existing):
+        end = ends.get(path) or 0
+        regions.append({"path": path, "start_line": 1, "end_line": max(end, 1)})
+
+
 def build_graph(graph_path, packet_path=None, trace_dir=None) -> dict:
     """Filter prepared extraction outputs to a compact, connected task graph."""
     graph = _load(graph_path) or {"objects": [], "operations": [], "links": []}
     packet = _load(packet_path) or {"entries": [], "documents": []}
-    compiled = reading_input(enrichment_input(graph, packet))
+    payload = enrichment_input(graph, packet)
+    if isinstance(payload, dict) and isinstance(payload.get("context"), dict):
+        admit_selected_sources(payload, packet if isinstance(packet, dict) else {})
+    compiled = reading_input(payload)
     source_by_id = {s["id"]: s for s in compiled["sources"]}
     entity_by_id = {e["id"]: e for e in compiled["entities"]}
 
@@ -138,6 +170,7 @@ def build_graph(graph_path, packet_path=None, trace_dir=None) -> dict:
 
     trace_edges = read_execution_edges(trace_dir) if trace_dir else []
     call_edges = {}
+    call_sites = {}
     parents = defaultdict(set)
     for edge in trace_edges:
         caller = (edge["caller"]["file"], _scope_key(edge["caller"]["name"]))
@@ -145,6 +178,9 @@ def build_graph(graph_path, packet_path=None, trace_dir=None) -> dict:
         if caller == callee:
             continue
         call_edges[(caller, callee)] = call_edges.get((caller, callee), 0) + edge.get("count", 1)
+        call_sites[(caller, callee)] = {
+            "caller": {"path": edge["caller"]["file"], "line": edge["caller"]["line"]},
+            "callee": {"path": edge["callee"]["file"], "line": edge["callee"]["line"]}}
         parents[callee].add(caller)
 
     site_by_id = {}
@@ -208,7 +244,7 @@ def build_graph(graph_path, packet_path=None, trace_dir=None) -> dict:
             "computation_id": computation["id"] if computation else None,
             "entity_ids": entity_ids,
             "source_ids": source_ids,
-            "quantities": [item.get("symbol") for item in objects_here
+            "quantities": [{"id": item["id"], "name": item.get("symbol")} for item in objects_here
                            if item.get("kind") == "computational_value" and item.get("symbol")][:MAX_QUANTITIES],
             "conditions": conditions or None,
             "operations": dict(operations_summary) or None,
@@ -313,12 +349,31 @@ def build_graph(graph_path, packet_path=None, trace_dir=None) -> dict:
                     and len(selected[node_key]["boundary"]) < MAX_BOUNDARY:
                 selected[node_key]["boundary"].append(reference)
 
+    # Observed calls that leave the selected set stay visible as boundary
+    # references instead of disappearing with the cut edge.
+    for (caller, callee), sites in sorted(call_sites.items()):
+        if caller in selected and callee not in selected:
+            reference = {"target": f"{sites['callee']['path']}:{sites['callee']['line']}", "relation": "calls"}
+            if reference not in selected[caller]["boundary"] and \
+                    len(selected[caller]["boundary"]) < MAX_BOUNDARY:
+                selected[caller]["boundary"].append(reference)
+        elif callee in selected and caller not in selected:
+            reference = {"target": f"{sites['caller']['path']}:{sites['caller']['line']}", "relation": "calls"}
+            if reference not in selected[callee]["boundary"] and \
+                    len(selected[callee]["boundary"]) < MAX_BOUNDARY:
+                selected[callee]["boundary"].append(reference)
+
     documents = {}
     for document in packet.get("documents") or []:
         path = document.get("path")
         if path:
             documents[path] = documents.get(path, 0) + 1
     nodes = list(selected.values())
+    if not isinstance(graph, dict):
+        graph = {"objects": [], "operations": [], "links": []}
+    dynamic_value = graph.get("dynamic")
+    dynamic = dynamic_value if isinstance(dynamic_value, dict) else {}
+    reproduction = dynamic.get("reproduction")
     result = {
         "schema_version": GRAPH_SCHEMA,
         "nodes": nodes,
@@ -334,5 +389,8 @@ def build_graph(graph_path, packet_path=None, trace_dir=None) -> dict:
             "edges": len(edges),
         },
     }
+    if reproduction:
+        result["reproduction"] = reproduction
+        result["summary"]["reproduction_classification"] = reproduction.get("classification")
     result["serialized_bytes"] = len(json.dumps(result, ensure_ascii=False).encode())
     return result
