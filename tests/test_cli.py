@@ -175,7 +175,7 @@ def test_interrupt_stops_only_owned_group_before_private_auth_cleanup(workspace,
     original_cleanup = cli._cleanup_owned_containers
     def cleanup_containers(output, item):
         assert auth_paths[-1].is_file()
-        assert waits == [None, 5, 5]
+        assert len(waits) == 3 and waits[0] is None and 0 <= waits[1] <= 5 and waits[2] == 5
         container_cleanup_seen.append(True)
         return original_cleanup(output, item)
     class SyntheticProcess:
@@ -229,7 +229,7 @@ def test_interrupt_stops_only_owned_group_before_private_auth_cleanup(workspace,
     with pytest.raises(KeyboardInterrupt):
         run_pilot(workspace)
     assert signals == [(314159, signal.SIGTERM), (314159, signal.SIGKILL)]
-    assert waits == [None, 5, 5]
+    assert len(waits) == 3 and waits[0] is None and 0 <= waits[1] <= 5 and waits[2] == 5
     assert not auth_paths[-1].exists()
     assert container_cleanup_seen == [True]
     assert signal.getsignal(signal.SIGTERM) == previous_handler

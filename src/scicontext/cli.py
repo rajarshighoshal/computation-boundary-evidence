@@ -70,21 +70,43 @@ def _run_owned_process(command: list[str], *, check: bool = False, **kwargs) -> 
 
 
 def _stop_owned_process(process) -> None:
-    try:
-        os.killpg(process.pid, signal.SIGTERM)
-    except ProcessLookupError:
-        pass
-    try:
-        process.wait(timeout=5)
-    except subprocess.TimeoutExpired:
-        pass
-    finally:
-        # Descendants may outlive their leader, including ones ignoring TERM.
+    _stop_owned_processes([process])
+
+
+def _stop_owned_processes(processes) -> None:
+    # Signal every owned group immediately; forty workers must not each wait
+    # for the previous worker's grace period before receiving cancellation.
+    errors = []
+    for process in processes:
+        try:
+            os.killpg(process.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+        except Exception as error:
+            errors.append(f"TERM {process.pid}: {error}")
+    deadline = time.monotonic() + 5
+    for process in processes:
+        try:
+            process.wait(timeout=max(0, deadline - time.monotonic()))
+        except subprocess.TimeoutExpired:
+            pass
+        except Exception as error:
+            errors.append(f"wait {process.pid}: {error}")
+    for process in processes:
+        # Descendants can outlive their leader.
         try:
             os.killpg(process.pid, signal.SIGKILL)
         except ProcessLookupError:
             pass
-        process.wait(timeout=5)
+        except Exception as error:
+            errors.append(f"KILL {process.pid}: {error}")
+    for process in processes:
+        try:
+            process.wait(timeout=5)
+        except Exception as error:
+            errors.append(f"reap {process.pid}: {error}")
+    if errors:
+        raise RuntimeError("; ".join(errors))
 
 
 def _interrupt_schedule(signum, frame):
@@ -263,8 +285,8 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
                          config["total_seconds"], config["extraction_seconds"],
                          config.get("flexible_budget", False))
     concurrency = config.get("concurrency")
-    if config.get("attempts") != 1 or type(concurrency) is not int or not (1 <= concurrency <= 8):
-        raise ValueError("Pilot supports exactly one attempt and concurrency 1..8")
+    if config.get("attempts") != 1 or type(concurrency) is not int or not (1 <= concurrency <= 40):
+        raise ValueError("Pilot supports exactly one attempt and concurrency 1..40")
     restricted_optin = bool(os.environ.get("SCICONSORT_RESTRICTED_OPTIN"))
     if config.get("allow_restricted_licenses") and not restricted_optin:
         raise ValueError("Restricted-license tasks require the owner's explicit "
@@ -317,6 +339,7 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
         "pier_concurrency_per_process": 1,
         "shared_resources": concurrency >= 2 and not smoke,
         "attempt_failure": "record_and_continue_without_retry",
+        "launch_spacing_seconds": 0,
     }
     if not execute:
         return plan
@@ -378,6 +401,7 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
             private_deepseek_key = Path(private_dir) / "deepseek-key.json"
             write_json(private_deepseek_key, {"api_key": deepseek_key})
             private_deepseek_key.chmod(0o600)
+        pulled_images = set()
         def prepare_attempt(item):
             nonlocal current, task_row, return_code
             current = item
@@ -404,14 +428,18 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
             write_json(output / "schedule.json", plan)
             images = [task_row["environment_image"]] if extraction_only else [task_row["environment_image"], task_row["verifier_image"]]
             for image in images:
+                if image in pulled_images:
+                    continue
                 # Registry pulls burst-fail under concurrency (429/network);
                 # retry with backoff instead of failing the attempt.
                 for attempt in range(3):
                     pull = _run_owned_process(["docker", "pull", "--platform", "linux/amd64", image],
                                               stdout=subprocess.DEVNULL)
                     if pull.returncode == 0:
+                        pulled_images.add(image)
                         break
-                    time.sleep(30 * (attempt + 1))
+                    if attempt < 2:
+                        time.sleep(30 * (attempt + 1))
                 else:
                     raise subprocess.CalledProcessError(pull.returncode, pull.args)
             command = [str(Path(sys.executable).parent / "pier"), "run",
@@ -461,12 +489,13 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
             # A task's images are shared by its arms. A fast arm must not evict
             # them while its partner is still running or waiting for admission.
             siblings = [s for s in schedule if s["task_id"] == item["task_id"]]
-            if (smoke or item.get("images_removed") or any(
+            if (smoke or not config.get("cleanup_images", True) or item.get("images_removed") or any(
                     s["status"] not in ("completed", "infrastructure_failure", "cancelled") for s in siblings)):
                 return
             row = available[item["task_id"]]
             for image in {row["environment_image"], row["verifier_image"]}:
                 subprocess.run(["docker", "rmi", image], capture_output=True, check=False)
+                pulled_images.discard(image)
             for sibling in siblings:
                 sibling["images_removed"] = True
             write_json(output / "schedule.json", plan)
@@ -497,13 +526,28 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
             write_json(output / "schedule.json", plan)
             remove_finished_images(item)
 
+        def harvest_finished():
+            nonlocal current
+            for state in list(active):
+                process = state.get("process")
+                if process is None or state.get("finalized"):
+                    continue
+                current = state["item"]
+                code = process.poll()
+                if code is not None:
+                    finish_attempt(state, code)
+            active[:] = [state for state in active if not state.get("finalized")]
+
         width = plan["execution_policy"]["concurrency"]
         next_attempt = 0
-        last_launch = None
         while active or next_attempt < len(schedule):
             # Refill available slots in declared order, without a task/batch
             # barrier. Start each prepared runner before preparing the next.
             while next_attempt < len(schedule) and len(active) < width:
+                # With a wide pool, process completions while admitting further
+                # work, not only after all forty preparations have finished.
+                if len(active) >= 2:
+                    harvest_finished()
                 item = schedule[next_attempt]
                 next_attempt += 1
                 state = {"item": item, "task_row": available[item["task_id"]], "return_code": None}
@@ -526,27 +570,17 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
                     else:
                         finish_attempt(state, result.returncode)
                 else:
-                    if last_launch is not None and width > 2:
-                        # Retain the existing startup spacing, but never wait
-                        # for a sibling to finish before reusing a free slot.
-                        time.sleep(max(0.0, last_launch + 8 - time.monotonic()))
                     current = state["item"]
                     try:
                         state["stream"] = state["log"].open("w")
                         state["process"] = subprocess.Popen(
                             state["command"], start_new_session=True, env=state["environment"],
                             stdout=state["stream"], stderr=subprocess.STDOUT, cwd=workspace)
-                        last_launch = time.monotonic()
                     except Exception as error:
                         finish_attempt(state, None, error)
                 if state.get("finalized"):
                     active.remove(state)
-            for state in active:
-                current = state["item"]
-                code = state["process"].poll()
-                if code is not None:
-                    finish_attempt(state, code)
-            active = [state for state in active if not state.get("finalized")]
+            harvest_finished()
             if active and (len(active) == width or next_attempt == len(schedule)):
                 time.sleep(0.05)
         plan["status"] = "completed" if all(item["status"] == "completed" for item in schedule) else "completed_with_failures"
@@ -578,14 +612,14 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
                         plan["accounting_error"] = f"{type(accounting_error).__name__}: {accounting_error}"
         # Stop every owned sibling before container cleanup, reconciliation, or
         # auth removal. A cancelled peer is interrupted, never a repair failure.
+        try:
+            _stop_owned_processes([state["process"] for state in active
+                if not state.get("finalized") and state.get("process") is not None])
+        except Exception as cleanup_error:
+            plan.setdefault("process_cleanup_errors", []).append(f"{type(cleanup_error).__name__}: {cleanup_error}")
         for state in active:
             if state.get("finalized"):
                 continue
-            if state.get("process") is not None:
-                try:
-                    _stop_owned_process(state["process"])
-                except Exception as cleanup_error:
-                    plan.setdefault("process_cleanup_errors", []).append(f"{type(cleanup_error).__name__}: {cleanup_error}")
             if state.get("stream") is not None:
                 state["stream"].close()
         for state in active:

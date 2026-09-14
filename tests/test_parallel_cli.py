@@ -3,6 +3,7 @@ import json
 import signal
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -164,8 +165,8 @@ def test_interrupt_stops_both_groups_before_auth_cleanup(workspace, monkeypatch)
     with pytest.raises(KeyboardInterrupt):
         parallel(workspace)
     assert signal.getsignal(signal.SIGTERM) == previous
-    assert runners.signals == [(10000, signal.SIGTERM), (10000, signal.SIGKILL),
-                               (10001, signal.SIGTERM), (10001, signal.SIGKILL)]
+    assert runners.signals == [(10000, signal.SIGTERM), (10001, signal.SIGTERM),
+                               (10000, signal.SIGKILL), (10001, signal.SIGKILL)]
     plan = read_json(workspace / "output/schedule.json")
     assert plan["status"] == "interrupted"
     assert [i["status"] for i in plan["schedule"]] == ["interrupted", "interrupted", "not_run", "not_run"]
@@ -330,10 +331,136 @@ def test_cancel_after_refill_preserves_finished_attempt(workspace, monkeypatch):
     assert all(not p.auth.exists() for p in runners.started)
 
 
-@pytest.mark.parametrize("concurrency", [0, 9, True, 2.0, "2", None])
+@pytest.mark.parametrize("concurrency", [0, 41, True, 2.0, "2", None])
 def test_invalid_concurrency_is_rejected(workspace, concurrency):
     config = read_json(workspace / "config.json")
     config["concurrency"] = concurrency
     write_json(workspace / "bad.json", config)
-    with pytest.raises(ValueError, match="concurrency 1\\.\\.8"):
+    with pytest.raises(ValueError, match="concurrency 1\\.\\.40"):
         cli.pilot(workspace, workspace / "bad.json", workspace / "output", False, None)
+
+
+def forty_task_fixture(workspace):
+    from scicontext.io import digest_file
+    config = read_json(workspace / "config.json")
+    receipt = read_json(workspace / "data/release-receipt.json")
+    extra = [f"{i:03}" for i in range(80, 99)]
+    config.update(task_ids=config["task_ids"] + extra, full_benchmark=True)
+    for task in extra:
+        path = workspace / "selection" / f"task_{task}" / "task.toml"
+        path.parent.mkdir()
+        path.write_text("# synthetic task\n")
+        receipt["file_hashes"][f"task_{task}/task.toml"] = digest_file(path)
+        receipt["tasks"].append({"task_id": task, "environment_image": f"env-{task}@sha256:00",
+                                 "verifier_image": f"verifier-{task}@sha256:00"})
+    write_json(workspace / "config.json", config)
+    write_json(workspace / "data/release-receipt.json", receipt)
+
+
+@pytest.mark.parametrize("failure", [None, "provider"])
+def test_forty_live_slots_refill_and_continue_after_failure(workspace, monkeypatch, failure):
+    forty_task_fixture(workspace)
+    runners = Runners(monkeypatch, max_alive=40, failure=failure)
+    peak = [0]
+    pulls = []
+    def pull(command, **kwargs):
+        pulls.append(command[-1])
+        return runners.pull(command, **kwargs)
+    def start(command, **kwargs):
+        process = runners.start(command, **kwargs)
+        if command[0] == "docker":
+            return process
+        assert kwargs["env"]["PYTHONPATH"] == str(workspace / "output/frozen-source")
+        peak[0] = max(peak[0], sum(p.alive for p in runners.started))
+        original = process.poll
+        def poll():
+            if len(runners.started) < 40 or (process.pid != 10000 and len(runners.started) < 41):
+                return None
+            return original()
+        process.poll = poll
+        return process
+    sleeps = []
+    monkeypatch.setattr(cli.subprocess, "Popen", start)
+    monkeypatch.setattr(cli, "_run_owned_process", pull)
+    monkeypatch.setattr(cli.time, "sleep", lambda seconds: sleeps.append(seconds))
+    parallel(workspace, concurrency=40)
+    assert peak[0] == 40
+    assert len(runners.started) == len({p.name for p in runners.started}) == 42
+    assert len(pulls) == len(set(pulls)) == 42  # One pull per exact task/env/verifier image, not per arm.
+    assert all(seconds <= .05 for seconds in sleeps)
+    next_start = runners.events.index(("start", runners.started[40].name))
+    assert runners.events.index(("finish", runners.started[0].name)) < next_start
+    assert next_start < runners.events.index(("finish", runners.started[1].name))
+    plan = read_json(workspace / "output/schedule.json")
+    assert plan["execution_policy"]["concurrency"] == 40
+    assert plan["execution_policy"]["launch_spacing_seconds"] == 0
+    assert plan["status"] == ("completed_with_failures" if failure else "completed")
+
+
+def test_forty_real_dummy_processes_overlap_without_models_or_docker(workspace, monkeypatch):
+    forty_task_fixture(workspace)
+    real_popen = subprocess.Popen
+    runners = Runners(monkeypatch, max_alive=40)
+    processes, peak = [], [0]
+    release_first, release_all = workspace / "release-first", workspace / "release-all"
+    def start(command, **kwargs):
+        if command[0] == "docker":
+            return runners.start(command, **kwargs)
+        path = fake_agent_record(command)
+        index = len(processes)
+        gate = release_first if index == 0 else release_all
+        script = ("import pathlib,sys,time; ready=pathlib.Path(sys.argv[1]); "
+                  "gate=pathlib.Path(sys.argv[2]); ready.touch(); started=time.monotonic()\n"
+                  "while not gate.exists() and time.monotonic()-started<15: time.sleep(.01)\n")
+        process = real_popen([sys.executable, "-c", script, str(path / "ready"), str(gate)], **kwargs)
+        processes.append(process)
+        peak[0] = max(peak[0], sum(p.poll() is None for p in processes))
+        if len(processes) == 40:
+            until = time.monotonic() + 10
+            while len(list((workspace / "output/jobs").glob("*/*/ready"))) < 40 and time.monotonic() < until:
+                time.sleep(.01)
+            assert len(list((workspace / "output/jobs").glob("*/*/ready"))) == 40
+            release_first.touch()
+        elif len(processes) == 41:
+            assert processes[0].poll() == 0
+            assert all(p.poll() is None for p in processes[1:40])
+            release_all.touch()
+        return process
+    monkeypatch.setattr(cli.subprocess, "Popen", start)
+    try:
+        parallel(workspace, concurrency=40)
+        assert len(processes) == 42 and peak[0] == 40
+        assert all(p.poll() == 0 for p in processes)
+    finally:
+        for process in processes:
+            if process.poll() is None:
+                process.terminate()
+                process.wait(timeout=5)
+
+
+def test_wide_cancellation_signals_all_before_waiting(monkeypatch):
+    events = []
+    class Process:
+        def __init__(self, pid): self.pid = pid
+        def wait(self, timeout):
+            assert len([e for e in events if e[1] == signal.SIGTERM]) == 40
+            return -15
+    monkeypatch.setattr(cli.os, "killpg", lambda pid, sig: events.append((pid, sig)))
+    cli._stop_owned_processes([Process(i) for i in range(1000, 1040)])
+    assert events[:40] == [(i, signal.SIGTERM) for i in range(1000, 1040)]
+    assert events[40:] == [(i, signal.SIGKILL) for i in range(1000, 1040)]
+
+
+def test_cancel_error_does_not_abandon_later_owned_groups(monkeypatch):
+    events = []
+    class Process:
+        def __init__(self, pid): self.pid = pid
+        def wait(self, timeout): return -15
+    def signal_group(pid, sig):
+        events.append((pid, sig))
+        if pid == 1000 and sig == signal.SIGTERM:
+            raise PermissionError("synthetic signal error")
+    monkeypatch.setattr(cli.os, "killpg", signal_group)
+    with pytest.raises(RuntimeError, match="TERM 1000"):
+        cli._stop_owned_processes([Process(1000), Process(1001), Process(1002)])
+    assert events == [(i, sig) for sig in (signal.SIGTERM, signal.SIGKILL) for i in (1000, 1001, 1002)]
