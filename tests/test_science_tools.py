@@ -539,14 +539,39 @@ def test_flat_note_resolves_internal_ids_and_records_after_edit(tmp_path):
     assert (store.store / "model-1.json").is_file(), "previous notes remain archived"
 
 
-def test_flat_note_refuses_graph_id_as_a_source_citation(tmp_path):
+def test_flat_note_resolves_inspected_graph_reference_to_displayed_sources(tmp_path):
     store = prepared_graph_store(tmp_path)
     node = next(n for n in store.inspect("#graph")["nodes"] if n["name"] == "advance")
     detail = store.inspect(node["id"])
     request = {"target": detail["note_target"], "meaning": "Energy update.", "expected_change": "Fix update.",
                "preserve": ["Sign convention."], "source_ids": [node["id"]]}
-    with pytest.raises(ValueError, match="Cite source IDs"):
+    result = store.record_note(request)
+    assert result["status"] == "recorded"
+    assert set(result["resolved_source_ids"]) <= set(store.state["visible_sources"])
+    assert node["id"] not in result["resolved_source_ids"]
+    request["source_ids"] = ["invented_reference"]
+    with pytest.raises(ValueError, match="Unseen or unknown"):
         store.record_note(request)
+
+
+def test_note_does_not_require_manual_citation_ids(tmp_path):
+    store = prepared_graph_store(tmp_path)
+    node = next(n for n in store.inspect("#graph")["nodes"] if n["name"] == "advance")
+    result = store.inspect(node["id"])
+    note = {"target": result["note_target"], "meaning": "Update stored energy.",
+            "expected_change": "Repair transport.", "preserve": ["The documented flux sign."]}
+    recorded = store.record_note(note)
+    assert recorded["status"] == "recorded" and recorded["resolved_source_ids"]
+    note["source_ids"] = [result["computation_id"], result["note_source_ids"][0]]
+    assert store.record_note(note)["status"] == "recorded"
+
+
+def test_note_cannot_auto_attach_an_uninspected_node(tmp_path):
+    store = prepared_graph_store(tmp_path)
+    node = next(n for n in store.inspect("#graph")["nodes"] if n["name"] == "advance")
+    with pytest.raises(ValueError, match="Unseen or unknown"):
+        store.record_note({"target": node["id"], "meaning": "Update stored energy.",
+            "expected_change": "Repair transport.", "preserve": ["The documented flux sign."]})
 
 
 @pytest.mark.parametrize("path,code", [

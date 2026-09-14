@@ -11,25 +11,33 @@ Git, run receipts and this ledger take precedence over older model-written memor
 
 ## Approved work now: five local fixes
 User approved these fixes plus tests, independent review and a small end-to-end recheck.
-- [verified locally] Self-check refuses existing models and restores memory/disk state; full-file
+- [verified] Self-check refuses existing models and restores memory/disk state; full-file
   hashes use streaming reads; unknown/environment statuses no longer become science violations.
   Explicit failed-check reports retain their kind without guessing a mathematical constraint.
   Regressions failed before the changes;96 focused tests and independent review pass.
-- [verified locally] Three focused science tools replace the overloaded interface. science_note
-  accepts plain text plus note_target/note_source_ids supplied by inspection; internal IDs and
-  required storage fields are filled by code. Current-source refresh replaces stale references,
+- [verified] Three focused science tools replace the overloaded interface. science_note accepts
+  plain text plus the inspected target; displayed evidence is attached automatically. Explicit
+  inspected object/source references are resolved by code, never invented or unseen citations.
+  Internal IDs and required storage fields are filled by code. Refresh replaces stale references,
   preserves unrelated-file citations and labels original execution evidence as preparation-time.
   Shifted/deleted symbols and Python/C++/Fortran/MATLAB/Cython refresh regressions pass.
-- [verified] Full suite659 passes. Independent reviews passed both phases;64 focused tests in
-  final refresh/UI review. Deleted top-level functions cannot retarget same-named methods;
+- [verified] Full suite661 passes. Independent reviews passed both phases and the final
+  reference-binding adjustment (66 focused tests). Deleted functions cannot retarget other methods;
   first-time expansion supplies usable note fields. No unapproved representation redesign.
-- [active] Freeze the corrected code, then recheck009 baseline/science with GLM-5.3-Flash/low,
-  1800s work each, two concurrent attempts, unchanged official verifier. Preserve v1 separately.
+- [verified] Paired recheck completed on a4cac9b: runs/glm-development-e2e-check-v2, GLM Flash/low,
+  1800s work each, concurrent2, public1/1 both; baselineprivate6/9, science9/9. Independent
+  recomputation matches its summary. Note nesting/stale errors disappeared, but2 reference-type
+  rejections remained: GLM included its inspected computation ID with valid source IDs.
+  Final binding adjustment resolves such references and removes mandatory manual source IDs.
+  Both EXACT rejected requests now save on copied real public artifacts; a fresh GLM note call
+  also saved first try. runs/note-interface-replay-v3/live-receipt.json records source/code hashes.
+  This final adjustment was checked separately, NOT silently counted as an error-free v2 repair
+  run. No whole-pair rerun after that last note-only change; v1/v2 results remain separate.
 Final verification: tested fixes plus real preparation→graph query→repair→verifier receipts;
 verify note usability/recovery, token/time counts and cleanup. No40-job debugging batch.
 
 ## Current verified checkpoint
-Main f4607a3; implementation3e57ed4,637 tests passed; independent Luna review passed.
+Provider integration3e57ed4; five-fix paired checkpointa4cac9b; final local suite661 tests passed.
 GLM directly uses the same DeepSeekAgent host-API loop, NOT OpenCode CLI. Only provider/body/key
 handling changed. Saved zai-coding-plan credential stays host-private; never print/upload it.
 User explicitly requested this route after the provider-policy caveat. No further policy debate,
@@ -50,8 +58,8 @@ used zpvi (Z position) where ztpvi (Z_theta) was needed in its normal constructi
 
 ## Known defects and boundaries
 The pasted review of0acc214..b11625c was partly stale: insensitive_pairs already appear as
-observations. The five known local issues are now fixed and regression-tested. Real-task
-revalidation is the active milestone above; unit success alone is not an E2E claim.
+observations. The five known local issues are fixed and regression-tested. Real-task and
+exact-request revalidation are recorded above; undiscovered bugs are not claimed eliminated.
 
 Graph relevance on hard cases and40-way capacity are separate validation work, NOT completed by
 these five fixes. runs/context-recheck-v4:001/009/091 relevant computations selected;114 includes

@@ -36,11 +36,11 @@ NOTE_PROPERTIES = {
     "preserve": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1},
                  "description": "Behaviours or conventions the repair should preserve."},
     "source_ids": {"type": "array", "minItems": 1, "uniqueItems": True, "items": {"type": "string"},
-                   "description": "Copy supporting IDs from note_source_ids, or from inspected documents. These are not graph-node IDs."},
+                   "description": "Optional supporting references: source IDs, or inspected computation/node IDs. If omitted, attach the sources already shown for target; never invent references."},
     "conventions": {"type": "array", "items": {"type": "string"}, "description": "Optional units, frames or conventions; omit if none."},
     "assumptions": {"type": "array", "items": {"type": "string"}, "description": "Optional unresolved assumptions; omit if none."},
 }
-NOTE_REQUIRED = ["target", "meaning", "expected_change", "preserve", "source_ids"]
+NOTE_REQUIRED = ["target", "meaning", "expected_change", "preserve"]
 SCIENCE_ACTIONS = {"science_find": "find", "science_inspect": "inspect", "science_note": "record_note"}
 
 
@@ -57,7 +57,7 @@ def tool_definitions():
              {"target": {"type": "string", "description": "Returned node/ID, relative path, path:line or path#symbol."},
               "view": {"type": "string", "enum": ["relationships", "definitions", "source"], "default": "relationships"},
               "offset": {"type": "integer", "minimum": 0}}, ["target"]),
-        tool("science_note", "Optionally save a short scientific note about an inspected computation. Copy note_target and note_source_ids from inspection and supply plain text; the tool handles internal IDs and storage. Recording is never required for repair.",
+        tool("science_note", "Optionally save a short scientific note about an inspected computation. Copy note_target and supply plain text; the tool attaches displayed evidence and handles IDs/storage. Recording is never required for repair.",
              NOTE_PROPERTIES, NOTE_REQUIRED),
     ]
 
@@ -788,14 +788,34 @@ class ScienceStore:
         identifier = node.get("computation_id") if node else target
         if identifier not in context["computations"] and context["entities"].get(identifier, {}).get("kind") != "source_computation":
             raise ValueError("Inspect the target with science_inspect, then copy its note_target and note_source_ids.")
+        visible = set(self.state["visible_sources"])
+        current_sources = set(context["sources"]) | set(context["documents"])
+        resolved = set()
+        nodes = {n["id"]: n for n in (self.state.get("scientific_graph") or {}).get("nodes", [])}
+        for reference in request.get("source_ids", [target]):
+            if reference in visible & current_sources:
+                resolved.add(reference)
+                continue
+            cid = nodes[reference].get("computation_id") if reference in nodes else reference
+            definition = context["computations"].get(cid)
+            entity = context["entities"].get(cid, {})
+            if cid not in self.state["visible_entities"] or (definition is None and entity.get("kind") != "source_computation"):
+                raise ValueError(f"Unseen or unknown reference {reference!r}; inspect it first, or omit source_ids to use the target's displayed evidence.")
+            members = [cid, *(definition or {}).get("entity_ids", []), *(definition or {}).get("boundary_ids", [])]
+            sources = {sid for member in members for sid in context["entities"].get(member, {}).get("source_ids", [])}
+            sources.update((definition or {}).get("source_ids", []))
+            shown = sources & visible & current_sources
+            if not shown:
+                raise ValueError(f"No current displayed sources for {reference!r}; inspect it again.")
+            resolved.update(shown)
         def claim(text):
-            return {"text": text, "source_ids": request["source_ids"]}
+            return {"text": text, "source_ids": sorted(resolved)}
         model = {"purpose": claim(request["meaning"]), "expected_change": claim(request["expected_change"]),
             "preserve": [claim(text) for text in request["preserve"]], "computations": [{
                 "computation_id": identifier, "meaning": claim(request["meaning"]), "quantities": [],
                 "conventions": [claim(text) for text in request.get("conventions", [])],
                 "assumptions": request.get("assumptions", [])}]}
-        return {**self.record_model(model), "note_target": target}
+        return {**self.record_model(model), "note_target": target, "resolved_source_ids": sorted(resolved)}
 
     def check(self):
         """No-model verification of the prepared-graph query path.
