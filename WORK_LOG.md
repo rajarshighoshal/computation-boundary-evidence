@@ -1,34 +1,52 @@
 # Current work
 
-## Approved design
-Interactive scientific understanding for repair. Static-first preparation; one continuous
-DeepSeek Flash/high agent; science queries on demand; source-linked working-model checkpoint
-before ordinary repair tools. Baseline is ordinary repair. No separate interpretation LLM,
-automatic trace/build, second task container, Claude calls or new agent framework.
+## User's clarified target
+Preparation must construct a connected, task-relevant graph before the first repair-model call:
+public workflow -> implementation computations -> quantities/dependencies/conditions, with public
+scientific documentation and data/interface evidence attached. A file inventory or disconnected
+outputs collected into JSON do not satisfy this. Use existing multilingual analyzers; persist the
+graph and expose compact connected queries that can expand it. Scientific meaning must explain
+the computation, conventions, required change and behaviour to preserve. A specialist semantic
+model was discussed but has not been selected, implemented or validated.
 
-## Live milestones
-- [verified] Science find/inspect/record_model implemented with expandable evidence and model-first
-  gate; lightweight preparation, same conversation/container, all agent work within1800seconds.
-- [verified] Frozen30/89 split: configs/interactive-science.split.json. Prior activity, development
-  use and private-diagnostic exposure recorded separately; license gates retained.
-- [verified] Final regression run551passed; independent reviewer found no pilot plumbing
-  blocker; no-model public001 container check and real OpenMC C++ Joern-to-model check passed.
-  Separate interpretation/extraction live paths removed; method and reproduction docs updated.
-- [in progress] Freeze and launch five-task paired pilot at runs/interactive-five-v1:
- 001/009/058/091/114, one attempt/arm, DeepSeekFlash/high,1800s, concurrency2.
- Review scientific models and tool use before interpreting repair outcomes. No method edits live.
-Final check: actual pre-edit scientific model + grounded tool interactions + preserved paired
-verifier/token/time receipts. Larger development/evaluation runs follow reviewed pilot evidence.
+## Current scope
+- [verified] Prepared connected graph implemented on the existing extraction machinery (9b01692,
+  d9e6e4c): preparation runs trace -> packet -> merge-dynamic before any model call, then filters
+  the merged graph to one node per observed function or finding site with real dependency edges,
+  boundary references and every violated locus. find returns node IDs; inspect '#graph' lists
+  nodes; node inspect registers citable entity/source IDs; record_model joins the same prepared
+  representation. Nodes without a parsed region compile their public location on demand. 563
+  tests pass, including fixture tests that prepare, query and record a model with no model call.
+- [verified] Prompt pass: prompts/scientific_repair.md rewritten graph-first and short; unused
+  prompts/repair.md removed.
+- [verified] No-model container preflights (extraction-only, zero model calls): public 009
+  (configs/graph-preflight-009.json, runs/graph-preflight-009) prepared_graph 20 nodes / 59
+  edges / 6 findings, and the exported store answers '#graph', find, node inspect and
+  record_model; public 058 C++ (configs/graph-preflight-058.json, runs/graph-preflight-058)
+  prepared_graph 20 nodes / 1 finding anchored to R6 candidate paths, with call evidence absent
+  because the trace only observes the Python driver.
+- [verified] Specialist comparison at docs/SPECIALIST_EXTRACTOR_COMPARISON.md; GLiNER2.5 is an
+  auxiliary candidate, not a demonstrated improvement over DeepSeek V4.1 Flash.
+- [verified] Stop the index-first pilot at the user's request. No further trials or paid calls.
+- [next] Review graph content on 091/114/001, then (with approval) relaunch the frozen
+  five-task paired pilot; no method edits during live trials.
 
-## Boundaries and continuity
-One writer (Codex); reviewers read-only. Retain useful GLM source/trace fixes and existing
-expression/quantity/condition representation. Preserve all historical runs and unrelated files.
-No commits during live trials. Every method revision remains separate.
-Known design anchors:001,002,004,009,010,016,019,025,051,058,077,091,114.
-License gates remain explicit. No full-test-set launch or cloud rental without authorization.
-40 scheduler slots are software-tested, not proof of40-heavy-workload capacity; Docker8CPUs/~8.7GiB.
-Latest full suite551passed; multilingual discovery/owned-cleanup delta45targetedtests passed.
-Receipts: runs/interactive-implementation-tests.xml; runs/interactive-container-check/receipt.json;
-runs/interactive-backend-check/integration-receipt.json. Integration models are fixtures, not
-evidence of automatic scientific understanding. No model calls for the new method yet.
-Prior live50000be extraction delivered0/5; preserve evidence. No repair-benefit/readiness claim.
+Final check: inspect the saved connected implementation/dependency graph before any model call,
+then verify queries return and expand that same representation. This is not itself evidence of
+scientific correctness or improved repair.
+
+## Verified checkpoint and preserved evidence
+Current code is d9e6e4c. Latest graph evidence: runs/graph-preflight-009 (receipt + exported
+store). The stopped pilot used d1e21ff (index-first, no prepared graph); its 091 science 0/3 vs
+baseline 3/3 and the interrupted 058/009 attempts remain preserved there. 551 tests passed before
+that pilot; 563 now, including the prepared-graph paths. Prior no-model integration receipts:
+runs/interactive-container-check/receipt.json and runs/interactive-backend-check/integration-receipt.json.
+
+## Boundaries
+One writer; independent reviewers read-only. Preserve historical runs and unrelated files. No
+automatic rewrite, new model selection, paid experiment or report/submission pivot. Rajarshi owns
+scientific decisions. Keep changes small; do not substitute index/search/planning gates for the
+requested representation. Frozen 30/89 split remains in configs/interactive-science.split.json;
+license gates and prior exposure metadata remain. Forty rolling slots are the eventual target, not
+validated 40-heavy-task capacity on this laptop (Docker 8 CPUs/~9GiB). No cloud rental/full-test
+launch authorization.

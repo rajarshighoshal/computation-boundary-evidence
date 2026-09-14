@@ -1,0 +1,73 @@
+{
+ "agent": "deepseek",
+ "allow_restricted_licenses": false,
+ "attempt_failure_policy": "record_and_continue_without_retry",
+ "attempts": 1,
+ "cleanup_images": false,
+ "codex_version": "0.153.4",
+ "concurrency": 1,
+ "condition_order": {
+  "009": [
+   "science"
+  ]
+ },
+ "conditions": [
+  "science"
+ ],
+ "dataset_revision": "d8bdbcb4ecb2b565686382459c815d2b6291fd31",
+ "development_task_ids": [
+  "001",
+  "002",
+  "004",
+  "005",
+  "006",
+  "008",
+  "009",
+  "010",
+  "014",
+  "016",
+  "019",
+  "024",
+  "025",
+  "027",
+  "028",
+  "045",
+  "051",
+  "058",
+  "061",
+  "070",
+  "073",
+  "076",
+  "077",
+  "078",
+  "080",
+  "091",
+  "099",
+  "104",
+  "114",
+  "119"
+ ],
+ "extra_private_diagnostic_exposure_task_ids": [
+  "001"
+ ],
+ "extraction_seconds": 30,
+ "extractor": "interactive_science",
+ "flexible_budget": false,
+ "handoff": "source_cited_scientific_model_and_compact_guide_v2",
+ "model": "deepseek-flash",
+ "pier_version": "0.3.0",
+ "purpose": "Approved five-task paired development pilot: one continuous agent, on-demand science tool, pre-edit model gate, ordinary baseline.",
+ "reasoning_effort": "high",
+ "release_commit": "42e7e97915ff7d73436a5d37b5cbe6b77e9c2a00",
+ "release_receipt": "data/random-five-v1-release.json",
+ "schema_version": "1.0",
+ "study_kind": "graph_preflight_009",
+ "study_partition": "development",
+ "study_split": "configs/interactive-science.split.json",
+ "study_split_sha256": "470c0ef00fc697885c84c3e0f998a2fc7d8610610a9690c90f68341392a6ef97",
+ "task_ids": [
+  "009"
+ ],
+ "total_seconds": 1800,
+ "verifier_seconds": 1800
+}

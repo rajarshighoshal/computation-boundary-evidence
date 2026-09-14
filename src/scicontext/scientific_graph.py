@@ -329,8 +329,9 @@ def build_graph(graph_path, packet_path=None, trace_dir=None) -> dict:
             "workflow_nodes": sum(1 for node in nodes if node["kind"] == "workflow"),
             "implementation_nodes": sum(1 for node in nodes if node["kind"] == "implementation"),
             "findings": sum(len(node["findings"]) for node in nodes),
-            "call_edges": len(call_edges),
-            "dependency_edges": len(edges),
+            "observed_call_pairs": len(call_edges),
+            "calls_edges": sum(1 for edge in edges if edge["relation"] == "calls"),
+            "edges": len(edges),
         },
     }
     result["serialized_bytes"] = len(json.dumps(result, ensure_ascii=False).encode())
