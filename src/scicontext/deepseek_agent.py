@@ -37,6 +37,75 @@ MAX_LOOP_ITERATIONS = 200
 # leave the model's own context window as the guard.
 MAX_CONVERSATION_TOOL_CHARS = 800_000
 MAX_PROVIDER_ERROR_CHARS = 500
+MAX_PROVIDER_BODY_CHARS = 1200
+RETRYABLE_HTTP_STATUS = {429, 500, 502, 503, 504}
+
+
+class DeepSeekProviderError(RuntimeError):
+    """A bounded provider response failure with no credential-bearing body."""
+
+    def __init__(self, metadata):
+        self.metadata = metadata
+        super().__init__(metadata.get("message", "DeepSeek provider response failure"))
+
+
+def _redact_provider_text(value, api_key: str | None = None, limit=MAX_PROVIDER_ERROR_CHARS):
+    text = "" if value is None else str(value)
+    if api_key:
+        text = text.replace(api_key, "[redacted]")
+    text = re.sub(r"(?i)bearer\s+\S+", "Bearer [redacted]", text)
+    text = re.sub(r"(?i)(api[_-]?key|secret|token)\s*[:=]\s*\S+", r"\1=[redacted]", text)
+    return text[:limit]
+
+
+def _provider_retryable(status, error):
+    if status in RETRYABLE_HTTP_STATUS:
+        return True
+    if not isinstance(error, dict):
+        return False
+    text = " ".join(str(error.get(key) or "") for key in ("type", "code", "message")).lower()
+    return any(marker in text for marker in ("rate_limit", "rate limit", "server_error", "server error", "overload"))
+
+
+def _response_payload(raw):
+    try:
+        return json.loads(raw)
+    except (TypeError, ValueError):
+        return None
+
+
+def _response_metadata(raw, *, status, attempt, max_attempts, api_key, retryable=None):
+    payload = _response_payload(raw)
+    error = payload.get("error") if isinstance(payload, dict) and isinstance(payload.get("error"), dict) else None
+    choices = payload.get("choices") if isinstance(payload, dict) else None
+    if error is not None:
+        kind = "provider_error"
+        error_type = error.get("type")
+        code = error.get("code")
+        message = error.get("message") or "DeepSeek provider returned an error"
+    elif not isinstance(payload, dict) or not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
+        kind = "invalid_response"
+        error_type = "invalid_response"
+        code = None
+        message = "DeepSeek response did not contain a usable choices array"
+    else:
+        kind = "invalid_response"
+        error_type = "invalid_response"
+        code = None
+        message = "DeepSeek response did not contain a usable assistant message"
+    body = raw.decode("utf-8", errors="replace") if isinstance(raw, bytes) else str(raw or "")
+    metadata = {
+        "kind": kind,
+        "status": status,
+        "attempt": attempt,
+        "max_attempts": max_attempts,
+        "retryable": bool(retryable),
+        "type": _redact_provider_text(error_type, api_key, 120),
+        "code": _redact_provider_text(code, api_key, 120) if code is not None else None,
+        "message": _redact_provider_text(message, api_key),
+        "body": _redact_provider_text(body, api_key, MAX_PROVIDER_BODY_CHARS),
+    }
+    return metadata
 
 
 async def _api_completion(api_key: str, model: str, messages: list, *,
@@ -63,7 +132,32 @@ async def _api_completion(api_key: str, model: str, messages: list, *,
                 # Deadline-governed: no short hard cap, large tool-loop
                 # contexts can legitimately take minutes.
                 with urllib.request.urlopen(request, timeout=remaining) as response:
-                    return json.load(response)
+                    raw = response.read()
+                    payload = _response_payload(raw)
+                    if (isinstance(payload, dict) and isinstance(payload.get("choices"), list)
+                            and payload["choices"] and isinstance(payload["choices"][0], dict)
+                            and isinstance(payload["choices"][0].get("message"), dict)):
+                        return payload
+                    error = payload.get("error") if isinstance(payload, dict) else None
+                    retryable = _provider_retryable(response.status, error)
+                    metadata = _response_metadata(raw, status=response.status, attempt=attempt + 1,
+                                                  max_attempts=max_attempts, api_key=api_key,
+                                                  retryable=retryable)
+                    if retryable and attempt + 1 < max_attempts and deadline - time.monotonic() > 2:
+                        time.sleep(2)
+                        continue
+                    raise DeepSeekProviderError(metadata)
+            except urllib.error.HTTPError as error:
+                raw = error.read()
+                retryable = _provider_retryable(error.code, _response_payload(raw).get("error")
+                                                if isinstance(_response_payload(raw), dict) else None)
+                metadata = _response_metadata(raw, status=error.code, attempt=attempt + 1,
+                                              max_attempts=max_attempts, api_key=api_key,
+                                              retryable=retryable)
+                if retryable and attempt + 1 < max_attempts and deadline - time.monotonic() > 2:
+                    time.sleep(2)
+                    continue
+                raise DeepSeekProviderError(metadata)
             except (urllib.error.URLError, TimeoutError, OSError,
                     http.client.HTTPException, ConnectionError) as error:
                 last_error = error
@@ -108,6 +202,14 @@ def _provider_response_error(completion):
         return {"kind": "invalid_response", "type": "missing_choices", "code": None,
                 "message": "DeepSeek response did not contain a usable choices array"}
     return None
+
+
+def _mark_usage_incomplete(usage):
+    """Retain known completion-prefix usage while marking the failed call unknown."""
+    usage["known_input_tokens"] = usage.get("input_tokens")
+    usage["known_output_tokens"] = usage.get("output_tokens")
+    usage["accounting"] = "known_completed_calls_plus_unknown_inflight"
+    usage["unknown_inflight_request"] = True
 
 
 class DeepSeekAgent(ScientificCodex):
@@ -454,6 +556,7 @@ class DeepSeekAgent(ScientificCodex):
                     events.append(event)
                     session_stream.write(json.dumps(event, ensure_ascii=False) + "\n")
                     session_stream.flush()
+                    _mark_usage_incomplete(usage)
                     result.update(status="failed", loop_exit="provider_error", fatal_model_error=True,
                                   error_kind=provider_error["kind"],
                                   error="DeepSeek provider response did not contain a usable completion",
@@ -504,7 +607,19 @@ class DeepSeekAgent(ScientificCodex):
                 result.update(status="completed", loop_exit="final_message",
                               finish_reason=completion["choices"][0].get("finish_reason"))
                 break
+        except DeepSeekProviderError as error:
+            _mark_usage_incomplete(usage)
+            event = {"type": "provider_error", "error": error.metadata}
+            events.append(event)
+            session_stream.write(json.dumps(event, ensure_ascii=False) + "\n")
+            session_stream.flush()
+            result.update(status="failed", loop_exit="provider_error", fatal_model_error=True,
+                          error_kind=error.metadata.get("kind", "provider_error"),
+                          error="DeepSeek provider response did not contain a usable completion",
+                          provider_error=error.metadata)
+            self._fatal_model_error = True
         except (urllib.error.URLError, TimeoutError, OSError) as error:
+            _mark_usage_incomplete(usage)
             result.update(status="failed", fatal_model_error=True, error=f"DeepSeek transport failure: {error}")
             self._fatal_model_error = True
         finally:

@@ -1,9 +1,11 @@
 """DeepSeek agent wiring: extraction call, repair tool loop, receipts."""
 import asyncio
+import io
 import json
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
+from urllib.error import HTTPError
 
 import pytest
 
@@ -11,6 +13,26 @@ from scicontext import deepseek_agent as module
 from scicontext.deepseek_agent import DeepSeekAgent
 
 pytest.importorskip("pier")
+
+
+class FakeHTTPResponse:
+    def __init__(self, status, payload):
+        self.status = status
+        self._raw = json.dumps(payload).encode()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return False
+
+    def read(self):
+        return self._raw
+
+
+def http_error(status, payload):
+    return HTTPError("https://api.deepseek.com/chat/completions", status, "provider error", {},
+                     io.BytesIO(json.dumps(payload).encode()))
 
 
 class FakeEnvironment:
@@ -97,6 +119,87 @@ def test_repair_transport_failure_is_fatal(tmp_path, monkeypatch):
     result = asyncio.run(agent._run_deepseek_repair("Fix it", 60))
     assert result["status"] == "failed" and result["fatal_model_error"]
     assert agent._fatal_model_error
+
+
+def test_api_retries_429_then_returns_success(monkeypatch):
+    calls = []
+    responses = [http_error(429, {"error": {"type": "rate_limit_error", "code": "busy", "message": "slow down"}}),
+                 FakeHTTPResponse(200, {"choices": [{"message": {"content": "OK", "tool_calls": None}}]})]
+
+    def fake_urlopen(request, timeout):
+        calls.append(timeout)
+        response = responses.pop(0)
+        if isinstance(response, Exception):
+            raise response
+        return response
+
+    monkeypatch.setattr(module.urllib.request, "urlopen", fake_urlopen)
+    result = asyncio.run(module._api_completion("actual-key", "deepseek-flash", [{"role": "user", "content": "x"}],
+                                                timeout_sec=30, max_attempts=2))
+    assert result["choices"][0]["message"]["content"] == "OK"
+    assert len(calls) == 2
+
+
+@pytest.mark.parametrize("status", [401, 402])
+def test_api_does_not_retry_permanent_http_errors(monkeypatch, status):
+    calls = []
+
+    def fake_urlopen(request, timeout):
+        calls.append(timeout)
+        raise http_error(status, {"error": {"type": "auth_error", "code": "permanent", "message": "no retry"}})
+
+    monkeypatch.setattr(module.urllib.request, "urlopen", fake_urlopen)
+    with pytest.raises(module.DeepSeekProviderError) as raised:
+        asyncio.run(module._api_completion("actual-key", "deepseek-flash", [{"role": "user", "content": "x"}],
+                                           timeout_sec=30, max_attempts=2))
+    assert len(calls) == 1
+    assert raised.value.metadata["status"] == status
+
+
+def test_api_retries_http_200_rate_limit_error_then_success(monkeypatch):
+    responses = [FakeHTTPResponse(200, {"error": {"type": "rate_limit_error", "code": "busy", "message": "later"}}),
+                 FakeHTTPResponse(200, {"choices": [{"message": {"content": "OK", "tool_calls": None}}]})]
+    monkeypatch.setattr(module.urllib.request, "urlopen", lambda request, timeout: responses.pop(0))
+    result = asyncio.run(module._api_completion("actual-key", "deepseek-flash", [{"role": "user", "content": "x"}],
+                                                timeout_sec=30, max_attempts=2))
+    assert result["choices"][0]["message"]["content"] == "OK"
+
+
+def test_api_malformed_response_preserves_bounded_metadata_and_redacts_key(monkeypatch):
+    key = "actual-secret-key"
+    payload = {"type": key, "code": key, "message": f"quoted '{key}' and Bearer {key}", "extra": "x" * 5000}
+    monkeypatch.setattr(module.urllib.request, "urlopen", lambda request, timeout: FakeHTTPResponse(200, payload))
+    with pytest.raises(module.DeepSeekProviderError) as raised:
+        asyncio.run(module._api_completion(key, "deepseek-flash", [{"role": "user", "content": "x"}],
+                                           timeout_sec=30, max_attempts=1))
+    metadata = raised.value.metadata
+    serialized = json.dumps(metadata)
+    assert metadata["status"] == 200 and metadata["attempt"] == 1
+    assert "actual-secret-key" not in serialized
+    assert len(metadata["body"]) <= module.MAX_PROVIDER_BODY_CHARS
+    assert metadata["kind"] == "invalid_response"
+
+
+def test_failed_provider_request_marks_inflight_usage_unknown(tmp_path, monkeypatch):
+    agent = make_agent(tmp_path, condition="baseline")
+    agent.environment = FakeEnvironment(tmp_path, {}, {})
+    agent.root = "/app/task_058"
+    agent.logs_dir.mkdir(parents=True, exist_ok=True)
+    metadata = {"kind": "provider_error", "status": 429, "attempt": 2, "max_attempts": 2,
+                "retryable": True, "type": "rate_limit_error", "code": "busy", "message": "busy", "body": "{}"}
+
+    async def fake_api(*args, **kwargs):
+        raise module.DeepSeekProviderError(metadata)
+
+    monkeypatch.setattr(module, "_api_completion", fake_api)
+    result = asyncio.run(agent._run_deepseek_repair("Fix", 60))
+    assert result["status"] == "failed" and result["fatal_model_error"] is True
+    usage = result["usage"]
+    assert usage["unknown_inflight_request"] is True
+    assert usage["known_input_tokens"] == 0 and usage["known_output_tokens"] == 0
+    assert usage["accounting"] == "known_completed_calls_plus_unknown_inflight"
+    process = json.loads((tmp_path / "logs/repair-process.json").read_text())
+    assert process["usage"]["unknown_inflight_request"] is True
 
 
 def test_http_200_provider_error_is_receipted_without_choices_keyerror(tmp_path, monkeypatch):
