@@ -27,8 +27,10 @@ No cloud rental is approved. The89 locked evaluation tasks stay outside this ite
   tool arguments, preserved reasoning and top-level errors tested. HTTPX + an absolute async
   timeout replaces the socket-only request timeout. Full suite637 passes; independent Luna
   review73 focused tests passes. User explicitly requests direct calls despite the earlier caveat.
-- [active] RealGLM-5.3-Flash/low protocol check via scripts/provider_tool_check.py, then if it
-  passes run configs/glm-development-e2e-check.json:009 baseline+science,1800s work budget each,
+- [verified] RealGLM-5.3-Flash/low protocol check passed on3e57ed4: tool call→result→READY,
+  both requests first-attempt success,9.50s total. Receipt runs/glm-provider-check-v1.json;
+  requested/reported model match, usage includes cache and reasoning fields. No OpenCode CLI.
+- [active] Run configs/glm-development-e2e-check.json:009 baseline+science,1800s work budget each,
   two simultaneous attempts, existing graph/tools/officialverifier. User is sleeping and asks
   to continue reliably, stop on access blockers. Final verification: actual provider response,
   in-container graph delivery/use, repair, official verifier and token/time receipts. No full40
