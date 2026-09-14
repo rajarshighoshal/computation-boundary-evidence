@@ -99,6 +99,34 @@ def test_repair_transport_failure_is_fatal(tmp_path, monkeypatch):
     assert agent._fatal_model_error
 
 
+def test_http_200_provider_error_is_receipted_without_choices_keyerror(tmp_path, monkeypatch):
+    agent = make_agent(tmp_path, condition="baseline")
+    agent.environment = FakeEnvironment(tmp_path, {}, {})
+    agent.root = "/app/task_058"
+    agent.logs_dir.mkdir(parents=True, exist_ok=True)
+
+    async def fake_api(*args, **kwargs):
+        return {"error": {"type": "rate_limit_error", "code": "busy",
+                           "message": "Bearer super-secret-token overloaded"},
+                "request_id": "do-not-copy"}
+
+    monkeypatch.setattr(module, "_api_completion", fake_api)
+    result = asyncio.run(agent._run_deepseek_repair("Fix", 60))
+
+    assert result["status"] == "failed"
+    assert result["fatal_model_error"] is True
+    assert result["error_kind"] == "provider_error"
+    assert result["provider_error"] == {
+        "kind": "provider_error", "type": "rate_limit_error", "code": "busy",
+        "message": "Bearer [redacted] overloaded",
+    }
+    process = json.loads((tmp_path / "logs/repair-process.json").read_text())
+    assert process["provider_error"] == result["provider_error"]
+    assert "super-secret-token" not in (tmp_path / "logs/repair-session.json").read_text()
+    events = [json.loads(line) for line in (tmp_path / "logs/repair.jsonl").read_text().splitlines()]
+    assert [event["type"] for event in events] == ["provider_error"]
+
+
 def test_agent_requires_key_file(tmp_path):
     with pytest.raises(ValueError, match="deepseek_key_file"):
         DeepSeekAgent(logs_dir=tmp_path, model_name="deepseek-flash", workspace=tmp_path)

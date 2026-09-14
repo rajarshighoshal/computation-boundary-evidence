@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import http.client
 import json
+import re
 import subprocess
 import shutil
 import sys
@@ -35,6 +36,7 @@ MAX_LOOP_ITERATIONS = 200
 # prompt-prefix cache, where input is ~50x cheaper; keep it rare and
 # leave the model's own context window as the guard.
 MAX_CONVERSATION_TOOL_CHARS = 800_000
+MAX_PROVIDER_ERROR_CHARS = 500
 
 
 async def _api_completion(api_key: str, model: str, messages: list, *,
@@ -83,6 +85,29 @@ def _compact_tools(messages: list) -> None:
             dropped = len(content)
             message["content"] = "[earlier output omitted to stay within context budget]"
             total -= dropped
+
+
+def _provider_response_error(completion):
+    """Return a bounded, secret-safe receipt for a non-completion response."""
+    if not isinstance(completion, dict):
+        return {"kind": "invalid_response", "type": "invalid_response", "code": None,
+                "message": "DeepSeek response was not a JSON object"}
+    error = completion.get("error")
+    if isinstance(error, dict):
+        values = {key: error.get(key) for key in ("type", "code", "message")}
+        message = str(values["message"] or "DeepSeek provider returned an error")
+        # Error messages are provider-controlled; keep receipts useful without
+        # allowing accidental credential/token echo into run artifacts.
+        message = re.sub(r"(?i)bearer\s+\S+", "Bearer [redacted]", message)
+        message = re.sub(r"(?i)(api[_-]?key|secret|token)\s*[:=]\s*\S+", r"\1=[redacted]", message)
+        return {"kind": "provider_error", "type": str(values["type"] or "provider_error")[:120],
+                "code": str(values["code"])[:120] if values["code"] is not None else None,
+                "message": message[:MAX_PROVIDER_ERROR_CHARS]}
+    choices = completion.get("choices")
+    if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
+        return {"kind": "invalid_response", "type": "missing_choices", "code": None,
+                "message": "DeepSeek response did not contain a usable choices array"}
+    return None
 
 
 class DeepSeekAgent(ScientificCodex):
@@ -423,6 +448,18 @@ class DeepSeekAgent(ScientificCodex):
                     available_tools.append(tool_definition())
                 completion = await _api_completion(self.deepseek_key, self.model, messages,
                     tools=available_tools, timeout_sec=remaining, reasoning_effort=self.config.reasoning_effort)
+                provider_error = _provider_response_error(completion)
+                if provider_error is not None:
+                    event = {"type": "provider_error", "error": provider_error}
+                    events.append(event)
+                    session_stream.write(json.dumps(event, ensure_ascii=False) + "\n")
+                    session_stream.flush()
+                    result.update(status="failed", loop_exit="provider_error", fatal_model_error=True,
+                                  error_kind=provider_error["kind"],
+                                  error="DeepSeek provider response did not contain a usable completion",
+                                  provider_error=provider_error)
+                    self._fatal_model_error = True
+                    break
                 call_usage = completion.get("usage", {}) or {}
                 usage["input_tokens"] += call_usage.get("prompt_tokens", 0)
                 usage["output_tokens"] += call_usage.get("completion_tokens", 0)
@@ -471,7 +508,8 @@ class DeepSeekAgent(ScientificCodex):
             result.update(status="failed", fatal_model_error=True, error=f"DeepSeek transport failure: {error}")
             self._fatal_model_error = True
         finally:
-            if "usage" in result and events and events[-1]["type"] != "turn.completed":
+            if ("usage" in result and events
+                    and events[-1]["type"] not in {"turn.completed", "provider_error"}):
                 events.append({"type": "turn.completed", "usage": {
                     "input_tokens": usage["input_tokens"], "cached_input_tokens": usage["cached_input_tokens"],
                     "output_tokens": usage["output_tokens"], "reasoning_output_tokens": usage["reasoning_output_tokens"]}})
