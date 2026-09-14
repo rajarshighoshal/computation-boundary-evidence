@@ -148,22 +148,22 @@ def build_graph(graph_path: Path, annotations_path: Path) -> dict:
         if len(nodes) >= MAX_NODES:
             break
 
-    # Build edges: same-module connections + static candidate pointers
+    # Preserve existing dependency edges from the extraction graph
+    # (REACHING_DEF, CDG, CALL, PARAMETER_LINK — the real data flow)
     edges = []
     node_ids = {n["id"] for n in nodes}
-    # Same-module edges
-    for i, node_a in enumerate(nodes):
-        for node_b in nodes[i + 1:]:
-            if node_a["path"] == node_b["path"]:
-                edges.append({"from": node_a["id"], "to": node_b["id"],
-                              "relation": "same_module"})
+    for link in graph.get("links", []):
+        source, target = link.get("source", ""), link.get("target", "")
+        if source in node_ids and target in node_ids:
+            edges.append({"from": source, "to": target,
+                          "relation": link.get("relation", "depends_on")})
     # Static candidate edges (loci → implementation files)
     for node in nodes:
         for finding in node.get("findings", []):
             for candidate in finding.get("static_candidates", []):
                 target_path = candidate.get("path", "")
                 for other in nodes:
-                    if other["path"] == target_path:
+                    if other["path"] == target_path and other["id"] != node["id"]:
                         edges.append({"from": node["id"], "to": other["id"],
                                       "relation": "investigates"})
 

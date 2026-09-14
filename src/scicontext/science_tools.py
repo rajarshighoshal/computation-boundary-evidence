@@ -84,18 +84,13 @@ class ScienceStore:
         """Pre-populate the store with the compact scientific graph from
         extraction pipeline outputs (trace + loci + objects)."""
         import sys
-        trace_dir = self.root / "outputs" / "scientific-trace"
-        graph_path = self.root / "outputs" / "scientific-graph-input.json"
-        # Try the extraction container's scratch paths if not in the repo
-        if not trace_dir.is_dir():
-            trace_dir = self.store / "trace"
+        graph_path = self.store / "scientific-objects.json"
+        annotations_path = self.store / "annotations.json"
         if not graph_path.is_file():
-            graph_path = self.store / "scientific-objects.json"
-        if not trace_dir.is_dir():
             self.state["scientific_graph"] = None
             return
         try:
-            graph = build_graph(self.root, trace_dir, graph_path)
+            graph = build_graph(graph_path, annotations_path)
         except Exception as error:
             self.state["scientific_graph"] = {"error": f"{type(error).__name__}: {error}"}
             return
@@ -128,6 +123,17 @@ class ScienceStore:
             raise ValueError("Supply a symbol, scientific phrase or path")
         words = set(re.findall(r"[^\W_]+", query.casefold())) - {"the", "and", "of", "for", "in"}
         hits = []
+        # Search scientific graph nodes first (names, meanings, paths)
+        graph = self.state.get("scientific_graph") or {}
+        for node in graph.get("nodes", []):
+            searchable = " ".join(filter(None, [
+                node.get("name", ""), node.get("meaning", ""),
+                node.get("path", ""), " ".join(node.get("conventions", [])),
+                " ".join(f.get("type", "") for f in node.get("findings", []))]))
+            terms = set(re.findall(r"[^\W_]+", searchable.casefold()))
+            overlap = len(words & terms)
+            if overlap > 0 or query.casefold() in searchable.casefold():
+                hits.append((overlap * 10, node["path"], node.get("line", 0), node["name"][:200]))
         for path in self.state["files"]:
             # Discovery is language-independent. Parsing capability determines
             # the inspect view, not whether public text can be found at all.
@@ -166,16 +172,29 @@ class ScienceStore:
 
     def inspect(self, target, view="relationships", offset=0, analysis=None):
         # Scientific graph nodes are inspected directly, not via file reads
+        graph = self.state.get("scientific_graph") or {}
+        graph_nodes = {n["id"]: n for n in graph.get("nodes", [])}
+        if target in graph_nodes:
+            node = graph_nodes[target]
+            edges = [e for e in graph.get("edges", [])
+                     if e.get("from") == target or e.get("to") == target]
+            return {"status": "ok", "target": target, "type": "scientific_node",
+                    "name": node.get("name", ""), "path": node.get("path", ""),
+                    "line": node.get("line", 0), "language": node.get("language", ""),
+                    "meaning": node.get("meaning", ""),
+                    "conventions": node.get("conventions", []),
+                    "findings": node.get("findings", []),
+                    "edges": edges}
         if target in self.state.get("targets", {}) and \
                 self.state["targets"][target].get("type") == "scientific_node":
             node = self.state["targets"][target]
             result = {"status": "ok", "target": target, "type": "scientific_node",
-                      "name": node["name"], "path": node["path"],
-                      "line": node["line"], "language": node["language"],
+                      "name": node.get("name", ""), "path": node.get("path", ""),
+                      "line": node.get("line", 0), "language": node.get("language", ""),
+                      "meaning": node.get("meaning", ""),
+                      "conventions": node.get("conventions", []),
                       "findings": node.get("findings", []),
                       "edges": node.get("edges", [])}
-            if view == "source":
-                result["source"] = node.get("source", "")
             return result
         path, line, symbol = self._target(target)
         raw, text = self.read(path)
