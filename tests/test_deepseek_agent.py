@@ -16,7 +16,8 @@ pytest.importorskip("pier")
 class FakeEnvironment:
     def __init__(self, tmp_path, payload, graph):
         self.tmp_path = tmp_path
-        self.payload = payload
+        from scicontext.representation import reading_input
+        self.payload = reading_input(payload)
         self.graph = graph
         self.uploaded = {}
         self.commands = []
@@ -68,7 +69,8 @@ def test_interpret_calls_api_inline_and_uploads_annotations(tmp_path, monkeypatc
     agent.logs_dir.mkdir(parents=True, exist_ok=True)
     responses = [{"choices": [{"message": {"content": json.dumps(
         {"object_id": "so_a", "meaning": "solver step"}), "tool_calls": None},
-        "finish_reason": "stop"}], "usage": {"prompt_tokens": 100, "completion_tokens": 20}}]
+        "finish_reason": "stop"}], "usage": {"prompt_tokens": 100, "completion_tokens": 20,
+            "prompt_tokens_details": {"cached_tokens": 80}, "completion_tokens_details": {"reasoning_tokens": 12}}}]
     async def fake_api(*args, **kwargs):
         assert args[0] == "secret" and args[1] == "deepseek-flash"
         assert kwargs["response_format"] == {"type": "json_object"}
@@ -77,6 +79,7 @@ def test_interpret_calls_api_inline_and_uploads_annotations(tmp_path, monkeypatc
     result = asyncio.run(agent._interpret_call("Inspect", 300))
     assert result["status"] == "completed" and result["annotations_status"] == "received"
     assert result["usage"]["input_tokens"] == 100 and result["usage"]["output_tokens"] == 20
+    assert result["usage"]["cached_input_tokens"] == 80 and result["usage"]["reasoning_output_tokens"] == 12
     assert "/opt/scicontext/scratch/extract_draft-annotations.json" in env.uploaded
     assert "so_a" in env.uploaded["/opt/scicontext/scratch/extract_draft-annotations.json"]
 
@@ -224,7 +227,7 @@ def test_interpret_success_writes_process_receipt(tmp_path, monkeypatch):
     assert receipt["status"] == "completed" and receipt["annotations_status"] == "received"
 
 
-def test_malformed_json_response_is_salvaged(tmp_path, monkeypatch):
+def test_malformed_json_response_is_not_salvaged_into_retired_format(tmp_path, monkeypatch):
     agent = make_agent(tmp_path)
     env = FakeEnvironment(tmp_path, {}, {})
     agent.extract_environment = env
@@ -238,14 +241,16 @@ def test_malformed_json_response_is_salvaged(tmp_path, monkeypatch):
                 "usage": {"prompt_tokens": 10, "completion_tokens": 5}}
     monkeypatch.setattr(module, "_api_completion", fake_api)
     result = asyncio.run(agent._interpret_call("Inspect", 300))
-    assert result["annotations_status"] == "received"
-    assert result["salvaged_annotations"]["count"] == 1
+    assert result["annotations_status"] == "no_valid_annotations"
+    assert "salvaged_annotations" not in result
+    assert not env.uploaded
 
 
 def test_connected_response_is_uploaded_without_flattening(tmp_path, monkeypatch):
     agent = make_agent(tmp_path)
-    payload = {"schema_version": "scientific-reading-2.0", "computations": [{"id": "c"}],
-               "sources": [{"id": "s", "text": "Scientific definition"}]}
+    payload = {"schema_version": "scientific-reading-2.0", "computations": [{"id": "c", "name": "compute", "entity_ids": []}],
+               "entities": [], "relations": [], "coverage": {},
+               "sources": [{"id": "s", "text": "Scientific definition", "kind": "document", "path": "README.md"}]}
     env = FakeEnvironment(tmp_path, payload, {})
     agent.extract_environment, agent.root = env, "/app/task_004"
     agent.logs_dir.mkdir(parents=True, exist_ok=True)
@@ -263,7 +268,7 @@ def test_connected_response_is_uploaded_without_flattening(tmp_path, monkeypatch
 
 def test_broken_connected_response_never_salvages_quantities_as_v1(tmp_path, monkeypatch):
     agent = make_agent(tmp_path)
-    env = FakeEnvironment(tmp_path, {"schema_version": "scientific-reading-2.0"}, {})
+    env = FakeEnvironment(tmp_path, {}, {})
     agent.extract_environment, agent.root = env, "/app/task_004"
     agent.logs_dir.mkdir(parents=True, exist_ok=True)
     broken = '{"schema_version":"object-enrichment-2.0","computations":[{"quantities":[{"object_id":"q","meaning":"fragment"}],'

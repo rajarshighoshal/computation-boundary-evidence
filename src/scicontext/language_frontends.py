@@ -204,10 +204,20 @@ def _tree_sitter_entries(path, raw, language):
             continue
         if node.type in {"comment", "comment_block"}:
             add(node, "docstring")
-        elif node.type == "if_statement" and node.child_by_field_name("condition") is not None:
+        elif node.type in {"if_statement", "elseif_clause", "while_statement"}:
             condition = node.child_by_field_name("condition")
-            add(condition, "comparison", native={"parent": "if_statement", "condition": True,
-                "body_start_line": node.start_point.row + 1})
+            if condition is None and language == "fortran":
+                condition = _child(node, "parenthesized_expression")
+            if condition is not None:
+                owner = node
+                if language == "fortran" and node.type == "while_statement":
+                    while owner.parent is not None and owner.type != "do_loop":
+                        owner = owner.parent
+                label = f"{owner.type}@{owner.start_byte}"
+                entry = add(condition, "comparison", expression=_expression(condition, language),
+                    native={"parent": owner.type, "condition": True, "condition_for": label,
+                            "body_start_line": owner.start_point.row + 1})
+                entry["branch"] = [b for b in entry["branch"] if not (b == label or b.startswith(label + ":"))]
         elif node.type in {"init_declarator", "variable_declaration"} or node.type == "declaration" and language in {"c", "cpp"}:
             declarators = ([node.child_by_field_name("declarator")] if node.type == "init_declarator" else
                            node.children_by_field_name("declarator"))

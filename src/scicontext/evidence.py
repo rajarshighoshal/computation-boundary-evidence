@@ -405,6 +405,8 @@ def _file_entries(path: str, raw: bytes, source: str, tree: ast.AST, limit: int,
     index = _ScopeIndex(tree)
     entries = []
     candidates = []
+    condition_owners = {id(node.test): f"{'while' if isinstance(node, ast.While) else 'if'}@{node.lineno}"
+                        for node in ast.walk(tree) if isinstance(node, (ast.If, ast.While))}
     docstrings = {
         id(node.body[0]) for node in ast.walk(tree)
         if isinstance(node, (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
@@ -414,6 +416,8 @@ def _file_entries(path: str, raw: bytes, source: str, tree: ast.AST, limit: int,
     for node in ast.walk(tree):
         if id(node) not in index.scopes:
             continue
+        if isinstance(node, (ast.If, ast.While, ast.IfExp)) and not isinstance(node.test, ast.Compare):
+            candidates.append((node.test, "predicate", node.test))
         kind, expression_node = None, None
         if isinstance(node, (ast.Assign, ast.AnnAssign)):
             kind, expression_node = "assignment", node.value
@@ -499,6 +503,8 @@ def _file_entries(path: str, raw: bytes, source: str, tree: ast.AST, limit: int,
             scope = index.scopes[id(item[0])].name
             required = [c for c in context if scope == index.scopes[id(c[0])].name or
                         scope.startswith(index.scopes[id(c[0])].name + ".")]
+            guards = {b.rsplit(":", 1)[0] for b in index.branches[id(item[0])]}
+            required.extend(c for c in candidates if condition_owners.get(id(c[0])) in guards)
             bundle = [c for c in [*required, item] if id(c[0]) not in seen]
             # The item can itself be a signature/docstring already in required.
             unique = {id(c[0]): c for c in bundle}
@@ -547,6 +553,7 @@ def _file_entries(path: str, raw: bytes, source: str, tree: ast.AST, limit: int,
         identifier = "ev_" + hashlib.sha256(json.dumps(identity, separators=(",", ":")).encode()).hexdigest()[:24]
         entry = {
             "id": identifier, "path": path, "sha256": digest,
+            **({"condition_for": condition_owners[id(node)]} if id(node) in condition_owners else {}),
             "start_line": line, "end_line": end_line,
             "start_col": start_col, "end_col": end_col,
             "column_encoding": "utf-8-bytes", "scope": scope.name,
@@ -611,7 +618,7 @@ def _file_entries(path: str, raw: bytes, source: str, tree: ast.AST, limit: int,
         scope = index.scopes[id(node)]
         # AST reads preserve operands even when the expression parser cannot
         # represent an operation. Names are exact, never similarity matches.
-        value = node if isinstance(node, ast.Compare) else node.test if isinstance(node, ast.Assert) else getattr(node, "value", None)
+        value = node if isinstance(node, ast.Compare) or entry["kind"] == "predicate" else node.test if isinstance(node, ast.Assert) else getattr(node, "value", None)
         nested_binding = isinstance(value, ast.AST) and any(
             isinstance(part, (ast.Lambda, ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp))
             for part in ast.walk(value)

@@ -216,8 +216,8 @@ class DeepSeekAgent(ScientificCodex):
             write_json(self.logs_dir / "extract_draft-process.json", result)
             return result
         payload = read_json(payload_path)
-        prompt += ("\n\nEvidence JSON (no tools or file access):\n"
-                   + json.dumps(payload, ensure_ascii=False))
+        from .representation import render_reading
+        prompt += "\n\nEvidence (no tools or file access):\n" + render_reading(payload)
         (self.logs_dir / "extract-prompt.txt").write_text(prompt)
         started = time.monotonic()
         try:
@@ -240,9 +240,9 @@ class DeepSeekAgent(ScientificCodex):
         result = {"status": "completed", "usage": {"input_tokens": usage.get("prompt_tokens"),
                                                    "cache_hit_tokens": usage.get("prompt_cache_hit_tokens"),
                                                    "cache_miss_tokens": usage.get("prompt_cache_miss_tokens"),
-                                                   "cached_input_tokens": None,
+                                                   "cached_input_tokens": usage.get("prompt_cache_hit_tokens", usage.get("prompt_tokens_details", {}).get("cached_tokens")),
                                                    "output_tokens": usage.get("completion_tokens"),
-                                                   "reasoning_output_tokens": None},
+                                                   "reasoning_output_tokens": usage.get("completion_tokens_details", {}).get("reasoning_tokens")},
                   "duration_seconds": time.monotonic() - started,
                   "finish_reason": completion["choices"][0].get("finish_reason"),
                   "prompt_chars": len(prompt)}
@@ -255,47 +255,9 @@ class DeepSeekAgent(ScientificCodex):
         try:
             annotations = json.loads(content)
         except ValueError as error:
-            if payload.get("schema_version") == "scientific-reading-2.0" or "object-enrichment-2.0" in content:
-                # A nested quantity is not a complete scientific computation.
-                # Preserve the failed response; never relabel fragments as 1.0.
-                result.update(annotations_status="no_valid_annotations", annotations_error=str(error))
-                write_json(self.logs_dir / "extract_draft-process.json", result)
-                return result
-            # Salvage complete annotation objects from malformed JSON rather
-            # than discarding the whole response: brace-scan balanced objects
-            # that individually parse, and keep the valid prefix.
-            salvaged = []
-            stack = []
-            in_string = False
-            escaped = False
-            for index, char in enumerate(content):
-                if in_string:
-                    if escaped:
-                        escaped = False
-                    elif char == "\\":
-                        escaped = True
-                    elif char == '"':
-                        in_string = False
-                    continue
-                if char == '"':
-                    in_string = True
-                elif char == "{":
-                    stack.append(index)
-                elif char == "}" and stack:
-                    start = stack.pop()
-                    try:
-                        candidate = json.loads(content[start:index + 1])
-                        if isinstance(candidate, dict) and "object_id" in candidate:
-                            salvaged.append(candidate)
-                    except ValueError:
-                        pass  # unbalanced or broken span; other spans still salvage
-            if salvaged:
-                annotations = {"schema_version": "object-enrichment-1.0", "annotations": salvaged}
-                result["salvaged_annotations"] = {"count": len(salvaged), "error": str(error)}
-            else:
-                result.update(annotations_status="no_valid_annotations", annotations_error=str(error))
-                write_json(self.logs_dir / "extract_draft-process.json", result)
-                return result
+            result.update(annotations_status="no_valid_annotations", annotations_error=str(error))
+            write_json(self.logs_dir / "extract_draft-process.json", result)
+            return result
         self._annotations_remote = SCRATCH + "/extract_draft-annotations.json"
         await self._put(self.extract_environment, "extract_draft-annotations.json", json.dumps(annotations),
                         self._annotations_remote)
@@ -305,7 +267,7 @@ class DeepSeekAgent(ScientificCodex):
 
     async def _run_deepseek_repair(self, prompt, seconds):
         (self.logs_dir / "repair-prompt.txt").write_text(prompt)
-        for name in ("scientific-graph.json", "scientific-sources.json", "scientific-guide.md"):
+        for name in ("scientific-graph.json", "scientific-sources.json", "scientific-guide.md", "scientific-model.json"):
             try:
                 await bounded_call(self.environment.download_file(
                     "/opt/scicontext/context/" + name, self.logs_dir / ("repair-context-" + name)), 20, set())

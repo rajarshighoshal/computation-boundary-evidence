@@ -271,8 +271,17 @@ def build_packet(root: Path, context_root: Path | None = None, *, multilingual=F
     entries = []
     allocations = {}
     if multilingual and refs:
-        weights = {p: 1 / (1 + min((r.get("depth", 0) for r in refs if r["path"] == p), default=MAX_SOURCE_FILES))
-                   for p in coverage["selected_source_paths"]}
+        def source_weight(path):
+            located = [r for r in refs if r["path"] == path]
+            if not located:
+                return 0.05
+            auxiliary = _reproducer(path) or any(part.casefold() in {"test", "tests", "workflow", "examples"}
+                                                for part in Path(path).parts[:-1])
+            # Retrieval depth is not scientific importance: deeper implementation
+            # bodies must not be starved by their reproduction/report wrappers.
+            return (0.5 if auxiliary and path not in task_paths else 1.0) * (
+                1 + max((r.get("relevance_score", 0) for r in located), default=0))
+        weights = {p: source_weight(p) for p in coverage["selected_source_paths"]}
         allocations = {p: min(MAX_ENTRIES_PER_FILE, max(1, int(MAX_ENTRIES * w / sum(weights.values())))) for p, w in weights.items()}
         coverage["entry_allocations"] = allocations
     for path in coverage["selected_source_paths"]:

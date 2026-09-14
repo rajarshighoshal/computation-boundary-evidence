@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
-FILES = ("scientific-guide.md", "scientific-graph.json", "scientific-sources.json")
+FILES = ("scientific-guide.md", "scientific-graph.json", "scientific-sources.json", "scientific-model.json")
 
 
 def digest(path):
@@ -52,6 +52,10 @@ def main():
         graph = json.loads(graph_path.read_text())
         annotated = [o for o in graph.get("objects", []) if o.get("interpretation")]
         shown = [o for o in annotated if f"## {o['id']} " in guide]
+        model = graph.get("scientific_model", {})
+        computations = model.get("computations", [])
+        displayed = [c for c in computations if f"Computation: {c['id']} " in guide]
+        source_map = {s["id"]: s for s in model.get("sources", [])}
         references = {name: [] for name in FILES}
         for line in log_path.read_text().splitlines():
             try:
@@ -71,6 +75,9 @@ def main():
             "prompt_bytes": prompt_path.stat().st_size, "guide_bytes": guide_path.stat().st_size,
             "guide_is_inline": bool(guide) and guide in prompt,
             "annotated_objects": len(annotated), "guide_objects": len(shown),
+            "annotated_computations": len(computations), "guide_computations": len(displayed),
+            "computation_source_paths": sorted({source_map[i]["path"] for c in computations for i in c["source_ids"]}),
+            "guide_computation_source_paths": sorted({source_map[i]["path"] for c in displayed for i in c["source_ids"]}),
             "all_annotation_paths": dict(collections.Counter(o["path"] for o in annotated)),
             "guide_annotation_paths": dict(collections.Counter(o["path"] for o in shown)),
             "successful_artifact_reference_commands": references,

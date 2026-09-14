@@ -349,19 +349,22 @@ class ScientificCodex(BaseAgent):
         result = read_json(output / "receipt.json")
         payload = attach_source_analysis(payload, result)
         write_json(local / "evidence-input.json", payload)
-        if not payload["source_analysis_summary"]["within_input_budget"]:
-            raise ValueError("Scientific context exceeds its input budget; see " + str(input_file))
         from .scientific_model import reading_input
         payload = reading_input(payload)
         write_json(input_file, payload)
+        from .representation import render_reading
+        reading_file = local / "scientific-reading.md"
+        reading_file.write_text(render_reading(payload))
         from .object_context import ENRICHMENT_MAX_BYTES
-        compiled_bytes = len(json.dumps(payload, ensure_ascii=False).encode())
+        compiled_bytes = reading_file.stat().st_size
         write_json(local / "reading-input-receipt.json", {"schema_version": payload["schema_version"],
+            "format": "source-level-reading-text", "structured_view_bytes": input_file.stat().st_size,
             "serialized_bytes": compiled_bytes, "max_bytes": ENRICHMENT_MAX_BYTES,
             "within_input_budget": compiled_bytes <= ENRICHMENT_MAX_BYTES})
         if compiled_bytes > ENRICHMENT_MAX_BYTES:
             raise ValueError("Compiled scientific input exceeds its allowance; see " + str(input_file))
         await self.extract_environment.upload_file(input_file, SCRATCH + "/scientific-context-input.json")
+        await self.extract_environment.upload_file(reading_file, SCRATCH + "/scientific-reading.md")
         self._source_analysis_file = output / "receipt.json"
 
     async def _interpret_call(self, instruction, seconds):
@@ -380,7 +383,7 @@ class ScientificCodex(BaseAgent):
                                  seconds=max(1, int(model_seconds)), explore_until=clock(model_seconds * .60),
                                  save_by=clock(model_seconds * .80), finish_by=clock(model_seconds * .95),
                                  instruction=instruction)
-        prompt += (f"\n\nRead {SCRATCH}/scientific-context-input.json. Task root: {self.root}. "
+        prompt += (f"\n\nRead {SCRATCH}/scientific-reading.md. Task root: {self.root}. "
                    "Return the JSON response; the caller saves it. Access is read-only.")
         result = await self._run_codex("extract_draft", prompt, seconds)
         if result.get("fatal_model_error"):

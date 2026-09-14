@@ -57,7 +57,7 @@ def test_source_owned_structure_and_scientific_meaning_join_without_mutation(cas
     assert all(r["source"] in ids and r["target"] in ids for r in model["relations"])
     guide = render_guide(bundle["graph"])
     assert "outward transport" in guide and "matching time units" in guide
-    assert "Code relationships:" in guide and "flux" in guide and "Mult" in guide
+    assert "Code relationships:" in guide and "flux * duration" in guide
     assert "README.md:1" in guide and "Assumption:" in guide
     assert "Code predicate: result < 0" in guide
     assert "scientific-model.json" in guide
@@ -165,14 +165,14 @@ def test_same_names_in_different_scopes_do_not_share_quantity_identity(tmp_path)
 
 
 def test_omitted_operands_remain_explicit_unknowns():
-    graph = {"objects": [], "operations": [{"id": "op", "kind": "arithmetic", "source": {},
-        "inputs": [{"role": "x", "object_id": "not_supplied"}], "output_ids": ["missing_output"]}], "links": [], "unsupported": [{"reason": "partial_parse"}]}
-    view = reading_input(graph)
-    operand = view["entities"][0]["inputs"][0]
-    assert operand == {"role": "x", "object_id": None, "unresolved_object_id": "not_supplied"}
-    assert view["entities"][0]["output_ids"] == []
-    assert view["entities"][0]["unresolved_output_ids"] == ["missing_output"]
-    assert view["coverage"]["unsupported"] == [{"reason": "partial_parse"}]
+    payload = {"context": {"code_passages": [{"id": "expr", "path": "m.py", "scope": "<module>",
+        "start_line": 1, "end_line": 1, "kind": "assignment", "text": "y = external(x)",
+        "local_dependencies": [{"name": "x", "definition_id": "not_supplied", "status": "resolved"}]}]},
+        "unsupported": [{"reason": "partial_parse"}]}
+    view = reading_input(payload)
+    binding = next(b for b in view["entities"][0]["bindings"] if b["name"] == "x")
+    assert binding["definition_id"] is None and binding["status"] == "outside_selected_view"
+    assert view["coverage"]["unsupported_counts"] == {"partial_parse": 1}
 
 
 def test_long_valid_computation_is_not_silently_reduced_to_a_file_pointer(case):
@@ -201,7 +201,7 @@ def test_codex_response_and_direct_prompt_keep_connected_envelope(case, tmp_path
         extract_environment = object()
         async def _run_codex(self, name, prompt, seconds):
             assert '"schema_version":"object-enrichment-2.0"' in prompt
-            assert "scientific-context-input.json" in prompt
+            assert "scientific-reading.md" in prompt
             write_json(tmp_path / "extract_draft-final.txt", response)
             return {"status": "completed"}
         async def _put(self, environment, name, text, destination): self.saved = json.loads(text)
@@ -214,11 +214,18 @@ def test_shared_provider_preparation_builds_compact_reading_input(case, tmp_path
     graph, view, response = case
     # Exercise the real preparation method, mocking only container transfer and
     # the already separately tested analyzer subprocess.
-    raw = {"objects": graph["objects"], "operations": graph["operations"], "links": graph["links"],
-           "unsupported": [], "context": {"scientific_passages": view["sources"], "code_passages": []}}
+    raw = enrichment_input(graph, build_packet(tmp_path, multilingual=True))
     class Environment:
-        async def download_file(self, remote, local): write_json(local, raw)
-        async def upload_file(self, local, remote): self.uploaded = json.loads(local.read_text())
+        async def download_file(self, remote, local):
+            if remote.endswith("scientific-context-input.json"):
+                write_json(local, raw)
+            else:
+                local.write_bytes((tmp_path / remote.rsplit("/", 1)[-1]).read_bytes())
+        async def upload_file(self, local, remote):
+            if remote.endswith(".json"):
+                self.uploaded = json.loads(local.read_text())
+            else:
+                self.reading = local.read_text()
     class Process:
         async def wait(self): return 0
     async def process(*args, **kwargs):
@@ -231,6 +238,7 @@ def test_shared_provider_preparation_builds_compact_reading_input(case, tmp_path
     asyncio.run(ScientificCodex._augment_source_analysis(driver))
     assert env.uploaded["schema_version"] == "scientific-reading-2.0"
     assert env.uploaded["computations"] and env.uploaded["sources"]
+    assert "flux * duration" in env.reading
     assert (tmp_path / "source-analysis/evidence-input.json").is_file()
 
 
@@ -269,24 +277,18 @@ def test_distinct_conventions_remain_with_their_own_computation(case):
 
 
 def test_top_level_operations_are_not_invented_function_definitions():
-    ops = [{"id": name, "kind": "arithmetic", "inputs": [], "output_ids": [],
-            "source": {"path": "m.py", "scope": "<module>", "start_line": i}}
-           for i, name in enumerate(("first", "second"), 1)]
-    view = reading_input({"objects": [], "operations": ops, "links": []})
+    rows = [{"id": name, "kind": "assignment", "text": text, "path": "m.py", "scope": "<module>",
+             "start_line": i, "end_line": i} for i, (name, text) in enumerate((("first", "x = 1"), ("second", "y = x * 2")), 1)]
+    view = reading_input({"context": {"code_passages": rows}})
     assert [c["entity_ids"] for c in view["computations"]] == [["first"], ["second"]]
 
 
-def test_analyzer_scope_disambiguates_overlapping_source_ranges():
-    def node(identifier, kind, scope=None):
-        return {"id": identifier, "kind": kind, "analyzer": "joern", "path": "m.cpp", "start_line": 1,
-                "end_line": 1, "text": "x", "scope": scope,
-                "properties": {"NAME": identifier, "FULL_NAME": identifier, "LINE_NUMBER_END": 5}}
-    rows = [node("a", "METHOD", "a"), node("b", "METHOD", "b"),
-            node("known", "IDENTIFIER", "b"), node("ambiguous", "IDENTIFIER")]
+def test_analyzer_without_source_expressions_does_not_invent_source_computations():
+    rows = [{"id": name, "kind": "IDENTIFIER", "analyzer": "joern", "path": "m.cpp", "start_line": 1,
+             "end_line": 1, "text": "x", "scope": name} for name in ("a", "b")]
     view = reading_input({"context": {"analysis_sources": rows}})
-    definitions = {c["id"]: c for c in view["computations"]}
-    assert "known" in definitions["b"]["entity_ids"] and "known" not in definitions["a"]["entity_ids"]
-    assert all("ambiguous" not in c["entity_ids"] for c in definitions.values())
+    assert not view["computations"]
+    assert view["coverage"]["joern_unprojected_kinds"] == {"IDENTIFIER": 2}
 
 
 def test_analyzer_generated_predicate_is_not_presented_as_literal_source(case):
@@ -306,3 +308,32 @@ def test_analyzer_generated_predicate_is_not_presented_as_literal_source(case):
     assert "iteratorNonEmptyOrException" not in guide
     assert "Code predicate: result < 0" in guide
     assert any(s["text"] == "iteratorNonEmptyOrException" for s in model["sources"])
+
+
+def test_long_purpose_is_not_an_envelope_failure(case):
+    graph, view, response = case
+    response["purpose"]["text"] = "Source-supported task description. " * 30
+    assert len(response["purpose"]["text"]) > 600
+    bundle = object_bundle(graph, response, view)
+    assert bundle["assembly"]["usable"]
+    assert response["purpose"]["text"] in bundle["handoff"]
+
+
+def test_recorded_operation_is_a_valid_computation_target(case):
+    graph, view, response = case
+    source_id = next(s["id"] for s in view["sources"] if s["text"] == "loss = flux * duration")
+    operation = next(e for e in view["entities"] if e["id"] == source_id)
+    response["computations"][0]["computation_id"] = operation["id"]
+    response["computations"][0]["meaning"]["text"] = "Compute the transported amount from outward flux and elapsed duration."
+    bundle = object_bundle(graph, response, view)
+    assert bundle["assembly"]["usable"]
+    c = bundle["graph"]["scientific_model"]["computations"][0]
+    assert c["id"] == operation["id"] and c["relation_ids"]
+
+
+def test_non_string_computation_id_is_rejected_without_crashing(case):
+    graph, view, response = case
+    response["computations"][0]["computation_id"] = ["invalid"]
+    bundle = object_bundle(graph, response, view)
+    assert not bundle["assembly"]["usable"]
+    assert bundle["assembly"]["enrichment"]["dropped"][0]["reason"] == "invalid_computation_fields"

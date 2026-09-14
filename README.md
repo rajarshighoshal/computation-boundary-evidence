@@ -8,15 +8,22 @@ quantity identities, dependencies and conditions. One read-only LLM call explain
 purpose, quantity roles and conventions with source citations. Code joins those interpretations
 to its recorded relationships and delivers a short guide plus scientific-model.json.
 
-Implementation and offline delivery checks are complete for this revision. **Automatic scientific
-interpretation quality and repair improvement have not yet been evaluated for 2.0.** Historical
-runs do not evaluate this method. See [the method](docs/METHOD.md),
+The first live 2.0 check failed: four responses hit a hidden schema limit and one exhausted
+reasoning output; the reader input was also much too large. The current revision replaces that
+graph dump with shared source-expression templates, bindings, conditions and a readable view.
+**This revised representation has offline checks, not a successful live scientific-quality or
+repair evaluation yet.** See [the method](docs/METHOD.md),
 [the input/output contract](docs/OBJECT_ENRICHMENT.md), and the current [ledger](WORK_LOG.md).
 
 ## Pipeline
 
-Public task/code/docs → existing source and Joern analysis → shared computation/entity/source
-index → one source-cited scientific interpretation → connected model and guide → ordinary repair.
+Public task/code/docs → source and Joern evidence → task-level expression/dependency representation
+→ readable scientific input → one source-cited interpretation → model and guide → ordinary repair.
+
+These are views of the same representation. Exact source and analyzer records stay on disk;
+shared templates retain separate occurrence bindings and do not assert mathematical equality.
+The active pipeline has one response schema and one renderer; retired 1.0 annotation fallback,
+probe-first scripts and synthetic demo scaffolding are removed. Historical results remain intact.
 
 The representation retains source/analyzer namespaces and unknown bindings. It does not infer
 scientific equivalence from similar names, treat observations as physical requirements, or allow
@@ -48,6 +55,17 @@ uv run --no-sync scicontext scientific-objects \
 
 The context directory contains task_statement.md. This standalone command uses the source
 extractor; Joern augmentation is part of the full agent preparation path.
+
+Replay the five preserved public inputs without model calls:
+
+```bash
+uv run --no-sync python scripts/check_representation.py \
+  --run runs/connected-five-extraction-v2 --output runs/new-offline-check
+```
+
+The result includes scientific-reading.md, its linked structured view and size/reference receipts.
+An absent implementation body remains a coverage gap; a compact source excerpt is not a complete
+scientific model. No task-specific expected repair is inserted by this projection.
 
 Join a saved interpretation using the same offline assembly helper:
 

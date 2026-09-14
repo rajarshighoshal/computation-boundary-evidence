@@ -206,6 +206,9 @@ def cython_entries(path: str, raw: bytes):
                         "declaration_text": str(getattr(node.base_type, "name", "unknown"))})
             return
         control = cls in {"IfStatNode", "IfClauseNode", "ForInStatNode", "ForFromStatNode", "WhileStatNode", "TryExceptStatNode"}
+        if cls in {"IfClauseNode", "WhileStatNode"} and getattr(node, "condition", None) is not None:
+            add(node.condition, "predicate", chain, branch, expression=_expression(node.condition, lines),
+                native={"condition": True, "condition_for": f"{cls}@{node.pos[1]}:{node.pos[2]}"})
         nested_branch = [*branch, f"{cls}@{node.pos[1]}:{node.pos[2]}"] if control else branch
         for child in _children(node):
             visit(child, chain, nested_branch)

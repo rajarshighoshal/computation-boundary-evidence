@@ -93,8 +93,9 @@ The following are mechanisms to borrow, not evidence that our method works.
    coordinate frames and normalization attached to the relationship they qualify.
    Missing identities stay separate rather than becoming invented equivalences.
 
-   The implemented sharing is code-entity/function/source identity. It does not automatically
-   establish equivalence between different documented scientific concepts or mathematical forms.
+   The implemented sharing includes ordered source-expression templates with distinct bindings.
+   Operators, indices, coefficients, updates and conditions remain per source occurrence. This
+   identifies common computational structure, not equality of values or scientific concepts.
 
 4. **Deliver one small connected working model.** Explain the task objective and the relevant
    input → computation → output relationships with scientific interpretations and source pointers.
@@ -125,12 +126,17 @@ must be established through the actual representation and comparison; neither is
   as alternative target sets with counts and artifact lookups. It does not turn hundreds of static
   candidates into hundreds of presumed executions or choose an arbitrary target. All candidates
   remain in the selected analysis artifact. Duplicate code text and artificial source locations
-  on edge records were removed. Whole-method omissions remain explicit when input limits bind.
+  on edge records were removed. Whole-method omissions remain explicit when analyzer export limits
+  bind. The raw evidence is no longer pruned by the interpreter's transport allowance.
+- A source-level projection replaces the low-level graph dump. Task regions and explicit
+  definition/guard dependencies select statements; parser-backed templates share ordered syntax
+  while preserving separate bindings. Large tables become data records, not thousands of operations.
+  One readable input and one repair guide are views of the same structured representation.
 - The 2.0 interpreter returns task purpose and selected computation meanings, quantity meanings,
   conventions and assumptions. Claims cite supplied source IDs. Code joins these interpretations
   to recorded member/boundary entities and relationships; it does not accept LLM-authored edges.
 - The connected model is delivered as scientific-model.json. Its guide presents the scientific
-  explanation with source references and code predicates, preserving a displayed computation's
+  explanation with selected source expressions, references and code predicates, preserving a displayed computation's
   conditions and assumptions. The real collection/controller path delivers it once. The deleted
   SymPy/computation layer has not been restored. See [the current contract](OBJECT_ENRICHMENT.md).
 
@@ -148,6 +154,12 @@ checks establish source/relationship delivery, not scientific correctness or mod
 The [connected-model receipt](../results/connected-science-review-2026-09-14.json) additionally records
 compilation of all five archived development inputs and a source-grounded rendering fixture for 091.
 The fixture's interpretation is manually supplied, not an automatic extraction result.
+
+The subsequent live five-task check at50000be delivered zero usable models: four responses were
+rejected by the hidden purpose-length limit and091 exhausted reasoning output. Its very large
+inputs and unsupported058 diagnosis motivated this source-level revision. These are implementation
+failures, not evidence against the research hypothesis. Old annotation fallback, renderer, probe-first
+replay scripts and unused SymPy dependencies are now removed; historical run data is preserved.
 
 ## Verification required before another live run
 

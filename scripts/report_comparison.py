@@ -352,8 +352,12 @@ def render(run_root, summary):
         if object_mode:
             objects = graph.get("objects")
             annotated = sum(bool(o.get("interpretation")) for o in objects) if isinstance(objects, list) else None
+            label = "annotated objects"
+            if graph.get("scientific_model"):
+                annotated = len(graph["scientific_model"]["computations"])
+                label = "interpreted computations"
             lines += [f"Interpretation delivery: {text(bundle.get('assembly', {}).get('interpretation_status'))}; "
-                      f"annotated objects: {text(annotated)}. These are delivery counts, not scientific correctness.", ""]
+                      f"{label}: {text(annotated)}. These are delivery counts, not scientific correctness.", ""]
             continue
         for name in ("code_grounding", "alignments"):
             items = analysis.get(name)

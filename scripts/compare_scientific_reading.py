@@ -15,6 +15,14 @@ def source_annotations(root, record):
     if not path.is_file():
         return None
     graph = read(path)["graph"]
+    if graph.get("scientific_model"):
+        model = graph["scientific_model"]
+        sources = {s["id"]: s for s in model["sources"]}
+        return [{"object_id": c["id"], "kind": "computation", "path": sources[i]["path"],
+                 "scope": c["name"], "source_span": {key: sources[i].get(key) for key in ("start_line", "end_line")},
+                 "symbol": c["name"], "declaration_only": c.get("body_status") == "interface_only",
+                 "interpretation": c["interpretation"]}
+                for c in model["computations"] for i in c["source_ids"]]
     return [{"object_id": o["id"], "kind": o["kind"], "path": o["path"], "scope": o["scope"],
              "source_span": o["source_span"], "symbol": o.get("symbol"),
              "declaration_only": bool(o.get("properties", {}).get("interface", {}).get("declaration_only")),

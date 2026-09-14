@@ -64,30 +64,16 @@ def test_attachment_retains_boundary_nodes_and_structured_edge_properties():
     assert edge["source"] in lookup and edge["target"] in lookup
     assert edge["properties"] == {"VARIABLE": "x"}
     assert lookup["sa_b"]["path"] == "analysis://joern/boundary"
-    assert payload["source_analysis_summary"]["within_input_budget"]
+    assert payload["source_analysis_summary"]["joern_nodes"] == 2
 
 
-def test_budget_omits_whole_neighborhood_instead_of_dangling_operands(monkeypatch):
+def test_full_evidence_is_not_pruned_by_model_transport_budget(monkeypatch):
     monkeypatch.setattr(object_context, "ENRICHMENT_MAX_BYTES", 10000)
     payload = source_backends.attach_source_analysis({"context": {}}, analysis("x" * 12000))
-    assert payload["context"]["analysis_sources"] == []
-    assert payload["source_analysis_summary"]["omitted_methods"] == [
-        {"method_id": "m", "reason": "whole_method_exceeds_input_budget"}]
-    assert len(json.dumps(payload).encode()) <= 10000
+    assert len(payload["context"]["analysis_sources"]) == 3
+    assert payload["source_analysis_summary"]["omitted_methods"] == []
+    assert "model transport check follows abstraction" in payload["source_analysis_summary"]["storage_scope"]
 
-
-def test_oversized_base_payload_is_reported_before_model_call(monkeypatch):
-    monkeypatch.setattr(object_context, "ENRICHMENT_MAX_BYTES", 10000)
-    payload = source_backends.attach_source_analysis({"context": {"task": "x" * 12000}}, analysis())
-    assert not payload["source_analysis_summary"]["within_input_budget"]
-
-
-def test_budget_flag_accounts_for_its_own_serialized_bytes(monkeypatch):
-    monkeypatch.setattr(object_context, "ENRICHMENT_MAX_BYTES", 10000)
-    for size in range(9650, 9850):
-        result = source_backends.attach_source_analysis({"context": {"task": "x" * size}}, {"analyses": []})
-        if result["source_analysis_summary"]["within_input_budget"]:
-            assert len(json.dumps(result, ensure_ascii=False).encode()) <= 10000
 
 
 def test_attachment_does_not_repeat_code_or_assign_source_lines_to_edges():

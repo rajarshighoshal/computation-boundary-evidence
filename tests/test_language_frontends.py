@@ -37,9 +37,15 @@ def test_native_calculation_has_interfaces_objects_and_real_expression_links(tmp
     assert any(l["relation"] == "parameter_of" for l in graph["links"])
     assert any(l["relation"] == "returns_from" for l in graph["links"])
     flow = next(o for o in graph["objects"] if (o["symbol"] or "").lower() == "flow")
-    combined = enrich_objects(graph, {"schema_version": "object-enrichment-1.0", "annotations": [{
-        "object_id": flow["id"], "meaning": "Positive-outward transport rate from README.md."}]})
-    assert combined["enrichment"]["applied_object_ids"] == [flow["id"]]
+    from scicontext.scientific_model import reading_input, VERSION
+    view = reading_input(enrichment_input(graph, packet))
+    computation = next(c for c in view["computations"] if flow["id"] in c["entity_ids"])
+    doc = next(s["id"] for s in view["sources"] if s["path"] == "README.md")
+    claim = {"text": "Positive-outward water transport.", "source_ids": [doc]}
+    combined = enrich_objects(graph, {"schema_version": VERSION, "purpose": claim, "computations": [{
+        "computation_id": computation["id"], "meaning": claim, "quantities": [{"object_id": flow["id"], "meaning": claim}],
+        "conventions": [], "assumptions": []}]}, view)
+    assert combined["enrichment"]["applied_object_ids"] == [computation["id"]]
     assert "outward water" in json.dumps(enrichment_input(graph, packet)["context"])
     assert graph == extract_objects(tmp_path, packet)
 

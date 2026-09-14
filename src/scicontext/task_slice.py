@@ -62,6 +62,8 @@ def seed_references(root, paths, seed_paths, task_text=""):
             continue
         definitions = [n for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))]
         focus = [n for n in definitions if n.name == symbol or (symbol is None and n.name in task_names)]
+        if via == "task_named_symbol" and not focus:
+            continue  # A failed exact-name search is not a root for unrelated calls.
         for node in focus:
             references.append({"path": path, "start_line": node.lineno,
                                "end_line": node.lineno if isinstance(node, ast.ClassDef) else node.end_lineno,

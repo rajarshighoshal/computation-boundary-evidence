@@ -245,7 +245,6 @@ def analyze_sources(root, output, regions=None):
 
 def attach_source_analysis(payload, result):
     """Keep selected computations; summarize unresolved call-target sets as sets."""
-    from .object_context import ENRICHMENT_MAX_BYTES
     records = payload.setdefault("context", {}).setdefault("analysis_sources", [])
     if "serialized_bytes" in payload.get("selection", {}):
         payload["selection"]["serialized_bytes_scope"] = "before_source_analysis"
@@ -305,19 +304,10 @@ def attach_source_analysis(payload, result):
                     "relation": edge["role"], "properties": edge.get("properties", {})})
             additions = [r for r in additions if r["id"] not in seen]
             records.extend(additions)
-            # Reserve space for the small selection receipt, never split a method
-            # or detach a branch/operand just to squeeze in another graph fragment.
-            if len(json.dumps(payload, ensure_ascii=False).encode()) > ENRICHMENT_MAX_BYTES - 8192:
-                if additions:
-                    del records[-len(additions):]
-                summary["omitted_methods"].append({"method_id": method["id"], "reason": "whole_method_exceeds_input_budget"})
-            else:
-                seen.update(r["id"] for r in additions)
-                summary["joern_nodes"] += sum(r["kind"] != "edge" for r in additions)
-                summary["joern_edges"] += sum(r["kind"] == "edge" for r in additions)
-    summary["within_input_budget"] = False
-    if len(json.dumps(payload, ensure_ascii=False).encode()) <= ENRICHMENT_MAX_BYTES:
-        summary["within_input_budget"] = True
+            seen.update(r["id"] for r in additions)
+            summary["joern_nodes"] += sum(r["kind"] != "edge" for r in additions)
+            summary["joern_edges"] += sum(r["kind"] == "edge" for r in additions)
+    summary["storage_scope"] = "Full selected evidence on disk; model transport check follows abstraction."
     return payload
 
 

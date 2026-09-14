@@ -1,73 +1,62 @@
-# Connected scientific interpretation contract
+# Scientific interpretation contract
 
-Current interpretation version: **object-enrichment-2.0**. The code graph remains
-scientific-objects-1.0; old annotation artifacts and renderers remain readable.
+One active response format: object-enrichment-2.0. The code graph remains scientific-objects-1.0;
+that is not the retired annotation schema. Old runs remain in their artifacts and frozen Git revisions.
 
-## Code-owned input
+## One representation, linked views
 
-The existing source/analysis pipeline builds computations, quantities and relationships.
-scientific_model.reading_input compiles a shared entity/source index plus callable views:
-each definition references its member entities, boundary entities and recorded relationships.
-Source and Joern namespaces stay distinct. A callable correspondence needs a unique matching
-definition site and name; it is not inferred from name similarity. Analyzer scope disambiguates
-overlapping source ranges when available.
+1. **Evidence on disk:** original packet, code-owned objects and selected Joern analysis.
+2. **Structural view:** task-rooted source statements and explicit dependency closure; ordered
+   expression templates with distinct occurrence bindings, result targets, conditions and source IDs.
+   Source-level Joern dependence edges retain their properties. Ambiguous dispatch stays unresolved.
+3. **Reading view:** scientific-reading.md shows those same computations, quantity definitions,
+   exact source excerpts and relationships. Both providers use this view, not the raw CPG JSON.
+4. **Repair view:** scientific-model.json plus one inline guide joining the selected source
+   expressions and scientific interpretations. The guide contains actual calculation expressions,
+   not just prose or a graph-file pointer.
 
-Operand roles, data dependencies, comparisons, control conditions and original code properties
-remain code-owned. Missing operands/outputs stay explicit unknowns. Alternative call targets
-remain alternatives. The reader view omits detailed AST/CFG scaffolding; the original analysis
-remains in the durable source-analysis artifact. This is a projection of recorded evidence,
-not mathematical equivalence or a newly recovered complete scientific specification.
+Python uses its AST; native languages use the existing Tree-sitter/Cython expression records.
+No source is executed by this projection. Templates factor ordered syntax—not scientific/value
+equality. Operand order, indices, coefficients, keyword names and compound-update operators remain.
+Nested Python binding constructs retain their original spelling instead of unsafe alpha-renaming.
+Large literal tables become source-linked data records; symbolic initializer dependencies remain.
 
-Scientific documents, code excerpts and analyzer representations have distinct provenance.
-Analyzer-generated pseudo-code is not a literal source quote. Private verifiers, gold patches
-and prior repair answers do not enter this input.
+Predicate sources and guard links stay with their statements. Resolved definition/condition
+references are closed again when assembling a selected computation. Unavailable bindings stay
+explicitly unresolved; source excerpts do not imply complete implementation coverage.
+Identical documentation text may be shared while retaining each source origin.
 
-## One scientific interpretation call
+## Scientific interpretation
 
-[The schema](../src/scicontext/scientific-model.schema.json) requests:
+The short prompt requests source-cited task purpose, up to six relevant computations, selected
+source-expression IDs, quantity meanings, conventions and assumptions. The LLM chooses and
+interprets existing structure; it cannot supply graph edges, dimensions, probes or patches.
 
-- A source-cited description of the task's scientific/computational purpose.
-- Up to six selected computation IDs, each with a source-cited scientific meaning.
-- Meanings for relevant quantity IDs belonging to that computation or its recorded boundary.
-- Source-cited conventions/conditions and separately stated assumptions.
+Assembly checks field types, IDs, expression membership and source existence. It joins actual
+code relationships without changing them. Citation validity is NOT proof that a scientific
+interpretation follows from the cited source; live output review remains necessary.
 
-A cited statement has text and source_ids. The interpreter does not write graph edges,
-dimensions, executable probes, patches or verified statuses. The same short prompt and
-compiled input are used by the Codex and DeepSeek routes; there is one interpretation call.
+Only this schema is accepted. Malformed output stays a recorded failure; there is no flat
+annotation salvage, legacy renderer or code-only science-to-baseline fallback.
 
-The caller saves the response. Assembly validates the envelope, IDs and cited-source existence.
-It preserves original code facts and joins accepted interpretation with the computation's actual
-relationships. **Citation validity is not scientific entailment.** Scientific correctness and
-usefulness still require inspecting actual model outputs against public evidence.
+## Size and delivery
 
-## Durable model and repair guide
+Full evidence is not deleted to satisfy the model-input check. The projection removes parser
+scaffolding and shares expression identity first; the transport check applies to the actual
+reading view afterward. The model's explanation is requested in fewer than700 words.
 
-The joined model is stored under graph.scientific_model and handed off as scientific-model.json.
-Entities and source records are stored once and referenced by ID. Interpretations remain scoped
-to their computations, so distinct conventions are not silently merged.
+The repair guide carries purpose, selected code computations, quantity meanings, conventions,
+assumptions and source-level predicates. Conditions describe program behaviour, not automatically
+required scientific laws. One complete computation is always shown; the display target is9,000
+characters. Additional joined content remains in scientific-model.json.
 
-The guide presents purpose, computation meanings, quantity roles, conventions, assumptions and
-source-level code predicates. Predicates describe implementation behaviour, not automatically
-required physical laws. Compiler-generated predicates remain analyzer facts in the model rather
-than being presented as literal source rules.
+## Verification
 
-The renderer aims for 9,000 characters and keeps a displayed computation's explanation,
-conventions and assumptions together. The first complete computation is always shown, even when
-it exceeds that soft display target; additional complete computations remain in the model file.
-The actual collection path uploads the model and inserts the guide into the repair prompt once.
-The repair agent gets source locations for implementation inspection rather than a requirement
-to mine the entire raw graph.
+Tests cover shared syntax with different bindings, noncommutative nesting, coefficients/indices,
+updates, nested scopes, symbolic tables, guards across frontends, transitive joins and actual
+provider/helper/collection/controller delivery. Historical readers may still inspect old results;
+they are not alternative execution paths.
 
-An invalid/empty 2.0 model is not accepted merely because the code graph is nonempty.
-If no scientific model is delivered, the live science path does not start an unassisted repair
-and label it science. Valid legacy 1.0 artifacts remain inspectable through their original path.
-
-## Verification boundary
-
-Offline tests cover identity, citations, unresolved inputs/outputs, condition preservation,
-provider output handling, real helper assembly, real collection and controller handoff.
-The five-archive replay checks deterministic compilation, not fresh extraction. The manually
-authored source-grounded cube-reader fixture tests rendering, not LLM discovery.
-
-Receipt: [connected science check](../results/connected-science-review-2026-09-14.json).
-Model-generated scientific quality and repair improvement remain untested for this revision.
+The five-input offline replay measures representation size, determinism and closed references.
+It does not establish LLM scientific correctness or improved repair. Actual interpretation quality,
+then observed repair use and matched outcomes, remain the scientific acceptance checks.

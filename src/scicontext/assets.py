@@ -17,7 +17,7 @@ from .io import digest_file, digest_json, read_json, write_json
 CODEX_VERSION = "0.153.4"
 HELPER_PACKAGES = ["jsonschema==4.26.0", "attrs==26.1.0", "jsonschema-specifications==2025.9.1", "referencing==0.37.0", "rpds-py==2026.6.3", "typing-extensions==4.16.0",
                    "pint==0.24.4", "flexcache==0.3", "flexparser==0.4", "platformdirs==4.11.8",
-                   "sympy==1.14.0", "mpmath==1.3.0", "fortls==3.2.2", "json5==0.15.0", "packaging==26.0",
+                   "fortls==3.2.2", "json5==0.15.0", "packaging==26.0",
                    "tree-sitter==0.25.2", "tree-sitter-c==0.24.2", "tree-sitter-cpp==0.23.4",
                    "tree-sitter-fortran==0.6.0", "tree-sitter-matlab==1.3.1", "Cython==3.3.0"]
 
