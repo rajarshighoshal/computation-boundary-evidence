@@ -10,13 +10,13 @@ for k in 1 2 3; do
     echo "========================================================"
     echo "Starting Locked-89 Attempt $k of 3 at $(date)"
     echo "Config: configs/deepseek-locked89-k$k.json"
-    echo "Output: runs/deepseek-locked89-k$k-v1"
+    echo "Output: runs/deepseek-locked89-k$k-v2"
     echo "========================================================"
     
     .venv/bin/python -m scicontext.cli pilot \
         --workspace . \
         --config "configs/deepseek-locked89-k$k.json" \
-        --output "runs/deepseek-locked89-k$k-v1" \
+        --output "runs/deepseek-locked89-k$k-v2" \
         --execute
         
     echo "Finished Locked-89 Attempt $k of 3 at $(date)"
