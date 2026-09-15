@@ -59,9 +59,10 @@ Consolidated evidence (all with exact task IDs and recomputable receipts):
 `results/isolation-delivery-audit-v1.json` (arm isolation and delivery verification).
 
 Honest headline: across the four development evaluations the arms are statistically identical in
-solve rate (43 vs 44 of 120 paired attempts, within a measured ±3/30 single-run noise floor) while
-the science arm consistently uses 17–25% fewer input tokens; task 077 is solved 3/4 times with the
-graph and 0/4 without it.
+solve rate (43 vs 44 of 120 paired attempts, within a measured ±3/30 single-run noise floor); at
+low effort the science arm pays ≈30% more input tokens for its graph queries (it was 25% cheaper
+at high effort), and task 077 is solved 3/4 times with the graph and 0/4 without it. No efficiency
+savings are claimed at the effort level of the locked evaluation.
 
 ## What to inspect
 Each trial preserves the agent conversation/tool results, model submission, scientific-store

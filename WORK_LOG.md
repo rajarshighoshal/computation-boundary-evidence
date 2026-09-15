@@ -15,10 +15,12 @@ Git, run receipts and this ledger take precedence over older model-written memor
   raised the Joern export budget (16k nodes / 60k edges). Split-validation crash demoted to a
   warning (11cf0e6) - it had aborted the first locked launch.
 - [verified] Four independent development evaluations (240 attempts): pooled baseline 43/120 vs
-  science 44/120; measured single-run noise floor ~±3/30 from the code-invariant baseline arm;
-  science consistently uses 17-25% fewer input tokens; 077 solved 3/4 with graph, 0/4 without.
-  results/dev30-four-run-consolidation.json. Dynamic ranking admitted previously-excluded kernels
-  (058/051/073/076 verified in prepared states).
+  science 44/120; measured single-run noise floor ~±3/30 from the code-invariant baseline arm.
+  Token accounting is effort-dependent: science 25% cheaper input at high effort, ≈30% costlier
+  at low effort (graph results enter context) - the earlier "17-25% fewer" claim was a
+  within-science improvement, not an arm comparison, and is corrected in README/METHOD.
+  077 solved 3/4 with graph, 0/4 without. results/dev30-four-run-consolidation.json. Dynamic
+  ranking admitted previously-excluded kernels (058/051/073/076 verified in prepared states).
 - [verified] Boundary cascade implemented and tested (commit af22a7c): Joern semantic layer,
   BOUNDARY_DECLS include/use/import/cimport table, unknown_external fallbacks, uniform schema;
   715 tests pass. Prompt now forbids retrying failed optional notes (6df40da; 019-science lost
