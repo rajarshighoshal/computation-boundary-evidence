@@ -23,7 +23,7 @@ from .io import digest_json
 from .object_context import enrichment_input
 from .representation import computation_slice, reading_input
 
-MAX_NODES = 20
+MAX_NODES = 20  # Fallback allowance; never evict represented task-workflow computations.
 MAX_ENTITY_IDS = 8
 MAX_QUANTITIES = 5
 MAX_BOUNDARY = 8
@@ -282,6 +282,7 @@ def build_graph(graph_path, packet_path=None, trace_dir=None) -> dict:
             "entity_ids": entity_ids,
             "source_ids": source_ids,
             "calculation": {"status": calculation.get("status", "no_result_anchor"),
+                            "partial": calculation.get('partial', False),
                             "result_ids": calculation.get("result_ids", []),
                             "relevant_expressions": len(calculation.get("relevant_expression_ids", [])),
                             "available_expressions": len(calculation.get("expression_ids", []))},
@@ -298,6 +299,33 @@ def build_graph(graph_path, packet_path=None, trace_dir=None) -> dict:
 
     for key in findings_by_key:
         add_node(key, mandatory=True)
+
+    # A public workflow can enter compiled code that Python tracing cannot see.
+    # Keep its explicitly located callee rather than replacing it with generic
+    # source-backed helpers. The reference is a candidate, not proved dispatch.
+    workflow_refs = (packet.get('coverage', {}).get('workflow_retrieval') or {}).get('references', [])
+    def reference_callers(reference):
+        owners = set()
+        for caller in reference.get('callers', []):
+            if caller.get('embedded_string'):
+                continue  # Embedded program text is not a call by its Python host.
+            line, column = caller.get('start_line', -1), caller.get('start_col')
+            sites = [e for e in packet.get('entries', []) if e.get('path') == caller.get('path') and
+                     e.get('start_line', 0) <= line <= e.get('end_line', 0) and
+                     (column is None or (e['start_line'] < line or e.get('start_col', 0) <= column) and
+                      (e['end_line'] > line or column < e.get('end_col', 10**9)))]
+            candidates = {(e['path'], _scope_key(e.get('scope'))) for e in sites}
+            if len(candidates) == 1:
+                owners.update(candidates)
+        return owners
+    for reference in sorted(workflow_refs, key=lambda r: (r.get('priority', 1), r.get('depth', 0))):
+        if reference.get('via') == 'executed_callee' and reference.get('symbol'):
+            key = (reference['path'], _scope_key(reference['symbol']))
+            if key in computation_by_key:
+                for caller in sorted(reference_callers(reference)):
+                    if caller in computation_by_key:
+                        add_node(caller, mandatory=True)
+                add_node(key, mandatory=True)
 
     order, frontier, seen = [], [key for key in findings_by_key], set(findings_by_key)
     while frontier:
@@ -346,11 +374,11 @@ def build_graph(graph_path, packet_path=None, trace_dir=None) -> dict:
             if parent not in reaches_computation:
                 reaches_computation.add(parent)
                 frontier.append(parent)
-    while (pending or deferred) and len(selected) < MAX_NODES:
+    while pending or deferred:
         if not pending:
             pending, deferred = deferred, deque()
         key = pending.popleft()
-        add_node(key)
+        add_node(key, mandatory=key in computation_by_key)
         for child in sorted(callees.get(key, ()), key=lambda k: (k not in reaches_computation, k)):
             if child in visited:
                 continue
@@ -394,6 +422,19 @@ def build_graph(graph_path, packet_path=None, trace_dir=None) -> dict:
             if edge not in seen_edges:
                 seen_edges.add(edge)
                 edges.append({"from": edge[0], "to": edge[1], "relation": "calls", "count": count})
+
+    for reference in workflow_refs:
+        callee = (reference.get('path'), _scope_key(reference.get('symbol')))
+        if reference.get('via') != 'executed_callee' or callee not in selected:
+            continue
+        for owner in sorted(reference_callers(reference) & selected.keys()):
+            if owner == callee:
+                continue
+            edge = (selected[owner]['id'], selected[callee]['id'], 'candidate_call')
+            if edge not in seen_edges:
+                seen_edges.add(edge)
+                edges.append({'from':edge[0], 'to':edge[1], 'relation':edge[2],
+                              'basis':'public_workflow_reference_not_observed_dispatch'})
 
     # Finding candidates are real navigation evidence: connect each finding to
     # the nearest selected node in the candidate's file.

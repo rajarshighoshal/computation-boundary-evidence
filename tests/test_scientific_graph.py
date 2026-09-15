@@ -222,3 +222,56 @@ def test_deep_result_chain_survives_many_shallow_setup_calls(tmp_path):
             stream.write(json.dumps(row)+'\n')
     result = build_graph(graph_path, packet_path, trace)
     assert any(n['name'] == 'advance' and n['source_ids'] for n in result['nodes'])
+
+
+def test_public_workflow_callee_survives_when_python_trace_cannot_enter_it(tmp_path):
+    root = tmp_path / 'task'
+    graph_path, packet_path, trace = write_prepared(root)
+    (root / 'helpers.py').write_text(''.join(f'def helper_{i}(x):\n    return x*2+x*x+1\n' for i in range(30)))
+    packet = build_packet(root)
+    packet['coverage']['workflow_retrieval'] = {'references':[
+        {'path':'model.py', 'symbol':'advance', 'via':'executed_callee', 'priority':0, 'depth':1, 'start_line':1, 'end_line':4,
+         'callers':[{'path':'reproduce.py', 'start_line':3, 'start_col':11, 'callee':'advance'}]}]}
+    graph_path.write_text(json.dumps(extract_objects(root, packet)))
+    packet_path.write_text(json.dumps(packet))
+    with gzip.open(trace / 'trace.jsonl.gz', 'wt') as stream:
+        stream.write(json.dumps({'seq':1,'file':'reproduce.py','name':'run','line':2})+'\n')
+    graph = build_graph(graph_path, packet_path, trace)
+    nodes = {n['name']:n for n in graph['nodes']}
+    assert 'advance' in nodes
+    links = [e for e in graph['edges'] if e['to'] == nodes['advance']['id']]
+    assert any(e['relation'] == 'candidate_call' for e in links)
+    assert not any(e['relation'] == 'calls' for e in links)
+
+
+def test_native_call_reference_does_not_attach_another_same_line_function(tmp_path):
+    code = 'double first(){return kernel();} double second(){return 99;}\ndouble kernel(){return 2;}\n'
+    (tmp_path / 'model.cpp').write_text(code)
+    packet = build_packet(tmp_path, multilingual=True)
+    packet['coverage']['workflow_retrieval'] = {'references':[
+        {'path':'model.cpp','symbol':'kernel','start_line':2,'end_line':2,'priority':0,'depth':1,
+         'via':'executed_callee','callers':[{'path':'model.cpp','start_line':1,
+            'start_col':code.index('kernel()'),'callee':'kernel'}]}]}
+    graph = extract_objects(tmp_path, packet)
+    (tmp_path / 'packet.json').write_text(json.dumps(packet))
+    (tmp_path / 'objects.json').write_text(json.dumps(graph))
+    graph = build_graph(tmp_path / 'objects.json', tmp_path / 'packet.json')
+    names = {n['id']:n['name'] for n in graph['nodes']}
+    calls = {(names[e['from']],names[e['to']]) for e in graph['edges'] if e['relation'] == 'candidate_call'}
+    assert ('first','kernel') in calls and ('second','kernel') not in calls
+
+
+def test_view_budget_does_not_erase_represented_workflow_computations(tmp_path):
+    root = tmp_path / 'task'
+    graph_path, packet_path, trace = write_prepared(root)
+    (root / 'model.py').write_text(''.join(f'def compute_{i}(x):\n    return x*{i+1}\n' for i in range(25)))
+    packet = build_packet(root)
+    graph_path.write_text(json.dumps(extract_objects(root, packet)))
+    packet_path.write_text(json.dumps(packet))
+    with gzip.open(trace / 'trace.jsonl.gz', 'wt') as stream:
+        rows = [{'seq':1,'file':'reproduce.py','name':'run','line':2}]
+        rows += [{'seq':i+2,'parent_seq':1,'file':'model.py','name':f'compute_{i}','line':2*i+1} for i in range(25)]
+        for row in rows:
+            stream.write(json.dumps(row)+'\n')
+    graph = build_graph(graph_path, packet_path, trace)
+    assert {f'compute_{i}' for i in range(25)} <= {n['name'] for n in graph['nodes']}

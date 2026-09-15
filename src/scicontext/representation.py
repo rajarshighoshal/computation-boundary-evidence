@@ -207,6 +207,8 @@ def reading_input(payload):
         entities[obj["id"]] = {"id": obj["id"], "kind": obj["kind"], "name": obj.get("symbol"),
                                "properties": props, "source_ids": ids}
         if obj["kind"] == "code_interface":
+            entities[obj['id']]['selection_coverage'] = next((passages[i]['selection_coverage']
+                for i in ids if passages[i].get('selection_coverage')), {})
             definitions[obj["id"]] = {"id": obj["id"], "name": obj.get("symbol") or obj.get("scope"),
                 "path": obj.get("path"), "scope": obj.get("scope"), "source_ids": ids,
                 "entity_ids": [obj["id"]]}
@@ -379,12 +381,12 @@ def computation_slice(view, member_ids):
         item = entities[identifier]
         selection = item.get("selection") or {}
         if selection:
-            distances[identifier] = selection["distance"]
-            if selection["distance"] == 0:
+            distances[identifier] = (selection.get('root_rank', 0), selection["distance"])
+            if selection["distance"] == 0 and selection.get('role') != 'early_exit':
                 roots.append(identifier)
         elif item.get("statement_kind") in {"return", "augmented_assignment", "container_mutation"} \
                 or item.get("effect", {}).get("nonlocal_write"):
-            distances[identifier] = 0
+            distances[identifier] = (0 if item.get('statement_kind') == 'return' else 1, 0)
             roots.append(identifier)
     incoming = {}
     for relation in view["relations"]:
@@ -395,7 +397,7 @@ def computation_slice(view, member_ids):
     while pending:
         identifier = pending.popleft()
         for predecessor in incoming.get(identifier, []):
-            distance = distances[identifier] + 1
+            distance = (distances[identifier][0], distances[identifier][1] + 1)
             if predecessor not in distances or distance < distances[predecessor]:
                 distances[predecessor] = distance
                 pending.append(predecessor)
@@ -417,6 +419,7 @@ def computation_slice(view, member_ids):
     source_ids.extend(documents)
     return {"expression_ids": ordered, "source_ids": list(dict.fromkeys(source_ids)),
             "documentation_ids": documents,
+            "partial": any(entities[i].get('selection_coverage', {}).get('partial') for i in members),
             "result_ids": sorted(roots, key=position), "relevant_expression_ids": [i for i in ordered if i in relevant],
             "status": "result_anchored_excerpt" if roots else "no_result_anchor",
             "scope": "Available parsed result/effect candidates and dependency evidence, not a complete program slice"}

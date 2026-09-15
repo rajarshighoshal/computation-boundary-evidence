@@ -342,23 +342,26 @@ def _native_result_priorities(entries, outputs):
         if native.get('condition_for'):
             guards[(scope, native['condition_for'])] = entry
         target = normal(entry, native.get('writes_root', ''))
-        role = ('return' if entry['kind'] == 'return' else 'state_write' if native.get('nonlocal_write')
+        role = ('early_exit' if entry['kind'] == 'return' and not entry.get('native_expression')
+                else 'return' if entry['kind'] == 'return' else 'state_write' if native.get('nonlocal_write')
                 else 'output_write' if (scope, target) in outputs else None)
         if role:
-            pending.append((entry, 0, role))
+            rank = 0 if role == 'return' else 3 if role == 'early_exit' else 1
+            pending.append((entry, rank, 0, role))
     while pending:
-        entry, distance, role = pending.popleft()
-        if entry.get('selection') and entry['selection']['distance'] <= distance:
+        entry, rank, distance, role = pending.popleft()
+        if entry.get('selection') and (entry['selection']['root_rank'], entry['selection']['distance']) <= (rank, distance):
             continue
-        entry['selection'] = {'role': role, 'distance': distance,
+        entry['selection'] = {'role': role, 'root_rank':rank, 'distance': distance,
                               'basis': 'syntactic_candidate_not_dataflow_proof'}
         scope, native = entry.get('function_scope'), entry.get('native', {})
         for label in entry.get('branch', []):
             guard = guards.get((scope, label.rsplit(':', 1)[0]))
             if guard and guard is not entry:
-                pending.append((guard, distance + 1, 'result_dependency'))
+                pending.append((guard, rank, distance + 1, 'result_dependency'))
         used = {normal(entry, name) for name in names(entry.get('native_expression'))}
-        used.update(normal(entry, name) for name in names(native.get('target_expression')))
+        if native.get('nonlocal_write') or native.get('operator', '=') not in {'=', ':='}:
+            used.update(normal(entry, name) for name in names(native.get('target_expression')))
         if native.get('operator', '=') not in {'=', ':='}:
             used.add(normal(entry, native.get('writes_root', '')))
         loops = {b for b in entry.get('branch', []) if b.startswith(('for_statement@', 'while_statement@', 'do_loop@'))}
@@ -369,7 +372,7 @@ def _native_result_priorities(entries, outputs):
             floor = max((_position(e) for e in prior if not e.get('branch')), default=(-1, -1))
             selected = [e for e in prior if _position(e) >= floor]
             selected.extend(e for e in candidates if loops & set(e.get('branch', [])))
-            pending.extend((e, distance + 1, 'result_dependency') for e in selected)
+            pending.extend((e, rank, distance + 1, 'result_dependency') for e in selected)
 
 
 def _select_entries(entries, limit, refs):
@@ -389,14 +392,14 @@ def _select_entries(entries, limit, refs):
         if entry["language"] == "fortran":
             target = target.casefold()
         if any(r.get("via") == "workflow_call_site" and entry["start_line"] <= r["start_line"] <= entry["end_line"] for r in refs):
-            return -1
+            return (-1, 0)
         if entry.get('selection'):
-            return entry['selection']['distance']
+            return (entry['selection']['root_rank'], entry['selection']['distance'])
         if entry["kind"] == "return":
-            return 0
+            return (0, 0)
         if (entry.get("function_scope"), target) in outputs:
-            return 0
-        return 10**9
+            return (1, 0)
+        return (10**9, 0)
     for entry in entries:
         category = ("interface" if entry["kind"] in {"signature", "parameter"} else
                     "documentation" if entry["kind"] == "docstring" else
@@ -424,6 +427,15 @@ def _select_entries(entries, limit, refs):
                 if queues[(focus, category)] and len(selected) < limit:
                     selected.append(queues[(focus, category)].popleft())
     kept = {e["id"] for e in selected}
+    result_members = defaultdict(set)
+    for entry in entries:
+        if entry.get('selection') and entry['kind'] not in {'parameter', 'signature', 'docstring', 'declaration'}:
+            result_members[entry.get('function_scope')].add(entry['id'])
+    for entry in selected:
+        if entry['kind'] == 'signature':
+            related = result_members.get(entry.get('function_scope'), set())
+            entry['selection_coverage'] = {'result_candidates':len(related),
+                'retained_result_candidates':len(related & kept), 'partial':bool(related - kept)}
     omitted = [e for e in entries if e["id"] not in kept and
                e["kind"] in {"parameter", "assignment", "declaration"}]
     for entry in selected:

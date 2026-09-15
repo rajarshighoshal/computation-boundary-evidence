@@ -52,6 +52,52 @@ def test_budget_keeps_possible_loop_carried_write_without_claiming_binding(tmp_p
     assert all(d['status'] == 'unresolved' for d in update['local_dependencies'])
 
 
+def test_direct_workflow_reference_keeps_return_producers_before_related_getters(tmp_path):
+    import ast
+    code = ('class Processor:\n'
+            '    def aggregate(self, values):\n        values.sort()\n        result=[]\n'
+            '        for value in values:\n            result.append(value*2)\n        return result\n'
+            + ''.join(f'    def getter_{i}(self):\n        return self.value\n' for i in range(12)))
+    (tmp_path / 'model.py').write_text(code)
+    refs = [{'path':'model.py', 'start_line':n.lineno, 'end_line':n.end_lineno,
+             'priority':0, 'depth':1 if n.name == 'aggregate' else 2}
+            for n in ast.walk(ast.parse(code)) if isinstance(n, ast.FunctionDef)]
+    result = extract_evidence(tmp_path, ['model.py'], max_entries=16, references=refs, preserve_interfaces=True)
+    text = '\n'.join(e['text'] for e in result['entries'])
+    assert 'return result' in text and 'result=[]' in text and 'result.append(value*2)' in text
+
+
+def test_annotation_does_not_kill_returned_object_producer(tmp_path):
+    code = ('def f():\n' + ''.join(f'    setup_{i}={i}\n' for i in range(50))
+            + '    result=make_result()\n    result: object\n    mutate(result)\n    return result\n')
+    (tmp_path / 'model.py').write_text(code)
+    result = extract_evidence(tmp_path, ['model.py'], max_entries=8, preserve_interfaces=True)
+    producer = next(e for e in result['entries'] if e['text'] == 'result=make_result()')
+    assert producer['selection']['root_rank'] == 0
+
+
+def test_empty_return_does_not_displace_model_building_effect(tmp_path):
+    code = ('def build(model, x, empty):\n    if empty:\n        return\n'
+            + ''.join(f'    setup_{i}={i}\n' for i in range(50))
+            + '    lhs=x*2\n    model.add_constraint(lhs, "==", 1)\n')
+    (tmp_path / 'model.py').write_text(code)
+    result = extract_evidence(tmp_path, ['model.py'], max_entries=7, preserve_interfaces=True)
+    text = '\n'.join(e['text'] for e in result['entries'])
+    assert 'lhs=x*2' in text and 'model.add_constraint' in text
+
+
+def test_void_builder_tracks_opaque_effect_through_local_receiver(tmp_path):
+    code = ('def build(model, x):\n' + ''.join(f'    setup_{i}={i}\n' for i in range(50))
+            + '    backend=model.backend\n    lhs=[]\n    lhs += [(x, 2)]\n'
+              '    backend.add_constraint(lhs, "==", 1)\n')
+    (tmp_path / 'model.py').write_text(code)
+    result = extract_evidence(tmp_path, ['model.py'], max_entries=8, preserve_interfaces=True)
+    call = next(e for e in result['entries'] if 'backend.add_constraint' in e['text'])
+    assert call['selection']['role'] == 'possible_call_effect'
+    assert call['selection']['root_rank'] == 0
+    assert any(e['text'] == 'lhs += [(x, 2)]' for e in result['entries'])
+
+
 def by_expression(index, text):
     return next(entry for entry in index["entries"] if entry["expression_text"] == text)
 

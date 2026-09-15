@@ -188,7 +188,7 @@ def test_large_embedded_literal_template_is_expandable_not_dumped(store):
     assert len(json.dumps(result)) < 30000
 
 
-def prepared_graph_store(tmp_path, unseen=False, unseen_path="unseen.py", source_code=None):
+def prepared_graph_store(tmp_path, unseen=False, unseen_path="unseen.py", source_code=None, multilingual=False):
     """Store with prepared extraction outputs; no model calls anywhere."""
     import gzip
     from scicontext.packet import build_packet
@@ -204,7 +204,7 @@ def prepared_graph_store(tmp_path, unseen=False, unseen_path="unseen.py", source
         'from model import advance\n'
         'def run():\n'
         '    return advance(3.0, 1.0, 0.5)\n')
-    packet = build_packet(root)
+    packet = build_packet(root, multilingual=multilingual)
     graph = extract_objects(root, packet)
     graph["dependence_signatures"] = [
         {"func": ["reproduce.py", "<module>", 1], "instances": 1, "arguments": {}},
@@ -355,6 +355,22 @@ def test_refresh_keeps_full_current_dependency_chain_pageable(tmp_path):
         offset = page['next_offset']
     assert len(shown) == original_count
     assert any(s['text'] == 'v0=energy-flux*dt' for s in shown.values())
+
+
+def test_retained_return_does_not_hide_missing_producers(tmp_path, monkeypatch):
+    from scicontext import packet as packet_module
+    monkeypatch.setattr(packet_module, 'MAX_ENTRIES_PER_FILE', 10)
+    code = ('def advance(energy, flux, dt):\n    v0=energy-flux*dt\n'
+            + ''.join(f'    v{i}=v{i-1}+1\n' for i in range(1, 19))
+            + '    return v18\n')
+    store = prepared_graph_store(tmp_path, source_code=code, multilingual=True)
+    node = next(n for n in store.state['scientific_graph']['nodes'] if n['name'] == 'advance')
+    assert node['calculation']['result_ids'] and node['calculation']['partial']
+    detail = store.inspect('advance')
+    assert detail['evidence']['sources'] and node['expanded']
+    assert not node['calculation']['partial']
+    packet = store._prepared_context()['sources']
+    assert any(packet[s]['text'] == 'v0=energy-flux*dt' for s in node['source_ids'])
 
 
 def test_inspect_and_note_accept_function_name_without_manual_ids(tmp_path):

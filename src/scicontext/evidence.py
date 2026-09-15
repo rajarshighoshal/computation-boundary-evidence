@@ -489,8 +489,11 @@ def _result_priorities(candidates, index, condition_owners):
     are retained as alternatives; local_dependencies below still reports their
     ambiguity. No operation name is used to infer a scientific role.
     """
-    writes, parameters, guards = defaultdict(list), defaultdict(set), {}
+    writes, rebindings, guards = defaultdict(list), defaultdict(set), {}
     roots, reads = {}, {}
+    value_return_scopes = {index.scopes[id(node)].name for node, kind, _ in candidates
+                           if kind == 'return' and node.value is not None and not
+                           (isinstance(node.value, ast.Constant) and node.value.value is None)}
 
     def root_name(target):
         while isinstance(target, (ast.Attribute, ast.Subscript, ast.Starred)):
@@ -499,8 +502,6 @@ def _result_priorities(candidates, index, condition_owners):
 
     for node, kind, value in candidates:
         scope = index.scopes[id(node)]
-        if kind == "parameter":
-            parameters[scope.name].add(node.arg)
         if id(node) in condition_owners:
             guards[(scope.name, condition_owners[id(node)])] = node
     for node, kind, value in candidates:
@@ -509,23 +510,36 @@ def _result_priorities(candidates, index, condition_owners):
             node, (ast.AnnAssign, ast.AugAssign, ast.For, ast.AsyncFor)) else []
         if kind == "parameter":
             writes[(scope.name, node.arg)].append(node)
+            rebindings[(scope.name, node.arg)].add(id(node))
         for target in targets:
             for part in ast.walk(target):
                 if isinstance(part, ast.Name) and isinstance(part.ctx, ast.Store):
                     writes[(scope.name, part.id)].append(node)
+                    if not isinstance(node, ast.AugAssign) and not (isinstance(node, ast.AnnAssign) and node.value is None):
+                        rebindings[(scope.name, part.id)].add(id(node))
             if isinstance(target, (ast.Attribute, ast.Subscript)):
                 if root_name(target):
                     writes[(scope.name, root_name(target))].append(node)
-                roots[id(node)] = "state_write"
+                if not isinstance(node, ast.AnnAssign) or node.value is not None:
+                    roots[id(node)] = "state_write"
         if kind == "return":
-            roots[id(node)] = "return"
+            roots[id(node)] = ('early_exit' if node.value is None or
+                isinstance(node.value, ast.Constant) and node.value.value is None else 'return')
         elif kind == "augmented_assignment":
             roots[id(node)] = "possible_inplace_update"
         elif kind == "container_mutation":
             roots[id(node)] = "possible_container_update"
-        elif kind == "call" and isinstance(node.value.func, ast.Attribute):
-            if root_name(node.value.func.value) in parameters[scope.name]:
-                roots[id(node)] = "possible_parameter_effect"
+        elif kind == "call":
+            roots[id(node)] = "possible_call_effect"
+        if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
+            # A standalone call may mutate a passed object or receiver. Include
+            # that possibility when tracing a returned object, not as a proved write.
+            operands = [*node.value.args, *(kw.value for kw in node.value.keywords)]
+            if isinstance(node.value.func, ast.Attribute):
+                operands.append(node.value.func.value)
+            for operand in operands:
+                if root_name(operand):
+                    writes[(scope.name, root_name(operand))].append(node)
         value = value if value is not None else getattr(node, "value", None)
         used = {part.id for part in ast.walk(value) if isinstance(part, ast.Name)
                 and isinstance(part.ctx, ast.Load)} if isinstance(value, ast.AST) else set()
@@ -534,18 +548,24 @@ def _result_priorities(candidates, index, condition_owners):
                 used.update(part.id for part in ast.walk(target) if isinstance(part, ast.Name))
         reads[id(node)] = used
 
-    priorities, pending = {}, deque((node, 0) for node, _, _ in candidates if id(node) in roots)
+    def role_rank(node):
+        role = roots[id(node)]
+        if role == 'return' or role == 'possible_call_effect' and index.scopes[id(node)].name not in value_return_scopes:
+            return 0
+        return 3 if role == 'early_exit' else 1 if role != 'possible_call_effect' else 2
+    priorities, pending = {}, deque((node, role_rank(node), 0)
+                                   for node, _, _ in candidates if id(node) in roots)
     while pending:
-        node, distance = pending.popleft()
-        if id(node) in priorities and priorities[id(node)]["distance"] <= distance:
+        node, rank, distance = pending.popleft()
+        if id(node) in priorities and (priorities[id(node)]['root_rank'], priorities[id(node)]["distance"]) <= (rank, distance):
             continue
         priorities[id(node)] = {"role": roots.get(id(node), "result_dependency"),
-                                "distance": distance, "basis": "syntactic_candidate_not_dataflow_proof"}
+                                "root_rank": rank, "distance": distance, "basis": "syntactic_candidate_not_dataflow_proof"}
         scope = index.scopes[id(node)]
         for label in index.branches[id(node)]:
             guard = guards.get((scope.name, label.rsplit(":", 1)[0]))
             if guard is not None:
-                pending.append((guard, distance + 1))
+                pending.append((guard, rank, distance + 1))
         for name in reads.get(id(node), ()):
             owner, _ = scope.lookup(name)
             if owner is None:
@@ -554,12 +574,13 @@ def _result_priorities(candidates, index, condition_owners):
                      if (candidate.lineno, candidate.col_offset) < (node.lineno, node.col_offset)]
             # Include conditional alternatives after the last unconditional
             # binding. Selection never asserts which alternative actually ran.
-            unconditional = [candidate for candidate in prior if not index.branches[id(candidate)]]
+            unconditional = [candidate for candidate in prior if not index.branches[id(candidate)]
+                             and id(candidate) in rebindings[(owner.name, name)]]
             floor = max(((n.lineno, n.col_offset) for n in unconditional), default=(-1, -1))
-            pending.extend((candidate, distance + 1) for candidate in prior
+            pending.extend((candidate, rank, distance + 1) for candidate in prior
                            if (candidate.lineno, candidate.col_offset) >= floor)
             loops = {label for label in index.branches[id(node)] if label.startswith(("for@", "while@"))}
-            pending.extend((candidate, distance + 1) for candidate in writes.get((owner.name, name), ())
+            pending.extend((candidate, rank, distance + 1) for candidate in writes.get((owner.name, name), ())
                            if candidate is not node and loops & set(index.branches[id(candidate)]))
     return priorities
 
@@ -631,9 +652,11 @@ def _file_entries(path: str, raw: bytes, source: str, tree: ast.AST, limit: int,
     entries = []
     candidates, condition_owners, docstrings = _candidates(tree, index, preserve_interfaces)
     result_priorities = _result_priorities(candidates, index, condition_owners)
-    result_order = lambda item: (result_priorities.get(id(item[0]), {}).get("distance", 10**9),
+    result_order = lambda item: ((result_priorities.get(id(item[0]), {}).get('root_rank', 10**9),
+                                 result_priorities.get(id(item[0]), {}).get("distance", 10**9)),
                                 item[0].lineno, item[0].col_offset, item[1])
     regions = []
+    region_priorities = []
     for ref in references or []:
         if ref.get("path") != path:
             continue
@@ -645,6 +668,7 @@ def _file_entries(path: str, raw: bytes, source: str, tree: ast.AST, limit: int,
         owner = min(enclosing, key=lambda n: n.end_lineno - n.lineno) if enclosing else None
         regions.append((start, end, owner.lineno if owner else max(1, start - 3),
                         owner.end_lineno if owner else end + 3))
+        region_priorities.append((ref.get('priority', 1), ref.get('depth', 0)))
     # Execution-seeded regions take precedence over reference round-robin: the
     # statement bodies that actually ran are admitted first, each region gets
     # at most one signature and one docstring, direct static callees of the
@@ -684,7 +708,7 @@ def _file_entries(path: str, raw: bytes, source: str, tree: ast.AST, limit: int,
                 nearby = [(hi - lo, i) for i, (_, _, lo, hi) in enumerate(regions)
                           if lo <= node.lineno <= hi]
                 tier, matches = (0, direct) if direct else (1, nearby) if nearby else (2, [])
-                region = min(matches)[1] if matches else len(regions)
+                region = min(matches, key=lambda m: (region_priorities[m[1]], m[0]))[1] if matches else len(regions)
                 # Round-robin inspected regions. Reserve one parameter occurrence
                 # per region alongside statements; remaining parameters follow
                 # direct statements so large signatures cannot crowd out body code.
@@ -700,7 +724,8 @@ def _file_entries(path: str, raw: bytes, source: str, tree: ast.AST, limit: int,
                 node = item[0]
                 if needs_allocation:
                     old = fair_order[id(node)]
-                    return (old[0], result_order(item)[0], *old[1:], node.lineno, node.col_offset, item[1])
+                    weight = region_priorities[old[2]] if old[2] < len(regions) else (10**9, 10**9)
+                    return (weight, old[0], result_order(item)[0], *old[1:], node.lineno, node.col_offset, item[1])
                 direct = any(node.lineno <= end and node.end_lineno >= start for start, end, _, _ in regions)
                 nearby = any(lo <= node.lineno <= hi for _, _, lo, hi in regions)
                 return (0 if direct and item[1] != "signature" else 1 if nearby else 2,
@@ -730,6 +755,11 @@ def _file_entries(path: str, raw: bytes, source: str, tree: ast.AST, limit: int,
     # Selection order is independent of evaluation order. Restore source order
     # before extraction so earlier consumers do not mistake priority for flow.
     selected.sort(key=lambda item: (item[0].lineno, item[0].col_offset, item[1]))
+    retained = {id(node) for node, _, _ in selected}
+    result_members = defaultdict(set)
+    for node, kind, _ in candidates:
+        if id(node) in result_priorities and kind not in {'parameter', 'signature', 'docstring', 'import'}:
+            result_members[index.scopes[id(node)].name].add(id(node))
     entry_nodes = {}
     for node, kind, expression_node in selected:
         scope = index.scopes[id(node)]
@@ -786,6 +816,10 @@ def _file_entries(path: str, raw: bytes, source: str, tree: ast.AST, limit: int,
             "imports": scope.imported_names(line), "limitations": [],
             "selection": result_priorities.get(id(node)),
         }
+        if kind == 'signature':
+            related = result_members.get(scope.name, set())
+            entry['selection_coverage'] = {'result_candidates':len(related),
+                'retained_result_candidates':len(related & retained), 'partial':bool(related - retained)}
         if expression is not None:
             binding_scopes = {}
             for name in _expression_symbols(expression):

@@ -25,6 +25,7 @@ MAX_FILES = 20000
 PAGE_SIZE = 6
 MAX_FIND_RESULTS = 12
 NODE_SOURCE_PAGE = 6
+GRAPH_PAGE_SIZE = 20
 NODE_SOURCE_CHARS = 1500
 PREPARED_SOURCE = "<prepared>"
 
@@ -253,7 +254,9 @@ class ScienceStore:
                                "line": node.get("line"), "kind": node.get("kind"),
                                "instances": node.get("instances"),
                                "findings": [f.get("rule") for f in node.get("findings") or []]}
-                              for node in nodes],
+                              for node in nodes[offset:offset + GRAPH_PAGE_SIZE]],
+                    'total_nodes':len(nodes),
+                    'next_offset':offset + GRAPH_PAGE_SIZE if offset + GRAPH_PAGE_SIZE < len(nodes) else None,
                     "edges": len(graph.get("edges") or []),
                     "documents": graph.get("documents") or [],
                     "summary": graph.get("summary") or {},
@@ -339,7 +342,8 @@ class ScienceStore:
                 result["refreshed"] = True
                 result["backend_request"] = refreshed.get("backend_request")
                 result["analysis_backends"] = refreshed.get("analysis_backends", [])
-            partial = node.get('calculation', {}).get('status') == 'no_result_anchor' and not node.get('expanded')
+            calculation = node.get('calculation', {})
+            partial = (calculation.get('status') == 'no_result_anchor' or calculation.get('partial')) and not node.get('expanded')
             if node.get("path") and (not node.get("source_ids") or partial or analysis is not None):
                 # No parsed region for this node in the prepared packet, or the
                 # runner returned analyzer facts: compile the public location on
@@ -532,6 +536,7 @@ class ScienceStore:
             "computations": [{"id": c["id"], "note_target": c["id"], "name": c["name"], "body_status": c["body_status"]} for c in computations],
             "note_target": path + '#' + _scope_key(computations[0]['name']) if len(computations) == 1 else None,
             "calculation": {"status": calculation['status'], "result_ids": calculation['result_ids'],
+                            "partial": calculation['partial'],
                             "relevant_expressions": len(calculation['relevant_expression_ids']),
                             "available_expressions": len(calculation['expression_ids'])},
             "note_source_ids": sorted(visible_sources),
@@ -758,6 +763,7 @@ class ScienceStore:
                 candidate['documentation'] = '\n'.join(context['sources'][i]['text']
                     for i in complete['documentation_ids'])[:1200]
                 candidate['calculation'] = {'status':complete['status'], 'result_ids':complete['result_ids'],
+                    'partial':complete['partial'],
                     'relevant_expressions':len(complete['relevant_expression_ids']),
                     'available_expressions':len(complete['expression_ids'])}
             candidate["source_sha256"] = self._source_hash(candidate["path"])
