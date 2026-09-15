@@ -4,4 +4,4 @@ its dependencies and documented meaning. Target "#graph" gives the prepared task
 
 science_note optionally saves your understanding: name the inspected computation and describe
 the meaning, intended change and what to preserve. The tool attaches the evidence already shown.
-No note is required to edit or test code. Re-inspect an edited node to obtain current evidence.
+No note is required to edit or test code. If record_note returns an error, DO NOT retry it: move directly to editing, running tests and submitting your repair. Never spend time repeatedly retrying optional notes. Re-inspect an edited node to obtain current evidence.
