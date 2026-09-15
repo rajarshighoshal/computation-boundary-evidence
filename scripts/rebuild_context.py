@@ -5,6 +5,8 @@ import argparse
 import copy
 import json
 import shutil
+import time
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
 from scicontext.dynamic_binding import dependence_signatures
@@ -24,9 +26,12 @@ def optional(path):
 
 
 def rebuild(store: Path, output: Path, source_root=None, instruction=None):
+    started = time.monotonic()
     packet = read_json(store / "packet.json")
     original = read_json(store / "scientific-objects.json")
-    before = (optional(store / "state.json").get("scientific_graph") or {})
+    initial = store.parent / 'science-initial-state.json'
+    before_path = initial if initial.is_file() else store / 'state.json'
+    before = (optional(before_path).get("scientific_graph") or {})
     graph = copy.deepcopy(original)
     trace = store / "trace"
     records = load_trace(trace / "trace.jsonl.gz")
@@ -69,6 +74,9 @@ def rebuild(store: Path, output: Path, source_root=None, instruction=None):
                "documents": {s["id"]: s for s in packet["documents"]},
                "entities": {e["id"]: e for e in compiled["entities"]}}
     previews = [{"node": node["id"], "path": node["path"], "name": node["name"],
+                 "calculation": node.get('calculation'),
+                 "documented_context": [s for identifier in node.get('documentation_ids', [])
+                     if (s := ScienceStore._source_excerpt(context, identifier))],
                  "conditions": node.get("conditions"), "findings": node.get("findings"),
                  "observations": node.get("observations"),
                  "sources": [s for identifier in node.get("source_ids", [])[:NODE_SOURCE_PAGE]
@@ -81,6 +89,8 @@ def rebuild(store: Path, output: Path, source_root=None, instruction=None):
                 "findings": sum(len(n.get("findings") or []) for n in nodes),
                 "observations": sum(len(n.get("observations") or []) for n in nodes)}
     return {"input_store": str(store), "before": metrics(before), "after": metrics(after),
+            "before_snapshot":str(before_path), "before_snapshot_sha256":digest_file(before_path),
+            "elapsed_seconds":time.monotonic() - started,
             "source_root": str(source_root) if source_root else None,
             "rebuilt_packet_sha256": digest_file(packet_path),
             "guarded_sources_on_first_pages": sum(bool(s.get("guards")) for n in previews for s in n["sources"]),
@@ -93,27 +103,36 @@ def main():
     parser.add_argument("run", type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--tasks", nargs="*")
+    parser.add_argument('--jobs', type=int, default=1, help='Independent offline task rebuild processes')
     parser.add_argument("--source-root", type=Path, help="Optional directory of pristine public task-ID source snapshots")
     parser.add_argument("--release-receipt", type=Path,
                         default=Path(__file__).resolve().parents[1] / "data/full-119-release.json")
     args = parser.parse_args()
+    if args.jobs < 1:
+        parser.error('--jobs must be positive')
     if args.output.exists():
         raise FileExistsError("Choose a fresh output; original and prior derived artifacts stay intact")
     rows = {}
     release = read_json(args.release_receipt) if args.source_root else None
-    for store in sorted(args.run.glob("jobs/task-*-science/task_*/agent/science")):
-        task_id = store.parents[2].name.split("-")[1]
-        if args.tasks and task_id not in args.tasks:
-            continue
-        try:
-            rows[task_id] = rebuild(store, args.output / task_id,
-                source_root=args.source_root / task_id if args.source_root else None,
-                instruction=Path(release["selection_path"]) / f"task_{task_id}" / "instruction.md" if release else None)
-        except (OSError, ValueError, KeyError) as error:
-            rows[task_id] = {"error": f"{type(error).__name__}: {error}"}
-        print(task_id, json.dumps(rows[task_id].get("after", rows[task_id])), flush=True)
+    with ProcessPoolExecutor(max_workers=args.jobs) as pool:
+        pending = {}
+        for store in sorted(args.run.glob("jobs/task-*-science/task_*/agent/science")):
+            task_id = store.parents[2].name.split("-")[1]
+            if args.tasks and task_id not in args.tasks:
+                continue
+            pending[pool.submit(rebuild, store, args.output / task_id,
+                args.source_root / task_id if args.source_root else None,
+                Path(release["selection_path"]) / f"task_{task_id}" / "instruction.md" if release else None)] = task_id
+        for future in as_completed(pending):
+            task_id = pending[future]
+            try:
+                rows[task_id] = future.result()
+            except (OSError, ValueError, KeyError) as error:
+                rows[task_id] = {"error": f"{type(error).__name__}: {error}"}
+            print(task_id, json.dumps(rows[task_id].get("after", rows[task_id])), flush=True)
     source_root = Path(__file__).resolve().parents[1] / "src/scicontext"
-    report = {"tasks": rows, "source_sha256": {p.name: digest_file(p) for p in source_root.glob("*.py")},
+    report = {"tasks": rows, 'script_sha256':digest_file(Path(__file__)),
+              "source_sha256": {p.name: digest_file(p) for p in source_root.glob("*.py")},
               "scope": "Saved-public-evidence recheck; grounding counts do not establish scientific relevance."}
     write_json(args.output / "summary.json", report)
     return 1 if any("error" in row for row in rows.values()) or not rows else 0
