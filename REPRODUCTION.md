@@ -11,6 +11,14 @@ receipts; the 30-task extractor validation uses **zero model calls**.
 - `DEEPSEEK_API_KEY` in the environment (host-side only; never mounted into containers).
 - Joern on `PATH` is optional; it enables host-side C/C++/Python parsing, dataflow and the
   semantic layer of boundary classification. Fortran/MATLAB use the tree-sitter frontends.
+- Task data is not tracked in git (`data/` is ignored). Materialize it from the pinned
+  official release (commit `42e7e97`, recorded in every config) before any pilot:
+
+```bash
+.venv/bin/python scripts/restore_release.py --workspace . --task-id 001,002,058
+# restricted-license tasks additionally require --allow-restricted-licenses and the
+# SCICONSORT_RESTRICTED_OPTIN=1 opt-in environment variable at run time
+```
 
 ## 1. Verify the extractor (no model calls)
 
