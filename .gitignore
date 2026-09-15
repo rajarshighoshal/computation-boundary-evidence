@@ -18,3 +18,8 @@ auth.json
 *.auth.json
 .DS_Store
 .cache/
+
+# Working state and traces (kept on disk, not in git)
+workspace/
+.opencode-memory/
+*.log

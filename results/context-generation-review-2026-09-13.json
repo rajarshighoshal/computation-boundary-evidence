@@ -1,0 +1,260 @@
+{
+  "at": "2026-09-13T13:58:54.995757+00:00",
+  "run_root": "runs/full-119-repair",
+  "implementation_revision": "8f6f1c6700fe2b6b6c10007ab6257d19782bdc8e",
+  "selection": "Specified diagnostic cases",
+  "interpretation_limit": "Inline delivery and successful commands referencing files do not prove full reading, understanding, scientific correctness, or causal benefit.",
+  "records": [
+    {
+      "task_id": "004",
+      "status": "audited",
+      "trial": "runs/full-119-repair/jobs/task-004-science/task_004__HjfAede",
+      "prompt_bytes": 10359,
+      "guide_bytes": 8874,
+      "guide_is_inline": true,
+      "annotated_objects": 39,
+      "guide_objects": 8,
+      "all_annotation_paths": {
+        "reproduce.py": 35,
+        "source/scripts/makeBashScripts.py": 1,
+        "source/src/bamToBed/bamToBed.cpp": 3
+      },
+      "guide_annotation_paths": {
+        "reproduce.py": 8
+      },
+      "successful_artifact_reference_commands": {
+        "scientific-guide.md": [
+          {
+            "call_id": "call_00_IR2W9PDiTPzxVMfUtGZQ8310",
+            "command": "cat /opt/scicontext/context/scientific-guide.md",
+            "returned_chars": 8858
+          }
+        ],
+        "scientific-graph.json": [
+          {
+            "call_id": "call_01_5dpmumgB9QbQAQE6k6xW2820",
+            "command": "cd /opt/scicontext/context && python3 -c \"\nimport json\ng=json.load(open('scientific-graph.json'))\nprint(list(g.keys()))\n\"",
+            "returned_chars": 159
+          }
+        ],
+        "scientific-sources.json": [
+          {
+            "call_id": "call_00_4bEJssDeiD4IUiK1PXUY0024",
+            "command": "cd /opt/scicontext/context && python3 -c \"\nimport json\nd=json.load(open('scientific-sources.json'))\nprint(type(d))\nif isinstance(d,dict): print(list(d.keys())[:50])\n\"",
+            "returned_chars": 89
+          },
+          {
+            "call_id": "call_00_NALEiRxuNlAS58NS3aUh9110",
+            "command": "cd /opt/scicontext/context && python3 -c \"\nimport json\nd=json.load(open('scientific-sources.json'))\nobjs=d['objects']\nprint(type(objs), len(objs))\nif isinstance(objs,list):\n    print(json.dumps(objs[0],indent=2)[:2000])\nelif isinstance(objs,dict):\n    k=list(objs.keys())[:5]\n    for kk in k: print(kk, json.dumps(objs[kk],indent=2)[:1500])\n\"",
+            "returned_chars": 472
+          },
+          {
+            "call_id": "call_00_ET_ByO3ZqMCV4S1S7m1q1Hm7366",
+            "command": "cd /opt/scicontext/context && python3 -c \"\nimport json\nd=json.load(open('scientific-sources.json'))\nobjs=d['objects']\nimport re\nfor o in objs:\n    p=o.get('path','')\n    if 'Record.cpp' in p or 'BlockMgr' in p or 'NewChromsweep' in p or 'intersectFile' in p:\n        print(o['id'], o['kind'], p, o.get('scope'), o.get('symbol'), o.get('roles'))\n\"",
+            "returned_chars": 0
+          },
+          {
+            "call_id": "call_00_9RaB7k6b07y8OQg6UUES2264",
+            "command": "cd /opt/scicontext/context && python3 -c \"\nimport json\nd=json.load(open('scientific-sources.json'))\nobjs=d['objects']\nfrom collections import Counter\nprint(Counter(o.get('path') for o in objs))\n\"",
+            "returned_chars": 852
+          }
+        ]
+      },
+      "artifact_sha256": {
+        "runs/full-119-repair/jobs/task-004-science/task_004__HjfAede/agent/repair-prompt.txt": "a07e7ea7b85739ad5c70c7b23014021d3468dda166d1d769e66cd3836c812af3",
+        "runs/full-119-repair/jobs/task-004-science/task_004__HjfAede/agent/repair-context-scientific-guide.md": "3d662dc558d1a93af5308bbe901967831b79e95218c451f0475c78e78ad93873",
+        "runs/full-119-repair/jobs/task-004-science/task_004__HjfAede/agent/repair-context-scientific-graph.json": "83c526db43261bd4a2da47a427d87e26b58f2462b83bd05d5afbf6416776e035",
+        "runs/full-119-repair/jobs/task-004-science/task_004__HjfAede/agent/repair.jsonl": "20779e06212e22fe1caa9c1a12d45ad994ee8822c11b73d686d7c8e6b0f7a99b"
+      }
+    },
+    {
+      "task_id": "010",
+      "status": "audited",
+      "trial": "runs/full-119-repair/jobs/task-010-science/task_010__vP7bf7p",
+      "prompt_bytes": 10053,
+      "guide_bytes": 9085,
+      "guide_is_inline": true,
+      "annotated_objects": 40,
+      "guide_objects": 8,
+      "all_annotation_paths": {
+        "reproduce.py": 6,
+        "source/desc/stability/terpsichore/assembly.py": 2,
+        "source/desc/stability/terpsichore/benchmark.py": 4,
+        "source/desc/stability/terpsichore/blocks.py": 2,
+        "source/desc/stability/terpsichore/coefficients.py": 6,
+        "source/desc/stability/terpsichore/energy.py": 6,
+        "source/desc/stability/terpsichore/modes.py": 2,
+        "source/desc/stability/terpsichore/radial.py": 3,
+        "source/desc/stability/terpsichore/representation.py": 6,
+        "source/desc/stability/terpsichore/trig.py": 3
+      },
+      "guide_annotation_paths": {
+        "reproduce.py": 1,
+        "source/desc/stability/terpsichore/coefficients.py": 2,
+        "source/desc/stability/terpsichore/energy.py": 3,
+        "source/desc/stability/terpsichore/radial.py": 2
+      },
+      "successful_artifact_reference_commands": {
+        "scientific-guide.md": [
+          {
+            "call_id": "call_00_XhBbIeZD0zEPqZ37P0Xo7507",
+            "command": "cat /opt/scicontext/context/task_statement.md; echo ====; cat /opt/scicontext/context/scientific-guide.md",
+            "returned_chars": 9769
+          }
+        ],
+        "scientific-graph.json": [
+          {
+            "call_id": "call_01_lNb7AYXpkLAhI8mjoowz3371",
+            "command": "ls -la /opt/scicontext/context/ 2>/dev/null; python -c \"\nimport json\nd=json.load(open('/opt/scicontext/context/scientific-graph.json'))\nprint(type(d), list(d.keys())[:50] if isinstance(d,dict) else len(d))\n\"",
+            "returned_chars": 549
+          },
+          {
+            "call_id": "call_00_yLJczlaOgtaw42a2Vs4s9305",
+            "command": "cd /app/task_010 && python - <<'EOF'\nimport json\nd=json.load(open('/opt/scicontext/context/scientific-graph.json'))\nprint(list(d['unsupported'].keys()) if isinstance(d['unsupported'],dict) else type(d['unsupported']))\nimport pprint\nu=d['unsupported']\nprint(json.dumps(u, indent=1)[:3000])\nEOF",
+            "returned_chars": 3016
+          },
+          {
+            "call_id": "call_00_YSYUCp5jNjVRM2UBn4zL6854",
+            "command": "cd /app/task_010 && python - <<'EOF'\nimport json\nd=json.load(open('/opt/scicontext/context/scientific-graph.json'))\nprint(\"TOP KEYS\", list(d.keys()))\nfor k in d:\n    v=d[k]\n    if isinstance(v,list): print(k, \"list\", len(v))\n    elif isinstance(v,dict): print(k, \"dict\", len(v))\n    else: print(k, v)\nEOF",
+            "returned_chars": 391
+          },
+          {
+            "call_id": "call_00_ET_CjINQ8Cy8TZEko7wfBAX2264",
+            "command": "cd /app/task_010 && python - <<'EOF'\nimport json\nd=json.load(open('/opt/scicontext/context/scientific-graph.json'))\nfor sig in d['dependence_signatures']:\n    s=json.dumps(sig)\n    if any(t in s.lower() for t in ['parfac','cospar','cospr2','phase','repres','sensitiv','interval','distinct']):\n        print(json.dumps(sig, indent=1)[:1500])\n        print('---')\nEOF",
+            "returned_chars": 834
+          },
+          {
+            "call_id": "call_00_oytH96KUhL1todXom1Nf4517",
+            "command": "cd /app/task_010 && python - <<'EOF'\nimport json\nd=json.load(open('/opt/scicontext/context/scientific-graph.json'))\nfor o in d['objects']:\n    s=json.dumps(o)\n    if any(t in s.lower() for t in ['parfac','cospar','cospr2','phase','xi_basis','eta_basis']):\n        print(json.dumps(o, indent=1)[:2000]); print('======')\nEOF",
+            "returned_chars": 20255
+          },
+          {
+            "call_id": "call_00_nwFSvwoHVGq1yl8mVSIV1461",
+            "command": "cd /app/task_010 && python - <<'EOF'\nimport json\nd=json.load(open('/opt/scicontext/context/scientific-graph.json'))\nfor o in d['objects']:\n    if o.get('kind')=='constraint_locus':\n        print(\"#### \", o['id'], o['path'], o.get('scope'), o['properties'].get('constraint_type'))\n        print(json.dumps(o['properties'].get('evidence'), indent=1)[:4000])\n        print()\nEOF",
+            "returned_chars": 4751
+          },
+          {
+            "call_id": "call_00_lCW9jY2XZBsQj8H6X66J9798",
+            "command": "cd /app/task_010 && python - <<'EOF'\nimport json\nd=json.load(open('/opt/scicontext/context/scientific-graph.json'))\nprint(json.dumps(d['enrichment'], indent=1)[:3000])\nprint(\"=== QUANTITY GRAPH keys\")\nqg=d['quantity_graph']\nprint(list(qg.keys()))\nprint(json.dumps(qg, indent=1)[:3000])\nEOF",
+            "returned_chars": 1575
+          },
+          {
+            "call_id": "call_00_zFLrKPCUH3CNs6DiA1nP3259",
+            "command": "cd /app/task_010 && python - <<'EOF'\nimport json\nd=json.load(open('/opt/scicontext/context/scientific-graph.json'))\nobjs={o['id']:o for o in d['objects']}\nids=d['enrichment']['applied_object_ids']\nfor i in ids:\n    o=objs.get(i)\n    if o is None: \n        print(\"MISSING\",i); continue\n    interp=o.get('interpretation',{})\n    print(\"###\", i, o.get('kind'), o.get('path'), o.get('scope'))\n    print(\"MEANING:\", interp.get('meaning','')[:900])\n    print()\nEOF",
+            "returned_chars": 21909
+          },
+          {
+            "call_id": "call_00_nN3oop6H2xcG6YibQiiW6571",
+            "command": "cd /app/task_010 && python - <<'EOF'\nimport json\nd=json.load(open('/opt/scicontext/context/scientific-graph.json'))\nprint(json.dumps(d['dynamic'], indent=1)[:6000])\nEOF",
+            "returned_chars": 193
+          },
+          {
+            "call_id": "call_00_zCpmo7WTGzlkteckvO8s1202",
+            "command": "cd /app/task_010 && python - <<'EOF'\nimport json\nd=json.load(open('/opt/scicontext/context/scientific-graph.json'))\nobjs={o['id']:o for o in d['objects']}\nrep_ids=[i for i,o in objs.items() if o.get('path','').endswith('representation.py')]\nprint(\"rep ids:\",rep_ids)\nfor l in d['links']:\n    s=json.dumps(l)\n    if any(i in s for i in rep_ids) or 'parfac' in s or 'xi_basis' in s:\n        print(json.dumps(l,indent=1))\nEOF",
+            "returned_chars": 2478
+          },
+          {
+            "call_id": "call_00_uAAIh7fPdl1AsZkhXwrj4732",
+            "command": "cd /app/task_010 && python - <<'EOF'\nimport json\nd=json.load(open('/opt/scicontext/context/scientific-graph.json'))\nobjs={o['id']:o for o in d['objects']}\nfor i in ['so_d11383a742f5412b445a2d1b','so_de7a0c24b7e6481b03857f9e','so_7cbaa9c4ce7d709ac7b387d7','so_20d2d82b1bf8ae8118029be4','so_3c42cde981875b18b0ccecd3','so_d5610a8289a5faff56271261','so_ad9f5cb2035c095cd94c8cd3']:\n    o=objs.get(i)\n    if not o: print(i,\"missing\"); continue\n    print(\"###\",i,o.get('kind'),o.get('path'),o.get('scope'))\n    print(json.dumps(o.get('interpretation',{}),indent=1)[:1200])\n    print('props',json.dumps(o.get('properties',{}))[:300])\n    print()\nEOF",
+            "returned_chars": 2441
+          }
+        ],
+        "scientific-sources.json": [
+          {
+            "call_id": "call_00_TwCY8DyZ7V71E9AHIV0i2267",
+            "command": "cd /app/task_010 && python - <<'EOF'\nimport json\nd=json.load(open('/opt/scicontext/context/scientific-sources.json'))\nprint(list(d.keys()))\ndef walk(o, path=\"\"):\n    if isinstance(o,dict):\n        for k,v in o.items():\n            walk(v, path+\"/\"+k)\n    elif isinstance(o,list):\n        for i,v in enumerate(o):\n            walk(v, path+f\"[{i}]\")\n    else:\n        pass\n# print top structure\nprint(json.dumps({k:(type(v).__name__, (len(v) if isinstance(v,(list,dict)) else v)) for k,v in d.items()}, indent=1)[:2000])\nEOF",
+            "returned_chars": 283
+          },
+          {
+            "call_id": "call_00_ET_QzQvCVR9qkRHVxmlb2Sa3871",
+            "command": "cd /app/task_010 && python - <<'EOF'\nimport json\nd=json.load(open('/opt/scicontext/context/scientific-sources.json'))\nc=d['context']\nprint(list(c.keys()))\nfor k,v in c.items():\n    print(k, type(v), len(v) if hasattr(v,'__len__') else v)\n    if isinstance(v,list):\n        print(json.dumps(v[0], indent=1)[:800])\nEOF",
+            "returned_chars": 1202
+          },
+          {
+            "call_id": "call_00_8dTKqcfqcJuVd155XVlm6664",
+            "command": "cd /app/task_010 && python - <<'EOF'\nimport json\nd=json.load(open('/opt/scicontext/context/scientific-sources.json'))\nfor p in d['context']['scientific_passages']:\n    print(\"====\",p.get('id'),p.get('path'))\n    print(p.get('quote','')[:2500])\nEOF",
+            "returned_chars": 21696
+          },
+          {
+            "call_id": "call_00_48gyKOOcg1OjDeaMmMZm1508",
+            "command": "cd /app/task_010 && python - <<'EOF'\nimport json, collections\nd=json.load(open('/opt/scicontext/context/scientific-sources.json'))\npaths=collections.Counter(p['path'] for p in d['context']['code_passages'])\nfor k,v in sorted(paths.items()): print(v,k)\nEOF",
+            "returned_chars": 947
+          }
+        ]
+      },
+      "artifact_sha256": {
+        "runs/full-119-repair/jobs/task-010-science/task_010__vP7bf7p/agent/repair-prompt.txt": "03f4bfd6aaf3e830cbcffd37a17e29cec74ca626bb47d8c71d1e25d54079a3cb",
+        "runs/full-119-repair/jobs/task-010-science/task_010__vP7bf7p/agent/repair-context-scientific-guide.md": "ff207da1963ebb12fb08f8235203ca7511138a08d3d27935af4314e2be22e09a",
+        "runs/full-119-repair/jobs/task-010-science/task_010__vP7bf7p/agent/repair-context-scientific-graph.json": "c1f8ea95f8c4ab030c8fe1634ac544e3391f551017f81ac4e78df62cf89d2209",
+        "runs/full-119-repair/jobs/task-010-science/task_010__vP7bf7p/agent/repair.jsonl": "5871d58f1fb3a578684128aa40306859489d853599b0dd17f2932fce36ee1b4b"
+      }
+    },
+    {
+      "task_id": "019",
+      "status": "audited",
+      "trial": "runs/full-119-repair/jobs/task-019-science/task_019__uB5s7zJ",
+      "prompt_bytes": 9461,
+      "guide_bytes": 7221,
+      "guide_is_inline": true,
+      "annotated_objects": 40,
+      "guide_objects": 8,
+      "all_annotation_paths": {
+        "reproduce.py": 33,
+        "source/src/pycisTopic/topic_binarization.py": 4,
+        "source/src/pycisTopic/utils.py": 2,
+        "source/src/pyscenic/binarization.py": 1
+      },
+      "guide_annotation_paths": {
+        "reproduce.py": 8
+      },
+      "successful_artifact_reference_commands": {
+        "scientific-guide.md": [
+          {
+            "call_id": "call_00_htZPMvw42ArO8NuqMm6Z5648",
+            "command": "cd /app/task_019; cat /opt/scicontext/context/scientific-guide.md; echo \"====TASKSTATEMENT\"; cat /opt/scicontext/context/task_statement.md",
+            "returned_chars": 9191
+          }
+        ],
+        "scientific-graph.json": [],
+        "scientific-sources.json": [
+          {
+            "call_id": "call_00_SQjQxLkkMKQEHnz63hXX3737",
+            "command": "cd /opt/scicontext/context; python - <<'EOF'\nimport json\nsrc=json.load(open('scientific-sources.json'))\nprint(type(src))\nif isinstance(src,dict):\n    print(list(src.keys())[:20])\nEOF",
+            "returned_chars": 89
+          },
+          {
+            "call_id": "call_00_ET_jUPN9RoUq7QjQDNOgVkw3448",
+            "command": "cd /opt/scicontext/context; python - <<'EOF'\nimport json\nsrc=json.load(open('scientific-sources.json'))\nprint(json.dumps(src['context'], indent=1)[:3000])\nprint(\"=== links keys\", type(src['links']))\nEOF",
+            "returned_chars": 3031
+          },
+          {
+            "call_id": "call_00_QEayfrTgHxVs3cXP1DsX7870",
+            "command": "cd /opt/scicontext/context; grep -o \"write_topic_sets\" scientific-sources.json | head; echo \"---\"; grep -o \"cell_or_region_topic_prob\" scientific-sources.json | head; echo \"--- count passages\"; python - <<'EOF'\nimport json\nsrc=json.load(open('scientific-sources.json'))\nprint(\"n code_passages\", len(src['context']['code_passages']))\nimport collections\npaths=collections.Counter(p['path'] for p in src['context']['code_passages'])\nprint(paths)\nEOF",
+            "returned_chars": 1369
+          },
+          {
+            "call_id": "call_00_jMCeloWmLE8GbgxsmGsg9487",
+            "command": "cd /opt/scicontext/context; python - <<'EOF'\nimport json\nsrc=json.load(open('scientific-sources.json'))\nps=src['context']['code_passages']\nfor p in ps:\n    t=p['text']\n    if 'write_topic_sets' in t or ('binarize_topics' in t and 'cell_or_region' in t):\n        print(p['path'], p['start_line'], p['end_line'], repr(t[:300]))\n        print('---')\nEOF",
+            "returned_chars": 0
+          },
+          {
+            "call_id": "call_00_bB1nk9eFXWtEuhrgiBSF3252",
+            "command": "cd /opt/scicontext/context; python - <<'EOF'\nimport json,re\nraw=open('scientific-sources.json').read()\nfor m in re.finditer(r'write_topic_sets', raw):\n    print(raw[max(0,m.start()-300):m.start()+300].replace('\\\\n','\\n'))\n    print(\"=========\")\nEOF",
+            "returned_chars": 2444
+          },
+          {
+            "call_id": "call_00_kciui2f0Op4b5Df8Hg5D2324",
+            "command": "cd /opt/scicontext/context; python - <<'EOF'\nimport json,re\nraw=open('scientific-sources.json').read()\nseen=set()\nfor m in re.finditer(r'cell_or_region_topic_prob', raw):\n    s=m.start()\n    key=s//1000\n    print(raw[max(0,s-200):s+200].replace('\\\\n','\\n'))\n    print(\"=========\")\n    if len(seen)>12: break\n    seen.add(key)\nEOF",
+            "returned_chars": 2873
+          }
+        ]
+      },
+      "artifact_sha256": {
+        "runs/full-119-repair/jobs/task-019-science/task_019__uB5s7zJ/agent/repair-prompt.txt": "25fbf55de4a5a30d0590a46d24b81aa11d2b20559de846529db2dcca7a5ea081",
+        "runs/full-119-repair/jobs/task-019-science/task_019__uB5s7zJ/agent/repair-context-scientific-guide.md": "fa2b03c8d19523db0c204b1fb25373bf6e723ed2e434c080bb7735a73c039392",
+        "runs/full-119-repair/jobs/task-019-science/task_019__uB5s7zJ/agent/repair-context-scientific-graph.json": "99b6bfd78c6d1a64ffecb15457516b2ea48e6f7fd7e2fb64649ae220bca53eed",
+        "runs/full-119-repair/jobs/task-019-science/task_019__uB5s7zJ/agent/repair.jsonl": "c82bdecb3aca81785e17bb8ee85ef01f3ba037ada727e09b65cb3f18f5cc4daa"
+      }
+    }
+  ]
+}
