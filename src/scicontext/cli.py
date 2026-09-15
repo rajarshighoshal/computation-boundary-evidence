@@ -123,6 +123,14 @@ def _interrupt_schedule(signum, frame):
     raise KeyboardInterrupt(f"Received signal {signum}")
 
 
+def _head_revision(workspace: Path) -> str | None:
+    """Current git HEAD for the workspace, or None when it is not a git checkout."""
+    if not (workspace / ".git").is_dir():
+        return None
+    return subprocess.run(["git", "rev-parse", "HEAD"], cwd=workspace, check=True,
+                          capture_output=True, text=True).stdout.strip()
+
+
 _CONTAINER_INSPECT_FORMAT = (
     '{"id":{{json .Id}},"running":{{json .State.Running}},'
     '"project":{{json (index .Config.Labels "com.docker.compose.project")}},'
@@ -439,12 +447,14 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
             nonlocal current, task_row, return_code
             current = item
             item.update({"status": "running", "phase": "preparing", "started_at": utc_now()})
-            if (workspace / ".git").is_dir():
-                revision = subprocess.run(["git", "rev-parse", "HEAD"], cwd=workspace, check=True,
-                                          capture_output=True, text=True).stdout.strip()
+            revision = _head_revision(workspace)
+            if revision is not None:
+                # Trials execute from the frozen source snapshot (PYTHONPATH below), so a
+                # moving HEAD cannot change what runs. Record the drift instead of aborting;
+                # commits during a run are expected and harmless.
+                item["head_at_launch"] = revision
                 if revision != plan["implementation_revision"]:
-                    raise RuntimeError("Implementation moved during the run; attempts are frozen to "
-                                       f"{plan['implementation_revision'][:12]} but HEAD is {revision[:12]}")
+                    item["head_drift"] = {"frozen": plan["implementation_revision"], "head": revision}
             write_json(output / "schedule.json", plan)
             return_code = None
             task, condition = item["task_id"], item["condition"]

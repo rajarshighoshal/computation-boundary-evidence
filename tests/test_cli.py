@@ -564,3 +564,16 @@ def test_container_cleanup_deadline_is_explicit_and_bounded(workspace, monkeypat
     assert result["status"] == "incomplete"
     assert "45-second allowance" in result["errors"][0]
     assert docker.calls == []
+
+
+def test_head_revision_reads_git_and_tolerates_plain_directories(tmp_path):
+    plain = tmp_path / "plain"
+    plain.mkdir()
+    assert cli._head_revision(plain) is None
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    subprocess.run(["git", "-c", "user.email=t@example.com", "-c", "user.name=t",
+                    "commit", "-q", "--allow-empty", "-m", "init"], cwd=repo, check=True)
+    revision = cli._head_revision(repo)
+    assert revision is not None and len(revision) == 40

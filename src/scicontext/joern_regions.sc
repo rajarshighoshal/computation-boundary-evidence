@@ -6,7 +6,7 @@ import io.shiftleft.semanticcpg.language.*
 import java.nio.file.{Files, Path, Paths}
 
 @main def exec(cpgFile: String, regionsFile: String, outFile: String,
-               maxNodes: Int = 4000, maxEdges: Int = 20000) = {
+               maxNodes: Int = 16000, maxEdges: Int = 60000) = {
   val graph = Cpg.withStorage(Paths.get(cpgFile), false)
   try {
     val requests = ujson.read(Files.readString(Path.of(regionsFile)))("regions").arr
