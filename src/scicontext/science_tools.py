@@ -16,7 +16,7 @@ from . import evidence
 from .io import digest_json, read_json, write_json
 from .language_frontends import extract_native_evidence, source_language
 from .object_context import enrichment_input, object_bundle
-from .representation import reading_input
+from .representation import computation_slice, reading_input
 from .scientific_graph import admit_selected_sources, build_graph, _scope_key
 from .scientific_model import VERSION, schema
 from .scientific_objects import extract_objects
@@ -24,13 +24,13 @@ from .scientific_objects import extract_objects
 MAX_FILES = 20000
 PAGE_SIZE = 6
 MAX_FIND_RESULTS = 12
-NODE_SOURCE_PAGE = 2
+NODE_SOURCE_PAGE = 6
 NODE_SOURCE_CHARS = 1500
 PREPARED_SOURCE = "<prepared>"
 
 
 NOTE_PROPERTIES = {
-    "target": {"type": "string", "minLength": 1, "description": "Copy note_target from science_inspect; do not invent a computation ID."},
+    "target": {"type": "string", "minLength": 1, "description": "The inspected function name or source target."},
     "meaning": {"type": "string", "minLength": 1, "description": "Brief scientific meaning of this computation and its quantities."},
     "expected_change": {"type": "string", "minLength": 1, "description": "The behaviour the repair should change."},
     "preserve": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1},
@@ -53,11 +53,11 @@ def tool_definitions():
         tool("science_find", "Find scientific computations or public evidence by name, phrase or path.",
              {"query": {"type": "string", "description": "For example: energy balance, a function name, or a file path."},
               "offset": {"type": "integer", "minimum": 0}}, ["query"]),
-        tool("science_inspect", "Read the prepared graph with target '#graph', or inspect a returned node/callable for computations, conditions and evidence. Edited sources are refreshed. No candidate code is executed.",
-             {"target": {"type": "string", "description": "Returned node/ID, relative path, path:line or path#symbol."},
+        tool("science_inspect", "Inspect a function or source target for its result calculation, dependencies and documented meaning. Use '#graph' for the task overview. Edited sources are refreshed; no candidate code is executed.",
+             {"target": {"type": "string", "description": "Function name, returned source target, relative path, path:line or path#symbol."},
               "view": {"type": "string", "enum": ["relationships", "definitions", "source"], "default": "relationships"},
               "offset": {"type": "integer", "minimum": 0}}, ["target"]),
-        tool("science_note", "Optionally save a short scientific note about an inspected computation. Copy note_target and supply plain text; the tool attaches displayed evidence and handles IDs/storage. Recording is never required for repair.",
+        tool("science_note", "Optionally describe an inspected computation: its meaning, intended change and what to preserve. Use its function name or source target; supporting evidence is attached automatically. Recording never gates repair.",
              NOTE_PROPERTIES, NOTE_REQUIRED),
     ]
 
@@ -173,7 +173,7 @@ class ScienceStore:
     def find(self, query, offset=0):
         if not isinstance(query, str) or not query.strip():
             raise ValueError("Supply a symbol, scientific phrase or path")
-        words = set(re.findall(r"[^\W_]+", query.casefold())) - {"the", "and", "of", "for", "in"}
+        words = set(re.findall(r"[^\W_]+", query.casefold())) - {"the", "and", "of", "for", "in", "how", "what", "which", "is", "are", "does", "this", "it"}
         hits = []
         # Search prepared graph nodes first: node IDs are the citable targets.
         graph = self.state.get("scientific_graph") or {}
@@ -183,6 +183,7 @@ class ScienceStore:
             searchable = " ".join(filter(None, [
                 node.get("name", ""), node.get("signature", ""), node.get("path", ""),
                 quantity_names, " ".join(node.get("conditions") or []),
+                node.get('documentation', ''),
                 " ".join(f.get("type", "") for f in node.get("findings", []))]))
             terms = set(re.findall(r"[^\W_]+", searchable.casefold()))
             overlap = len(words & terms)
@@ -192,7 +193,7 @@ class ScienceStore:
                 excerpt = f"{node.get('name', '')} @ {node.get('path', '')}:{node.get('line', 0)}"
                 if findings:
                     excerpt += f" — findings: {findings}"
-                hits.append((overlap * 10 + 20, node["id"], excerpt, "scientific_node"))
+                hits.append((overlap * 10 + 20, self._node_target(node), excerpt, "scientific_node"))
         for path in self.state["files"]:
             # Discovery is language-independent. Parsing capability determines
             # the inspect view, not whether public text can be found at all.
@@ -214,6 +215,15 @@ class ScienceStore:
                                             for _, target, excerpt, kind in page],
                 "total_matches": len(hits), "next_offset": offset + len(page) if offset + len(page) < len(hits) else None,
                 "scope": "Lexical discovery, not a scientific relevance verdict. Explicit paths remain inspectable outside the index."}
+
+    @staticmethod
+    def _node_target(node):
+        return node['path'] + ('#' + node['name'] if node.get('name') not in {None, '<module>', '<script>'}
+                               else ':' + str(node.get('line') or 1))
+
+    def _named_nodes(self, target):
+        return [node for node in (self.state.get('scientific_graph') or {}).get('nodes', [])
+                if target in {node['id'], node.get('name'), self._node_target(node)}]
 
     def _target(self, target):
         if not isinstance(target, str) or not target:
@@ -239,7 +249,7 @@ class ScienceStore:
                 return {"status": "empty", "note": "No prepared graph in this store; find/inspect the file index "
                                                    "and record the model from inspected sources."}
             return {"status": "ok", "type": "scientific_graph",
-                    "nodes": [{"id": node["id"], "name": node.get("name"), "path": node.get("path"),
+                    "nodes": [{"id": node["id"], "target": self._node_target(node), "name": node.get("name"), "path": node.get("path"),
                                "line": node.get("line"), "kind": node.get("kind"),
                                "instances": node.get("instances"),
                                "findings": [f.get("rule") for f in node.get("findings") or []]}
@@ -251,6 +261,17 @@ class ScienceStore:
                             "inspect returned path:line targets for uncompiled detail."}
         # Scientific graph nodes are inspected from the prepared representation.
         graph_nodes = {n["id"]: n for n in graph.get("nodes", [])}
+        named = self._named_nodes(target) if not exact_symbol else []
+        if len(named) == 1:
+            target = named[0]['id']
+        elif len(named) > 1:
+            return {'status':'ambiguous_target', 'targets':[self._node_target(n) for n in named]}
+        elif isinstance(target, str) and ' ' in target and target not in self.state['files']:
+            found = self.find(target)
+            matches = [m for m in found['matches'] if m['kind'] == 'scientific_node']
+            if len(matches) == 1:
+                return self.inspect(matches[0]['target'], view, offset, analysis)
+            return {**found, 'status':'choose_computation', 'query':target}
         if target in graph_nodes:
             node = graph_nodes[target]
             refreshed = None
@@ -272,6 +293,8 @@ class ScienceStore:
             source_ids = node.get("source_ids") or []
             page = source_ids[offset:offset + NODE_SOURCE_PAGE] if type(offset) is int and offset >= 0 else []
             shown_sources = [item for item in (self._source_excerpt(context, identifier) for identifier in page) if item]
+            documented = [item for item in (self._source_excerpt(context, identifier)
+                          for identifier in node.get('documentation_ids', [])) if item]
             entities = []
             for identifier in node.get("entity_ids") or []:
                 record = context["entities"].get(identifier) or context["objects"].get(identifier)
@@ -286,7 +309,7 @@ class ScienceStore:
             registered = ([node.get("computation_id")] + [item["id"] for item in entities]
                           + [item["id"] for item in quantities if item.get("id")])
             self._visible([identifier for identifier in registered if identifier],
-                          self._shown_source_ids(shown_sources))
+                          self._shown_source_ids([*shown_sources, *documented]))
             result = {"status": "ok", "target": target, "type": "scientific_node",
                       "name": node.get("name", ""), "path": node.get("path", ""),
                       "line": node.get("line", 0), "kind": node.get("kind", ""),
@@ -298,6 +321,10 @@ class ScienceStore:
                       "operations": node.get("operations") or {}, "computation_id": node.get("computation_id"),
                       "entities": entities,
                       "sources": shown_sources,
+                      "documented_context": documented,
+                      "calculation": node.get('calculation', {}),
+                      "calculation_relationships": [r for r in context.get('relations', [])
+                          if r['source'] in page or r['target'] in page],
                       "source_total": len(source_ids),
                       "next_offset": offset + len(page) if offset + len(page) < len(source_ids) else None,
                       "dependencies": [e for e in graph.get("edges", [])
@@ -312,12 +339,13 @@ class ScienceStore:
                 result["refreshed"] = True
                 result["backend_request"] = refreshed.get("backend_request")
                 result["analysis_backends"] = refreshed.get("analysis_backends", [])
-            if node.get("path") and (not node.get("source_ids") or analysis is not None):
+            partial = node.get('calculation', {}).get('status') == 'no_result_anchor' and not node.get('expanded')
+            if node.get("path") and (not node.get("source_ids") or partial or analysis is not None):
                 # No parsed region for this node in the prepared packet, or the
                 # runner returned analyzer facts: compile the public location on
                 # demand so citations are real and the graph expands.
                 try:
-                    detail = self.inspect(f"{node['path']}:{node.get('line') or 1}", "relationships", 0, analysis)
+                    detail = self.inspect(self._node_target(node), "relationships", 0, analysis, exact_symbol=True)
                     result["evidence"] = {key: detail.get(key) for key in
                                           ("target", "computations", "quantities_and_expressions",
                                            "relationships", "sources", "coverage")}
@@ -334,8 +362,8 @@ class ScienceStore:
             if view == "source":
                 result["source"] = self._node_source(node)  # Includes evidence just compiled above.
                 self._visible([], self._shown_source_ids(result["source"]))
-            result["note_target"] = target if node.get("computation_id") else None
-            note_sources = [*shown_sources, *result.get("source", []), *result.get("evidence", {}).get("sources", [])]
+            result["note_target"] = self._node_target(node) if node.get("computation_id") else None
+            note_sources = [*shown_sources, *documented, *result.get("source", []), *result.get("evidence", {}).get("sources", [])]
             result["note_source_ids"] = sorted(self._shown_source_ids(note_sources) & set(self.state["visible_sources"]))
             return result
         path, line, symbol = self._target(target)
@@ -354,6 +382,7 @@ class ScienceStore:
                 tree = ast.parse(text, filename=path)
             except SyntaxError:
                 language = None  # Keep a source-only inspectable computation.
+        owner = None
         if tree is not None:
             definitions = []
             def walk(node, owner=""):
@@ -448,10 +477,12 @@ class ScienceStore:
         entities = {e["id"]: e for e in compiled["entities"]}
         templates = {t["id"]: t for t in compiled["templates"]}
         computations = compiled["computations"]
-        roots = [e for e in compiled["entities"] if e.get("kind") == "source_computation"]
+        calculation = computation_slice(compiled, entities)
+        roots = [entities[i] for i in calculation['expression_ids']]
         base = next((i for i, e in enumerate(roots) if e["id"] == target), None)
         if base is None:
-            base = next((i for i, e in enumerate(roots) if any(sources[s]["start_line"] >= line for s in e["source_ids"])), 0)
+            base = 0 if symbol or owner is not None else next((i for i, e in enumerate(roots)
+                if any(sources[s]["start_line"] >= line for s in e["source_ids"])), 0)
         page_start = offset if offset else base
         page = roots[page_start:page_start+PAGE_SIZE]
         page_ids = {e["id"] for e in page}
@@ -499,7 +530,10 @@ class ScienceStore:
             "analysis_backends": [a["backend"] for a in (analysis or {}).get("analyses", [])],
             "analysis_gaps": (analysis or {}).get("gaps", []),
             "computations": [{"id": c["id"], "note_target": c["id"], "name": c["name"], "body_status": c["body_status"]} for c in computations],
-            "note_target": computations[0]["id"] if len(computations) == 1 else None,
+            "note_target": path + '#' + _scope_key(computations[0]['name']) if len(computations) == 1 else None,
+            "calculation": {"status": calculation['status'], "result_ids": calculation['result_ids'],
+                            "relevant_expressions": len(calculation['relevant_expression_ids']),
+                            "available_expressions": len(calculation['expression_ids'])},
             "note_source_ids": sorted(visible_sources),
             "quantities_and_expressions": shown,
             "templates": displayed_templates,
@@ -628,7 +662,7 @@ class ScienceStore:
         The node inspector shows and registers only what this context holds, so
         registered citations always correspond to displayed content.
         """
-        context = {"sources": {}, "documents": {}, "objects": {}, "operations": {}, "entities": {}, "computations": {}}
+        context = {"sources": {}, "documents": {}, "objects": {}, "operations": {}, "entities": {}, "computations": {}, 'relations': []}
         for payload in self._current_payloads()[0]:
             for entry in (payload.get("context") or {}).get("code_passages") or []:
                 if entry.get("id"):
@@ -644,6 +678,10 @@ class ScienceStore:
                     context["operations"][item["id"]] = item
             try:
                 compiled = reading_input(payload)
+                for item in compiled['sources']:
+                    if item['id'] in context['sources']:
+                        context['sources'][item['id']].update(item)
+                context['relations'].extend(compiled['relations'])
                 for item in compiled["entities"]:
                     if item.get("id"):
                         context["entities"][item["id"]] = item
@@ -697,7 +735,7 @@ class ScienceStore:
                     **{key: copy.deepcopy(candidate.get(key)) for key in ("arguments", "findings", "observations", "instances")}})
                 candidate.update(arguments=None, findings=[], observations=[], instances=None, conditions=[],
                                  operations={}, quantities=[], signature=None)
-            candidate["source_ids"] = sorted((set() if replace else set(candidate.get("source_ids") or [])) | set(source_ids))
+            candidate["source_ids"] = list(dict.fromkeys([*source_ids, *([] if replace else candidate.get('source_ids') or [])]))
             entity_ids = computation_ids + [item["id"] for item in detail.get("quantities_and_expressions", [])]
             candidate["entity_ids"] = sorted((set() if replace else set(candidate.get("entity_ids") or [])) | set(entity_ids))
             normalize = lambda value: re.sub(r"@\d+(?::\d+)?", "", _scope_key(value))
@@ -707,6 +745,21 @@ class ScienceStore:
                 candidate["computation_id"] = named[0] if len(named) == 1 else computation_ids[0]
             elif replace:
                 candidate["computation_id"] = None
+            # The response is one page. Backing storage must retain the complete
+            # current cached computation, otherwise refresh silently cuts chains.
+            context = self._prepared_context()
+            computation = context['computations'].get(candidate.get('computation_id'))
+            if computation:
+                view = {'entities':list(context['entities'].values()),
+                        'sources':list(context['sources'].values()), 'relations':context['relations']}
+                complete = computation_slice(view, computation['entity_ids'])
+                candidate['source_ids'] = complete['source_ids']
+                candidate['documentation_ids'] = complete['documentation_ids']
+                candidate['documentation'] = '\n'.join(context['sources'][i]['text']
+                    for i in complete['documentation_ids'])[:1200]
+                candidate['calculation'] = {'status':complete['status'], 'result_ids':complete['result_ids'],
+                    'relevant_expressions':len(complete['relevant_expression_ids']),
+                    'available_expressions':len(complete['expression_ids'])}
             candidate["source_sha256"] = self._source_hash(candidate["path"])
             if replace:
                 candidate["line"] = detail.get("target", {}).get("start_line", candidate["line"])
@@ -714,6 +767,8 @@ class ScienceStore:
                 candidate["conditions"] = sorted({source["text"] for source in detail.get("sources", [])
                     if any(ref.get("predicate_id") == source["id"] for item in detail.get("quantities_and_expressions", []) for ref in item.get("condition_refs", []))})
             candidate["expanded"] = True
+            if not computation:
+                candidate['calculation'] = detail.get('calculation', candidate.get('calculation', {}))
             if detail.get("analysis_backends"):
                 candidate["analysis_backends"] = detail["analysis_backends"]
         self.state["scientific_graph"] = graph
@@ -783,16 +838,25 @@ class ScienceStore:
             location = ".".join(map(str, error.absolute_path)) or "note"
             raise ValueError(f"Invalid {location}: {error.message}")
         target = request["target"]
-        node = next((n for n in (self.state.get("scientific_graph") or {}).get("nodes", []) if n["id"] == target), None)
+        named = self._named_nodes(target)
+        if len(named) > 1:
+            raise ValueError('Function name is ambiguous; use its source path and name.')
+        node = named[0] if named else None
         context = self._prepared_context()
         identifier = node.get("computation_id") if node else target
+        if node is None and '#' in target:
+            path, symbol = target.rsplit('#', 1)
+            matches = [c['id'] for c in context['computations'].values() if _scope_key(c['name']) == symbol
+                       and any(context['sources'].get(s, {}).get('path') == path for s in c.get('source_ids', []))]
+            if len(matches) == 1:
+                identifier = matches[0]
         if identifier not in context["computations"] and context["entities"].get(identifier, {}).get("kind") != "source_computation":
             raise ValueError("Inspect the target with science_inspect, then copy its note_target and note_source_ids.")
         visible = set(self.state["visible_sources"])
         current_sources = set(context["sources"]) | set(context["documents"])
         resolved = set()
         nodes = {n["id"]: n for n in (self.state.get("scientific_graph") or {}).get("nodes", [])}
-        for reference in request.get("source_ids", [target]):
+        for reference in request.get("source_ids", [identifier]):
             if reference in visible & current_sources:
                 resolved.add(reference)
                 continue
@@ -840,12 +904,14 @@ class ScienceStore:
             if chosen is None:
                 result["steps"]["inspect"] = {"status": "no_citable_node"}
                 return result
+            before_visible = set(self.state['visible_sources'])
             detail = self.inspect(chosen["id"])
-            shown = self._shown_source_ids(detail.get("sources") or [])
+            shown = self._shown_source_ids([*(detail.get('sources') or []),
+                *(detail.get('documented_context') or []), *((detail.get('evidence') or {}).get('sources') or [])])
             result["steps"]["inspect"] = {
                 "status": detail.get("status"), "node": chosen["id"],
                 "sources_shown": len(shown),
-                "registered_matches_shown": shown <= set(self.state["visible_sources"])}
+                "registered_matches_shown": (set(self.state['visible_sources']) - before_visible) == (shown - before_visible)}
             barren = next((n for n in nodes if not n.get("source_ids")), None)
             if barren is not None:
                 expansion = self.inspect(barren["id"])
@@ -866,7 +932,8 @@ class ScienceStore:
                     result["steps"]["record"] = {"status": recorded.get("status")}
                 except ValueError as error:
                     result["steps"]["record"] = {"status": "error", "error": str(error)[:300]}
-                unseen = [identifier for identifier in chosen.get("source_ids") or [] if identifier not in shown]
+                current = self._prepared_context()
+                unseen = sorted((set(current['sources']) | set(current['documents'])) - set(self.state['visible_sources']))
                 if unseen:
                     bad = {"text": "unseen", "source_ids": [unseen[0]]}
                     bad_model = {"purpose": bad, "expected_change": bad, "preserve": [bad],

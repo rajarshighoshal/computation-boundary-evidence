@@ -9,16 +9,55 @@ Rajarshi owns scientific decisions. Root is the only code writer; reviewers are 
 Preserve unrelated untracked PDF, REPRODUCTION.md, paper/, results, docs and workspace files.
 Git, run receipts and this ledger take precedence over older model-written memory.
 
-## Approved work now: broader frozen validation
+## Active: finish computation selection and validate the scientific treatment
+User approved the remaining targeted work and asked for speed (15Sep2026).
+- [verified] Root implemented result/dependency-first evidence selection before truncation; follow
+  wrapper paths into computations; make partial views expandable. Keep the current graph,
+  parsers/Joern, public-document evidence, query tools and harness. No task-ID rules, invented
+  science, mandatory gate, new agent framework or manual citation bookkeeping for the model.
+- [verified] 684 tests pass. New regressions cover setup distraction, wrapper routes, in-place
+  outputs/index producers, loop-carried candidates, native loop spans, natural-name queries,
+  attached docstrings and complete post-edit pagination. Independent reviewers reproduced
+  and verified the fixes; no new semantic certainty is claimed from selection metadata.
+- [active] Rebuild/review the same30 development tasks offline; compare actual calculation and
+  documented-context coverage with the saved initial snapshots. Preserve gaps/failures.
+- [next] DeepSeek V4.1 Flash/high matched paired E2E check, then the approved40-concurrent
+  development workload after the smaller check works. Verify tool delivery/use, outcomes,
+  input/output/reasoning tokens, retries and work/wall time. No commits while runs are live.
+- [pending] Freeze the corrected method/evaluation configuration, run the agreed evaluation,
+  analyze and produce the report/reproduction package. Do not substitute infrastructure results.
+Final verification: useful task-level computations and evidence in the30-task audit, paired
+official verifier results, actual full-pipeline capacity, independently recomputed receipts.
+Root is the sole writer; reviewer agents inspect bounded parts and do not change the checkout.
+
+## Completed: DeepSeek V4.1 Flash provider check
+User approved trying V4.1 Flash after confirming that original V4 Flash is retired on the direct API.
+- [verified] One tiny health request through the existing DeepSeek adapter, then one batch of40
+  simultaneous tiny requests only if the first succeeds. Model deepseek-flash, high effort (the
+  existing DeepSeek setting), max1024 output tokens/request,120s request work with the existing
+  five retries. No benchmark rerun, Docker operations, scientific-method edits or harness change.
+- [verified] All41 returned HTTP200 on first attempt, zero retries/429s; peak40 client HTTP
+  requests in flight, batch2.2698s, total4.0606s. Tokens1435input/982output including857reasoning;
+  estimated off-peak cost USD0.00080445. Two replies were READY. rather than READY; preserve
+  the raw strict-answer status as failed, separate from successful provider transport.
+- [verified] Independent reviewer reproduced counts, timings, usage and cost from receipts.
+Final verification passed for provider transport only: runs/deepseek-v41-capacity-check-v1/summary.json.
+This is not40 complete repair/verifier trials. Scientific selection work is now approved above.
+
+## Broader frozen validation: stopped; audit handoff pending
 User explicitly approved the30-task graph audit and40-concurrent E2E development test ASAP.
 - [verified] GLM Flash/low config for ALL30 development tasks, baseline+science (60 attempts),
   40 TOTAL simultaneous trials;1800s work and separate1800s official verifier. Full suite665
   passes; independent instrumentation review passes. Full initial state is snapshotted before
   inference for the audit (not added to the prompt). Config: configs/glm-development-e2e-40.json.
-- [active] Run/monitor this frozen workload (Luna/xhigh run manager); no code commits while live.
-  Record actual concurrency, memory/OOM/provider failures, usage and teardown. Normal task
-  failures continue; a confirmed shared-resource collapse is an operational stop, not a repair score.
-- [next] Root audits the30 immutable pre-repair graph-bundle snapshots produced by this SAME
+- [verified] GLM run stopped after provider HTTP429/code1302 exhausted five retries in43/60
+  trial receipts. Peak40 main containers,0 verifiers,5.176GB summed Docker working set,0 observed
+  OOM. All60 cleanup receipts complete; no repair score. runs/glm-development-e2e-40-v1.
+- [verified] All30 immutable initial graphs captured with matching hashes, no dangling edges
+  and no unmatched packet source IDs. Scientific review inspected all30; several initial views
+  expose early setup/validation instead of the central calculation. The targeted selection fixes
+  now pass local tests above; the real-task table still needs saving/reconciliation.
+- [pending] Consolidate the30 immutable pre-repair graph-bundle reviews produced by this SAME
   run; no duplicate preparation containers. Separate construction/grounding checks from
   scientific relevance, inspect hard cases against public task/workflow context. Locked89 untouched.
   Relevance review uses initial snapshots/public task evidence, not private-test bodies or
@@ -55,11 +94,12 @@ User approved these fixes plus tests, independent review and a small end-to-end 
 The five-fix pass is complete; broader validation above is now authorized and must be carried through.
 
 ## Current verified checkpoint
-Provider integration3e57ed4; five-fix paired checkpointa4cac9b; final local suite661 tests passed.
+Current selection checkpoint passes684 tests; previous frozen source164ccb0 had665.
+Provider integration3e57ed4; paired checkpointa4cac9b.
 GLM directly uses the same DeepSeekAgent host-API loop, NOT OpenCode CLI. Only provider/body/key
 handling changed. Saved zai-coding-plan credential stays host-private; never print/upload it.
-User explicitly requested this route after the provider-policy caveat. No further policy debate,
-client impersonation, provider change or new harness. Normal shell tools in both arms; science
+User explicitly requested the GLM route, then approved DeepSeek V4.1 Flash for the provider check.
+No client impersonation or new harness. Normal shell tools in both arms; science
 adds evidence tools. Recording is optional and revisable, never a repair gate.
 
 Real GLM protocol check: runs/glm-provider-check-v1.json; echo→result→READY,9.50s, no retries.
@@ -82,7 +122,8 @@ exact-request revalidation are recorded above; undiscovered bugs are not claimed
 Graph relevance on hard cases and40-way capacity are separate validation work, NOT completed by
 these five fixes. runs/context-recheck-v4:001/009/091 relevant computations selected;114 includes
 constraints.py in its packet but initial graph stays wrapper-heavy. No task-ID-specific hints.
-Computation-first selection has been discussed, not implemented. Citations do not prove meaning.
+Result/dependency-first selection is implemented and reviewed, awaiting the30-task source rebuild.
+Citations do not prove meaning; full graph relevance and repair benefit remain unvalidated.
 
 ## Frozen experiment and operating policy
 configs/interactive-science.split.json fixes30 development /89 locked tasks; disclose prior

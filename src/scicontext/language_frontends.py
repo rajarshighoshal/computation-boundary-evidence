@@ -204,6 +204,22 @@ def _tree_sitter_entries(path, raw, language):
             continue
         if node.type in {"comment", "comment_block"}:
             add(node, "docstring")
+        elif node.type in {'for_statement', 'do_loop'}:
+            body = node.child_by_field_name('body') or _child(node, 'block')
+            header = _child(node, 'do_statement') if language == 'fortran' else None
+            end_byte = header.end_byte if header else body.start_byte if body else None
+            if end_byte is not None:
+                text = raw[node.start_byte:end_byte].decode().rstrip()
+                label = f'{node.type}@{node.start_byte}'
+                parts = [child for child in node.named_children if child.end_byte <= end_byte]
+                entry = add(node, 'iteration', expression={'kind':'unknown', 'syntax_kind':'iteration_header',
+                    'text':text, 'span':[node.start_byte, node.start_byte + len(text.encode())],
+                    'children':[_expression(child, language) for child in parts]},
+                    native={'condition_for':label, 'parent':node.type, 'iteration_header':True})
+                entry.update(text=text, end_line=entry['start_line'] + len(text.splitlines()) - 1,
+                             end_col=len(text.splitlines()[-1].encode()) +
+                                     (entry['start_col'] if len(text.splitlines()) == 1 else 0))
+                entry['branch'] = [b for b in entry['branch'] if not b.startswith(label + ':')]
         elif node.type in {"if_statement", "elseif_clause", "while_statement"}:
             condition = node.child_by_field_name("condition")
             if condition is None and language == "fortran":
@@ -244,10 +260,12 @@ def _tree_sitter_entries(path, raw, language):
             symbol = _text(left) if left and left.type == "identifier" else None
             add(node, "assignment", symbol=symbol, expression=_expression(right, language),
                 native={"target": _text(left), "operator": _text(node.child_by_field_name("operator")) or "=",
+                        "target_expression": _expression(left, language),
                         "nonlocal_write": symbol is None, "writes_root": _declarator_name(left) or ""})
         elif node.type == "update_expression":
             target = node.child_by_field_name("argument") or _child(node, "identifier", "subscript_expression", "field_expression")
             add(node, "assignment", native={"target": _text(target),
+                "target_expression": _expression(target, language),
                 "operator": _text(node.child_by_field_name("operator")), "nonlocal_write": True,
                 "writes_root": _declarator_name(target) or ""})
         elif node.type == "return_statement":
@@ -300,6 +318,60 @@ def _position(entry):
     return tuple(entry.get("native", {}).get("order_start", (entry["start_line"], entry["start_col"])))
 
 
+def _native_result_priorities(entries, outputs):
+    """Rank parsed possible output dependencies without changing binding proofs."""
+    writes, guards = defaultdict(list), {}
+    normal = lambda entry, name: name.casefold() if entry['language'] == 'fortran' else name
+
+    def names(value):
+        if isinstance(value, dict):
+            if value.get('kind') == 'name':
+                yield value['name']
+            for child in value.values():
+                yield from names(child)
+        elif isinstance(value, list):
+            for child in value:
+                yield from names(child)
+
+    pending = deque()
+    for entry in entries:
+        native, scope = entry.get('native', {}), entry.get('function_scope')
+        for name in {*entry.get('entity_symbols', []), native.get('writes_root', '')} - {''}:
+            if entry['kind'] in {'assignment', 'declaration', 'parameter'}:
+                writes[(scope, normal(entry, name))].append(entry)
+        if native.get('condition_for'):
+            guards[(scope, native['condition_for'])] = entry
+        target = normal(entry, native.get('writes_root', ''))
+        role = ('return' if entry['kind'] == 'return' else 'state_write' if native.get('nonlocal_write')
+                else 'output_write' if (scope, target) in outputs else None)
+        if role:
+            pending.append((entry, 0, role))
+    while pending:
+        entry, distance, role = pending.popleft()
+        if entry.get('selection') and entry['selection']['distance'] <= distance:
+            continue
+        entry['selection'] = {'role': role, 'distance': distance,
+                              'basis': 'syntactic_candidate_not_dataflow_proof'}
+        scope, native = entry.get('function_scope'), entry.get('native', {})
+        for label in entry.get('branch', []):
+            guard = guards.get((scope, label.rsplit(':', 1)[0]))
+            if guard and guard is not entry:
+                pending.append((guard, distance + 1, 'result_dependency'))
+        used = {normal(entry, name) for name in names(entry.get('native_expression'))}
+        used.update(normal(entry, name) for name in names(native.get('target_expression')))
+        if native.get('operator', '=') not in {'=', ':='}:
+            used.add(normal(entry, native.get('writes_root', '')))
+        loops = {b for b in entry.get('branch', []) if b.startswith(('for_statement@', 'while_statement@', 'do_loop@'))}
+        for name in used:
+            candidates = [e for e in writes.get((scope, name), []) if e['id'] != entry['id'] and
+                          e.get('native', {}).get('binding_scope', e['scope']) in entry['scope_chain']]
+            prior = [e for e in candidates if _position(e) < _position(entry)]
+            floor = max((_position(e) for e in prior if not e.get('branch')), default=(-1, -1))
+            selected = [e for e in prior if _position(e) >= floor]
+            selected.extend(e for e in candidates if loops & set(e.get('branch', [])))
+            pending.extend((e, distance + 1, 'result_dependency') for e in selected)
+
+
 def _select_entries(entries, limit, refs):
     """Balance scientific passages, interfaces and computation; disclose lost definitions."""
     focused = {e.get("function_scope") or e["scope"] for e in entries if any(
@@ -311,17 +383,20 @@ def _select_entries(entries, limit, refs):
                    for q in e.get("native", {}).get("type_qualifiers", [])) for n in e["entity_symbols"]}
     outputs.update((e.get("function_scope"), e["native"]["implicit_output"].casefold() if e["language"] == "fortran" else e["native"]["implicit_output"])
                    for e in entries if e.get("native", {}).get("implicit_output"))
+    _native_result_priorities(entries, outputs)
     def computational_priority(entry):
         target = entry.get("native", {}).get("writes_root", "")
         if entry["language"] == "fortran":
             target = target.casefold()
         if any(r.get("via") == "workflow_call_site" and entry["start_line"] <= r["start_line"] <= entry["end_line"] for r in refs):
-            return 0
+            return -1
+        if entry.get('selection'):
+            return entry['selection']['distance']
         if entry["kind"] == "return":
-            return 1
+            return 0
         if (entry.get("function_scope"), target) in outputs:
-            return 2
-        return 3
+            return 0
+        return 10**9
     for entry in entries:
         category = ("interface" if entry["kind"] in {"signature", "parameter"} else
                     "documentation" if entry["kind"] == "docstring" else

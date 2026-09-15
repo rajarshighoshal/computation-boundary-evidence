@@ -291,7 +291,7 @@ def test_prepared_graph_is_queryable_and_citable(tmp_path):
     node = next(item for item in overview["nodes"] if item["name"] == "advance")
     assert node["findings"] == ["R4"]
     found = store.find("advance")
-    assert any(match["target"] == node["id"] and match["kind"] == "scientific_node"
+    assert any(match["target"] == node["target"] and match["kind"] == "scientific_node"
                for match in found["matches"])
     detail = store.inspect(node["id"])
     assert detail["computation_id"] and detail["sources"]
@@ -308,12 +308,78 @@ def test_prepared_graph_is_queryable_and_citable(tmp_path):
     assert store.record_model(model)["status"] == "recorded"
 
 
-def test_record_rejects_sources_not_shown_by_inspection(tmp_path):
+def test_default_node_view_delivers_result_chain_and_documented_meaning(tmp_path):
+    store = prepared_graph_store(tmp_path, source_code=(
+        'def advance(energy, flux, dt):\n'
+        '    """Positive outward flux removes energy; dt is elapsed time."""\n'
+        + ''.join(f'    setup_{i} = {i}\n' for i in range(30))
+        + '    loss = flux * dt\n    residual = energy - loss\n    return residual\n'))
+    node = next(n for n in store.state['scientific_graph']['nodes'] if n['name'] == 'advance')
+    detail = store.inspect(node['id'])
+    shown = '\n'.join(s['text'] for s in [*detail['sources'], *detail.get('documented_context', [])])
+    assert all(text in shown for text in ('loss = flux * dt', 'residual = energy - loss', 'return residual', 'Positive outward flux'))
+    assert detail['calculation_relationships']
+
+
+def test_partial_node_can_expand_even_with_existing_sources(tmp_path):
+    store = prepared_graph_store(tmp_path, source_code=(
+        'def advance(energy, flux, dt):\n    setup = 0\n'
+        '    residual = energy - flux * dt\n    return residual\n'))
+    node = next(n for n in store.state['scientific_graph']['nodes'] if n['name'] == 'advance')
+    packet = json.loads((store.store / 'packet.json').read_text())
+    setup = next(e for e in packet['entries'] if e['text'] == 'setup = 0')
+    node['source_ids'] = [setup['id']]
+    node['calculation'] = {'status':'no_result_anchor'}
+    store.save()
+    detail = store.inspect(node['id'])
+    assert any('energy - flux * dt' in s['text'] for s in detail['evidence']['sources'])
+    assert node.get('expanded')
+
+
+def test_refresh_keeps_full_current_dependency_chain_pageable(tmp_path):
+    code = ('def advance(energy, flux, dt):\n    v0=energy-flux*dt\n'
+            + ''.join(f'    v{i}=v{i-1}+1\n' for i in range(1, 19))
+            + '    return v18\n')
+    store = prepared_graph_store(tmp_path, source_code=code)
+    node = next(n for n in store.state['scientific_graph']['nodes'] if n['name'] == 'advance')
+    original_count = len(node['source_ids'])
+    (store.root / 'model.py').write_text('\n' + code)
+    first = store.inspect(node['id'])
+    assert first.get('refreshed')
+    assert len(node['source_ids']) == original_count
+    shown = {s['id']:s for s in first['sources']}
+    offset = first['next_offset']
+    while offset is not None:
+        page = store.inspect(node['id'], offset=offset)
+        shown.update({s['id']:s for s in page['sources']})
+        offset = page['next_offset']
+    assert len(shown) == original_count
+    assert any(s['text'] == 'v0=energy-flux*dt' for s in shown.values())
+
+
+def test_inspect_and_note_accept_function_name_without_manual_ids(tmp_path):
     store = prepared_graph_store(tmp_path)
+    detail = store.inspect('advance')
+    assert any('energy - flux * dt' in s['text'] for s in detail['sources'])
+    assert store.record_note({'target':'advance', 'meaning':'Stored energy decreases with outward flux.',
+        'expected_change':'Repair the update.', 'preserve':['Elapsed time convention.']})['status'] == 'recorded'
+
+
+def test_question_resolves_through_documented_computation_without_manual_ids(tmp_path):
+    store = prepared_graph_store(tmp_path)
+    detail = store.inspect('How does outward flux change stored energy?')
+    assert detail['status'] == 'ok' and detail['name'] == 'advance'
+    assert any('flux * dt' in s['text'] for s in detail['sources'])
+
+
+def test_record_rejects_sources_not_shown_by_inspection(tmp_path):
+    store = prepared_graph_store(tmp_path, source_code=('def advance(energy, flux, dt):\n'
+        + ''.join(f'    unused_{i} = {i}\n' for i in range(12))
+        + '    residual = energy - flux * dt\n    return residual\n'))
     node = next(item for item in store.inspect("#graph")["nodes"] if item["name"] == "advance")
     detail = store.inspect(node["id"])
     full = next(item for item in store.state["scientific_graph"]["nodes"] if item["id"] == node["id"])
-    shown = {source["id"] for source in detail["sources"]}
+    shown = {source["id"] for source in [*detail["sources"], *detail.get('documented_context', [])]}
     unseen = [identifier for identifier in full["source_ids"] if identifier not in shown]
     assert unseen, "a paged node must keep later sources unregistered until inspected"
     claim = {"text": "Unseen content.", "source_ids": [unseen[0]]}

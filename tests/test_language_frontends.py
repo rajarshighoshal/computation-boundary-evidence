@@ -21,6 +21,56 @@ CASES = [
 ]
 
 
+@pytest.mark.parametrize('name,header,padding,body,footer', [
+    ('m.cpp', 'void step(double *out, double flow, double dt) {\n',
+     'double setup_{i}={i};\n', 'double loss=flow*dt;\nout[0]=out[0]-loss;\n', '}\n'),
+    ('m.f90', 'subroutine step(out,flow,dt)\nreal,intent(inout)::out\nreal::flow,dt,loss\n',
+     'real::setup_{i}\n', 'loss=flow*dt\nout=out-loss\n', 'end subroutine\n'),
+    ('m.m', 'function out=step(value,flow,dt)\n',
+     'setup_{i}={i};\n', 'loss=flow*dt;\nout=value-loss;\n', 'end\n'),
+    ('m.pyx', 'cdef double step(double value, double flow, double dt):\n',
+     '    cdef double setup_{i}={i}\n', '    loss=flow*dt\n    out=value-loss\n    return out\n', ''),
+])
+def test_native_tight_budget_keeps_output_producers(tmp_path, name, header, padding, body, footer):
+    code = header + ''.join(padding.format(i=i) for i in range(60)) + body + footer
+    (tmp_path / name).write_text(code)
+    result = extract_native_evidence(tmp_path, [name], max_entries=12,
+        references=[{'path':name,'start_line':1,'end_line':len(code.splitlines())}])
+    text = '\n'.join(e['text'] for e in result['entries'])
+    assert 'loss=flow*dt' in text
+    assert 'out[0]=out[0]-loss' in text or 'out=out-loss' in text or 'out=value-loss' in text
+
+
+@pytest.mark.parametrize('name,code', [
+    ('m.cpp', 'void f(double* a,int n){for(int i=0;i<n;i++){a[i]*=2;}}'),
+    ('m.f90', 'subroutine f(a,n)\nreal::a(n)\ninteger::n,i\ndo i=1,n\na(i)=a(i)*2\nend do\nend subroutine\n'),
+    ('m.m', 'function a=f(a,n)\nfor i=1:n\na(i)=a(i)*2;\nend\nend\n'),
+])
+def test_native_output_view_preserves_loop_bounds(tmp_path, name, code):
+    (tmp_path / name).write_text(code)
+    packet = build_packet(tmp_path, multilingual=True)
+    from scicontext.representation import reading_input
+    view = reading_input(enrichment_input(extract_objects(tmp_path, packet), packet))
+    headers = [e for e in packet['entries'] if e['kind'] == 'iteration']
+    assert headers and 'n' in headers[0]['text']
+    assert any(c['predicate_id'] == headers[0]['id'] for e in view['entities'] for c in e.get('condition_refs', []))
+    lines = code.splitlines()
+    for entry in headers:
+        if entry['start_line'] == entry['end_line']:
+            raw = lines[entry['start_line']-1].encode()
+            assert raw[entry['start_col']:entry['end_col']].decode() == entry['text']
+
+
+def test_native_increment_preserves_index_producer_before_budgeting(tmp_path):
+    code = ('void f(int* out,int offset) {\n'
+            + ''.join(f'int setup_{i}={i};\n' for i in range(60))
+            + 'int idx=offset+1;\nout[idx]++;\n}\n')
+    (tmp_path / 'm.cpp').write_text(code)
+    result = extract_native_evidence(tmp_path, ['m.cpp'], max_entries=10)
+    text = '\n'.join(e['text'] for e in result['entries'])
+    assert 'idx=offset+1' in text and 'out[idx]++' in text
+
+
 @pytest.mark.parametrize("path,language,source", CASES)
 def test_native_calculation_has_interfaces_objects_and_real_expression_links(tmp_path, path, language, source):
     (tmp_path / path).write_text(source)

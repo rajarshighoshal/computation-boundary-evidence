@@ -21,10 +21,9 @@ from pathlib import Path
 from .execution_seed import read_execution_edges
 from .io import digest_json
 from .object_context import enrichment_input
-from .representation import reading_input
+from .representation import computation_slice, reading_input
 
 MAX_NODES = 20
-MAX_SOURCE_IDS = 6
 MAX_ENTITY_IDS = 8
 MAX_QUANTITIES = 5
 MAX_BOUNDARY = 8
@@ -151,11 +150,13 @@ def build_graph(graph_path, packet_path=None, trace_dir=None) -> dict:
             signature_by_key[key] = entry
 
     computation_by_key = {}
+    slices_by_key = {}
     for computation in compiled["computations"]:
         site = source_by_id.get((computation.get("source_ids") or [None])[0])
         if site:
             key = (site["path"], _scope_key(computation.get("name")))
             computation_by_key.setdefault(key, computation)
+            slices_by_key.setdefault(key, computation_slice(compiled, computation["entity_ids"]))
 
     findings_by_key = defaultdict(list)
     observations_by_key = defaultdict(list)
@@ -237,7 +238,8 @@ def build_graph(graph_path, packet_path=None, trace_dir=None) -> dict:
                       if operation.get("source_entry_id")]
         for item in objects_here:
             source_ids.extend(item.get("source_entry_ids") or [])
-        source_ids = [s for s in dict.fromkeys(source_ids) if s in source_by_id][:MAX_SOURCE_IDS]
+        calculation = slices_by_key.get(key) or {}
+        source_ids = [s for s in dict.fromkeys([*calculation.get("source_ids", []), *source_ids]) if s in source_by_id]
         entity_ids = [computation["id"]] if computation else []
         for item in objects_here:
             if item.get("kind") in {"computational_value", "literal", "array",
@@ -279,6 +281,12 @@ def build_graph(graph_path, packet_path=None, trace_dir=None) -> dict:
             "computation_id": computation["id"] if computation else None,
             "entity_ids": entity_ids,
             "source_ids": source_ids,
+            "calculation": {"status": calculation.get("status", "no_result_anchor"),
+                            "result_ids": calculation.get("result_ids", []),
+                            "relevant_expressions": len(calculation.get("relevant_expression_ids", [])),
+                            "available_expressions": len(calculation.get("expression_ids", []))},
+            "documentation_ids": calculation.get("documentation_ids", []),
+            "documentation": '\n'.join(source_by_id[s]['text'] for s in calculation.get('documentation_ids', []))[:1200],
             "quantities": [{"id": item["id"], "name": item.get("symbol")} for item in objects_here
                            if item.get("kind") == "computational_value" and item.get("symbol")][:MAX_QUANTITIES],
             "conditions": conditions or None,
@@ -327,16 +335,29 @@ def build_graph(graph_path, packet_path=None, trace_dir=None) -> dict:
                 frontier.append(parent)
     pending, deferred = deque(workflow_roots), deque()
     visited = set(workflow_roots)
+    # A source-backed result/effect can be several wrapper calls below the
+    # workflow. Reserve the route to it before shallow unparsed setup helpers.
+    # This is structural reachability, not a claim about scientific relevance.
+    reaches_computation = {key for key, view in slices_by_key.items() if view["result_ids"]}
+    frontier = deque(reaches_computation)
+    while frontier:
+        child = frontier.popleft()
+        for parent in parents.get(child, ()):
+            if parent not in reaches_computation:
+                reaches_computation.add(parent)
+                frontier.append(parent)
     while (pending or deferred) and len(selected) < MAX_NODES:
         if not pending:
             pending, deferred = deferred, deque()
         key = pending.popleft()
         add_node(key)
-        for child in sorted(callees.get(key, ())):
+        for child in sorted(callees.get(key, ()), key=lambda k: (k not in reaches_computation, k)):
             if child in visited:
                 continue
             visited.add(child)
-            auxiliary = (child[1] == "<module>" and child not in workflow_roots) or child not in reaches_implementation
+            auxiliary = ((child[1] == "<module>" and child not in workflow_roots)
+                         or child not in reaches_implementation
+                         or child not in reaches_computation)
             (deferred if auxiliary else pending).append(child)
 
     def noisy(name):
@@ -354,6 +375,7 @@ def build_graph(graph_path, packet_path=None, trace_dir=None) -> dict:
         known = set(signature_by_key) | set(computation_by_key) | set(objects_by_key) | set(operations_by_key) | set(call_node_lines)
         ranked = sorted(known, key=lambda key: (
             0 if key[0] in candidate_paths else 1,
+            0 if key in reaches_computation else 1,
             0 if adjacency.get(key) else 1,
             1 if noisy(key[1]) else 0,
             -(signature_by_key.get(key, {}).get("instances") or 0),

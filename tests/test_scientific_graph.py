@@ -187,3 +187,38 @@ def test_workflow_reporting_helpers_do_not_fill_the_initial_graph(tmp_path):
                                      "file": "reproduce.py", "name": f"metric_{i}", "line": 100+i}) + "\n")
     result = build_graph(graph_path, packet_path, trace)
     assert any(n["name"] == "advance" and n["source_ids"] for n in result["nodes"])
+
+
+def test_node_sources_start_with_the_result_calculation_not_setup(tmp_path):
+    root = tmp_path / 'task'
+    graph_path, packet_path, trace = write_prepared(root)
+    (root / 'model.py').write_text('def advance(energy, flux, dt):\n'
+        '    """Outward flux removes stored energy over dt."""\n'
+        + ''.join(f'    setup_{i} = {i}\n' for i in range(30))
+        + '    loss = flux * dt\n    residual = energy - loss\n    return residual\n')
+    packet = build_packet(root)
+    graph_path.write_text(json.dumps(extract_objects(root, packet)))
+    packet_path.write_text(json.dumps(packet))
+    result = build_graph(graph_path, packet_path, trace)
+    node = next(n for n in result['nodes'] if n['name'] == 'advance')
+    entries = {e['id']: e for e in packet['entries']}
+    shown = '\n'.join(entries[s]['text'] for s in node['source_ids'][:6])
+    assert all(text in shown for text in ('loss = flux * dt', 'residual = energy - loss', 'return residual'))
+
+
+def test_deep_result_chain_survives_many_shallow_setup_calls(tmp_path):
+    root = tmp_path / 'task'
+    graph_path, packet_path, trace = write_prepared(root)
+    (root / 'bridge.py').write_text('from model import advance\ndef forward(e,f,dt):\n    return advance(e,f,dt)\n')
+    packet = build_packet(root)
+    graph_path.write_text(json.dumps(extract_objects(root, packet)))
+    packet_path.write_text(json.dumps(packet))
+    with gzip.open(trace / 'trace.jsonl.gz', 'wt') as stream:
+        rows = [{'seq':1,'file':'reproduce.py','name':'run','line':2}]
+        rows += [{'seq':i+2,'parent_seq':1,'file':'setup.py','name':f'prepare_{i:02d}','line':i+1} for i in range(30)]
+        rows += [{'seq':40,'parent_seq':1,'file':'bridge.py','name':'forward','line':2},
+                 {'seq':41,'parent_seq':40,'file':'model.py','name':'advance','line':1}]
+        for row in rows:
+            stream.write(json.dumps(row)+'\n')
+    result = build_graph(graph_path, packet_path, trace)
+    assert any(n['name'] == 'advance' and n['source_ids'] for n in result['nodes'])

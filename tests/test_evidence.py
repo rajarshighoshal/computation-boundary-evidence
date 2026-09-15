@@ -13,6 +13,45 @@ def index_code(tmp_path, code, name="model.py"):
     return extract_evidence(tmp_path, [name])
 
 
+@pytest.mark.parametrize("padding", [0, 80])
+def test_budget_keeps_result_and_producers_instead_of_irrelevant_setup(tmp_path, padding):
+    code = ('def advance(initial, rate, dt):\n'
+            '    """Positive rate removes stored material over elapsed dt."""\n'
+            + ''.join(f'    setup_{i} = {i}\n' for i in range(padding))
+            + '    loss = rate * dt\n    updated = initial - loss\n    return updated\n')
+    (tmp_path / 'model.py').write_text(code)
+    result = extract_evidence(tmp_path, ['model.py'], max_entries=12,
+        references=[{'path': 'model.py', 'start_line': 1, 'end_line': len(code.splitlines())}])
+    text = '\n'.join(e['text'] for e in result['entries'])
+    assert all(s in text for s in ('loss = rate * dt', 'updated = initial - loss', 'return updated'))
+    returned = next(e for e in result['entries'] if e['kind'] == 'return')
+    assert returned['local_dependencies'][0]['definition_id'] is not None
+
+
+def test_budget_keeps_mutation_operands_and_loop_control(tmp_path):
+    code = ('def advance(out, flux, dt, active):\n'
+            + ''.join(f'    setup_{i} = {i}\n' for i in range(80))
+            + '    step = dt * 0.5\n    for i in range(len(out)):\n'
+              '        if active:\n            out[i] += flux[i] * step\n')
+    (tmp_path / 'model.py').write_text(code)
+    result = extract_evidence(tmp_path, ['model.py'], max_entries=14,
+        references=[{'path': 'model.py', 'start_line': 1, 'end_line': len(code.splitlines())}])
+    text = '\n'.join(e['text'] for e in result['entries'])
+    assert 'out[i] += flux[i] * step' in text and 'step = dt * 0.5' in text
+    assert any('range(len(out))' in e['text'] and e.get('condition_for') for e in result['entries'])
+    assert any(e['text'] == 'active' for e in result['entries'])
+
+
+def test_budget_keeps_possible_loop_carried_write_without_claiming_binding(tmp_path):
+    code = ('def advance(n):\n' + ''.join(f'    setup_{i}={i}\n' for i in range(60))
+            + '    x=1\n    for i in range(n):\n        y=x*2\n        x=y+1\n    return y\n')
+    (tmp_path / 'model.py').write_text(code)
+    result = extract_evidence(tmp_path, ['model.py'], max_entries=10)
+    update = next(e for e in result['entries'] if e['text'] == 'x=y+1')
+    assert update['selection']['basis'] == 'syntactic_candidate_not_dataflow_proof'
+    assert all(d['status'] == 'unresolved' for d in update['local_dependencies'])
+
+
 def by_expression(index, text):
     return next(entry for entry in index["entries"] if entry["expression_text"] == text)
 

@@ -8,13 +8,14 @@ from __future__ import annotations
 import ast
 import copy
 from collections import Counter
+from collections import deque
 from pathlib import PurePosixPath
 
 from .io import digest_json
 
 READING_VERSION = "scientific-reading-2.0"
 _EXPRESSION_KINDS = {"assignment", "return", "call", "comparison", "predicate", "condition",
-                     "expression", "augmented_assignment", "assertion", "container_mutation"}
+                     "expression", "augmented_assignment", "assertion", "container_mutation", "iteration"}
 _DEPENDENCIES = {"REACHING_DEF", "CDG", "CALL", "PARAMETER_LINK"}
 
 
@@ -158,7 +159,8 @@ def reading_input(payload):
     relations, seen_edges = [], set()
 
     def source(record, kind="code", text=None):
-        result = {k: record[k] for k in ("id", "path", "start_line", "end_line", "language") if record.get(k) is not None}
+        result = {k: record[k] for k in ("id", "path", "scope", "start_line", "end_line", "language") if record.get(k) is not None}
+        result["source_role"] = record.get("kind", kind)
         result.update(kind=kind, text=text if text is not None else record.get("quote", record.get("text", "")))
         sources[record["id"]] = result
 
@@ -233,7 +235,10 @@ def reading_input(payload):
             "name": record.get("kind", "expression"), "statement_kind": record.get("kind"),
             "template_id": key, "bindings": bindings, "source_ids": [identifier],
             "results": record.get("entity_symbols", record.get("targets", [])),
-            "conditions": copy.deepcopy(record.get("branch", []))}
+            "conditions": copy.deepcopy(record.get("branch", [])),
+            "selection": copy.deepcopy(record.get("selection")),
+            "effect": {k: copy.deepcopy(v) for k, v in record.get("native", {}).items()
+                       if k in {"nonlocal_write", "writes_root", "operator", "implicit_output"}}}
         if data:
             entities[identifier]["name"] = "data initializer"
         expressions[identifier] = record
@@ -356,6 +361,65 @@ def reading_input(payload):
             "unsupported_counts": dict(Counter(r.get("reason", "unknown") for r in payload.get("unsupported", []))),
             "source_selection": {k: v for k, v in payload.get("selection", {}).items() if isinstance(v, (int, bool))},
             "detail_artifacts": ["evidence-input.json", "source-analysis.json", "packet.json"]}}
+
+
+def computation_slice(view, member_ids):
+    """Order an existing computation by result/effect dependencies, not file position.
+
+    Parsed candidate-selection evidence is kept distinct from typed dataflow
+    edges. Missing roots/edges are coverage gaps, never proof of irrelevance.
+    The backing source list is not truncated; callers page the compact view.
+    """
+    entities = {e["id"]: e for e in view["entities"]}
+    sources = {s["id"]: s for s in view["sources"]}
+    members = set(member_ids) & entities.keys()
+    expressions = {i for i in members if entities[i]["kind"] == "source_computation"}
+    distances, roots = {}, []
+    for identifier in expressions:
+        item = entities[identifier]
+        selection = item.get("selection") or {}
+        if selection:
+            distances[identifier] = selection["distance"]
+            if selection["distance"] == 0:
+                roots.append(identifier)
+        elif item.get("statement_kind") in {"return", "augmented_assignment", "container_mutation"} \
+                or item.get("effect", {}).get("nonlocal_write"):
+            distances[identifier] = 0
+            roots.append(identifier)
+    incoming = {}
+    for relation in view["relations"]:
+        role = relation["relation"]
+        if role.startswith(("defines:", "guards:")) or role in {"joern:REACHING_DEF", "joern:CDG"}:
+            incoming.setdefault(relation["target"], []).append(relation["source"])
+    pending = deque(distances)
+    while pending:
+        identifier = pending.popleft()
+        for predecessor in incoming.get(identifier, []):
+            distance = distances[identifier] + 1
+            if predecessor not in distances or distance < distances[predecessor]:
+                distances[predecessor] = distance
+                pending.append(predecessor)
+
+    def position(identifier):
+        site = sources.get((entities[identifier].get("source_ids") or [None])[0], {})
+        return site.get("path", ""), site.get("start_line", 0), identifier
+
+    relevant = expressions & distances.keys()
+    ordered = sorted(relevant, key=lambda i: (distances[i], position(i)))
+    ordered += sorted(expressions - relevant, key=position)
+    # Keep parameters, interfaces and attached documentation reachable as well.
+    source_ids = [s for identifier in [*ordered, *sorted((members | distances.keys()) - expressions, key=position)]
+                  for s in entities[identifier].get("source_ids", []) if s in sources]
+    owners = {(sources[s].get("path"), sources[s].get("scope")) for s in source_ids
+              if sources[s].get("source_role") == "signature"}
+    documents = [s["id"] for s in view["sources"] if s.get("source_role") == "docstring"
+                 and (s.get("path"), s.get("scope")) in owners]
+    source_ids.extend(documents)
+    return {"expression_ids": ordered, "source_ids": list(dict.fromkeys(source_ids)),
+            "documentation_ids": documents,
+            "result_ids": sorted(roots, key=position), "relevant_expression_ids": [i for i in ordered if i in relevant],
+            "status": "result_anchored_excerpt" if roots else "no_result_anchor",
+            "scope": "Available parsed result/effect candidates and dependency evidence, not a complete program slice"}
 
 
 def render_reading(view):
