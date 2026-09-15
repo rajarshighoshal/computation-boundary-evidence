@@ -1,0 +1,516 @@
+{
+  "agent": "deepseek",
+  "allow_restricted_licenses": true,
+  "attempt_failure_policy": "record_and_continue_without_retry",
+  "attempts": 1,
+  "cleanup_images": true,
+  "codex_version": "0.153.4",
+  "concurrency": 40,
+  "condition_order": {
+    "003": [
+      "baseline",
+      "science"
+    ],
+    "007": [
+      "science",
+      "baseline"
+    ],
+    "011": [
+      "baseline",
+      "science"
+    ],
+    "012": [
+      "science",
+      "baseline"
+    ],
+    "013": [
+      "baseline",
+      "science"
+    ],
+    "015": [
+      "science",
+      "baseline"
+    ],
+    "017": [
+      "baseline",
+      "science"
+    ],
+    "018": [
+      "science",
+      "baseline"
+    ],
+    "020": [
+      "baseline",
+      "science"
+    ],
+    "021": [
+      "science",
+      "baseline"
+    ],
+    "022": [
+      "baseline",
+      "science"
+    ],
+    "023": [
+      "science",
+      "baseline"
+    ],
+    "026": [
+      "baseline",
+      "science"
+    ],
+    "029": [
+      "science",
+      "baseline"
+    ],
+    "030": [
+      "baseline",
+      "science"
+    ],
+    "031": [
+      "science",
+      "baseline"
+    ],
+    "032": [
+      "baseline",
+      "science"
+    ],
+    "033": [
+      "science",
+      "baseline"
+    ],
+    "034": [
+      "baseline",
+      "science"
+    ],
+    "035": [
+      "science",
+      "baseline"
+    ],
+    "036": [
+      "baseline",
+      "science"
+    ],
+    "037": [
+      "science",
+      "baseline"
+    ],
+    "038": [
+      "baseline",
+      "science"
+    ],
+    "039": [
+      "science",
+      "baseline"
+    ],
+    "040": [
+      "baseline",
+      "science"
+    ],
+    "041": [
+      "science",
+      "baseline"
+    ],
+    "042": [
+      "baseline",
+      "science"
+    ],
+    "043": [
+      "science",
+      "baseline"
+    ],
+    "044": [
+      "baseline",
+      "science"
+    ],
+    "046": [
+      "science",
+      "baseline"
+    ],
+    "047": [
+      "baseline",
+      "science"
+    ],
+    "048": [
+      "science",
+      "baseline"
+    ],
+    "049": [
+      "baseline",
+      "science"
+    ],
+    "050": [
+      "science",
+      "baseline"
+    ],
+    "052": [
+      "baseline",
+      "science"
+    ],
+    "053": [
+      "science",
+      "baseline"
+    ],
+    "054": [
+      "baseline",
+      "science"
+    ],
+    "055": [
+      "science",
+      "baseline"
+    ],
+    "056": [
+      "baseline",
+      "science"
+    ],
+    "057": [
+      "science",
+      "baseline"
+    ],
+    "059": [
+      "baseline",
+      "science"
+    ],
+    "060": [
+      "science",
+      "baseline"
+    ],
+    "062": [
+      "baseline",
+      "science"
+    ],
+    "063": [
+      "science",
+      "baseline"
+    ],
+    "064": [
+      "baseline",
+      "science"
+    ],
+    "065": [
+      "science",
+      "baseline"
+    ],
+    "066": [
+      "baseline",
+      "science"
+    ],
+    "067": [
+      "science",
+      "baseline"
+    ],
+    "068": [
+      "baseline",
+      "science"
+    ],
+    "069": [
+      "science",
+      "baseline"
+    ],
+    "071": [
+      "baseline",
+      "science"
+    ],
+    "072": [
+      "science",
+      "baseline"
+    ],
+    "074": [
+      "baseline",
+      "science"
+    ],
+    "075": [
+      "science",
+      "baseline"
+    ],
+    "079": [
+      "baseline",
+      "science"
+    ],
+    "081": [
+      "science",
+      "baseline"
+    ],
+    "082": [
+      "baseline",
+      "science"
+    ],
+    "083": [
+      "science",
+      "baseline"
+    ],
+    "084": [
+      "baseline",
+      "science"
+    ],
+    "085": [
+      "science",
+      "baseline"
+    ],
+    "086": [
+      "baseline",
+      "science"
+    ],
+    "087": [
+      "science",
+      "baseline"
+    ],
+    "088": [
+      "baseline",
+      "science"
+    ],
+    "089": [
+      "science",
+      "baseline"
+    ],
+    "090": [
+      "baseline",
+      "science"
+    ],
+    "092": [
+      "science",
+      "baseline"
+    ],
+    "093": [
+      "baseline",
+      "science"
+    ],
+    "094": [
+      "science",
+      "baseline"
+    ],
+    "095": [
+      "baseline",
+      "science"
+    ],
+    "096": [
+      "science",
+      "baseline"
+    ],
+    "097": [
+      "baseline",
+      "science"
+    ],
+    "098": [
+      "science",
+      "baseline"
+    ],
+    "100": [
+      "baseline",
+      "science"
+    ],
+    "101": [
+      "science",
+      "baseline"
+    ],
+    "102": [
+      "baseline",
+      "science"
+    ],
+    "103": [
+      "science",
+      "baseline"
+    ],
+    "105": [
+      "baseline",
+      "science"
+    ],
+    "106": [
+      "science",
+      "baseline"
+    ],
+    "107": [
+      "baseline",
+      "science"
+    ],
+    "108": [
+      "science",
+      "baseline"
+    ],
+    "109": [
+      "baseline",
+      "science"
+    ],
+    "110": [
+      "science",
+      "baseline"
+    ],
+    "111": [
+      "baseline",
+      "science"
+    ],
+    "112": [
+      "science",
+      "baseline"
+    ],
+    "113": [
+      "baseline",
+      "science"
+    ],
+    "115": [
+      "science",
+      "baseline"
+    ],
+    "116": [
+      "baseline",
+      "science"
+    ],
+    "117": [
+      "science",
+      "baseline"
+    ],
+    "118": [
+      "baseline",
+      "science"
+    ]
+  },
+  "conditions": [
+    "baseline",
+    "science"
+  ],
+  "dataset_revision": "d8bdbcb4ecb2b565686382459c815d2b6291fd31",
+  "development_task_ids": [
+    "001",
+    "002",
+    "004",
+    "005",
+    "006",
+    "008",
+    "009",
+    "010",
+    "014",
+    "016",
+    "019",
+    "024",
+    "025",
+    "027",
+    "028",
+    "045",
+    "051",
+    "058",
+    "061",
+    "070",
+    "073",
+    "076",
+    "077",
+    "078",
+    "080",
+    "091",
+    "099",
+    "104",
+    "114",
+    "119"
+  ],
+  "extra_private_diagnostic_exposure_task_ids": [
+    "001"
+  ],
+  "extraction_seconds": 30,
+  "extractor": "interactive_science",
+  "flexible_budget": false,
+  "full_benchmark": true,
+  "handoff": "prepared_connected_graph_v1_on_demand_queries_optional_model",
+  "model": "deepseek-flash",
+  "pier_version": "0.3.0",
+  "purpose": "Locked-89 benchmark run attempt 2 of 3 (k=3 evaluation) at low effort with full boundary contracts.",
+  "reasoning_effort": "low",
+  "release_commit": "42e7e97915ff7d73436a5d37b5cbe6b77e9c2a00",
+  "release_receipt": "data/full-119-release.json",
+  "schema_version": "1.0",
+  "study_kind": "deepseek_locked89_low_k2_v1",
+  "study_partition": "development",
+  "study_split": "configs/interactive-science.split.json",
+  "study_split_sha256": "470c0ef00fc697885c84c3e0f998a2fc7d8610610a9690c90f68341392a6ef97",
+  "task_ids": [
+    "003",
+    "007",
+    "011",
+    "012",
+    "013",
+    "015",
+    "017",
+    "018",
+    "020",
+    "021",
+    "022",
+    "023",
+    "026",
+    "029",
+    "030",
+    "031",
+    "032",
+    "033",
+    "034",
+    "035",
+    "036",
+    "037",
+    "038",
+    "039",
+    "040",
+    "041",
+    "042",
+    "043",
+    "044",
+    "046",
+    "047",
+    "048",
+    "049",
+    "050",
+    "052",
+    "053",
+    "054",
+    "055",
+    "056",
+    "057",
+    "059",
+    "060",
+    "062",
+    "063",
+    "064",
+    "065",
+    "066",
+    "067",
+    "068",
+    "069",
+    "071",
+    "072",
+    "074",
+    "075",
+    "079",
+    "081",
+    "082",
+    "083",
+    "084",
+    "085",
+    "086",
+    "087",
+    "088",
+    "089",
+    "090",
+    "092",
+    "093",
+    "094",
+    "095",
+    "096",
+    "097",
+    "098",
+    "100",
+    "101",
+    "102",
+    "103",
+    "105",
+    "106",
+    "107",
+    "108",
+    "109",
+    "110",
+    "111",
+    "112",
+    "113",
+    "115",
+    "116",
+    "117",
+    "118"
+  ],
+  "total_seconds": 1800,
+  "verifier_seconds": 1800
+}
