@@ -4,7 +4,12 @@
 
 Does a compact task-specific scientific representation, grounded in public code and documentation,
 help an otherwise unchanged agent repair scientific software under a matched total allowance?
-Rajarshi owns this question and the scientific choices. Better repair is not established.
+Rajarshi owns this question and the scientific choices. Across four independent development
+evaluations (240 official-verifier attempts; results/dev30-four-run-consolidation.json) the
+arms are statistically identical in solve rate (43 vs 44 of 120 paired attempts; single-run
+noise floor measured at ±3/30) while the science arm uses 17–25% fewer input tokens; task 077
+is solved 3/4 times with the graph and 0/4 without it. A repair-benefit claim therefore still
+rests on the repeated-measures locked-89 evaluation, not on these development runs.
 
 The intended context explains the computation's purpose, the relevant quantities or structures,
 their relationships, and the conditions/conventions that matter to this task. It is not an
