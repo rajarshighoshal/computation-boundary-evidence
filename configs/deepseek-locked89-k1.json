@@ -417,7 +417,7 @@
   "release_receipt": "data/full-119-release.json",
   "schema_version": "1.0",
   "study_kind": "deepseek_locked89_low_k1_v1",
-  "study_partition": "development",
+  "study_partition": "locked_evaluation",
   "study_split": "configs/interactive-science.split.json",
   "study_split_sha256": "470c0ef00fc697885c84c3e0f998a2fc7d8610610a9690c90f68341392a6ef97",
   "task_ids": [
