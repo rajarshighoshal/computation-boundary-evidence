@@ -277,3 +277,195 @@ def test_distill_native_contracts_for_fortran_and_matlab():
     assert c["calls"][0]["callee"] == "scale"
     assert c["calls"][0]["arguments"] == ["flow", "dt"]
     assert c["return_expressions"][0]["expression"] == "updated"
+
+
+def joern_graph():
+    """One caller, its calls, and the method definitions the CPG resolved them to."""
+    nodes = {
+        "1": {"id": "1", "kind": "METHOD", "path": "spawn.cpp",
+              "properties": {"NAME": "spawn_workers", "SIGNATURE": "int(int)", "TYPE_FULL_NAME": "int"}},
+        "2": {"id": "2", "kind": "CALL", "path": "spawn.cpp",
+              "properties": {"NAME": "pthread_create", "CODE": "pthread_create(&t, NULL, worker, NULL)"}},
+        "3": {"id": "3", "kind": "CALL", "path": "spawn.cpp", "properties": {"NAME": "helper", "CODE": "helper(n)"}},
+        "4": {"id": "4", "kind": "METHOD", "path": "spawn.cpp", "properties": {"NAME": "helper", "SIGNATURE": "int(int)"}},
+        "5": {"id": "5", "kind": "CALL", "path": "spawn.cpp", "properties": {"NAME": "scale", "CODE": "scale(n)"}},
+        "6": {"id": "6", "kind": "METHOD", "path": "lib/scale.cpp", "properties": {"NAME": "scale", "SIGNATURE": "int(int)"}},
+        "7": {"id": "7", "kind": "CALL", "path": "spawn.cpp", "properties": {"NAME": "MPI_Init", "CODE": "MPI_Init(&argc, &argv)"}},
+    }
+    links = [{"source": "1", "target": call, "role": "AST"} for call in ("2", "3", "5", "7")] + [
+        {"source": "3", "target": "4", "role": "CALL"}, {"source": "5", "target": "6", "role": "CALL"}]
+    selection = {"methods": [{"id": "1", "name": "spawn_workers", "node_ids": ["1", "2", "3", "5", "7"]}]}
+    return nodes, links, selection
+
+
+def test_joern_contracts_classify_calls_from_the_caller_file_declarations(tmp_path):
+    (tmp_path / "spawn.cpp").write_text('#include <pthread.h>\n#include "local_util.h"\n'
+                                        "int spawn_workers(int n) {\n    return helper(n);\n}\n")
+    contracts = source_backends.distill_joern_contracts(*joern_graph(), "NEWC", root=tmp_path)
+    calls = {call["callee"]: call for call in contracts[0]["calls"]}
+
+    # An include that names the callee is layer 2 provider naming, not a guess.
+    assert calls["pthread_create"]["boundary"] == {
+        "kind": "external", "provider": "pthread.h", "assume": "correct_interface",
+        "repair_scope": "caller_file", "basis": "layer2_include:pthread.h"}
+    # No include names MPI_Init, so only the disclosed prefix heuristic applies.
+    assert calls["MPI_Init"]["boundary"]["kind"] == "external"
+    assert calls["MPI_Init"]["boundary"]["provider"] == "mpi.h"
+    assert calls["MPI_Init"]["boundary"]["basis"] == "prefix_heuristic:mpi.h"
+
+    # Layer 1 wins over declarations: resolved definitions are internal either way.
+    assert calls["helper"]["boundary"]["kind"] == "internal"
+    assert calls["helper"]["boundary"]["repair_scope"] == "caller_file"
+    assert calls["helper"]["boundary"]["basis"] == "layer1_resolved_in_repo"
+    assert calls["scale"]["boundary"]["kind"] == "internal"
+    assert calls["scale"]["boundary"]["repair_scope"] == "repo"
+
+    assert calls["helper"]["external"] is False and calls["scale"]["external"] is False
+    assert {call["callee"] for call in contracts[0]["external_calls"]} == {"pthread_create", "MPI_Init"}
+
+
+def test_joern_external_flag_keeps_layer_two_provider_naming(tmp_path):
+    (tmp_path / "spawn.cpp").write_text("#include <pthread.h>\n")
+    nodes, links, selection = joern_graph()
+    nodes["8"] = {"id": "8", "kind": "METHOD", "properties": {"NAME": "pthread_create", "IS_EXTERNAL": True}}
+    links.append({"source": "2", "target": "8", "role": "CALL"})
+    contracts = source_backends.distill_joern_contracts(nodes, links, selection, "NEWC", root=tmp_path)
+    boundary = next(call for call in contracts[0]["calls"] if call["callee"] == "pthread_create")["boundary"]
+    assert boundary["kind"] == "external" and boundary["provider"] == "pthread.h"
+    assert boundary["basis"] == "layer1_is_external+layer2_include:pthread.h"
+
+
+def test_python_imports_name_the_provider_of_an_unresolved_call(tmp_path):
+    (tmp_path / "solver.py").write_text("import numpy as np\nimport os\n\n"
+                                        "def solve(a, b):\n    return np.linalg.solve(a, b)\n")
+    nodes = {
+        "1": {"id": "1", "kind": "METHOD", "path": "solver.py", "properties": {"NAME": "solve"}},
+        "2": {"id": "2", "kind": "CALL", "path": "solver.py",
+              "properties": {"NAME": "numpy.linalg.solve", "CODE": "np.linalg.solve(a, b)"}},
+    }
+    links = [{"source": "1", "target": "2", "role": "AST"}]
+    selection = {"methods": [{"id": "1", "name": "solve", "node_ids": ["1", "2"]}]}
+    contracts = source_backends.distill_joern_contracts(nodes, links, selection, "PYTHONSRC", root=tmp_path)
+    boundary = contracts[0]["calls"][0]["boundary"]
+    assert boundary["kind"] == "external" and boundary["provider"] == "numpy"
+    assert boundary["basis"] == "layer2_import:numpy"
+
+
+def test_cython_cimports_name_the_provider_of_an_unresolved_call(tmp_path):
+    (tmp_path / "solver.pyx").write_text("cimport numpy as np\nfrom libc.stdlib cimport malloc\n")
+    entries = [
+        {"kind": "signature", "path": "solver.pyx", "start_line": 3, "symbol": "solve", "text": "def solve(n):",
+         "scope": "<module>.solve", "function_scope": "<module>.solve", "native": {"function_name": "solve"}},
+        {"kind": "call", "path": "solver.pyx", "start_line": 4, "text": "np.zeros(n)", "scope": "<module>.solve",
+         "function_scope": "<module>.solve", "native_expression": {"kind": "call", "callee": "np.zeros"}},
+        {"kind": "call", "path": "solver.pyx", "start_line": 5, "text": "malloc(n)", "scope": "<module>.solve",
+         "function_scope": "<module>.solve", "native_expression": {"kind": "call", "callee": "malloc"}},
+    ]
+    calls = {call["callee"]: call["boundary"] for call in
+             source_backends.distill_native_contracts(entries, "cython", tmp_path)[0]["calls"]}
+    assert calls["np.zeros"]["kind"] == "external" and calls["np.zeros"]["provider"] == "numpy"
+    assert calls["np.zeros"]["basis"] == "layer2_import:numpy"
+    assert calls["malloc"]["kind"] == "external" and calls["malloc"]["provider"] == "libc.stdlib"
+
+
+def fortran_solver_entries():
+    return [
+        {"kind": "signature", "path": "solver.f90", "start_line": 1, "symbol": "solve",
+         "text": "subroutine solve(n)", "scope": "<module>.solve", "function_scope": "<module>.solve",
+         "scope_chain": ["<module>", "<module>.subroutine:solve@0"], "native": {"function_name": "solve"}},
+        {"kind": "call", "path": "solver.f90", "start_line": 5, "text": "scale(n)", "scope": "<module>.solve",
+         "function_scope": "<module>.solve", "native_expression": {"kind": "call", "callee": "scale"}},
+        {"kind": "call", "path": "solver.f90", "start_line": 6, "text": "c_loc(n)", "scope": "<module>.solve",
+         "function_scope": "<module>.solve", "native_expression": {"kind": "call", "callee": "c_loc"}},
+    ]
+
+
+def test_fortran_use_declarations_name_a_provider_only_outside_the_scanned_universe(tmp_path):
+    (tmp_path / "solver.f90").write_text("subroutine solve(n)\n    use, intrinsic :: iso_c_binding\n"
+                                         "    use mymod\n    call scale(n)\nend subroutine\n")
+    contracts = source_backends.distill_native_contracts(fortran_solver_entries(), "fortran", tmp_path)
+    calls = {call["callee"]: call["boundary"] for call in contracts[0]["calls"]}
+    assert calls["c_loc"]["kind"] == "external" and calls["c_loc"]["provider"] == "iso_c_binding"
+    assert calls["c_loc"]["basis"] == "layer2_use:iso_c_binding(intrinsic)"
+    assert calls["scale"]["kind"] == "external" and calls["scale"]["provider"] == "mymod"
+    assert calls["scale"]["basis"] == "layer2_use:mymod(only_unscanned_module)"
+
+    # With `mymod` inside the scanned universe no declaration explains `scale`.
+    entries = fortran_solver_entries() + [
+        {"kind": "signature", "path": "mymod.f90", "start_line": 2, "symbol": "other", "text": "subroutine other()",
+         "scope": "<module>.other", "function_scope": "<module>.other",
+         "scope_chain": ["<module>", "<module>.module:mymod@0", "<module>.module:mymod@0.subroutine:other@20"],
+         "native": {"function_name": "other"}}]
+    calls = {call["callee"]: call["boundary"] for call in
+             source_backends.distill_native_contracts(entries, "fortran", tmp_path)[0]["calls"]}
+    assert calls["scale"] == {"kind": "unknown_external", "provider": None, "assume": None,
+                              "repair_scope": "repo", "basis": "layer3_scanned_module:mymod"}
+    assert calls["c_loc"]["provider"] == "iso_c_binding"
+
+
+def test_fortran_calls_resolve_case_insensitively_and_locally(tmp_path):
+    (tmp_path / "solver.f90").write_text("subroutine solve(n)\n    call SCALE(n)\nend subroutine\n")
+    entries = [
+        {"kind": "signature", "path": "solver.f90", "start_line": 1, "symbol": "solve",
+         "text": "subroutine solve(n)", "scope": "<module>.solve", "function_scope": "<module>.solve",
+         "scope_chain": ["<module>", "<module>.subroutine:solve@0"], "native": {"function_name": "solve"}},
+        {"kind": "call", "path": "solver.f90", "start_line": 2, "text": "call SCALE(n)", "scope": "<module>.solve",
+         "function_scope": "<module>.solve", "native_expression": {"kind": "call", "callee": "SCALE"}},
+        {"kind": "signature", "path": "solver.f90", "start_line": 9, "symbol": "scale", "text": "subroutine scale(n)",
+         "scope": "<module>.scale", "function_scope": "<module>.scale",
+         "scope_chain": ["<module>", "<module>.subroutine:scale@40"], "native": {"function_name": "scale"}},
+    ]
+    contracts = source_backends.distill_native_contracts(entries, "fortran", tmp_path)
+    boundary = next(call["boundary"] for call in contracts[0]["calls"] if call["callee"] == "SCALE")
+    assert boundary["kind"] == "internal" and boundary["repair_scope"] == "caller_file"
+    assert boundary["basis"] == "layer1_scanned_definition"
+
+
+def test_caller_declarations_that_do_not_name_the_callee_stay_unknown(tmp_path):
+    (tmp_path / "opaque.cpp").write_text("#include <vector>\n#include <string>\n")
+    entries = [
+        {"kind": "signature", "path": "opaque.cpp", "start_line": 3, "symbol": "run", "text": "int run(int n)",
+         "scope": "<module>.run", "function_scope": "<module>.run", "native": {"function_name": "run"}},
+        {"kind": "call", "path": "opaque.cpp", "start_line": 4, "text": "mystery(n)", "scope": "<module>.run",
+         "function_scope": "<module>.run", "native_expression": {"kind": "call", "callee": "mystery"}},
+    ]
+    contract = source_backends.distill_native_contracts(entries, "cpp", tmp_path)[0]
+    assert contract["calls"][0]["boundary"] == {
+        "kind": "unknown_external", "provider": None, "assume": None,
+        "repair_scope": "repo", "basis": "layer3_no_declaration_match"}
+    assert contract["calls"][0]["external"] is True
+    assert contract["external_calls"] == contract["calls"]
+
+    # Without the caller's own file there is nothing to read, and that is recorded.
+    unavailable = source_backends.distill_native_contracts(entries, "cpp")[0]["calls"][0]["boundary"]
+    assert unavailable["kind"] == "unknown_external" and unavailable["basis"] == "layer3_no_caller_source"
+
+
+def test_matlab_import_statements_are_not_a_declaration_layer(tmp_path):
+    (tmp_path / "model.m").write_text("function out = run(n)\n    import mypkg.*\n    out = mystery(n);\nend\n")
+    entries = [
+        {"kind": "signature", "path": "model.m", "start_line": 1, "symbol": "run", "text": "function out = run(n)",
+         "scope": "<module>.run", "function_scope": "<module>.run", "native": {"function_name": "run"}},
+        {"kind": "call", "path": "model.m", "start_line": 3, "text": "mystery(n)", "scope": "<module>.run",
+         "function_scope": "<module>.run", "native_expression": {"kind": "call", "callee": "mystery"}},
+    ]
+    boundary = source_backends.distill_native_contracts(entries, "matlab", tmp_path)[0]["calls"][0]["boundary"]
+    assert boundary["kind"] == "unknown_external" and boundary["provider"] is None
+    assert boundary["basis"] == "layer3_no_declaration"
+
+
+def test_long_declarations_are_capped_in_the_boundary_record(tmp_path):
+    header = "deeppath/" * 12 + "widget_util.h"
+    (tmp_path / "sparse.cpp").write_text(f"#include <{header}>\n")
+    entries = [
+        {"kind": "signature", "path": "sparse.cpp", "start_line": 3, "symbol": "run", "text": "int run(void)",
+         "scope": "<module>.run", "function_scope": "<module>.run", "native": {"function_name": "run"}},
+        {"kind": "call", "path": "sparse.cpp", "start_line": 4, "text": "widget_util_malloc(n)",
+         "scope": "<module>.run", "function_scope": "<module>.run",
+         "native_expression": {"kind": "call", "callee": "widget_util_malloc"}},
+    ]
+    boundary = source_backends.distill_native_contracts(entries, "cpp", tmp_path)[0]["calls"][0]["boundary"]
+    assert set(boundary) == {"kind", "provider", "assume", "repair_scope", "basis"}
+    assert boundary["kind"] == "external"
+    assert boundary["provider"].endswith(" ... [truncated]") and len(boundary["provider"]) <= 96
+    assert boundary["basis"].startswith("layer2_include:") and len(boundary["basis"]) <= 136

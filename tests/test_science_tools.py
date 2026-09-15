@@ -782,3 +782,27 @@ def test_inspect_view_contracts_returns_distilled_contracts_view(tmp_path):
     assert c["return_type"] == "real"
     assert any(p["name"] == "x" for p in c["parameters"])
     assert any("if" in cond["type"].lower() for cond in c["governing_conditions"])
+
+
+def test_contracts_view_surfaces_boundary_classification(tmp_path):
+    root = tmp_path / "task"
+    root.mkdir()
+    (root / "solver.f90").write_text(
+        "subroutine solve(n, ptr)\n"
+        "    use, intrinsic :: iso_c_binding\n"
+        "    use mymod\n"
+        "    integer :: n\n"
+        "    type(c_ptr) :: ptr\n"
+        "    call scale(n)\n"
+        "    call c_free(ptr)\n"
+        "end subroutine\n"
+    )
+    store = ScienceStore(root, tmp_path / "artifacts")
+    store.prepare()
+    res = store.inspect("solver.f90", view="contracts")
+    boundaries = {call["callee"]: call["boundary"]
+                  for contract in res["interface_contracts"] for call in contract["calls"]}
+    assert boundaries["c_free"]["kind"] == "external" and boundaries["c_free"]["provider"] == "iso_c_binding"
+    assert boundaries["scale"]["kind"] == "external" and boundaries["scale"]["provider"] == "mymod"
+    assert res["boundary_summary"]["external"] == 2
+    assert sorted(res["boundary_summary"]["external_providers"]) == ["iso_c_binding", "mymod"]

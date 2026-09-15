@@ -1,0 +1,2627 @@
+{
+ "runs": {
+  "runs/deepseek-dev30-contracts-low-v1": {
+   "rows": {
+    "001": {
+     "baseline": {
+      "cached": 2114940,
+      "cleanup_err": false,
+      "in": 2151692,
+      "out": 41924,
+      "private": {
+       "collected": 3,
+       "failed": 2,
+       "passed": 1,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1799.0398836249951
+     },
+     "science": {
+      "cached": 2329600,
+      "cleanup_err": true,
+      "in": 2379513,
+      "out": 52817,
+      "private": {
+       "collected": 3,
+       "failed": 2,
+       "passed": 1,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1800.003470042022
+     }
+    },
+    "002": {
+     "baseline": {
+      "cached": 939264,
+      "cleanup_err": false,
+      "in": 984368,
+      "out": 18368,
+      "private": {
+       "collected": 8,
+       "failed": 0,
+       "passed": 8,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "timeout",
+      "reward": 1,
+      "seconds": 1799.078558124951
+     },
+     "science": {
+      "cached": 0,
+      "cleanup_err": true,
+      "in": 0,
+      "out": 0,
+      "private": {
+       "collected": 8,
+       "failed": 1,
+       "passed": 7,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1800.109905499965
+     }
+    },
+    "004": {
+     "baseline": {
+      "cached": 0,
+      "cleanup_err": false,
+      "in": 0,
+      "out": 0,
+      "private": {
+       "collected": 15,
+       "failed": 13,
+       "passed": 2,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 0,
+       "return_code": 1
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1800.0251679590438
+     },
+     "science": {
+      "cached": 0,
+      "cleanup_err": true,
+      "in": 0,
+      "out": 0,
+      "private": {
+       "collected": 15,
+       "failed": 15,
+       "passed": 0,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 0,
+       "return_code": 1
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1800.1095858750632
+     }
+    },
+    "005": {
+     "baseline": {
+      "cached": 4869760,
+      "cleanup_err": false,
+      "in": 4948112,
+      "out": 71085,
+      "private": {
+       "collected": 4,
+       "failed": 3,
+       "passed": 1,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 0,
+      "seconds": 684.9558003330603
+     },
+     "science": {
+      "cached": 2801792,
+      "cleanup_err": false,
+      "in": 2893648,
+      "out": 34665,
+      "private": {
+       "collected": 4,
+       "failed": 3,
+       "passed": 1,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 0,
+      "seconds": 343.40886270802
+     }
+    },
+    "006": {
+     "baseline": {
+      "cached": 638848,
+      "cleanup_err": false,
+      "in": 664794,
+      "out": 10026,
+      "private": {
+       "collected": 13,
+       "failed": 2,
+       "passed": 11,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1799.078224207973
+     },
+     "science": {
+      "cached": 757760,
+      "cleanup_err": true,
+      "in": 792981,
+      "out": 12702,
+      "private": {
+       "collected": 13,
+       "failed": 2,
+       "passed": 11,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1800.0032312920084
+     }
+    },
+    "008": {
+     "baseline": {
+      "cached": 0,
+      "cleanup_err": false,
+      "in": 0,
+      "out": 0,
+      "private": {
+       "collected": 6,
+       "failed": 5,
+       "passed": 1,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 0,
+      "seconds": 513.6838265419938
+     },
+     "science": {
+      "cached": 4363648,
+      "cleanup_err": false,
+      "in": 4519340,
+      "out": 35936,
+      "private": {
+       "collected": 6,
+       "failed": 5,
+       "passed": 1,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 0,
+      "seconds": 1730.5170573749347
+     }
+    },
+    "009": {
+     "baseline": {
+      "cached": 1699584,
+      "cleanup_err": false,
+      "in": 1727392,
+      "out": 48924,
+      "private": {
+       "collected": 9,
+       "failed": 3,
+       "passed": 6,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 0,
+      "seconds": 452.47245150001254
+     },
+     "science": {
+      "cached": 1949056,
+      "cleanup_err": false,
+      "in": 2049663,
+      "out": 32793,
+      "private": {
+       "collected": 9,
+       "failed": 0,
+       "passed": 9,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 1,
+      "seconds": 326.39251274999697
+     }
+    },
+    "010": {
+     "baseline": {
+      "cached": 2997376,
+      "cleanup_err": false,
+      "in": 3050515,
+      "out": 67482,
+      "private": {
+       "collected": 11,
+       "failed": 0,
+       "passed": 11,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 1,
+      "seconds": 568.1270351669518
+     },
+     "science": {
+      "cached": 6651136,
+      "cleanup_err": false,
+      "in": 6830377,
+      "out": 40852,
+      "private": {
+       "collected": 11,
+       "failed": 0,
+       "passed": 11,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 1,
+      "seconds": 1349.1203162920428
+     }
+    },
+    "014": {
+     "baseline": {
+      "cached": 566272,
+      "cleanup_err": false,
+      "in": 611513,
+      "out": 5393,
+      "private": {
+       "collected": 6,
+       "failed": 6,
+       "passed": 0,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 0,
+       "return_code": 1
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1799.0719193749828
+     },
+     "science": {
+      "cached": 842624,
+      "cleanup_err": true,
+      "in": 904742,
+      "out": 4021,
+      "private": {
+       "collected": 6,
+       "failed": 6,
+       "passed": 0,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 0,
+       "return_code": 1
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1800.0051039160462
+     }
+    },
+    "016": {
+     "baseline": {
+      "cached": 500352,
+      "cleanup_err": false,
+      "in": 522093,
+      "out": 17421,
+      "private": {
+       "collected": 12,
+       "failed": 0,
+       "passed": 12,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "timeout",
+      "reward": 1,
+      "seconds": 1799.0475265000714
+     },
+     "science": {
+      "cached": 973056,
+      "cleanup_err": true,
+      "in": 1038270,
+      "out": 20440,
+      "private": {
+       "collected": 12,
+       "failed": 0,
+       "passed": 12,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "timeout",
+      "reward": 1,
+      "seconds": 1800.0021987090586
+     }
+    },
+    "019": {
+     "baseline": {
+      "cached": 720000,
+      "cleanup_err": false,
+      "in": 737055,
+      "out": 34795,
+      "private": {
+       "collected": 14,
+       "failed": 0,
+       "passed": 14,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 1,
+      "seconds": 365.9840318330098
+     },
+     "science": {
+      "cached": 580864,
+      "cleanup_err": false,
+      "in": 603554,
+      "out": 26222,
+      "private": {
+       "collected": 14,
+       "failed": 0,
+       "passed": 14,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 1,
+      "seconds": 371.770655709086
+     }
+    },
+    "024": {
+     "baseline": {
+      "cached": 0,
+      "cleanup_err": false,
+      "in": 0,
+      "out": 0,
+      "private": {
+       "collected": 8,
+       "failed": 3,
+       "passed": 5,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1800.0205800409894
+     },
+     "science": {
+      "cached": 1126272,
+      "cleanup_err": true,
+      "in": 1175993,
+      "out": 29789,
+      "private": {
+       "collected": 8,
+       "failed": 0,
+       "passed": 8,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "timeout",
+      "reward": 1,
+      "seconds": 1800.0026428750716
+     }
+    },
+    "025": {
+     "baseline": {
+      "cached": 4633600,
+      "cleanup_err": false,
+      "in": 4704771,
+      "out": 57716,
+      "private": {
+       "collected": 7,
+       "failed": 0,
+       "passed": 7,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 1,
+      "seconds": 849.9231057910947
+     },
+     "science": {
+      "cached": 4965632,
+      "cleanup_err": false,
+      "in": 5053397,
+      "out": 56329,
+      "private": {
+       "collected": 7,
+       "failed": 0,
+       "passed": 7,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 1,
+      "seconds": 1611.5710649170214
+     }
+    },
+    "027": {
+     "baseline": {
+      "cached": 634240,
+      "cleanup_err": false,
+      "in": 663398,
+      "out": 18241,
+      "private": {
+       "collected": 21,
+       "failed": 0,
+       "passed": 21,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 1,
+      "seconds": 1132.4001115000574
+     },
+     "science": {
+      "cached": 1293440,
+      "cleanup_err": false,
+      "in": 1375379,
+      "out": 16566,
+      "private": {
+       "collected": 21,
+       "failed": 0,
+       "passed": 21,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 1,
+      "seconds": 1561.6457631669473
+     }
+    },
+    "028": {
+     "baseline": {
+      "cached": 294784,
+      "cleanup_err": false,
+      "in": 309607,
+      "out": 8770,
+      "private": {
+       "collected": 10,
+       "failed": 0,
+       "passed": 10,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 1,
+      "seconds": 297.2843590839766
+     },
+     "science": {
+      "cached": 243968,
+      "cleanup_err": false,
+      "in": 264101,
+      "out": 5498,
+      "private": {
+       "collected": 10,
+       "failed": 0,
+       "passed": 10,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 1,
+      "seconds": 306.63604733301327
+     }
+    },
+    "045": {
+     "baseline": {
+      "cached": 1048960,
+      "cleanup_err": false,
+      "in": 1095226,
+      "out": 16698,
+      "private": {
+       "collected": 16,
+       "failed": 0,
+       "passed": 16,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "timeout",
+      "reward": 1,
+      "seconds": 1799.0437656660797
+     },
+     "science": {
+      "cached": 909952,
+      "cleanup_err": true,
+      "in": 942915,
+      "out": 21388,
+      "private": {
+       "collected": 16,
+       "failed": 0,
+       "passed": 16,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "timeout",
+      "reward": 1,
+      "seconds": 1800.002206208068
+     }
+    },
+    "051": {
+     "baseline": {
+      "cached": 2296192,
+      "cleanup_err": false,
+      "in": 2354370,
+      "out": 40639,
+      "private": {
+       "collected": 6,
+       "failed": 6,
+       "passed": 0,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 0,
+       "return_code": 2
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1799.632774167112
+     },
+     "science": {
+      "cached": 839808,
+      "cleanup_err": true,
+      "in": 889401,
+      "out": 9074,
+      "private": {
+       "collected": 6,
+       "failed": 6,
+       "passed": 0,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 0,
+       "return_code": 2
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1800.0037643749965
+     }
+    },
+    "058": {
+     "baseline": {
+      "cached": 295808,
+      "cleanup_err": false,
+      "in": 313412,
+      "out": 4235,
+      "private": {
+       "collected": 9,
+       "failed": 3,
+       "passed": 6,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 0,
+       "return_code": 1
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1799.0303154999856
+     },
+     "science": {
+      "cached": 1541888,
+      "cleanup_err": true,
+      "in": 1590067,
+      "out": 21098,
+      "private": {
+       "collected": 9,
+       "failed": 3,
+       "passed": 6,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 0,
+       "return_code": 1
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1800.0034183330135
+     }
+    },
+    "061": {
+     "baseline": {
+      "cached": 2732416,
+      "cleanup_err": false,
+      "in": 2791436,
+      "out": 54157,
+      "private": {
+       "collected": 8,
+       "failed": 6,
+       "passed": 2,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1799.0434039169922
+     },
+     "science": {
+      "cached": 3634944,
+      "cleanup_err": true,
+      "in": 3737017,
+      "out": 51092,
+      "private": {
+       "collected": 8,
+       "failed": 6,
+       "passed": 2,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1800.003228125046
+     }
+    },
+    "070": {
+     "baseline": {
+      "cached": 7633920,
+      "cleanup_err": false,
+      "in": 7716271,
+      "out": 84792,
+      "private": {
+       "collected": 9,
+       "failed": 7,
+       "passed": 2,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 0,
+      "seconds": 1249.7127706670435
+     },
+     "science": {
+      "cached": 0,
+      "cleanup_err": true,
+      "in": 0,
+      "out": 0,
+      "private": {
+       "collected": 9,
+       "failed": 9,
+       "passed": 0,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 0,
+       "return_code": 1
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1800.1090574580012
+     }
+    },
+    "073": {
+     "baseline": {
+      "cached": 3033472,
+      "cleanup_err": false,
+      "in": 3082284,
+      "out": 36740,
+      "private": {
+       "collected": 6,
+       "failed": 1,
+       "passed": 5,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 0,
+      "seconds": 1019.0749677919084
+     },
+     "science": {
+      "cached": 5360128,
+      "cleanup_err": false,
+      "in": 5459540,
+      "out": 47214,
+      "private": {
+       "collected": 6,
+       "failed": 1,
+       "passed": 5,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 0,
+      "seconds": 1579.4274518329185
+     }
+    },
+    "076": {
+     "baseline": {
+      "cached": 3960704,
+      "cleanup_err": false,
+      "in": 4022169,
+      "out": 55258,
+      "private": {
+       "collected": 7,
+       "failed": 1,
+       "passed": 6,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 0,
+      "seconds": 1398.243061749963
+     },
+     "science": {
+      "cached": 3156224,
+      "cleanup_err": false,
+      "in": 3227325,
+      "out": 43857,
+      "private": {
+       "collected": 7,
+       "failed": 1,
+       "passed": 6,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 0,
+      "seconds": 1657.6108239589958
+     }
+    },
+    "077": {
+     "baseline": {
+      "cached": 495360,
+      "cleanup_err": false,
+      "in": 510344,
+      "out": 26592,
+      "private": {
+       "collected": 13,
+       "failed": 2,
+       "passed": 11,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 0,
+      "seconds": 889.8531071669422
+     },
+     "science": {
+      "cached": 1835904,
+      "cleanup_err": false,
+      "in": 1871652,
+      "out": 47578,
+      "private": {
+       "collected": 13,
+       "failed": 1,
+       "passed": 12,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 0,
+      "seconds": 988.1303812499391
+     }
+    },
+    "078": {
+     "baseline": {
+      "cached": 3909376,
+      "cleanup_err": false,
+      "in": 3952856,
+      "out": 75065,
+      "private": {
+       "collected": 42,
+       "failed": 0,
+       "passed": 42,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "timeout",
+      "reward": 1,
+      "seconds": 1799.3924728330458
+     },
+     "science": {
+      "cached": 1544064,
+      "cleanup_err": false,
+      "in": 1588141,
+      "out": 37946,
+      "private": {
+       "collected": 42,
+       "failed": 0,
+       "passed": 42,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 1,
+      "seconds": 1393.1674453340238
+     }
+    },
+    "080": {
+     "baseline": {
+      "cached": 3766272,
+      "cleanup_err": false,
+      "in": 3829245,
+      "out": 64486,
+      "private": {
+       "collected": 15,
+       "failed": 5,
+       "passed": 10,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 0,
+      "seconds": 1583.166721833055
+     },
+     "science": {
+      "cached": 8824832,
+      "cleanup_err": false,
+      "in": 8982298,
+      "out": 57973,
+      "private": {
+       "collected": 15,
+       "failed": 5,
+       "passed": 10,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 0,
+      "seconds": 1782.62944887497
+     }
+    },
+    "091": {
+     "baseline": {
+      "cached": 1761024,
+      "cleanup_err": false,
+      "in": 1785357,
+      "out": 48485,
+      "private": {
+       "collected": 3,
+       "failed": 3,
+       "passed": 0,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 0,
+      "seconds": 804.0896384579828
+     },
+     "science": {
+      "cached": 1060736,
+      "cleanup_err": false,
+      "in": 1125801,
+      "out": 23062,
+      "private": {
+       "collected": 3,
+       "failed": 0,
+       "passed": 3,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 1,
+      "seconds": 825.7448684170377
+     }
+    },
+    "099": {
+     "baseline": {
+      "cached": 3728512,
+      "cleanup_err": false,
+      "in": 3770474,
+      "out": 74398,
+      "private": {
+       "collected": 4,
+       "failed": 2,
+       "passed": 2,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 0,
+      "seconds": 1021.1917775829788
+     },
+     "science": {
+      "cached": 9840256,
+      "cleanup_err": false,
+      "in": 9962946,
+      "out": 105269,
+      "private": {
+       "collected": 4,
+       "failed": 2,
+       "passed": 2,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 0,
+      "seconds": 1443.863535542041
+     }
+    },
+    "104": {
+     "baseline": {
+      "cached": 5630080,
+      "cleanup_err": false,
+      "in": 5693735,
+      "out": 111496,
+      "private": {
+       "collected": 7,
+       "failed": 7,
+       "passed": 0,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 0,
+      "seconds": 1135.3569279579679
+     },
+     "science": {
+      "cached": 13756544,
+      "cleanup_err": false,
+      "in": 13864443,
+      "out": 137707,
+      "private": {
+       "collected": 7,
+       "failed": 7,
+       "passed": 0,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 0,
+      "seconds": 1618.1259634169983
+     }
+    },
+    "114": {
+     "baseline": {
+      "cached": 2692864,
+      "cleanup_err": false,
+      "in": 2732648,
+      "out": 43284,
+      "private": {
+       "collected": 15,
+       "failed": 2,
+       "passed": 13,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 0,
+      "seconds": 1338.382737042033
+     },
+     "science": {
+      "cached": 1913856,
+      "cleanup_err": false,
+      "in": 1980204,
+      "out": 35403,
+      "private": {
+       "collected": 15,
+       "failed": 2,
+       "passed": 13,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 0,
+      "seconds": 1226.2316047910135
+     }
+    },
+    "119": {
+     "baseline": {
+      "cached": 611712,
+      "cleanup_err": false,
+      "in": 631015,
+      "out": 20043,
+      "private": {
+       "collected": 10,
+       "failed": 8,
+       "passed": 2,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 0,
+      "seconds": 399.9931403750088
+     },
+     "science": {
+      "cached": 822784,
+      "cleanup_err": false,
+      "in": 929674,
+      "out": 13752,
+      "private": {
+       "collected": 10,
+       "failed": 8,
+       "passed": 2,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 0,
+      "seconds": 526.645128916949
+     }
+    }
+   },
+   "summary": {
+    "arms": {
+     "baseline": {
+      "attempts": 30,
+      "input_m": 65.4,
+      "mean_reward": 0.3,
+      "mean_seconds": 1243,
+      "no_verifier": 0,
+      "output_k": 1156.5,
+      "solved": 9
+     },
+     "science": {
+      "attempts": 30,
+      "input_m": 86.0,
+      "mean_reward": 0.367,
+      "mean_seconds": 1408,
+      "no_verifier": 0,
+      "output_k": 1021.0,
+      "solved": 11
+     }
+    },
+    "pairs": {
+     "baseline_only": [
+      "002"
+     ],
+     "both": [
+      "010",
+      "016",
+      "019",
+      "025",
+      "027",
+      "028",
+      "045",
+      "078"
+     ],
+     "neither": [
+      "001",
+      "004",
+      "005",
+      "006",
+      "008",
+      "014",
+      "051",
+      "058",
+      "061",
+      "070",
+      "073",
+      "076",
+      "077",
+      "080",
+      "099",
+      "104",
+      "114",
+      "119"
+     ],
+     "science_only": [
+      "009",
+      "024",
+      "091"
+     ]
+    }
+   }
+  },
+  "runs/deepseek-development-e2e-40-v1": {
+   "rows": {
+    "001": {
+     "baseline": {
+      "cached": 4195836,
+      "cleanup_err": false,
+      "in": 4264877,
+      "out": 58970,
+      "private": {
+       "collected": 3,
+       "failed": 2,
+       "passed": 1,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1799.0512607919518
+     },
+     "science": {
+      "cached": 4499072,
+      "cleanup_err": true,
+      "in": 4557479,
+      "out": 93536,
+      "private": {
+       "collected": 3,
+       "failed": 2,
+       "passed": 1,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1800.004119334044
+     }
+    },
+    "002": {
+     "baseline": {
+      "cached": 1529344,
+      "cleanup_err": false,
+      "in": 1575225,
+      "out": 28097,
+      "private": {
+       "collected": 8,
+       "failed": 0,
+       "passed": 8,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "timeout",
+      "reward": 1,
+      "seconds": 1799.058228916023
+     },
+     "science": {
+      "cached": 992640,
+      "cleanup_err": true,
+      "in": 1050623,
+      "out": 21220,
+      "private": {
+       "collected": 8,
+       "failed": 5,
+       "passed": 3,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1800.0042737079784
+     }
+    },
+    "004": {
+     "baseline": {
+      "cached": 1663616,
+      "cleanup_err": false,
+      "in": 1705977,
+      "out": 21832,
+      "private": {
+       "collected": 15,
+       "failed": 13,
+       "passed": 2,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 0,
+       "return_code": 1
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1799.0525710419752
+     },
+     "science": {
+      "cached": 2805760,
+      "cleanup_err": true,
+      "in": 2858999,
+      "out": 31963,
+      "private": {
+       "collected": 15,
+       "failed": 12,
+       "passed": 3,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 0,
+       "return_code": 1
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1800.0032332920237
+     }
+    },
+    "005": {
+     "baseline": {
+      "cached": 13150080,
+      "cleanup_err": false,
+      "in": 13259696,
+      "out": 109646,
+      "private": {
+       "collected": 4,
+       "failed": 4,
+       "passed": 0,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 0,
+      "seconds": 1407.5214019169798
+     },
+     "science": {
+      "cached": 6487424,
+      "cleanup_err": false,
+      "in": 6616055,
+      "out": 63438,
+      "private": {
+       "collected": 4,
+       "failed": 3,
+       "passed": 1,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 0,
+      "seconds": 777.9922515409999
+     }
+    },
+    "006": {
+     "baseline": {
+      "cached": 1200512,
+      "cleanup_err": false,
+      "in": 1249361,
+      "out": 8345,
+      "private": {
+       "collected": 13,
+       "failed": 3,
+       "passed": 10,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1799.0429299169919
+     },
+     "science": {
+      "cached": 2051456,
+      "cleanup_err": true,
+      "in": 2108472,
+      "out": 24460,
+      "private": {
+       "collected": 13,
+       "failed": 8,
+       "passed": 5,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 0,
+       "return_code": 1
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1800.003157250001
+     }
+    },
+    "008": {
+     "baseline": {
+      "cached": 0,
+      "cleanup_err": false,
+      "in": 0,
+      "out": 0,
+      "private": {
+       "collected": 6,
+       "failed": 5,
+       "passed": 1,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1800.0284499579575
+     },
+     "science": {
+      "cached": 7101952,
+      "cleanup_err": false,
+      "in": 7242091,
+      "out": 78259,
+      "private": {
+       "collected": 6,
+       "failed": 5,
+       "passed": 1,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 0,
+      "seconds": 1172.3132453330327
+     }
+    },
+    "009": {
+     "baseline": {
+      "cached": 6450432,
+      "cleanup_err": false,
+      "in": 6549135,
+      "out": 97691,
+      "private": {
+       "collected": 9,
+       "failed": 0,
+       "passed": 9,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 1,
+      "seconds": 1701.0986745000118
+     },
+     "science": {
+      "cached": 4855424,
+      "cleanup_err": false,
+      "in": 4982717,
+      "out": 80596,
+      "private": {
+       "collected": 9,
+       "failed": 3,
+       "passed": 6,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 0,
+      "seconds": 1684.4670993339969
+     }
+    },
+    "010": {
+     "baseline": {
+      "cached": 3577088,
+      "cleanup_err": false,
+      "in": 3657770,
+      "out": 58863,
+      "private": {
+       "collected": 11,
+       "failed": 0,
+       "passed": 11,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 1,
+      "seconds": 1209.934287791024
+     },
+     "science": {
+      "cached": 3630208,
+      "cleanup_err": false,
+      "in": 3781382,
+      "out": 67799,
+      "private": {
+       "collected": 11,
+       "failed": 0,
+       "passed": 11,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 1,
+      "seconds": 803.8258791249245
+     }
+    },
+    "014": {
+     "baseline": {
+      "cached": 211456,
+      "cleanup_err": false,
+      "in": 232341,
+      "out": 2945,
+      "private": {
+       "collected": 6,
+       "failed": 6,
+       "passed": 0,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 0,
+       "return_code": 1
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1799.0273219589144
+     },
+     "science": {
+      "cached": 0,
+      "cleanup_err": true,
+      "in": 0,
+      "out": 0,
+      "private": {
+       "collected": 6,
+       "failed": 6,
+       "passed": 0,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 0,
+       "return_code": 1
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1802.0043234589975
+     }
+    },
+    "016": {
+     "baseline": {
+      "cached": 1793024,
+      "cleanup_err": false,
+      "in": 1838616,
+      "out": 37278,
+      "private": {
+       "collected": 12,
+       "failed": 0,
+       "passed": 12,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "timeout",
+      "reward": 1,
+      "seconds": 1799.0630930410698
+     },
+     "science": {
+      "cached": 3715712,
+      "cleanup_err": true,
+      "in": 3797459,
+      "out": 44106,
+      "private": {
+       "collected": 12,
+       "failed": 0,
+       "passed": 12,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "timeout",
+      "reward": 1,
+      "seconds": 1800.0029082080582
+     }
+    },
+    "019": {
+     "baseline": {
+      "cached": 4858368,
+      "cleanup_err": false,
+      "in": 4896049,
+      "out": 97244,
+      "private": {
+       "collected": 14,
+       "failed": 0,
+       "passed": 14,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 1,
+      "seconds": 1238.8444842499448
+     },
+     "science": {
+      "cached": 2873344,
+      "cleanup_err": false,
+      "in": 2927477,
+      "out": 64064,
+      "private": {
+       "collected": 14,
+       "failed": 0,
+       "passed": 14,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 1,
+      "seconds": 995.430338208098
+     }
+    },
+    "024": {
+     "baseline": {
+      "cached": 4290176,
+      "cleanup_err": false,
+      "in": 4348859,
+      "out": 58479,
+      "private": {
+       "collected": 8,
+       "failed": 0,
+       "passed": 8,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "timeout",
+      "reward": 1,
+      "seconds": 1799.0637202499202
+     },
+     "science": {
+      "cached": 1236224,
+      "cleanup_err": true,
+      "in": 1280976,
+      "out": 34139,
+      "private": {
+       "collected": 8,
+       "failed": 0,
+       "passed": 8,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "timeout",
+      "reward": 1,
+      "seconds": 1800.0036463330034
+     }
+    },
+    "025": {
+     "baseline": {
+      "cached": 12843776,
+      "cleanup_err": false,
+      "in": 13050220,
+      "out": 67815,
+      "private": {
+       "collected": 7,
+       "failed": 0,
+       "passed": 7,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 1,
+      "seconds": 1648.5312719580252
+     },
+     "science": {
+      "cached": 9140352,
+      "cleanup_err": false,
+      "in": 9271917,
+      "out": 70705,
+      "private": {
+       "collected": 7,
+       "failed": 0,
+       "passed": 7,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 1,
+      "seconds": 1084.7586560409982
+     }
+    },
+    "027": {
+     "baseline": {
+      "cached": 535808,
+      "cleanup_err": false,
+      "in": 567360,
+      "out": 12231,
+      "private": {
+       "collected": 21,
+       "failed": 0,
+       "passed": 21,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 1,
+      "seconds": 494.2900109590264
+     },
+     "science": {
+      "cached": 608256,
+      "cleanup_err": false,
+      "in": 663381,
+      "out": 18744,
+      "private": {
+       "collected": 21,
+       "failed": 0,
+       "passed": 21,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 1,
+      "seconds": 944.4185734159546
+     }
+    },
+    "028": {
+     "baseline": {
+      "cached": 3640832,
+      "cleanup_err": false,
+      "in": 3689090,
+      "out": 54016,
+      "private": {
+       "collected": 10,
+       "failed": 0,
+       "passed": 10,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 1,
+      "seconds": 1564.1848714579828
+     },
+     "science": {
+      "cached": 393728,
+      "cleanup_err": false,
+      "in": 421601,
+      "out": 13584,
+      "private": {
+       "collected": 10,
+       "failed": 0,
+       "passed": 10,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 1,
+      "seconds": 312.50691495800857
+     }
+    },
+    "045": {
+     "baseline": {
+      "cached": 1429632,
+      "cleanup_err": false,
+      "in": 1468432,
+      "out": 27043,
+      "private": {
+       "collected": 16,
+       "failed": 0,
+       "passed": 16,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "timeout",
+      "reward": 1,
+      "seconds": 1799.0539168750402
+     },
+     "science": {
+      "cached": 902016,
+      "cleanup_err": true,
+      "in": 935155,
+      "out": 21381,
+      "private": {
+       "collected": 16,
+       "failed": 0,
+       "passed": 16,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "timeout",
+      "reward": 1,
+      "seconds": 1800.0050727500347
+     }
+    },
+    "051": {
+     "baseline": {
+      "cached": 0,
+      "cleanup_err": false,
+      "in": 0,
+      "out": 0,
+      "private": {
+       "collected": 6,
+       "failed": 6,
+       "passed": 0,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 0,
+       "return_code": 2
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1800.051526333089
+     },
+     "science": {
+      "cached": 0,
+      "cleanup_err": true,
+      "in": 0,
+      "out": 0,
+      "private": {
+       "collected": 6,
+       "failed": 6,
+       "passed": 0,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 0,
+       "return_code": 2
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1802.1026594999712
+     }
+    },
+    "058": {
+     "baseline": {
+      "cached": 355072,
+      "cleanup_err": false,
+      "in": 380423,
+      "out": 5056,
+      "private": {
+       "collected": 9,
+       "failed": 3,
+       "passed": 6,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 0,
+       "return_code": 1
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1799.0322697499068
+     },
+     "science": {
+      "cached": 442752,
+      "cleanup_err": true,
+      "in": 470363,
+      "out": 7543,
+      "private": {
+       "collected": 9,
+       "failed": 3,
+       "passed": 6,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 0,
+       "return_code": 1
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1800.0015832500067
+     }
+    },
+    "061": {
+     "baseline": {
+      "cached": 6559872,
+      "cleanup_err": false,
+      "in": 6635540,
+      "out": 89081,
+      "private": {
+       "collected": 8,
+       "failed": 2,
+       "passed": 6,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1799.023029834032
+     },
+     "science": {
+      "cached": 0,
+      "cleanup_err": true,
+      "in": 0,
+      "out": 0,
+      "private": {
+       "collected": 8,
+       "failed": 7,
+       "passed": 1,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1800.1197087920737
+     }
+    },
+    "070": {
+     "baseline": {
+      "cached": 11957888,
+      "cleanup_err": false,
+      "in": 12099371,
+      "out": 92551,
+      "private": {
+       "collected": 9,
+       "failed": 7,
+       "passed": 2,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 0,
+      "seconds": 1362.2875346670626
+     },
+     "science": {
+      "cached": 0,
+      "cleanup_err": true,
+      "in": 0,
+      "out": 0,
+      "private": {
+       "collected": 9,
+       "failed": 9,
+       "passed": 0,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 0,
+       "return_code": 1
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1800.1579659170238
+     }
+    },
+    "073": {
+     "baseline": {
+      "cached": 0,
+      "cleanup_err": false,
+      "in": 0,
+      "out": 0,
+      "private": {
+       "collected": 6,
+       "failed": 1,
+       "passed": 5,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 0,
+      "seconds": 906.1766944580013
+     },
+     "science": {
+      "cached": 3512704,
+      "cleanup_err": false,
+      "in": 3586547,
+      "out": 38331,
+      "private": {
+       "collected": 6,
+       "failed": 1,
+       "passed": 5,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 0,
+      "seconds": 1092.0483354580356
+     }
+    },
+    "076": {
+     "baseline": {
+      "cached": 5482112,
+      "cleanup_err": false,
+      "in": 5555234,
+      "out": 56825,
+      "private": {
+       "collected": 7,
+       "failed": 1,
+       "passed": 6,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 0,
+      "seconds": 1369.5599383329973
+     },
+     "science": {
+      "cached": 3378688,
+      "cleanup_err": false,
+      "in": 3439017,
+      "out": 43156,
+      "private": {
+       "collected": 7,
+       "failed": 1,
+       "passed": 6,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 0,
+      "seconds": 1219.488270833972
+     }
+    },
+    "077": {
+     "baseline": {
+      "cached": 0,
+      "cleanup_err": false,
+      "in": 0,
+      "out": 0,
+      "private": {
+       "collected": 13,
+       "failed": 2,
+       "passed": 11,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1800.034753041924
+     },
+     "science": {
+      "cached": 5492096,
+      "cleanup_err": false,
+      "in": 5531591,
+      "out": 109562,
+      "private": {
+       "collected": 13,
+       "failed": 0,
+       "passed": 13,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 1,
+      "seconds": 1711.0978717079852
+     }
+    },
+    "078": {
+     "baseline": {
+      "cached": 4747648,
+      "cleanup_err": false,
+      "in": 4826917,
+      "out": 68169,
+      "private": {
+       "collected": 42,
+       "failed": 0,
+       "passed": 42,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 1,
+      "seconds": 1253.015077542048
+     },
+     "science": {
+      "cached": 1834624,
+      "cleanup_err": false,
+      "in": 1878448,
+      "out": 43980,
+      "private": {
+       "collected": 42,
+       "failed": 0,
+       "passed": 42,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 1,
+      "seconds": 1089.4389950409532
+     }
+    },
+    "080": {
+     "baseline": {
+      "cached": 0,
+      "cleanup_err": false,
+      "in": 0,
+      "out": 0,
+      "private": null,
+      "public": null,
+      "repair": "failed",
+      "reward": null,
+      "seconds": 1692.059024416958
+     },
+     "science": {
+      "cached": 0,
+      "cleanup_err": false,
+      "in": 0,
+      "out": 0,
+      "private": null,
+      "public": null,
+      "repair": "failed",
+      "reward": null,
+      "seconds": 1726.20186608308
+     }
+    },
+    "091": {
+     "baseline": {
+      "cached": 2413952,
+      "cleanup_err": false,
+      "in": 2451159,
+      "out": 53558,
+      "private": {
+       "collected": 3,
+       "failed": 0,
+       "passed": 3,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 1,
+      "seconds": 790.5522917499766
+     },
+     "science": {
+      "cached": 3141760,
+      "cleanup_err": false,
+      "in": 3239916,
+      "out": 44886,
+      "private": {
+       "collected": 3,
+       "failed": 0,
+       "passed": 3,
+       "return_code": 0
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 1,
+      "seconds": 845.72194008308
+     }
+    },
+    "099": {
+     "baseline": {
+      "cached": 0,
+      "cleanup_err": false,
+      "in": 0,
+      "out": 0,
+      "private": null,
+      "public": null,
+      "repair": "failed",
+      "reward": null,
+      "seconds": 1053.6932373750024
+     },
+     "science": {
+      "cached": 0,
+      "cleanup_err": true,
+      "in": 0,
+      "out": 0,
+      "private": {
+       "collected": 4,
+       "failed": 2,
+       "passed": 2,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1802.0738296670606
+     }
+    },
+    "104": {
+     "baseline": {
+      "cached": 5786240,
+      "cleanup_err": false,
+      "in": 5844522,
+      "out": 89043,
+      "private": {
+       "collected": 7,
+       "failed": 7,
+       "passed": 0,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 0,
+      "seconds": 1676.9907485840376
+     },
+     "science": {
+      "cached": 3252096,
+      "cleanup_err": false,
+      "in": 3306194,
+      "out": 69649,
+      "private": {
+       "collected": 7,
+       "failed": 7,
+       "passed": 0,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "timeout",
+      "reward": 0,
+      "seconds": 1799.9302432079567
+     }
+    },
+    "114": {
+     "baseline": {
+      "cached": 0,
+      "cleanup_err": false,
+      "in": 0,
+      "out": 0,
+      "private": null,
+      "public": null,
+      "repair": "failed",
+      "reward": null,
+      "seconds": 1181.7785053750267
+     },
+     "science": {
+      "cached": 0,
+      "cleanup_err": false,
+      "in": 0,
+      "out": 0,
+      "private": null,
+      "public": null,
+      "repair": "failed",
+      "reward": null,
+      "seconds": 1149.7674737080233
+     }
+    },
+    "119": {
+     "baseline": {
+      "cached": 640128,
+      "cleanup_err": false,
+      "in": 663260,
+      "out": 21031,
+      "private": {
+       "collected": 10,
+       "failed": 8,
+       "passed": 2,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 0,
+      "seconds": 351.5160564580001
+     },
+     "science": {
+      "cached": 1787520,
+      "cleanup_err": false,
+      "in": 1856584,
+      "out": 25677,
+      "private": {
+       "collected": 10,
+       "failed": 8,
+       "passed": 2,
+       "return_code": 1
+      },
+      "public": {
+       "collected": 1,
+       "passed": 1,
+       "return_code": 0
+      },
+      "repair": "completed",
+      "reward": 0,
+      "seconds": 629.2236730830045
+     }
+    }
+   },
+   "summary": {
+    "arms": {
+     "baseline": {
+      "attempts": 30,
+      "input_m": 100.8,
+      "mean_reward": 0.4,
+      "mean_seconds": 1476,
+      "no_verifier": 3,
+      "output_k": 1215.8,
+      "solved": 12
+     },
+     "science": {
+      "attempts": 30,
+      "input_m": 75.8,
+      "mean_reward": 0.367,
+      "mean_seconds": 1415,
+      "no_verifier": 2,
+      "output_k": 1110.8,
+      "solved": 11
+     }
+    },
+    "pairs": {
+     "baseline_only": [
+      "002",
+      "009"
+     ],
+     "both": [
+      "010",
+      "016",
+      "019",
+      "024",
+      "025",
+      "027",
+      "028",
+      "045",
+      "078",
+      "091"
+     ],
+     "neither": [
+      "001",
+      "004",
+      "005",
+      "006",
+      "008",
+      "014",
+      "051",
+      "058",
+      "061",
+      "070",
+      "073",
+      "076",
+      "080",
+      "099",
+      "104",
+      "114",
+      "119"
+     ],
+     "science_only": [
+      "077"
+     ]
+    }
+   }
+  }
+ },
+ "transitions": {
+  "runs/deepseek-development-e2e-40-v1 -> runs/deepseek-dev30-contracts-low-v1": {
+   "gained_baseline": [],
+   "gained_science": [
+    "009"
+   ],
+   "lost_baseline": [
+    "009",
+    "024",
+    "091"
+   ],
+   "lost_science": [
+    "077"
+   ]
+  }
+ }
+}

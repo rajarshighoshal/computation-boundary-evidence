@@ -64,6 +64,22 @@ def tool_definitions():
     ]
 
 
+def _boundary_summary(contracts):
+    """Count the uniform boundary kinds and named providers across distilled calls."""
+    summary = {"internal": 0, "external": 0, "unknown_external": 0, "external_providers": []}
+    for contract in contracts:
+        for call in contract.get("calls") or []:
+            boundary = call.get("boundary") or {}
+            kind = boundary.get("kind")
+            if kind not in summary:
+                continue
+            summary[kind] += 1
+            if boundary.get("provider") and boundary["provider"] not in summary["external_providers"]:
+                summary["external_providers"].append(boundary["provider"])
+    summary["external_providers"] = summary["external_providers"][:10]
+    return summary
+
+
 class ScienceStore:
     def __init__(self, root, store):
         self.root, self.store = Path(root).resolve(), Path(store).resolve()
@@ -480,7 +496,7 @@ class ScienceStore:
             analysis = self._namespace_analysis(analysis)
             if not language:
                 self._lift_analyzer_sources(payload, analysis, path, raw)
-            attach_source_analysis(payload, analysis)
+            attach_source_analysis(payload, analysis, self.root)
         self._cache(payload, raw, path, source_sha256)
         compiled = reading_input(payload)
         sources = {s["id"]: s for s in compiled["sources"]}
@@ -544,14 +560,16 @@ class ScienceStore:
             if not contracts and payload.get("interface_contracts"):
                 contracts.extend(payload["interface_contracts"])
         if not contracts and native_entries and language and language != "python":
-            contracts = distill_native_contracts(native_entries, language)
+            contracts = distill_native_contracts(native_entries, language, self.root)
         if view == "contracts":
             return {"status": "ok", "target": reference,
                 "interface_contracts": contracts,
                 "total_contracts": len(contracts),
+                "boundary_summary": _boundary_summary(contracts),
                 "language": language,
                 "analysis_backends": [a["backend"] for a in (analysis or {}).get("analyses", [])],
-                "note": "Distilled interface contracts: external calls, boundary signatures, governing conditions, return expressions."}
+                "note": "Distilled interface contracts: external calls, boundary signatures, governing conditions, return expressions. "
+                        "Each call carries its boundary kind, provider, and the basis for that classification."}
         return {"status": "ok", "target": reference,
             "backend_request": ({**reference, "sha256": hashlib.sha256(raw).hexdigest()}
                                 if analysis is None and view == "relationships" and Path(path).suffix.lower() in JOERN_SOURCE_SUFFIXES else None),

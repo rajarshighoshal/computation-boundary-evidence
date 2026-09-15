@@ -4,6 +4,7 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from io import BytesIO
 from pathlib import Path
+import ast
 import json
 import re
 import os
@@ -106,7 +107,7 @@ def read_joern(path, source_root, language):
     for method in selection.get("methods", []):
         method["id"] = f"joern:{language}:{method['id']}"
         method["node_ids"] = [f"joern:{language}:{identifier}" for identifier in method["node_ids"]]
-    contracts = distill_joern_contracts(nodes, edges, selection, language)
+    contracts = distill_joern_contracts(nodes, edges, selection, language, root=source_root)
     return {"backend":"joern", "language":language, "nodes":[nodes[v] for v in sorted(keep)],
             "links":edges, "edge_counts":dict(Counter(e["role"] for e in edges)),
             "selection": selection,
@@ -125,7 +126,230 @@ def _shorten(text, limit=400):
     return text[:limit] + " ... [truncated]"
 
 
-def distill_joern_contracts(nodes, links, selection=None, language="unknown"):
+# Boundary classification, language-agnostic (design note section 3). The scanned
+# universe (layer 1) decides "internal"; the caller file's own declarations (layer 2)
+# only name a provider; everything else stays `unknown_external` (layer 3).
+BOUNDARY_DECLS = {
+    "c": (r'^\s*#\s*include\s*[<"](?P<provider>[\w./+-]+)[>"]',),
+    "cpp": (r'^\s*#\s*include\s*[<"](?P<provider>[\w./+-]+)[>"]',),
+    "fortran": (r'^\s*use\s*(?P<intrinsic>,\s*intrinsic\s*::)?\s*(?P<provider>\w+)',),
+    "cython": (r'^\s*cimport\s+(?P<provider>[\w.]+)(?:\s+as\s+(?P<alias>\w+))?',
+               r'^\s*from\s+(?P<provider>[\w.]+)\s+cimport\s+(?P<names>[^#\n]+)'),
+    "python": (),  # ast Import/ImportFrom, not a regex
+    "matlab": (),  # no standard import mechanism: only the core predicate applies
+}
+BOUNDARY_PATTERNS = {language: tuple(re.compile(p, re.MULTILINE | (re.IGNORECASE if language == "fortran" else 0))
+                                     for p in patterns)
+                     for language, patterns in BOUNDARY_DECLS.items()}
+
+# Heuristic prefix attribution, always disclosed as `prefix_heuristic` in `basis`.
+BOUNDARY_PREFIX_PROVIDERS = (
+    ("pthread_", "pthread.h"),
+    ("mpi_", "mpi.h"),
+    ("MPI_", "mpi.h"),
+    ("omp_", "omp.h"),
+    ("cuda", "cuda_runtime.h"),
+    ("cublas", "cublas_v2.h"),
+    ("fftw", "fftw3.h"),
+    ("H5", "hdf5.h"),
+    ("gsl_", "gsl"),
+)
+# Fortran intrinsic modules bind names through these prefixes, not through the module name.
+FORTRAN_INTRINSIC_MODULES = {
+    "iso_c_binding": ("c_",),
+    "omp_lib": ("omp_",),
+    "openacc": ("acc_",),
+    "ieee_arithmetic": ("ieee_",),
+    "ieee_exceptions": ("ieee_",),
+    "mpi": ("mpi_", "mpi"),
+}
+_JOERN_LANGUAGES = {"newc": "c", "c": "c", "cpp": "cpp", "c++": "cpp", "cxx": "cpp"}
+_NATIVE_LANGUAGES = {"fortran": "fortran", "matlab": "matlab", "cython": "cython"}
+_PYTHON_LANGUAGES = {"python": "python", "pythonsrc": "python"}
+
+
+def boundary_language(language):
+    """Map a backend frontend name or source language onto one BOUNDARY_DECLS row."""
+    name = (language or "").strip().casefold()
+    return _JOERN_LANGUAGES.get(name) or _NATIVE_LANGUAGES.get(name) or _PYTHON_LANGUAGES.get(name) or ""
+
+
+def _python_import_aliases(text):
+    """ast Import/ImportFrom bindings: local name -> module (layer 2 for Python)."""
+    try:
+        tree = ast.parse(text)
+    except (SyntaxError, ValueError, RecursionError):
+        return {}
+    aliases = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                aliases[alias.asname or alias.name.split(".")[0]] = alias.name
+        elif isinstance(node, ast.ImportFrom) and not node.level and node.module:
+            for alias in node.names:
+                if alias.name != "*":
+                    aliases[alias.asname or alias.name] = node.module
+    return aliases
+
+
+def _declaration_records(text, language):
+    """Provider names declared by the caller's own file. Naming only, never proof."""
+    declarations = {"includes": [], "modules": [], "aliases": {}}
+    if not text:
+        return declarations
+    if language == "python":
+        declarations["aliases"] = _python_import_aliases(text)
+        declarations["modules"] = [{"provider": module, "intrinsic": False}
+                                   for module in sorted(set(declarations["aliases"].values()))]
+        return declarations
+    for pattern in BOUNDARY_PATTERNS.get(language, ()):
+        for match in pattern.finditer(text):
+            provider = match.group("provider")
+            groups = match.groupdict()
+            if language in {"c", "cpp"}:
+                declarations["includes"].append({"provider": provider})
+            elif language == "fortran":
+                intrinsic = bool(groups.get("intrinsic")) or provider.casefold() in FORTRAN_INTRINSIC_MODULES
+                declarations["modules"].append({"provider": provider, "intrinsic": intrinsic})
+            else:
+                declarations["modules"].append({"provider": provider, "intrinsic": False})
+                declarations["aliases"].update(_cython_bindings(provider, groups))
+    return declarations
+
+
+def _cython_bindings(provider, groups):
+    """`cimport numpy as np` / `from libc.stdlib cimport malloc, free as release`."""
+    bindings = {}
+    alias = groups.get("alias")
+    if alias:
+        bindings[alias] = provider
+    elif not groups.get("names"):
+        bindings[provider.split(".")[-1]] = provider
+    for name in (groups.get("names") or "").split(","):
+        parts = name.split(" as ")
+        bound = parts[-1].strip()
+        if bound.isidentifier():
+            bindings[bound] = provider
+    return bindings
+
+
+def _caller_text(root, path, cache):
+    """The caller file's own text, read from the repository root; None when unavailable."""
+    if root is None or not path or _safe_relative(path):
+        return None
+    if path not in cache:
+        try:
+            cache[path] = (Path(root) / path).read_text(encoding="utf-8", errors="replace")
+        except (OSError, ValueError, UnicodeError):
+            cache[path] = None
+    return cache[path]
+
+
+def _caller_declarations(root, path, language, cache):
+    """Layer 2 evidence for one caller file; None when its text is unavailable."""
+    if not language:
+        return None
+    key = ("declarations", language, path)
+    if key not in cache:
+        text = _caller_text(root, path, cache)
+        cache[key] = None if text is None else _declaration_records(text, language)
+    return cache[key]
+
+
+def _name_binds(callee, stem):
+    """Exact name or the conventional `stem_` prefix derived from a declaration."""
+    return bool(stem) and (callee == stem or callee.startswith(stem + "_"))
+
+
+def _header_binds(callee, header):
+    return _name_binds(callee, re.sub(r"[^0-9A-Za-z_]+", "", header.rsplit("/", 1)[-1].rsplit(".", 1)[0]))
+
+
+def _module_binds(callee, module):
+    return _name_binds(callee, module.split(".")[0]) or _name_binds(callee, module.rsplit(".", 1)[-1])
+
+
+def _call_root(code):
+    match = re.match(r"\s*([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\s*\(", code or "")
+    return match.group(1) if match else ""
+
+
+def _layer3(declarations):
+    if declarations is None:
+        return "unknown_external", None, "layer3_no_caller_source"
+    if declarations["includes"] or declarations["modules"]:
+        return "unknown_external", None, "layer3_no_declaration_match"
+    return "unknown_external", None, "layer3_no_declaration"
+
+
+def _boundary_evidence(language, callee, code, declarations, scanned_modules=frozenset()):
+    """Layers 2 and 3 for a callee layer 1 could not place inside the scanned universe."""
+    if declarations is None:
+        return _layer3(declarations)
+    if language in {"c", "cpp"}:
+        for include in declarations["includes"]:
+            if _header_binds(callee, include["provider"]):
+                return "external", include["provider"], f"layer2_include:{include['provider']}"
+        for prefix, provider in BOUNDARY_PREFIX_PROVIDERS:
+            if callee.startswith(prefix):
+                return "external", provider, f"prefix_heuristic:{provider}"
+    elif language == "fortran":
+        for module in declarations["modules"]:
+            prefixes = FORTRAN_INTRINSIC_MODULES.get(module["provider"].casefold()) if module["intrinsic"] else None
+            if any(callee.startswith(prefix) for prefix in prefixes or ()) or \
+                    (not prefixes and _module_binds(callee, module["provider"])):
+                suffix = "(intrinsic)" if module["intrinsic"] else ""
+                return "external", module["provider"], f"layer2_use:{module['provider']}{suffix}"
+        declared = [m["provider"] for m in declarations["modules"] if not m["intrinsic"]]
+        scanned = [name for name in declared if name.casefold() in scanned_modules]
+        unscanned = [name for name in declared if name.casefold() not in scanned_modules]
+        if scanned:
+            # A declared module we already scanned cannot explain an unresolved callee.
+            return "unknown_external", None, f"layer3_scanned_module:{scanned[0]}"
+        if len(unscanned) == 1:
+            # Cross-file Fortran calls require `use`: one unscanned module is the only source left.
+            return "external", unscanned[0], f"layer2_use:{unscanned[0]}(only_unscanned_module)"
+    else:
+        root = _call_root(code)
+        for name in dict.fromkeys([callee, (callee or "").split(".")[0], root, root.split(".")[0]]):
+            provider = declarations["aliases"].get(name)
+            if provider:
+                return "external", provider, f"layer2_import:{provider}"
+    return _layer3(declarations)
+
+
+def _boundary(kind, provider=None, basis="", same_file=False):
+    """The uniform boundary schema carried on every call record, in every language.
+
+    `assume` records that an external interface is taken as given; `repair_scope` names
+    where a repair can live: the caller file for proven-external calls, the repository
+    for in-repo definitions in other files, and the repository when the callee is unknown.
+    """
+    return {
+        "kind": kind,
+        "provider": _shorten(provider, 80) if provider else None,
+        "assume": "correct_interface" if kind == "external" else None,
+        "repair_scope": "caller_file" if kind == "external" or (kind == "internal" and same_file) else "repo",
+        "basis": _shorten(basis, 120),
+    }
+
+
+def _joern_external_flag(node):
+    return node.get("properties", {}).get("IS_EXTERNAL") in (True, "true", "TRUE", 1, "1")
+
+
+def _scanned_modules(entries):
+    """Fortran modules whose definitions the scanned extraction actually covers."""
+    modules = set()
+    for entry in entries:
+        for part in entry.get("scope_chain") or []:
+            match = re.search(r"\bmodule:([^@]+)@", part)
+            if match:
+                modules.add(match.group(1).casefold())
+    return modules
+
+
+def distill_joern_contracts(nodes, links, selection=None, language="unknown", root=None):
     """Distill Joern CPG nodes and edges into clean, dense interface contracts.
 
     Yields for each method:
@@ -134,6 +358,9 @@ def distill_joern_contracts(nodes, links, selection=None, language="unknown"):
     - Core governing conditions (if/while/for predicates and governed statements)
     - Return expressions and types
     - Boundary types / classes referenced
+
+    Every call record carries the uniform `boundary` classification (layer 1 in-repo
+    resolution, layer 2 declarations of the caller file under `root`, layer 3 unknown).
     """
     node_map = {}
     if isinstance(nodes, list):
@@ -164,6 +391,8 @@ def distill_joern_contracts(nodes, links, selection=None, language="unknown"):
         in_edges[dst].append(edge)
 
     local_method_ids = {m.get("id") for m in methods} | {n["id"] for n in node_map.values() if n.get("kind") == "METHOD"}
+    boundary_lang = boundary_language(language)
+    text_cache = {}
 
     contracts = []
     for m in methods:
@@ -260,18 +489,36 @@ def distill_joern_contracts(nodes, links, selection=None, language="unknown"):
 
             target_methods = [node_map[e["target"]] for e in out_edges[call["id"]]
                               if e.get("role") == "CALL" and node_map.get(e["target"], {}).get("kind") == "METHOD"]
-            is_ext = False
-            if target_methods:
-                for tm in target_methods:
-                    tmp = tm.get("properties", {})
-                    if tmp.get("IS_EXTERNAL") in (True, "true", "TRUE", 1, "1") or tm["id"] not in local_method_ids:
-                        is_ext = True
-                        if not call_sig and tmp.get("SIGNATURE"):
-                            call_sig = tmp["SIGNATURE"]
-                        if not call_ret and tmp.get("TYPE_FULL_NAME"):
-                            call_ret = tmp["TYPE_FULL_NAME"]
-            elif callee not in local_names:
-                is_ext = True
+            flagged = [tm for tm in target_methods if _joern_external_flag(tm)]
+            resolved = [tm for tm in target_methods if not _joern_external_flag(tm)
+                        and (tm.get("path") or tm["id"] in local_method_ids)]
+            resolved_ids = {tm["id"] for tm in resolved}
+            for tm in target_methods:  # A callee without an in-repo definition still carries its signature.
+                if tm["id"] in resolved_ids:
+                    continue
+                tmp = tm.get("properties", {})
+                if not call_sig and tmp.get("SIGNATURE"):
+                    call_sig = tmp["SIGNATURE"]
+                if not call_ret and tmp.get("TYPE_FULL_NAME"):
+                    call_ret = tmp["TYPE_FULL_NAME"]
+
+            declarations = _caller_declarations(root, m_path, boundary_lang, text_cache)
+            if flagged:  # Layer 1: Joern already resolved this callee as external.
+                provider, boundary_basis = None, "layer1_is_external"
+                hint = _boundary_evidence(boundary_lang, callee, code, declarations)
+                if hint[0] == "external" and hint[1]:
+                    provider, boundary_basis = hint[1], f"{boundary_basis}+{hint[2]}"
+                boundary = _boundary("external", provider, boundary_basis)
+            elif resolved:  # Layer 1: the definition resolved inside the analysed source.
+                anchor = resolved[0]
+                boundary = _boundary("internal", None,
+                                     "layer1_resolved_in_repo" if anchor.get("path") else "layer1_exported_method",
+                                     same_file=bool(anchor.get("path")) and anchor.get("path") == m_path)
+            elif callee in local_names and not target_methods:  # Layer 1: method membership.
+                boundary = _boundary("internal", None, "layer1_local_member")
+            else:  # Layers 2 and 3: declarations of the caller file, else unknown.
+                boundary = _boundary(*_boundary_evidence(boundary_lang, callee, code, declarations))
+            is_ext = boundary["kind"] != "internal"
 
             call_record = {
                 "callee": callee,
@@ -281,7 +528,8 @@ def distill_joern_contracts(nodes, links, selection=None, language="unknown"):
                 "arguments": arguments,
                 "line": line,
                 "code": code,
-                "external": is_ext
+                "external": is_ext,
+                "boundary": boundary
             }
             calls.append(call_record)
             if is_ext:
@@ -418,8 +666,13 @@ def distill_fortran_contracts(records):
     return contracts
 
 
-def distill_native_contracts(entries, language="unknown"):
-    """Distill Tree-sitter native entries into dense interface contracts."""
+def distill_native_contracts(entries, language="unknown", root=None):
+    """Distill Tree-sitter native entries into dense interface contracts.
+
+    Every call record carries the uniform `boundary` classification: the scanned
+    definition set decides `internal`, the caller file's own declarations under `root`
+    name a provider, and anything unexplained stays `unknown_external` with a basis.
+    """
     signatures = [e for e in entries if e.get("kind") == "signature" and not e.get("native", {}).get("declaration_only")]
     if not signatures:
         signatures = [e for e in entries if e.get("kind") == "signature"]
@@ -432,7 +685,15 @@ def distill_native_contracts(entries, language="unknown"):
                        "path": entries[0].get("path", "") if entries else "",
                        "native": {}} for s in scopes]
 
-    known_names = {s.get("native", {}).get("function_name") or s.get("symbol") for s in signatures}
+    boundary_lang = boundary_language(language)
+    normalize = str.casefold if boundary_lang == "fortran" else str
+    text_cache = {}
+    scanned_modules = _scanned_modules(entries)
+    definitions = [(s.get("native", {}).get("function_name") or s.get("symbol") or "", s.get("path"))
+                   for s in signatures]
+    known_names = {normalize(name) for name, _ in definitions if name}
+    definition_paths = {normalize(name): path for name, path in definitions if name}
+
     contracts = []
     for sig in signatures:
         scope = sig.get("scope")
@@ -471,14 +732,23 @@ def distill_native_contracts(entries, language="unknown"):
             callee = expr.get("callee") or c.get("text") or ""
             receiver = expr.get("receiver", {}).get("text") if expr.get("receiver") else None
             args = [_shorten(a.get("text")) for a in expr.get("arguments", []) if isinstance(a, dict) and a.get("text")]
-            is_ext = callee not in known_names
+            # `known_names` is the scanned definition set; keys are case-folded for Fortran.
+            if normalize(callee) in known_names:
+                boundary = _boundary("internal", None, "layer1_scanned_definition",
+                                     same_file=bool(path) and definition_paths.get(normalize(callee)) == path)
+            else:
+                boundary = _boundary(*_boundary_evidence(
+                    boundary_lang, callee, c.get("text") or callee,
+                    _caller_declarations(root, path, boundary_lang, text_cache), scanned_modules))
+            is_ext = boundary["kind"] != "internal"
             call_obj = {
                 "callee": callee,
                 "receiver": receiver,
                 "arguments": args,
                 "line": c.get("start_line"),
                 "code": _shorten(c.get("text")),
-                "external": is_ext
+                "external": is_ext,
+                "boundary": boundary
             }
             calls.append(call_obj)
             if is_ext:
@@ -516,26 +786,20 @@ def distill_native_contracts(entries, language="unknown"):
                             ret_type = parts[0].strip()
                             break
         if not ret_type and path:
-            for candidate_path in (Path(path), Path.cwd() / path):
-                if candidate_path.is_file():
-                    try:
-                        src_lines = candidate_path.read_text().splitlines()
-                        start_l = max(0, (line or 1) - 1)
-                        end_l = min(len(src_lines), start_l + 80)
-                        for l in src_lines[start_l:end_l]:
-                            if "end function" in l.lower() or "end subroutine" in l.lower():
-                                break
-                            for sym in (ret_symbols or [name]):
-                                m = re.match(r'^\s*([a-zA-Z0-9_,\s\(\)]+?)\s*::\s*.*?\b' + re.escape(sym) + r'\b', l)
-                                if m:
-                                    ret_type = m.group(1).strip()
-                                    break
-                            if ret_type:
-                                break
-                    except Exception:
-                        pass
-                    if ret_type:
+            # The caller's own file is the only place the declared result type is written.
+            src_lines = (_caller_text(root, path, text_cache) or "").splitlines()
+            start_l = max(0, (line or 1) - 1)
+            end_l = min(len(src_lines), start_l + 80)
+            for l in src_lines[start_l:end_l]:
+                if "end function" in l.lower() or "end subroutine" in l.lower():
+                    break
+                for sym in (ret_symbols or [name]):
+                    m = re.match(r'^\s*([a-zA-Z0-9_,\s\(\)]+?)\s*::\s*.*?\b' + re.escape(sym) + r'\b', l)
+                    if m:
+                        ret_type = m.group(1).strip()
                         break
+                if ret_type:
+                    break
         for ret in returns_raw:
             expr = ret.get("native_expression", {}).get("text") or ret.get("native", {}).get("implicit_output") or ret.get("text")
             returns.append({
@@ -702,8 +966,12 @@ def analyze_sources(root, output, regions=None):
     return result
 
 
-def attach_source_analysis(payload, result):
-    """Keep selected computations; summarize unresolved call-target sets as sets."""
+def attach_source_analysis(payload, result, root=None):
+    """Keep selected computations; summarize unresolved call-target sets as sets.
+
+    `root` is the analysed source root: layer 2 boundary evidence reads the caller
+    file's own declarations from it. Without it, calls stay `unknown_external`.
+    """
     records = payload.setdefault("context", {}).setdefault("analysis_sources", [])
     if "serialized_bytes" in payload.get("selection", {}):
         payload["selection"]["serialized_bytes_scope"] = "before_source_analysis"
@@ -718,7 +986,8 @@ def attach_source_analysis(payload, result):
             contracts = analysis.get("interface_contracts")
             if not contracts:
                 contracts = distill_joern_contracts(analysis.get("nodes", []), analysis.get("links", []),
-                                                    analysis.get("selection"), analysis.get("language", "unknown"))
+                                                    analysis.get("selection"), analysis.get("language", "unknown"),
+                                                    root=root)
             all_contracts.extend(contracts)
         elif analysis.get("backend") == "fortls":
             contracts = analysis.get("interface_contracts")
