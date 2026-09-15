@@ -1,0 +1,33 @@
+{
+  "kind": "deepseek-development-e2e-40-v1-honest-truth-table",
+  "generated_utc": "2026-09-15T09:35:00Z",
+  "code_revision": "28cfd3d",
+  "source": "recomputed from jobs/task-*/task_*/run.json stage statuses and jobs/*/result.json verifier reward_stats; NOT from scheduler status labels",
+  "run": "runs/deepseek-development-e2e-40-v1 (60 attempts, 40-concurrent, 13:20-14:26 IST, exit 0)",
+  "verifier_outcomes": {
+    "baseline": {"reward_1": 12, "reward_0": 15, "no_verifier_result": 3, "n": 30},
+    "science": {"reward_1": 11, "reward_0": 17, "no_verifier_result": 2, "n": 30},
+    "verified_only_rates": {"baseline": "12/27", "science": "11/28"}
+  },
+  "paired_discordants": {
+    "baseline_only": ["002", "009"],
+    "science_only": ["077"],
+    "both_solved": 10,
+    "neither_solved": 17,
+    "mcnemar_note": "2 vs 1 discordant pairs; exact p ~ 1.0; no measurable success difference at this scale"
+  },
+  "resources_mean_per_attempt": {
+    "baseline": {"input_tokens": 4380000, "output_tokens": 52900, "work_seconds": 1476},
+    "science": {"input_tokens": 3300000, "output_tokens": 48300, "work_seconds": 1415, "note": "-25% input tokens vs baseline"}
+  },
+  "repair_stage_statuses": {"baseline": {"completed": 14, "timeout": 13, "failed": 3}, "science": {"completed": 14, "timeout": 14, "failed": 2}},
+  "true_infrastructure_failures": {
+    "attempts": ["080-baseline", "080-science", "099-baseline", "114-baseline", "114-science"],
+    "cause": "non-retryable provider invalid_response after healthy multi-step work (e.g. 080 at step 69); task-correlated (080/114 hit both arms), not arm-correlated"
+  },
+  "accounting_defect": {
+    "description": "13 science trials labeled infrastructure_failure by the scheduler: controller cleanup (20s cap, controller.py:217) timed out under 40-way Docker load after budget-exhausted, VERIFIED attempts; rewards unaffected",
+    "action": "documented, not fixed mid-freeze; raw run.json preserves truth"
+  },
+  "interpretation_guard": "Single attempt per arm per task; development-exposed tasks; one model family; provider transport success is not scientific quality. No causal or significance claim."
+}

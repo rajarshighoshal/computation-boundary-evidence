@@ -42,6 +42,20 @@ The following are mechanisms to borrow, not evidence that our method works.
   is explicitly hand-crafted/aspirational.
   [Paper](https://arxiv.org/html/2001.07295v1).
 
+- **Niu et al., ABLoTS replication (MSR 2023), DOI 10.1109/MSR59073.2023.00083:** two debts.
+  Design inspiration: TraceScore's verified thesis — connecting a new task to code through
+  intermediate traceability artifacts (their linked resolved/non-bug reports and commits; our
+  observed public workflow, executed callees and public documents) localizes relevant code
+  better than flat text similarity. Our task→workflow→computation→source chain follows that
+  principle, carried from file-level ranking to role-labelled scientific computations consumed
+  by a repair agent. (TVR separately contributes the role-narrowed correspondence check.)
+  Methodological alignment: the replication showed headline bug-localization results collapsing
+  under a correct protocol — a reused component cut off at the bug's fix date, leaking fix
+  commits into scored evidence, plus undocumented evaluation-subset filtering. Accordingly we
+  predeclare the split (configs/interactive-science.split.json) before outcomes, keep locked
+  tasks separate from development, disclose prior exposure, and generate every reported number
+  from receipts via scripts/recompute_results.py rather than from selected subsets.
+
 - **SKEMA/GroMEt:** function definitions are stored separately from invocation bindings, ports
   and wires. Its structural alignment uses seeded graph matching on operator-labelled graphs;
   candidate correspondences are not scientific or algebraic equality. The inspected equation–code
