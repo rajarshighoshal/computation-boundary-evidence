@@ -20,7 +20,12 @@
     "baseline": {"input_tokens": 4380000, "output_tokens": 52900, "work_seconds": 1476},
     "science": {"input_tokens": 3300000, "output_tokens": 48300, "work_seconds": 1415, "note": "-25% input tokens vs baseline"}
   },
-  "repair_stage_statuses": {"baseline": {"completed": 14, "timeout": 13, "failed": 3}, "science": {"completed": 14, "timeout": 14, "failed": 2}},
+  "graded_pass_rates_neither_solved": {
+    "source": "verifier/test-stdout.txt private {passed,collected} per trial; diagnostic only, not the official metric",
+    "tasks": {"001": "1/3 vs 1/3", "004": "2/15 vs 3/15", "005": "0/4 vs 1/4", "006": "10/13 vs 5/13", "008": "1/6 vs 1/6", "014": "0/6 vs 0/6", "051": "0/6 vs 0/6", "058": "6/9 vs 6/9", "070": "2/9 vs 0/9", "073": "5/6 vs 5/6", "104": "0/7 vs 0/7", "119": "2/10 vs 2/10"},
+    "totals": {"baseline": "29/94 (30.9%)", "science": "24/94 (25.5%)", "excluding_task_006": "19/81 vs 19/81 (tie)"},
+    "reading": "8/12 identical pass counts; entire gap is task 006 (baseline near-miss 10/13). No arm advantage in graded closeness."
+  },
   "true_infrastructure_failures": {
     "attempts": ["080-baseline", "080-science", "099-baseline", "114-baseline", "114-science"],
     "cause": "non-retryable provider invalid_response after healthy multi-step work (e.g. 080 at step 69); task-correlated (080/114 hit both arms), not arm-correlated"
