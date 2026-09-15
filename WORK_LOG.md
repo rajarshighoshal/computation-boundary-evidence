@@ -9,7 +9,26 @@ Rajarshi owns scientific decisions. Root is the only code writer; reviewers are 
 Preserve unrelated untracked PDF, REPRODUCTION.md, paper/, results, docs and workspace files.
 Git, run receipts and this ledger take precedence over older model-written memory.
 
-## Approved work now: five local fixes
+## Approved work now: broader frozen validation
+User explicitly approved the30-task graph audit and40-concurrent E2E development test ASAP.
+- [verified] GLM Flash/low config for ALL30 development tasks, baseline+science (60 attempts),
+  40 TOTAL simultaneous trials;1800s work and separate1800s official verifier. Full suite665
+  passes; independent instrumentation review passes. Full initial state is snapshotted before
+  inference for the audit (not added to the prompt). Config: configs/glm-development-e2e-40.json.
+- [active] Run/monitor this frozen workload (Luna/xhigh run manager); no code commits while live.
+  Record actual concurrency, memory/OOM/provider failures, usage and teardown. Normal task
+  failures continue; a confirmed shared-resource collapse is an operational stop, not a repair score.
+- [next] Root audits the30 immutable pre-repair graph-bundle snapshots produced by this SAME
+  run; no duplicate preparation containers. Separate construction/grounding checks from
+  scientific relevance, inspect hard cases against public task/workflow context. Locked89 untouched.
+  Relevance review uses initial snapshots/public task evidence, not private-test bodies or
+  candidate patch outcomes. Central-computation coverage, workflow-only graphs and uncertainty
+  are reported separately; graph counts alone never establish scientific understanding.
+- [next] Independent outcome/resource/graph audit and concise handoff with exact task IDs.
+Final verification: all60 attempted/status-accounted, initialgraphs audited for30tasks, actual
+40-way peak measured (or explicitly not reached), outcomes/tokens/time independently recomputed.
+
+## Completed prerequisite: five local fixes
 User approved these fixes plus tests, independent review and a small end-to-end recheck.
 - [verified] Self-check refuses existing models and restores memory/disk state; full-file
   hashes use streaming reads; unknown/environment statuses no longer become science violations.
@@ -33,8 +52,7 @@ User approved these fixes plus tests, independent review and a small end-to-end 
   also saved first try. runs/note-interface-replay-v3/live-receipt.json records source/code hashes.
   This final adjustment was checked separately, NOT silently counted as an error-free v2 repair
   run. No whole-pair rerun after that last note-only change; v1/v2 results remain separate.
-Final verification: tested fixes plus real preparation→graph query→repair→verifier receipts;
-verify note usability/recovery, token/time counts and cleanup. No40-job debugging batch.
+The five-fix pass is complete; broader validation above is now authorized and must be carried through.
 
 ## Current verified checkpoint
 Provider integration3e57ed4; five-fix paired checkpointa4cac9b; final local suite661 tests passed.

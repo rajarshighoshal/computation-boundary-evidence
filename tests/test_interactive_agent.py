@@ -72,6 +72,25 @@ def test_plain_baseline_setup_does_not_expose_science_assets(tmp_path, monkeypat
     assert all("/opt/scicontext" not in command for command in commands)
 
 
+def test_graph_collection_preserves_initial_state_before_repair(tmp_path):
+    from scicontext.io import digest_file
+    model = agent(tmp_path)
+    (tmp_path / "prompts").mkdir()
+    (tmp_path / "prompts/scientific_repair.md").write_text("Use the science tools.")
+    model._science_prepared = {"task_map": [], "scientific_graph": {"nodes": 1, "edges": 0}}
+    state = {"scientific_graph": {"nodes": [{"id": "initial"}], "edges": []}}
+    class Env:
+        async def download_file(self, remote, local):
+            assert remote.endswith("science/state.json")
+            local.write_text(json.dumps(state))
+    model.environment = Env()
+    bundle = asyncio.run(model.collect_graph(10))
+    snapshot = model.logs_dir / "science-initial-state.json"
+    assert json.loads(snapshot.read_text()) == state
+    assert bundle["initial_state_sha256"] == digest_file(snapshot)
+    assert "initial" not in bundle["handoff"], "audit snapshot must not enlarge the agent prompt"
+
+
 def test_science_agent_has_graph_tool_and_shell_from_the_start(tmp_path, monkeypatch):
     model = agent(tmp_path)
     root = tmp_path / "task"

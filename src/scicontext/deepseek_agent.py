@@ -451,7 +451,10 @@ class DeepSeekAgent(ScientificCodex):
         template = ((self.frozen_source / "prompts/scientific_repair.md") if self.frozen_source
                     else self.workspace / "prompts/scientific_repair.md").read_text()
         index = self._science_prepared
+        snapshot = self.logs_dir / "science-initial-state.json"
+        await bounded_call(self.environment.download_file(SCIENCE_STORE + "/state.json", snapshot), seconds, set())
         return {"graph_sha256": digest_json(index), "analysis": {"coverage": {}},
+                "initial_state_sha256": digest_file(snapshot),
                 "graph": {key: (index.get("scientific_graph") or {}).get(key)
                           for key in ("nodes", "edges", "findings", "bytes")},
                 "construction": index.get("construction"),
