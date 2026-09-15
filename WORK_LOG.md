@@ -9,24 +9,22 @@ Rajarshi owns scientific decisions. Root is the only code writer; reviewers are 
 Preserve unrelated untracked PDF, REPRODUCTION.md, paper/, results, docs and workspace files.
 Git, run receipts and this ledger take precedence over older model-written memory.
 
-## Active: finish computation selection and validate the scientific treatment
-## Active: omp session is the writer (Codex usage limit hit 15Sep2026)
-Codex weekly limit exhausted (resets 20Sep, after deadline); the omp harness session took over as
-sole writer at Rajarshi's request. DeepSeek V4.1 Flash reviewer agent and Fable advisor configured
-in that harness (outside this repo).
-- [verified] Selection/pagination/graph work and analyzer slot+deadline fixes completed and committed:
-  242c779 (result-producer ranking, partial views, workflow callee edges, graph pagination),
-  1b51cd9 (2-slot analyzer semaphore shared via repo-root .cache, deadline arithmetic including
-  queue wait and remote merge, typed analysis-gap reasons). 695 tests pass (was 684).
-- [active] Consolidate the 30-task offline recheck (runs/context-recheck-v8 has before/after
-  grounding for 001/016/114; reconcile remaining tasks against initial snapshots, exact task IDs,
-  preserve gaps). Then the approved DeepSeek V4.1 Flash/high paired E2E check.
-- [next] After the smaller check works: the approved 40-concurrent development workload; measure
-  real analyzer queue waits there before scaling slots. Then freeze config, run evaluation,
-  produce report/reproduction package. No commits while runs are live.
-- [pending] Locked-89 untouched until method frozen; no new task-specific tuning.
-Final verification: 30-task audit table with task IDs, paired official verifier results, actual
-40-way capacity, independently recomputed receipts.
+## Active: dev-30 paired result recorded; locked-89 decision pending
+- [verified] DeepSeek V4.1 Flash/high paired check v5 (task009): both arms reward1.0, zero retries,
+  receipts recomputed. runs/development-e2e-check-v5.
+- [verified] 40-concurrent dev-30 workload completed 60/60 in 66min, exit0, all containers cleaned.
+  Honest truth table recomputed from run.json+verifier rewards (results/deepseek-development-e2e-40-v1-analysis.json):
+  baseline 12/30 vs science 11/30 (12/27 vs 11/28 verified); discordant pairs 002+009 base-only,
+  077 sci-only; McNemar p~1.0 - no measurable success difference; science used -25% input tokens.
+  5 attempts (080 both, 099 base, 114 both) lost to non-retryable provider invalid_response
+  (task-correlated). 13 science trials mislabeled infrastructure_failure by a cleanup-timeout
+  accounting defect (20s cap under load); verified outcomes unaffected; documented, not fixed
+  mid-freeze. Commit ca7902a (with Niu-lineage citations in METHOD.md/report).
+- [decision-pending Rajarshi] locked-89 full run (~6-7h, powers a null) vs predeclared dev-30
+  subset framing (recommended: honest null + efficiency gain + audit + protocol rigor).
+- [next] Fill report slots, reproduction package, clean reproduction pass after the decision.
+Final verification: submission-ready 4-page PDF + receipts + reproduction README before
+16Sep2026 23:59:59 CEST (17Sep 03:29 IST).
 
 ## Completed: DeepSeek V4.1 Flash provider check
 User approved trying V4.1 Flash after confirming that original V4 Flash is retired on the direct API.
