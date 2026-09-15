@@ -1,0 +1,27 @@
+{
+  "kind": "arm-isolation-and-delivery-audit",
+  "run": "runs/deepseek-development-e2e-40-v1",
+  "generated_utc": "2026-09-15T10:55:00Z",
+  "baseline_isolation": {
+    "verdict": "clean - no scientific content was ever present in any baseline-visible location",
+    "evidence": {
+      "mounted_dir_file_inventory_all_30_trials": ["repair-prompt.txt", "repair.jsonl", "setup.json", "repair-process.json", "repair-session.jsonl", "repair-session.json", "runtime-repair.log", "repair-final.txt"],
+      "science_apparatus_in_baseline_dirs": "none: no graph, packet, construction.json or science-initial-state.json in any baseline trial",
+      "science_path_access": "0 baseline session lines touch /context/science or scicontext paths",
+      "logs_mining": "8/30 baseline trials probed /logs/agent (22/60 trials overall); every read returned the agent's own prompt/transcript or the harness filename-hash manifest; one full gold-patch hunt (task 009: git fsck, cat-file batch, keyword greps) returned nothing ('No hidden' in the agent's own reasoning)",
+      "container_uploads": "conditional by arm: baseline gets only mkdir outputs; scicontext source, deps and science store are uploaded to science containers only"
+    },
+    "residual": "setup.json helper_hashes discloses harness module FILENAMES (apparatus meta-knowledge, no task data), symmetric across arms; closed for later runs by commit 1e8684f (host bookkeeping moved to agent-host/, mounted /logs/agent left empty)"
+  },
+  "science_delivery": {
+    "verdict": "complete - 30/30 science trials received and consumed the graph",
+    "evidence": {
+      "prompts": "30/30 contain the task map and all three science tool descriptions",
+      "extraction": "30/30 prepared_graph",
+      "first_query_graph_content": "27/30 first science-tool call returned graph content (status ok)",
+      "recovered_cases": "025: first call was find, graph overview on call 2; 028 and 061: one errored bare-name target, then find + precise-target inspect delivered 8.7-30.5KB of graph content",
+      "tool_use_totals": "109 inspect, 34 find, 31 record_note; 29/30 queried before first edit"
+    }
+  },
+  "interpretation_guard": "Audit covers container-visible channels (binds, uploads, prompts, session transcripts). It cannot rule out unknown channels outside the harness; none were observed."
+}
