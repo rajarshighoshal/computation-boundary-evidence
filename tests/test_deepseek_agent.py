@@ -15,6 +15,50 @@ from scicontext.deepseek_agent import DeepSeekAgent
 pytest.importorskip("pier")
 
 
+def test_analyzer_slots_limit_concurrent_work_and_release_on_cancellation(tmp_path):
+    async def exercise():
+        active = peak = 0
+        async def worker():
+            nonlocal active, peak
+            async with module.analyzer_slot(tmp_path, slots=2):
+                active += 1
+                peak = max(active, peak)
+                await asyncio.sleep(.01)
+                active -= 1
+        await asyncio.gather(*(worker() for _ in range(8)))
+        assert peak == 2
+        async def blocked():
+            async with module.analyzer_slot(tmp_path, slots=1):
+                pytest.fail('Occupied analyzer slot must not be entered')
+        async with module.analyzer_slot(tmp_path, slots=1):
+            pending = asyncio.create_task(blocked())
+            await asyncio.sleep(.01)
+            pending.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await pending
+        async with asyncio.timeout(.2):
+            async with module.analyzer_slot(tmp_path, slots=1):
+                pass
+    asyncio.run(exercise())
+
+
+def test_analyzer_allowance_includes_cached_upload_and_remote_merge(tmp_path):
+    agent = DeepSeekAgent.__new__(DeepSeekAgent)
+    agent.logs_dir = tmp_path
+    wanted = {'path':'model.py', 'sha256':'fixture'}
+    receipt = tmp_path / 'source-analysis' / module.digest_json(wanted)[:20] / 'backend/receipt.json'
+    receipt.parent.mkdir(parents=True)
+    receipt.write_text('{}')
+    async def upload(*args):
+        await asyncio.sleep(.05)
+    agent.environment = SimpleNamespace(upload_file=upload)
+    agent.checked = AsyncMock(return_value='{}')
+    result = asyncio.run(agent._analyze_query('inspect', {'sources':['available']}, wanted, .01))
+    assert result['sources'] == ['available']
+    assert result['analysis_gaps'][0]['reason'].startswith('TimeoutError')
+    agent.checked.assert_not_awaited()
+
+
 class FakeHTTPResponse:
     def __init__(self, status, payload):
         self.status = status

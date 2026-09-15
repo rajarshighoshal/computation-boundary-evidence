@@ -7,6 +7,8 @@ Provider credentials remain on the host.
 from __future__ import annotations
 
 import asyncio
+from contextlib import asynccontextmanager
+import fcntl
 import http.client
 import json
 import re
@@ -44,6 +46,33 @@ MAX_PROVIDER_ERROR_CHARS = 500
 MAX_PROVIDER_BODY_CHARS = 1200
 RETRYABLE_HTTP_STATUS = {429, 500, 502, 503, 504}
 API_RETRY_DELAYS = (2, 4, 8, 16, 32)  # Five retries after the initial request.
+
+
+@asynccontextmanager
+async def analyzer_slot(directory, slots=2):
+    """Bound host JVM concurrency across independent trial processes."""
+    directory = Path(directory)
+    directory.mkdir(parents=True, exist_ok=True)
+    handles = [open(directory / f'joern-{index}.lock', 'a') for index in range(slots)]
+    acquired = None
+    started = time.monotonic()
+    try:
+        while acquired is None:
+            for handle in handles:
+                try:
+                    fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    acquired = handle
+                    break
+                except BlockingIOError:
+                    continue
+            if acquired is None:
+                await asyncio.sleep(.05)
+        yield time.monotonic() - started
+    finally:
+        if acquired is not None:
+            fcntl.flock(acquired, fcntl.LOCK_UN)
+        for handle in handles:
+            handle.close()
 
 
 class DeepSeekProviderError(RuntimeError):
@@ -491,40 +520,51 @@ class DeepSeekAgent(ScientificCodex):
         source = directory / "source" / path
         output = directory / "backend"
         receipt = output / "receipt.json"
+        deadline = time.monotonic() + seconds
+        queue_started = None
         try:
-            if not receipt.exists():
-                source.parent.mkdir(parents=True, exist_ok=True)
-                await self.environment.download_file(self.root + "/" + path, source)
-                if digest_file(source) != wanted["sha256"]:
-                    raise ValueError("Source changed during query; request a fresh inspection")
-                input_file = directory / "request.json"
-                write_json(input_file, {"context": {"analysis_regions": [wanted]}})
-                with (directory / "analyzer.log").open("w") as log:
-                    process = await asyncio.create_subprocess_exec(sys.executable, "-m", "scicontext.source_backends",
-                        "--root", str(directory / "source"), "--output", str(output), "--input", str(input_file),
-                        stdout=log, stderr=asyncio.subprocess.STDOUT, start_new_session=True)
-                    try:
-                        code = await asyncio.wait_for(process.wait(), max(1, seconds * .8))
-                    except BaseException:
-                        import os, signal
-                        try:
-                            os.killpg(process.pid, signal.SIGTERM)
-                            await asyncio.wait_for(process.wait(), 3)
-                        except asyncio.TimeoutError:
-                            os.killpg(process.pid, signal.SIGKILL)
-                            await process.wait()
-                        except ProcessLookupError:
-                            pass
-                        raise
-                    if code:
-                        raise RuntimeError("Analyzer failed; see preserved analyzer.log")
-            remote = CONTROL + "/analysis-" + digest_json(wanted)[:20] + ".json"
-            await self.environment.upload_file(receipt, remote)
-            raw = await self.checked(self.environment, command + " --analysis " + shlex.quote(remote), cwd=REMOTE,
-                                     timeout_sec=max(1, seconds * .2))
-            return json.loads(raw)
+            async with asyncio.timeout(seconds):
+                if not receipt.exists():
+                    source.parent.mkdir(parents=True, exist_ok=True)
+                    await self.environment.download_file(self.root + "/" + path, source)
+                    if digest_file(source) != wanted["sha256"]:
+                        raise ValueError("Source changed during query; request a fresh inspection")
+                    input_file = directory / "request.json"
+                    write_json(input_file, {"context": {"analysis_regions": [wanted]}})
+                    queue_started = time.monotonic()
+                    async with analyzer_slot(self.workspace / '.cache/analyzer-slots') as waited:
+                        result['analysis_queue_seconds'] = waited
+                        with (directory / "analyzer.log").open("w") as log:
+                            process = await asyncio.create_subprocess_exec(sys.executable, "-m", "scicontext.source_backends",
+                                "--root", str(directory / "source"), "--output", str(output), "--input", str(input_file),
+                                stdout=log, stderr=asyncio.subprocess.STDOUT, start_new_session=True)
+                            try:
+                                code = await asyncio.wait_for(process.wait(), max(.01, (deadline - time.monotonic()) * .8))
+                            except BaseException:
+                                import os, signal
+                                try:
+                                    os.killpg(process.pid, signal.SIGTERM)
+                                    await asyncio.wait_for(process.wait(), 3)
+                                except asyncio.TimeoutError:
+                                    os.killpg(process.pid, signal.SIGKILL)
+                                    await process.wait()
+                                except ProcessLookupError:
+                                    pass
+                                raise
+                            if code:
+                                raise RuntimeError("Analyzer failed; see preserved analyzer.log")
+                remote = CONTROL + "/analysis-" + digest_json(wanted)[:20] + ".json"
+                await self.environment.upload_file(receipt, remote)
+                raw = await self.checked(self.environment, command + " --analysis " + shlex.quote(remote), cwd=REMOTE,
+                                         timeout_sec=max(.01, deadline - time.monotonic()))
+                answer = json.loads(raw)
+                if 'analysis_queue_seconds' in result:
+                    answer['analysis_queue_seconds'] = result['analysis_queue_seconds']
+                return answer
         except Exception as error:
-            result["analysis_gaps"] = [{"backend": "joern", "reason": str(error)}]
+            if queue_started is not None and 'analysis_queue_seconds' not in result:
+                result['analysis_queue_seconds'] = time.monotonic() - queue_started
+            result["analysis_gaps"] = [{"backend": "joern", "reason": f'{type(error).__name__}: {error}'}]
             return result
 
     async def finish_extraction(self):
