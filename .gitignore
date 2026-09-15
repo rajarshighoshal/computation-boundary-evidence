@@ -23,3 +23,6 @@ auth.json
 workspace/
 .opencode-memory/
 *.log
+
+# External paper copy (URL is in docs); not part of the repo artifacts
+2608.19799v2.pdf
