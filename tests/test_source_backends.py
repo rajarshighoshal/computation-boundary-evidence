@@ -145,3 +145,135 @@ def test_cli_passes_recovered_regions_to_analyzer(tmp_path, monkeypatch):
     monkeypatch.setattr(source_backends, "analyze_sources", lambda *args: calls.append(args))
     source_backends.main(["--root", str(tmp_path), "--output", str(tmp_path / "out"), "--input", str(request)])
     assert calls == [(tmp_path, tmp_path / "out", [region])]
+
+
+def test_distill_joern_contracts_extracts_external_calls_signatures_and_conditions():
+    vertices = [
+        {"id": "1", "label": "METHOD", "properties": {"NAME": "spawn_workers", "FULL_NAME": "openmc::spawn_workers",
+                                                      "SIGNATURE": "int(int)", "TYPE_FULL_NAME": "int", "LINE_NUMBER": 10}},
+        {"id": "2", "label": "METHOD_PARAMETER_IN", "properties": {"NAME": "n_threads", "TYPE_FULL_NAME": "int", "ORDER": "1"}},
+        {"id": "3", "label": "CALL", "properties": {"NAME": "<operator>.assignment", "CODE": "threads = malloc(n_threads)"}},
+        {"id": "4", "label": "CALL", "properties": {"NAME": "pthread_create",
+                                                     "METHOD_FULL_NAME": "pthread_create:int(pthread_t*,void*,void*(*)(void*),void*)",
+                                                     "CODE": "pthread_create(&threads[i], NULL, worker, (void*)i)",
+                                                     "LINE_NUMBER": 12, "DISPATCH_TYPE": "STATIC_DISPATCH"}},
+        {"id": "5", "label": "METHOD", "properties": {"NAME": "pthread_create", "FULL_NAME": "pthread_create",
+                                                      "IS_EXTERNAL": "true",
+                                                      "SIGNATURE": "int(pthread_t*, const pthread_attr_t*, void*(*)(void*), void*)"}},
+        {"id": "6", "label": "CONTROL_STRUCTURE", "properties": {"CONTROL_STRUCTURE_TYPE": "IF", "CODE": "if (rc != 0)", "LINE_NUMBER": 13}},
+        {"id": "7", "label": "CALL", "properties": {"NAME": "<operator>.notEquals", "CODE": "rc != 0"}},
+        {"id": "8", "label": "RETURN", "properties": {"CODE": "return -1;", "LINE_NUMBER": 14}},
+        {"id": "9", "label": "LITERAL", "properties": {"CODE": "-1", "TYPE_FULL_NAME": "int"}},
+        {"id": "10", "label": "RETURN", "properties": {"CODE": "return 0;", "LINE_NUMBER": 16}},
+    ]
+    edges = [
+        {"outV": "1", "inV": "2", "label": "AST"},
+        {"outV": "1", "inV": "3", "label": "AST"},
+        {"outV": "1", "inV": "4", "label": "AST"},
+        {"outV": "4", "inV": "5", "label": "CALL"},
+        {"outV": "1", "inV": "6", "label": "AST"},
+        {"outV": "6", "inV": "7", "label": "CONDITION"},
+        {"outV": "6", "inV": "8", "label": "AST"},
+        {"outV": "8", "inV": "9", "label": "AST"},
+        {"outV": "1", "inV": "10", "label": "AST"},
+    ]
+    nodes = {v["id"]: {"id": v["id"], "kind": v["label"], "properties": v["properties"], "line": v["properties"].get("LINE_NUMBER")} for v in vertices}
+    links = [{"source": e["outV"], "target": e["inV"], "role": e["label"]} for e in edges]
+    selection = {"methods": [{"id": "1", "name": "openmc::spawn_workers", "node_ids": ["1", "2", "3", "4", "6", "7", "8", "9", "10"], "start_line": 10, "end_line": 16}]}
+    contracts = source_backends.distill_joern_contracts(nodes, links, selection, "NEWC")
+    assert len(contracts) == 1
+    c = contracts[0]
+    assert c["name"] == "spawn_workers"
+    assert c["scope"] == "openmc::spawn_workers"
+    assert c["return_type"] == "int"
+    assert c["parameters"] == [{"name": "n_threads", "type": "int", "order": "1"}]
+
+    # Operator calls like <operator>.assignment and <operator>.notEquals are filtered out
+    assert all(not call["callee"].startswith("<operator>") for call in c["calls"])
+    # External calls include pthread_create with clean arguments
+    ext_calls = c["external_calls"]
+    assert len(ext_calls) == 1
+    pthread = ext_calls[0]
+    assert pthread["callee"] == "pthread_create"
+    assert pthread["signature"] == "int(pthread_t*, const pthread_attr_t*, void*(*)(void*), void*)"
+    assert pthread["arguments"] == ["&threads[i]", "NULL", "worker", "(void*)i"]
+    assert pthread["external"] is True
+
+    # Governing conditions: if (rc != 0) governing return -1;
+    conds = c["governing_conditions"]
+    assert len(conds) == 1
+    assert conds[0]["type"] == "IF"
+    assert conds[0]["condition"] == "rc != 0"
+    assert "return -1;" in conds[0]["governs"]
+
+    # Return expressions
+    returns = c["return_expressions"]
+    assert len(returns) == 2
+    assert returns[0]["expression"] == "-1"
+    assert returns[1]["expression"] == "0"
+
+    # Boundary types
+    assert "int" in c["boundary_types"]
+    assert "openmc" in c["boundary_types"] or "pthread_t" in c["boundary_types"] or "int" in c["boundary_types"]
+
+
+def test_read_joern_and_attachment_yield_interface_contracts(tmp_path):
+    vertices = [
+        {"id": "1", "label": "METHOD", "properties": {"NAME": "advance", "FULL_NAME": "advance"}},
+        {"id": "2", "label": "CONTROL_STRUCTURE", "properties": {"CONTROL_STRUCTURE_TYPE": "IF"}},
+        {"id": "3", "label": "CALL", "properties": {"NAME": "<operator>.logicalNot", "CODE": "!flag"}},
+        {"id": "4", "label": "CALL", "properties": {"NAME": "compute", "CODE": "compute(flux, dt)",
+                                                     "ARGUMENT_NAME": "normalization"}},
+    ]
+    edges = [
+        {"outV": "1", "inV": "2", "label": "AST"},
+        {"outV": "2", "inV": "3", "label": "AST"},
+        {"outV": "2", "inV": "3", "label": "CONDITION"},
+        {"outV": "2", "inV": "4", "label": "AST"},
+        {"outV": "1", "inV": "3", "label": "REACHING_DEF", "properties": {"VARIABLE": "flag"}},
+    ]
+    path = tmp_path / "cpg.json"
+    write_json(path, {"vertices": vertices, "edges": edges,
+                      "selection": {"methods": [{"id": "1", "name": "advance", "start_line": 1, "end_line": 5,
+                                                 "node_ids": ["1", "2", "3", "4"]}]}})
+    graph = source_backends.read_joern(path, tmp_path, "PYTHONSRC")
+    assert "interface_contracts" in graph
+    assert len(graph["interface_contracts"]) == 1
+    c = graph["interface_contracts"][0]
+    assert c["name"] == "advance"
+    assert c["governing_conditions"][0]["condition"] == "!flag"
+    assert c["external_calls"][0]["callee"] == "compute"
+
+    # Now verify attachment puts contracts into summary and payload
+    payload = source_backends.attach_source_analysis({"context": {}}, {"analyses": [graph], "gaps": []})
+    summary = payload["source_analysis_summary"]
+    assert "interface_contracts" in summary
+    assert len(summary["interface_contracts"]) == 1
+    assert summary["interface_contracts"][0]["name"] == "advance"
+    assert "interface_contracts" in payload
+
+
+def test_distill_native_contracts_for_fortran_and_matlab():
+    entries = [
+        {"kind": "signature", "path": "model.f90", "start_line": 8, "symbol": "advance",
+         "text": "function advance(initial, flow, dt) result(updated)", "scope": "<module>.advance",
+         "native": {"function_name": "advance", "return_type": "real"}},
+        {"kind": "parameter", "path": "model.f90", "start_line": 9, "symbol": "initial",
+         "function_scope": "<module>.advance", "scope": "<module>.advance.initial",
+         "native": {"declaration_text": "real, intent(in) :: initial"}},
+        {"kind": "call", "path": "model.f90", "start_line": 11, "text": "scale(flow, dt)",
+         "function_scope": "<module>.advance", "scope": "<module>.advance",
+         "native_expression": {"kind": "call", "callee": "scale", "arguments": [{"text": "flow"}, {"text": "dt"}]}},
+        {"kind": "return", "path": "model.f90", "start_line": 12, "text": "updated",
+         "function_scope": "<module>.advance", "scope": "<module>.advance",
+         "native_expression": {"text": "updated"}},
+    ]
+    contracts = source_backends.distill_native_contracts(entries, "fortran")
+    assert len(contracts) == 1
+    c = contracts[0]
+    assert c["name"] == "advance"
+    assert c["return_type"] == "real"
+    assert c["parameters"] == [{"name": "initial", "type": "real, intent(in)", "order": 1}]
+    assert c["calls"][0]["callee"] == "scale"
+    assert c["calls"][0]["arguments"] == ["flow", "dt"]
+    assert c["return_expressions"][0]["expression"] == "updated"

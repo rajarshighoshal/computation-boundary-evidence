@@ -22,7 +22,7 @@ from .source_backends import JOERN_SOURCE_SUFFIXES
 
 MAX_SCAN_FILES = 2000
 MAX_SCAN_DIRECTORIES = 256
-MAX_SOURCE_FILES = 24
+MAX_SOURCE_FILES = 256
 MAX_ENTRIES_PER_FILE = 128
 MAX_ENTRIES = 512
 MAX_DOCUMENT_FILES = 12
@@ -90,15 +90,27 @@ def _reproducer(path: str) -> bool:
     return stem.startswith(("repro", "reproduce")) or stem in {"example", "demo"}
 
 
-def _rank(path: str, task_paths: set[str], repro_paths: set[str]) -> tuple:
+def _rank(path: str, task_paths: set[str], repro_paths: set[str],
+          trace_execution_files: set[str] | None = None,
+          callee_caller_paths: set[str] | None = None) -> tuple:
     parts = Path(path).parts
-    priority = (0 if path in task_paths else 1 if _reproducer(path)
-                else 2 if path in repro_paths else 3 if parts[-1] in {"main.py", "__main__.py"}
-                else 4 if len(parts) == 1 else 5)
-    # At equal priority, shallow source precedes tests, examples and long paths.
     auxiliary = any(part.casefold() in {"tests", "test", "examples", "docs"} for part in parts[:-1])
-    return priority, auxiliary, len(parts), path
-
+    if trace_execution_files and path in trace_execution_files:
+        is_repro = _reproducer(path)
+        return (1, int(is_repro), int(auxiliary), len(parts))
+    if callee_caller_paths and path in callee_caller_paths:
+        return (2, int(auxiliary), len(parts))
+    if path in task_paths:
+        return (3, 0, int(auxiliary), len(parts))
+    if _reproducer(path):
+        return (3, 1, int(auxiliary), len(parts))
+    if path in repro_paths:
+        return (3, 2, int(auxiliary), len(parts))
+    if parts[-1] in {"main.py", "__main__.py"}:
+        return (4, 0, int(auxiliary), len(parts))
+    if len(parts) == 1:
+        return (4, 1, int(auxiliary), len(parts))
+    return (4, 2, int(auxiliary), len(parts))
 
 def _read_text(root: Path, relative: str, coverage: dict, display: str | None = None) -> tuple[bytes, str] | None:
     display = display or relative
@@ -200,7 +212,7 @@ def _executed_receipt(seed: list[dict], plans: dict, seeded_paths: set[str],
                        if r["line"] == record["line"] and r["name"] == record["name"]), None)
         row = {"file": path, "name": record["name"], "line": record["line"],
                "count": record["count"], "min_depth": record["min_depth"], "admitted": False}
-        if path not in seeded_paths:
+        if path not in seeded_paths and path not in selected:
             row["reason"] = "file_not_selectable"
         elif path not in selected:
             row["reason"] = "source_file_limit"
@@ -265,14 +277,23 @@ def build_packet(root: Path, context_root: Path | None = None, *, multilingual=F
     seed_files: dict[str, list[dict]] = {}
     for record in seed:
         seed_files.setdefault(record["file"], []).append(record)
+    trace_execution_files: set[str] = set()
+    for path in sorted(seed_files):
+        if path.startswith("@context/"):
+            continue
+        if path not in paths:
+            _, problem = evidence._safe_file(root, path)
+            if problem is None:
+                paths.add(path)
+            else:
+                coverage["skipped"].append({"path": path, "reason": problem})
+                continue
+        trace_execution_files.add(path)
     seeded_paths: set[str] = set()
     plans: dict[str, dict | None] = {}
-    for path in sorted(seed_files):
-        if Path(path).suffix.casefold() != ".py" or path.startswith("@context/"):
+    for path in sorted(trace_execution_files):
+        if Path(path).suffix.casefold() != ".py":
             continue
-        if path not in paths and evidence._safe_file(root, path)[1] is not None:
-            continue
-        paths.add(path)
         plans[path] = evidence.executed_region_plan(root, path, seed_files[path],
                                                     preserve_interfaces=multilingual)
         if plans[path] and plans[path]["regions"]:
@@ -288,14 +309,22 @@ def build_packet(root: Path, context_root: Path | None = None, *, multilingual=F
         task_paths | {p for p in paths if _reproducer(p) and p.endswith('.py')}, context[1] if context else '')
     coverage['task_local_retrieval'] = retrieval
     workflow_refs = []
-    if multilingual:
+    caller_refs = []
+    if multilingual or trace_execution_files:
         from .workflow_retrieval import retrieve
         located = {(path, region["name"], region["line"]): region["symbol"]
                    for path in seeded_paths for region in plans[path]["regions"]}
         ordered_seed = sorted(seed, key=lambda r: (
             r["min_depth"] is None, r["min_depth"] or 0, r.get("first_seq", 0), r["file"], r["line"]))
-        executed_symbols = [(r["file"], located[key]) for r in ordered_seed
-                            if (key := (r["file"], r["name"], r["line"])) in located]
+        executed_symbols = []
+        for r in ordered_seed:
+            key = (r["file"], r["name"], r["line"])
+            if key in located:
+                executed_symbols.append((r["file"], located[key]))
+            elif r["file"] in trace_execution_files and r.get("name"):
+                sym = r["name"].split(".")[-1]
+                if sym and sym != "<module>" and not sym.startswith("<"):
+                    executed_symbols.append((r["file"], sym))
         workflow_refs, workflow = retrieve(root, paths,
             task_paths | repro_paths | {p for p in paths if _reproducer(p)}, context[1] if context else '',
             **({"executed": executed_symbols} if executed_symbols else {}))
@@ -311,7 +340,8 @@ def build_packet(root: Path, context_root: Path | None = None, *, multilingual=F
         # existing retrieval machinery and ranked above ordinary references.
         for reference in workflow_refs:
             if reference.get("via") != "executed_function" and any(
-                    executed_call_site(site) for site in reference.get("callers", [])):
+                    executed_call_site(site) or site.get("path") in trace_execution_files
+                    for site in reference.get("callers", [])):
                 reference["via"] = "executed_callee"
                 reference["priority"] = 0
         caller_refs = [{"path": c["path"], "start_line": c["start_line"],
@@ -319,14 +349,66 @@ def build_packet(root: Path, context_root: Path | None = None, *, multilingual=F
                         "priority": 0} for r in workflow_refs for c in r.get("callers", [])]
         refs = workflow_refs + caller_refs + refs
         coverage["workflow_retrieval"] = workflow
+
+    callee_caller_paths: set[str] = set()
+    for ref in workflow_refs:
+        ref_path = ref.get("path")
+        if not ref_path or ref_path in trace_execution_files or ref_path.startswith("@context/"):
+            continue
+        if ref.get("via") == "executed_callee":
+            callee_caller_paths.add(ref_path)
+        elif any(executed_call_site(site) or site.get("path") in trace_execution_files
+                 for site in ref.get("callers", [])):
+            callee_caller_paths.add(ref_path)
+    for ref in caller_refs:
+        c_path = ref.get("path")
+        if c_path and c_path not in trace_execution_files and not c_path.startswith("@context/"):
+            callee_caller_paths.add(c_path)
+    if execution and isinstance(execution.get("edges"), list):
+        for edge in execution["edges"]:
+            c_caller = edge.get("caller", {}).get("file")
+            c_callee = edge.get("callee", {}).get("file")
+            if c_caller in trace_execution_files and c_callee and c_callee not in trace_execution_files:
+                if evidence._safe_file(root, c_callee)[1] is None and not c_callee.startswith("@context/"):
+                    callee_caller_paths.add(c_callee)
+                    paths.add(c_callee)
+            if c_callee in trace_execution_files and c_caller and c_caller not in trace_execution_files:
+                if evidence._safe_file(root, c_caller)[1] is None and not c_caller.startswith("@context/"):
+                    callee_caller_paths.add(c_caller)
+                    paths.add(c_caller)
+
     focus_paths = {ref['path'] for ref in refs}
     focus_order = {path: index for index, path in enumerate(dict.fromkeys(ref['path'] for ref in refs))}
-    ordered = sorted(paths, key=lambda p: (0 if p in focus_paths else 1,
-        focus_order.get(p, len(refs)), _rank(p, task_paths, repro_paths)))
+
+    def file_sort_key(p: str) -> tuple:
+        parts = Path(p).parts
+        auxiliary = any(part.casefold() in {"tests", "test", "examples", "docs"} for part in parts[:-1])
+        if p in trace_execution_files:
+            relevance = max((r.get("relevance_score", 0) for r in workflow_refs if r.get("path") == p), default=0)
+            depths = [r["min_depth"] for r in seed_files.get(p, []) if r.get("min_depth") is not None]
+            min_d = min(depths, default=10**9)
+            call_count = sum(r.get("count", 1) for r in seed_files.get(p, []))
+            first_seq = min((r.get("first_seq", 10**9) for r in seed_files.get(p, [])), default=10**9)
+            return (1, int(_reproducer(p)), min_d, -relevance, -call_count, first_seq, len(parts))
+        if p in callee_caller_paths:
+            relevance = max((r.get("relevance_score", 0) for r in workflow_refs if r.get("path") == p), default=0)
+            depth = min((r.get("depth", 10**9) for r in workflow_refs if r.get("path") == p), default=10**9)
+            return (2, int(auxiliary), -relevance, depth, len(parts))
+        if p in task_paths or p in repro_paths or _reproducer(p) or p in focus_paths:
+            ref_order = focus_order.get(p, len(refs))
+            mention_order = (0 if p in task_paths else 1 if _reproducer(p) else 2 if p in repro_paths else 3)
+            return (3, 0 if p in focus_paths else 1, mention_order, ref_order, int(auxiliary), len(parts))
+        entrypoint = (0 if parts[-1] in {"main.py", "__main__.py"}
+                      else 1 if len(parts) == 1
+                      else 2)
+        return (4, entrypoint, int(auxiliary), len(parts))
+
+    ordered = sorted(paths, key=file_sort_key)
     if multilingual:
         from .language_frontends import source_language, extract_native_evidence
         all_sources = [p for p in ordered if source_language(p) is not None]
-        explicit = list(dict.fromkeys([r["path"] for r in refs] +
+        explicit = list(dict.fromkeys([p for p in ordered if p in trace_execution_files or p in callee_caller_paths] +
+            [r["path"] for r in refs if r["path"] in all_sources] +
             [p for p in all_sources if p in task_paths]))
         groups = {}
         for path in all_sources:
@@ -344,30 +426,29 @@ def build_packet(root: Path, context_root: Path | None = None, *, multilingual=F
         coverage["source_selection"] = "retrieved_references_then_explicit_paths_then_language_fallback"
     else:
         sources = [p for p in ordered if Path(p).suffix.casefold() == ".py"]
-    if seeded_paths:
-        # Files containing executed functions come first, ordered by the
-        # shallowest executed function then total executed calls; the
-        # reproducer is itself executed but is a wrapper, so it goes last.
+    if trace_execution_files or callee_caller_paths:
         pool = set(sources)
-        def execution_rank(path):
-            relevance = max((r.get("relevance_score", 0) for r in workflow_refs if r["path"] == path), default=0)
-            depths = [r["min_depth"] for r in seed_files[path] if r["min_depth"] is not None]
-            return (_reproducer(path), -relevance, min(depths, default=10**9), path)
-        seeded_order = sorted((p for p in seeded_paths if p in pool), key=execution_rank)
-        sources = seeded_order + [p for p in sources if p not in seeded_paths]
+        seeded_order = [p for p in ordered if p in trace_execution_files and p in pool]
+        callee_order = [p for p in ordered if p in callee_caller_paths and p not in trace_execution_files and p in pool]
+        remaining_sources = [p for p in sources if p not in trace_execution_files and p not in callee_caller_paths]
+        sources = seeded_order + callee_order + remaining_sources
         coverage["source_selection"] = "execution_seeded_then_static_selection"
     document_paths = [p for p in ordered if Path(p).suffix.casefold() in _DOCUMENT_SUFFIXES]
     document_paths.sort(key=lambda p: (0 if p in task_paths else 1 if p in linked_docs else 2,
-                                      _rank(p, task_paths, repro_paths)))
+                                      _rank(p, task_paths, repro_paths, trace_execution_files, callee_caller_paths)))
     for path in ordered:
         if path not in sources and path not in document_paths:
             reason = ("not_selected_by_explicit_paths" if multilingual and source_paths and source_language(path)
                       else "deferred_to_external_analyzer" if multilingual and Path(path).suffix.lower() in JOERN_SOURCE_SUFFIXES
                       else "unsupported_language")
             coverage["skipped"].append({"path": path, "reason": reason})
-    for path in sources[MAX_SOURCE_FILES:]:
-        coverage["skipped"].append({"path": path, "reason": "source_file_limit"})
-    coverage["selected_source_paths"] = sources[:MAX_SOURCE_FILES]
+    max_source_limit = MAX_SOURCE_FILES
+    if max_source_limit is not None:
+        for path in sources[max_source_limit:]:
+            coverage["skipped"].append({"path": path, "reason": "source_file_limit"})
+        coverage["selected_source_paths"] = sources[:max_source_limit]
+    else:
+        coverage["selected_source_paths"] = list(sources)
     entries = []
     allocations = {}
     seeded_region_refs = [{"path": path, "start_line": region["start_line"], "end_line": region["end_line"],
@@ -375,7 +456,7 @@ def build_packet(root: Path, context_root: Path | None = None, *, multilingual=F
                           "relevance_score": max((r.get("relevance_score", 0) for r in workflow_refs
                              if r["path"] == path and r.get("symbol") == region["symbol"]), default=0)}
                           for path, plan in sorted(plans.items()) if plan for region in plan["regions"]]
-    if seeded_paths:
+    if trace_execution_files:
         # Share the existing budget across selected files before giving spare
         # capacity to larger ones. Sequential greedy allocation let the first
         # two large files starve every later implementation region.
@@ -430,8 +511,8 @@ def build_packet(root: Path, context_root: Path | None = None, *, multilingual=F
             coverage[key] += result["coverage"][key]
         coverage["entries_truncated"] |= result["coverage"]["entries_truncated"]
         coverage["skipped"].extend(result["coverage"]["skipped"])
-    coverage["selection_mode"] = "execution_seeded" if seeded_paths else "static_only"
-    if seeded_paths:
+    coverage["selection_mode"] = "execution_seeded" if trace_execution_files else "static_only"
+    if trace_execution_files:
         coverage["execution_seed"] = seed_summary(seed)
         coverage["executed_functions"] = _executed_receipt(seed, plans, seeded_paths, coverage, entries)
         coverage["execution_regions"] = seeded_region_refs
@@ -452,7 +533,7 @@ def build_packet(root: Path, context_root: Path | None = None, *, multilingual=F
         source = _read_text(root, path, coverage)
         if source:
             documents.extend(_documents(path, *source, MAX_DOCUMENTS - len(documents), coverage))
-    coverage["files_truncated"] |= (len(sources) > MAX_SOURCE_FILES or len(document_paths) > doc_limit
+    coverage["files_truncated"] |= ((len(sources) > max_source_limit if max_source_limit is not None else False) or len(document_paths) > doc_limit
                                      or coverage["scan_files_truncated"] or coverage["directories_truncated"])
     coverage["documents_truncated"] |= len(document_paths) > doc_limit
     analysis_sources = []
@@ -461,7 +542,8 @@ def build_packet(root: Path, context_root: Path | None = None, *, multilingual=F
         # frontend has no entries for that language. No new parser is added.
         candidates = [p for p in ordered if Path(p).suffix.lower() in JOERN_SOURCE_SUFFIXES and
                       (not source_paths or p in source_paths)]
-        for path in candidates[:MAX_SOURCE_FILES]:
+        max_candidates = max_source_limit if max_source_limit is not None else len(candidates)
+        for path in candidates[:max_candidates]:
             source = _read_text(root, path, coverage)
             if source:
                 raw, text = source
@@ -469,7 +551,7 @@ def build_packet(root: Path, context_root: Path | None = None, *, multilingual=F
                     "path": path, "sha256": hashlib.sha256(raw).hexdigest(),
                     "start_line": 1, "end_line": max(1,len(text.splitlines())),
                     "selection": "task_workflow_ranked_source_for_external_analyzer"})
-        coverage["analysis_source_omissions"] = candidates[MAX_SOURCE_FILES:]
+        coverage["analysis_source_omissions"] = candidates[max_candidates:]
     coverage["documents"] = len(documents)
     coverage["unsupported_expressions"] = coverage["expressions"] - coverage["supported_expressions"]
     coverage["limitations"].append("Packet ranks literal task/reproducer paths, entry points and shallow files; omission is not evidence of irrelevance. Document excerpts and per-file entries are bounded.")

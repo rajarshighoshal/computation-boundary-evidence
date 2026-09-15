@@ -273,3 +273,71 @@ def test_utf8_only_documents_and_missing_context_have_explicit_coverage(tmp_path
     assert result["documents"] == []
     assert {(row["path"], row["reason"]) for row in result["coverage"]["skipped"]} == {
         ("README.md", "parse_or_read_failure"), ("@context/task_statement.md", "unreadable_path")}
+
+
+def test_ranking_priority_trace_then_callee_then_task_then_entrypoints(tmp_path, monkeypatch):
+    root, context = tmp_path / "root", tmp_path / "context"
+    write(context, "task_statement.md", "Check `mentioned_target.py`.\n")
+    # Create Rank 4 padding files early in the alphabet
+    for i in range(30):
+        write(root, f"source/a{i:02d}.py", f"unused_{i} = {i}\n")
+    # Rank 1: executed trace file late in alphabet
+    write(root, "workflow/trajectory_tracking.py", "def track(x):\n    return x * 2\n")
+    # Rank 2: callee boundary file late in alphabet
+    write(root, "source/physics.cpp", "double solve(double x) { return x + 1.0; }\n")
+    # Rank 3: task mentioned file
+    write(root, "mentioned_target.py", "answer = 42\n")
+
+    seed = [{"file": "workflow/trajectory_tracking.py", "name": "track", "line": 1, "count": 10, "min_depth": 1}]
+    from scicontext import workflow_retrieval
+    workflow = [{"path": "source/physics.cpp", "symbol": "solve", "via": "executed_callee",
+                 "start_line": 1, "end_line": 1, "priority": 0, "depth": 1,
+                 "callers": [{"path": "workflow/trajectory_tracking.py", "start_line": 2}]}]
+    monkeypatch.setattr(workflow_retrieval, "retrieve", lambda *args, **kwargs: (workflow, {"references": workflow}))
+    monkeypatch.setattr(packet, "MAX_SOURCE_FILES", 4)
+
+    result = build_packet(root, context, multilingual=True, seed=seed)
+    selected = result["coverage"]["selected_source_paths"]
+
+    # Rank 1 and Rank 2 are guaranteed admission regardless of alphabet
+    assert "workflow/trajectory_tracking.py" in selected
+    assert "source/physics.cpp" in selected
+    # Rank 1 must come first
+    assert selected[0] == "workflow/trajectory_tracking.py"
+    assert selected[1] == "source/physics.cpp"
+    # Rank 3 task mention comes next
+    assert selected[2] == "mentioned_target.py"
+
+
+def test_expanded_source_file_ceiling_admits_large_scientific_repo(tmp_path):
+    # 80 source files like OpenMC (which has 78+ files)
+    for i in range(80):
+        write(tmp_path, f"src/module_{i:02d}.cpp", f"int func_{i}() {{ return {i}; }}\n")
+    write(tmp_path, "src/physics.cpp", "int physics() { return 100; }\n")
+    result = build_packet(tmp_path, multilingual=True)
+    # All 81 files should be admitted in candidates for Joern / external analyzer
+    assert len(result["coverage"]["limits"]["source_files"]) == packet.MAX_SOURCE_FILES if isinstance(result["coverage"]["limits"]["source_files"], list) else result["coverage"]["limits"]["source_files"] >= 81
+    analysis_paths = [s["path"] for s in result.get("analysis_sources", [])]
+    assert "src/physics.cpp" in analysis_paths
+    assert len(analysis_paths) >= 81
+    assert not result["coverage"].get("analysis_source_omissions")
+
+
+def test_trace_and_callee_files_guaranteed_admission_regardless_of_alphabet(tmp_path, monkeypatch):
+    # z_ files (late in alphabet) must beat a_ files (early in alphabet) when executed or called
+    for i in range(25):
+        write(tmp_path, f"a_filler_{i:02d}.py", f"filler = {i}\n")
+    write(tmp_path, "z_executed.py", "def compute(x):\n    return x * 10\n")
+    write(tmp_path, "z_callee.py", "def callee(y):\n    return y + 5\n")
+    seed = [{"file": "z_executed.py", "name": "compute", "line": 1, "count": 5, "min_depth": 0}]
+    from scicontext import workflow_retrieval
+    workflow = [{"path": "z_callee.py", "symbol": "callee", "via": "executed_callee",
+                 "start_line": 1, "end_line": 1, "priority": 0, "depth": 1,
+                 "callers": [{"path": "z_executed.py", "start_line": 2}]}]
+    monkeypatch.setattr(workflow_retrieval, "retrieve", lambda *args, **kwargs: (workflow, {"references": workflow}))
+    monkeypatch.setattr(packet, "MAX_SOURCE_FILES", 2)
+
+    result = build_packet(tmp_path, multilingual=True, seed=seed)
+    selected = result["coverage"]["selected_source_paths"]
+    # Both z_ files must be admitted, completely displacing the 25 a_ filler files
+    assert selected == ["z_executed.py", "z_callee.py"]

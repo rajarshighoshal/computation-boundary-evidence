@@ -1,10 +1,11 @@
 """Adapters for existing analyzers. No source execution or replacement type checker."""
 from __future__ import annotations
 
-from collections import Counter
+from collections import Counter, defaultdict
 from io import BytesIO
 from pathlib import Path
 import json
+import re
 import os
 import shutil
 import subprocess
@@ -105,11 +106,467 @@ def read_joern(path, source_root, language):
     for method in selection.get("methods", []):
         method["id"] = f"joern:{language}:{method['id']}"
         method["node_ids"] = [f"joern:{language}:{identifier}" for identifier in method["node_ids"]]
+    contracts = distill_joern_contracts(nodes, edges, selection, language)
     return {"backend":"joern", "language":language, "nodes":[nodes[v] for v in sorted(keep)],
             "links":edges, "edge_counts":dict(Counter(e["role"] for e in edges)),
             "selection": selection,
+            "interface_contracts": contracts,
+            "contracts": contracts,
             "scope":"Static code-property graph; external-call dataflow can be conservative, not a scientific contract."}
 
+
+
+def _shorten(text, limit=400):
+    if not text or not isinstance(text, str):
+        return text or ""
+    text = text.strip()
+    if len(text) <= limit:
+        return text
+    return text[:limit] + " ... [truncated]"
+
+
+def distill_joern_contracts(nodes, links, selection=None, language="unknown"):
+    """Distill Joern CPG nodes and edges into clean, dense interface contracts.
+
+    Yields for each method:
+    - Boundary signature (name, parameter names/types/order, return type)
+    - External calls & library interactions (excluding internal AST operators)
+    - Core governing conditions (if/while/for predicates and governed statements)
+    - Return expressions and types
+    - Boundary types / classes referenced
+    """
+    node_map = {}
+    if isinstance(nodes, list):
+        for n in nodes:
+            node_map[n["id"]] = n
+    elif isinstance(nodes, dict):
+        for k, v in nodes.items():
+            node_map[k] = v
+            if isinstance(v, dict) and "id" in v:
+                node_map[v["id"]] = v
+    methods = []
+    if selection and selection.get("methods"):
+        methods = selection["methods"]
+    else:
+        method_nodes = [n for n in node_map.values() if n.get("kind") == "METHOD"]
+        if method_nodes:
+            methods = [{"id": n["id"], "name": n.get("properties", {}).get("NAME") or n.get("scope", "method"),
+                        "node_ids": [n["id"]], "start_line": n.get("line", 0), "end_line": n.get("line", 0)}
+                       for n in method_nodes]
+        else:
+            methods = [{"id": "legacy_region", "name": "boundary_method", "node_ids": list(node_map.keys())}]
+
+    out_edges = defaultdict(list)
+    in_edges = defaultdict(list)
+    for edge in links or []:
+        src, dst = edge.get("source"), edge.get("target")
+        out_edges[src].append(edge)
+        in_edges[dst].append(edge)
+
+    local_method_ids = {m.get("id") for m in methods} | {n["id"] for n in node_map.values() if n.get("kind") == "METHOD"}
+
+    contracts = []
+    for m in methods:
+        method_body = set(m.get("node_ids", []))
+        method_nodes = [node_map[nid] for nid in method_body if nid in node_map]
+        if not method_nodes:
+            method_nodes = [n for n in node_map.values() if n.get("scope") == m.get("name") or n.get("scope") == m.get("id")]
+
+        m_node = next((n for n in method_nodes if n.get("kind") == "METHOD"), None)
+        if not m_node:
+            m_node = node_map.get(m.get("id"))
+        m_props = m_node.get("properties", {}) if m_node else {}
+        m_name = m_props.get("NAME") or m.get("name", "method")
+        m_path = m_node.get("path") if m_node else m.get("path", "")
+        m_line = m_node.get("line") if m_node else m.get("start_line", 0)
+        m_scope = m.get("name") or (m_node.get("scope") if m_node else m_name)
+
+        # 1. Parameters & Return Type
+        param_nodes = [n for n in method_nodes if n.get("kind") == "METHOD_PARAMETER_IN"]
+        if not param_nodes and m_node:
+            param_nodes = [node_map[e["target"]] for e in out_edges[m_node["id"]]
+                           if e.get("role") == "AST" and node_map.get(e["target"], {}).get("kind") == "METHOD_PARAMETER_IN"]
+        if not param_nodes:
+            for nid in method_body:
+                for e in in_edges[nid]:
+                    src_node = node_map.get(e["source"])
+                    if src_node and src_node.get("kind") == "METHOD_PARAMETER_IN" and src_node not in param_nodes:
+                        param_nodes.append(src_node)
+
+        def _p_order(p):
+            try:
+                return int(p.get("properties", {}).get("ORDER", 999))
+            except (TypeError, ValueError):
+                return 999
+
+        param_nodes.sort(key=_p_order)
+        parameters = []
+        for p in param_nodes:
+            pp = p.get("properties", {})
+            parameters.append({
+                "name": pp.get("NAME", ""),
+                "type": pp.get("TYPE_FULL_NAME") or pp.get("EVALUATION_STRATEGY", ""),
+                "order": pp.get("ORDER", len(parameters) + 1)
+            })
+
+        ret_node = next((n for n in method_nodes if n.get("kind") == "METHOD_RETURN"), None)
+        if not ret_node and m_node:
+            ret_node = next((node_map[e["target"]] for e in out_edges[m_node["id"]]
+                             if e.get("role") == "AST" and node_map.get(e["target"], {}).get("kind") == "METHOD_RETURN"), None)
+        return_type = ret_node.get("properties", {}).get("TYPE_FULL_NAME") if ret_node else (m_props.get("TYPE_FULL_NAME") or "")
+        sig = m_props.get("SIGNATURE", "")
+        if not sig and parameters:
+            sig = f"{return_type or 'void'}({', '.join(p['type'] or 'unknown' for p in parameters)})"
+
+        # 2. Calls & External Library Interactions
+        def _is_op(name):
+            return bool(name and (name.startswith("<operator>") or name.startswith("<operators>")))
+
+        call_nodes = [n for n in method_nodes if n.get("kind") == "CALL" and not _is_op(n.get("properties", {}).get("NAME"))]
+        for nid in method_body:
+            for e in out_edges[nid]:
+                tgt = node_map.get(e["target"])
+                if tgt and tgt.get("kind") == "CALL" and not _is_op(tgt.get("properties", {}).get("NAME")):
+                    if tgt not in call_nodes:
+                        call_nodes.append(tgt)
+
+        calls = []
+        external_calls = []
+        local_names = {m.get("name") for m in methods if m.get("name")} | {
+            n.get("properties", {}).get("NAME") for n in node_map.values()
+            if n.get("kind") == "METHOD" and n.get("properties", {}).get("NAME")
+        }
+        for call in call_nodes:
+            cp = call.get("properties", {})
+            callee = cp.get("NAME") or ""
+            full_name = cp.get("METHOD_FULL_NAME") or callee
+            call_sig = cp.get("SIGNATURE") or ""
+            call_ret = cp.get("TYPE_FULL_NAME") or ""
+            code = _shorten(cp.get("CODE") or "")
+            line = call.get("line") or cp.get("LINE_NUMBER") or 0
+            arg_nodes = [node_map[e["target"]] for e in out_edges[call["id"]]
+                         if e.get("role") == "ARGUMENT" and e["target"] in node_map]
+            def _arg_order(a):
+                try:
+                    return int(a.get("properties", {}).get("ARGUMENT_INDEX", 999))
+                except (TypeError, ValueError):
+                    return 999
+            arg_nodes.sort(key=_arg_order)
+            arguments = [_shorten(a.get("properties", {}).get("CODE") or a.get("properties", {}).get("NAME") or "") for a in arg_nodes if a]
+            if not arguments and "(" in code and code.endswith(")"):
+                inside = code[code.find("(") + 1 : code.rfind(")")].strip()
+                if inside:
+                    arguments = [_shorten(arg.strip()) for arg in inside.split(",") if arg.strip()]
+
+            target_methods = [node_map[e["target"]] for e in out_edges[call["id"]]
+                              if e.get("role") == "CALL" and node_map.get(e["target"], {}).get("kind") == "METHOD"]
+            is_ext = False
+            if target_methods:
+                for tm in target_methods:
+                    tmp = tm.get("properties", {})
+                    if tmp.get("IS_EXTERNAL") in (True, "true", "TRUE", 1, "1") or tm["id"] not in local_method_ids:
+                        is_ext = True
+                        if not call_sig and tmp.get("SIGNATURE"):
+                            call_sig = tmp["SIGNATURE"]
+                        if not call_ret and tmp.get("TYPE_FULL_NAME"):
+                            call_ret = tmp["TYPE_FULL_NAME"]
+            elif callee not in local_names:
+                is_ext = True
+
+            call_record = {
+                "callee": callee,
+                "full_name": full_name,
+                "signature": call_sig,
+                "return_type": call_ret,
+                "arguments": arguments,
+                "line": line,
+                "code": code,
+                "external": is_ext
+            }
+            calls.append(call_record)
+            if is_ext:
+                external_calls.append(call_record)
+
+        # 3. Governing Conditions
+        ctrl_nodes = [n for n in method_nodes if n.get("kind") == "CONTROL_STRUCTURE"]
+        governing_conditions = []
+        for ctrl in ctrl_nodes:
+            cp = ctrl.get("properties", {})
+            ctype = cp.get("CONTROL_STRUCTURE_TYPE") or "CONTROL"
+            cline = ctrl.get("line") or cp.get("LINE_NUMBER") or 0
+            ccode = cp.get("CODE") or ""
+            cond_node = next((node_map[e["target"]] for e in out_edges[ctrl["id"]]
+                              if e.get("role") == "CONDITION" and e["target"] in node_map), None)
+            cond_text = _shorten(cond_node.get("properties", {}).get("CODE") if cond_node else "")
+            if not cond_text and ccode:
+                if "(" in ccode and ")" in ccode:
+                    cond_text = _shorten(ccode[ccode.find("(") + 1 : ccode.rfind(")")].strip())
+                else:
+                    cond_text = _shorten(ccode)
+            governs = []
+            for te in out_edges[ctrl["id"]]:
+                if te.get("role") in ("TRUE_BODY", "CDG"):
+                    tgt = node_map.get(te["target"])
+                    if tgt and tgt["id"] != ctrl["id"]:
+                        tcode = _shorten(tgt.get("properties", {}).get("CODE"))
+                        if tcode and tcode != cond_text and tcode not in governs:
+                            governs.append(tcode)
+            for te in out_edges[ctrl["id"]]:
+                if te.get("role") == "AST":
+                    tgt = node_map.get(te["target"])
+                    if tgt and tgt.get("kind") in ("RETURN", "CALL") and not _is_op(tgt.get("properties", {}).get("NAME")):
+                        tcode = _shorten(tgt.get("properties", {}).get("CODE"))
+                        if tcode and tcode != cond_text and tcode not in governs:
+                            governs.append(tcode)
+
+            governing_conditions.append({
+                "type": ctype,
+                "condition": cond_text,
+                "line": cline,
+                "code": ccode,
+                "governs": governs[:5]
+            })
+
+        # 4. Return Expressions
+        ret_nodes = [n for n in method_nodes if n.get("kind") == "RETURN"]
+        def _ret_order(r):
+            try:
+                return (int(r.get("line") or r.get("properties", {}).get("LINE_NUMBER") or 0), str(r.get("id", "")))
+            except (TypeError, ValueError):
+                return (0, str(r.get("id", "")))
+        ret_nodes.sort(key=_ret_order)
+        return_expressions = []
+        for ret in ret_nodes:
+            rp = ret.get("properties", {})
+            rcode = _shorten(rp.get("CODE") or "")
+            rline = ret.get("line") or rp.get("LINE_NUMBER") or 0
+            rexpr = next((node_map[e["target"]].get("properties", {}).get("CODE")
+                          for e in out_edges[ret["id"]] if e.get("role") in ("AST", "ARGUMENT") and e["target"] in node_map), "")
+            if not rexpr and rcode:
+                rexpr = rcode.removeprefix("return").rstrip(";").strip()
+            rexpr = _shorten(rexpr)
+            return_expressions.append({
+                "code": rcode,
+                "expression": rexpr,
+                "line": rline,
+                "return_type": return_type
+            })
+
+        # 5. Boundary Types
+        b_types = set()
+        if return_type and return_type != "void":
+            b_types.add(return_type)
+        for p in parameters:
+            if p.get("type"):
+                b_types.add(p["type"])
+        for c in calls:
+            if c.get("return_type") and c["return_type"] != "void":
+                b_types.add(c["return_type"])
+            fn = c.get("full_name") or ""
+            if "::" in fn:
+                cls = fn.rsplit("::", 1)[0]
+                if cls and not cls.startswith("<"):
+                    b_types.add(cls)
+
+        contracts.append({
+            "name": m_name,
+            "scope": m_scope,
+            "path": m_path,
+            "line": m_line,
+            "signature": sig or m_name,
+            "return_type": return_type,
+            "parameters": parameters,
+            "calls": calls,
+            "external_calls": external_calls,
+            "governing_conditions": governing_conditions,
+            "return_expressions": return_expressions,
+            "boundary_types": sorted(b_types)
+        })
+
+    return contracts
+
+
+def distill_fortran_contracts(records):
+    """Distill LSP document symbols and hover details into interface contracts."""
+    contracts = []
+    for rec in records:
+        path = rec.get("path", "")
+        for iface in rec.get("interfaces", []):
+            name = iface.get("name", "")
+            line = iface.get("line", 1)
+            hover = iface.get("hover", {})
+            contents = hover.get("contents", "")
+            if isinstance(contents, dict):
+                text = contents.get("value", "")
+            else:
+                text = str(contents)
+            text = text.strip().replace("```fortran", "").replace("```", "").strip()
+            contracts.append({
+                "name": name,
+                "scope": f"{path}#{name}",
+                "path": path,
+                "line": line,
+                "signature": text,
+                "return_type": "",
+                "parameters": [],
+                "calls": [],
+                "external_calls": [],
+                "governing_conditions": [],
+                "return_expressions": [],
+                "boundary_types": []
+            })
+    return contracts
+
+
+def distill_native_contracts(entries, language="unknown"):
+    """Distill Tree-sitter native entries into dense interface contracts."""
+    signatures = [e for e in entries if e.get("kind") == "signature" and not e.get("native", {}).get("declaration_only")]
+    if not signatures:
+        signatures = [e for e in entries if e.get("kind") == "signature"]
+    if not signatures:
+        scopes = list(dict.fromkeys(e.get("function_scope") or e.get("scope") for e in entries if e.get("function_scope") or e.get("scope")))
+        if not scopes:
+            return []
+        signatures = [{"scope": s, "symbol": s.rsplit(".", 1)[-1].split("@")[0], "text": s,
+                       "start_line": min((e["start_line"] for e in entries if (e.get("function_scope") or e.get("scope")) == s), default=1),
+                       "path": entries[0].get("path", "") if entries else "",
+                       "native": {}} for s in scopes]
+
+    known_names = {s.get("native", {}).get("function_name") or s.get("symbol") for s in signatures}
+    contracts = []
+    for sig in signatures:
+        scope = sig.get("scope")
+        name = sig.get("native", {}).get("function_name") or sig.get("symbol") or ""
+        path = sig.get("path")
+        line = sig.get("start_line")
+        sig_text = sig.get("text")
+        ret_type = sig.get("native", {}).get("return_type") or ""
+
+        # Parameters
+        params = [e for e in entries if e.get("kind") == "parameter" and
+                  (e.get("function_scope") == scope or (e.get("scope", "").startswith(scope + ".")))]
+        param_list = []
+        for i, p in enumerate(params, 1):
+            p_sym = p.get("symbol") or (p.get("entity_symbols") or [""])[0] or p.get("text") or ""
+            decl = p.get("native", {}).get("declaration_text") or p.get("text") or ""
+            p_type = ""
+            if decl:
+                if "::" in decl:
+                    p_type = decl.split("::")[0].strip()
+                else:
+                    parts = decl.strip().split()
+                    if len(parts) >= 2 and p_sym in parts[-1]:
+                        p_type = " ".join(parts[:-1])
+                    else:
+                        p_type = decl
+            param_list.append({"name": p_sym, "type": p_type, "order": i})
+
+        # Calls
+        calls_raw = [e for e in entries if e.get("kind") == "call" and
+                     (e.get("function_scope") == scope or e.get("scope", "").startswith(scope))]
+        calls = []
+        external_calls = []
+        for c in calls_raw:
+            expr = c.get("native_expression") or {}
+            callee = expr.get("callee") or c.get("text") or ""
+            receiver = expr.get("receiver", {}).get("text") if expr.get("receiver") else None
+            args = [_shorten(a.get("text")) for a in expr.get("arguments", []) if isinstance(a, dict) and a.get("text")]
+            is_ext = callee not in known_names
+            call_obj = {
+                "callee": callee,
+                "receiver": receiver,
+                "arguments": args,
+                "line": c.get("start_line"),
+                "code": _shorten(c.get("text")),
+                "external": is_ext
+            }
+            calls.append(call_obj)
+            if is_ext:
+                external_calls.append(call_obj)
+
+        # Conditions
+        conditions_raw = [e for e in entries if e.get("kind") in ("comparison", "iteration") and
+                          (e.get("function_scope") == scope or e.get("scope", "").startswith(scope))]
+        conditions = []
+        for cond in conditions_raw:
+            parent = cond.get("native", {}).get("parent") or cond.get("kind")
+            ptype = "IF" if "if" in parent else "WHILE" if "while" in parent else "FOR" if "for" in parent or "do" in parent else parent.upper()
+            conditions.append({
+                "type": ptype,
+                "condition": _shorten(cond.get("text")),
+                "line": cond.get("start_line")
+            })
+
+        # Returns
+        returns_raw = [e for e in entries if e.get("kind") == "return" and
+                       (e.get("function_scope") == scope or e.get("scope", "").startswith(scope))]
+        returns = []
+        if not ret_type:
+            ret_symbols = [r.get("native", {}).get("implicit_output") for r in returns_raw if r.get("native", {}).get("implicit_output")]
+            for sym in ret_symbols:
+                decl = next((e for e in entries if e.get("kind") == "declaration" and sym in e.get("entity_symbols", []) and (e.get("function_scope") == scope or e.get("scope", "").startswith(scope))), None)
+                if decl:
+                    decl_text = decl.get("native", {}).get("declaration_text") or decl.get("text") or ""
+                    if "::" in decl_text:
+                        ret_type = decl_text.split("::")[0].strip()
+                        break
+                    elif decl_text:
+                        parts = decl_text.split()
+                        if len(parts) >= 2:
+                            ret_type = parts[0].strip()
+                            break
+        if not ret_type and path:
+            for candidate_path in (Path(path), Path.cwd() / path):
+                if candidate_path.is_file():
+                    try:
+                        src_lines = candidate_path.read_text().splitlines()
+                        start_l = max(0, (line or 1) - 1)
+                        end_l = min(len(src_lines), start_l + 80)
+                        for l in src_lines[start_l:end_l]:
+                            if "end function" in l.lower() or "end subroutine" in l.lower():
+                                break
+                            for sym in (ret_symbols or [name]):
+                                m = re.match(r'^\s*([a-zA-Z0-9_,\s\(\)]+?)\s*::\s*.*?\b' + re.escape(sym) + r'\b', l)
+                                if m:
+                                    ret_type = m.group(1).strip()
+                                    break
+                            if ret_type:
+                                break
+                    except Exception:
+                        pass
+                    if ret_type:
+                        break
+        for ret in returns_raw:
+            expr = ret.get("native_expression", {}).get("text") or ret.get("native", {}).get("implicit_output") or ret.get("text")
+            returns.append({
+                "line": ret.get("start_line"),
+                "code": _shorten(ret.get("text")),
+                "expression": _shorten(expr),
+                "return_type": ret_type
+            })
+
+        boundary_types = set()
+        if ret_type:
+            boundary_types.add(ret_type)
+        for p in param_list:
+            if p.get("type"):
+                boundary_types.add(p["type"])
+
+        contracts.append({
+            "name": name,
+            "scope": scope,
+            "path": path,
+            "line": line,
+            "signature": sig_text,
+            "return_type": ret_type,
+            "parameters": param_list,
+            "calls": calls,
+            "external_calls": external_calls,
+            "governing_conditions": conditions,
+            "return_expressions": returns,
+            "boundary_types": sorted(boundary_types)
+        })
+    return contracts
 
 def source_regions(payload):
     """Use recovered regions, not full-file inventory entries, as query roots."""
@@ -200,7 +657,9 @@ def fortran_symbols(root, paths):
                 if hover:
                     interfaces.append({"name":symbol["name"],"line":line+1,"hover":hover})
         records.append({"path":path,"symbols":symbols,"interfaces":interfaces})
+    contracts = distill_fortran_contracts(records)
     return {"backend":"fortls","version":__version__,"files":records,
+            "interface_contracts": contracts, "contracts": contracts,
             "scope":"Language-server symbol/interface information, not full dataflow analysis."}
 
 
@@ -253,6 +712,23 @@ def attach_source_analysis(payload, result):
                "joern_nodes": 0, "joern_edges": 0, "omitted_methods": [],
                "gaps": result.get("gaps", []),
                "note": "Method ASTs and boundary facts; unresolved dispatch alternatives are summarized, with all candidates retained in source-analysis.json."}
+    all_contracts = []
+    for analysis in result.get("analyses", []):
+        if analysis.get("backend") == "joern":
+            contracts = analysis.get("interface_contracts")
+            if not contracts:
+                contracts = distill_joern_contracts(analysis.get("nodes", []), analysis.get("links", []),
+                                                    analysis.get("selection"), analysis.get("language", "unknown"))
+            all_contracts.extend(contracts)
+        elif analysis.get("backend") == "fortls":
+            contracts = analysis.get("interface_contracts")
+            if not contracts:
+                contracts = distill_fortran_contracts(analysis.get("files", []))
+            all_contracts.extend(contracts)
+    summary["interface_contracts"] = all_contracts
+    summary["contracts"] = all_contracts
+    payload.setdefault("context", {})["interface_contracts"] = all_contracts
+    payload["interface_contracts"] = all_contracts
     payload["source_analysis_summary"] = summary
     for analysis in result["analyses"]:
         if analysis["backend"] != "joern":

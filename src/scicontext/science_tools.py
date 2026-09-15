@@ -15,6 +15,7 @@ from jsonschema import Draft202012Validator
 from . import evidence
 from .io import digest_json, read_json, write_json
 from .language_frontends import extract_native_evidence, source_language
+from .source_backends import distill_joern_contracts, distill_fortran_contracts, distill_native_contracts
 from .object_context import enrichment_input, object_bundle
 from .representation import computation_slice, reading_input
 from .scientific_graph import admit_selected_sources, build_graph, _scope_key
@@ -56,7 +57,7 @@ def tool_definitions():
               "offset": {"type": "integer", "minimum": 0}}, ["query"]),
         tool("science_inspect", "Inspect a function or source target for its result calculation, dependencies and documented meaning. Use '#graph' for the task overview. Edited sources are refreshed; no candidate code is executed.",
              {"target": {"type": "string", "description": "Function name, returned source target, relative path, path:line or path#symbol."},
-              "view": {"type": "string", "enum": ["relationships", "definitions", "source"], "default": "relationships"},
+              "view": {"type": "string", "enum": ["relationships", "definitions", "source", "contracts"], "default": "relationships"},
               "offset": {"type": "integer", "minimum": 0}}, ["target"]),
         tool("science_note", "Optionally describe an inspected computation: its meaning, intended change and what to preserve. Use its function name or source target; supporting evidence is attached automatically. Recording never gates repair.",
              NOTE_PROPERTIES, NOTE_REQUIRED),
@@ -323,6 +324,7 @@ class ScienceStore:
                       "quantities": quantities, "conditions": node.get("conditions") or [],
                       "operations": node.get("operations") or {}, "computation_id": node.get("computation_id"),
                       "entities": entities,
+                      "interface_contracts": node.get("interface_contracts") or [],
                       "sources": shown_sources,
                       "documented_context": documented,
                       "calculation": node.get('calculation', {}),
@@ -352,7 +354,10 @@ class ScienceStore:
                     detail = self.inspect(self._node_target(node), "relationships", 0, analysis, exact_symbol=True)
                     result["evidence"] = {key: detail.get(key) for key in
                                           ("target", "computations", "quantities_and_expressions",
-                                           "relationships", "sources", "coverage")}
+                                           "relationships", "sources", "coverage", "interface_contracts") if key in detail}
+                    if detail.get("interface_contracts"):
+                        result["interface_contracts"] = detail["interface_contracts"]
+                        node["interface_contracts"] = detail["interface_contracts"]
                     if detail.get("backend_request"):
                         # The runner triggers host-side analyzers from the top-level
                         # request; keep it visible when the work is nested in evidence.
@@ -410,8 +415,8 @@ class ScienceStore:
                 return {"status": "unresolved_target", "target": path, "sources": [],
                         "note": "No parser can resolve this symbol in the current file; inspect the file with view=source."}
         reference = {"path": path, "start_line": start, "end_line": end}
-        if view not in {"relationships", "definitions", "source"}:
-            raise ValueError("Use relationships, definitions or source")
+        if view not in {"relationships", "definitions", "source", "contracts"}:
+            raise ValueError("Use relationships, definitions, source or contracts")
         if (view == "source" and not symbol) or is_document:
             start, end = line, len(lines)
         if is_document or view == "source":
@@ -464,6 +469,7 @@ class ScienceStore:
                 "text": "\n".join(lines[start-1:end]), "expression": None}],
                 "coverage": {"task_local_retrieval": {"references": [reference]}}}
         packet.setdefault("coverage", {})["task_local_retrieval"] = {"references": [reference]}
+        native_entries = list(packet["entries"])
         selected_view = reading_input({"context": {"code_passages": packet["entries"], "analysis_regions": [reference]}})
         selected_ids = {s["id"] for s in selected_view["sources"]}
         packet["entries"] = [e for e in packet["entries"] if e["id"] in selected_ids]
@@ -528,11 +534,30 @@ class ScienceStore:
                             "expand_target": owner["id"], "view": "source"}
             displayed_templates.append(template)
         from .source_backends import JOERN_SOURCE_SUFFIXES
+        contracts = []
+        if analysis:
+            for b in (analysis or {}).get("analyses", []):
+                if b.get("interface_contracts"):
+                    contracts.extend(b["interface_contracts"])
+            if not contracts and payload.get("source_analysis_summary", {}).get("interface_contracts"):
+                contracts.extend(payload["source_analysis_summary"]["interface_contracts"])
+            if not contracts and payload.get("interface_contracts"):
+                contracts.extend(payload["interface_contracts"])
+        if not contracts and native_entries and language and language != "python":
+            contracts = distill_native_contracts(native_entries, language)
+        if view == "contracts":
+            return {"status": "ok", "target": reference,
+                "interface_contracts": contracts,
+                "total_contracts": len(contracts),
+                "language": language,
+                "analysis_backends": [a["backend"] for a in (analysis or {}).get("analyses", [])],
+                "note": "Distilled interface contracts: external calls, boundary signatures, governing conditions, return expressions."}
         return {"status": "ok", "target": reference,
             "backend_request": ({**reference, "sha256": hashlib.sha256(raw).hexdigest()}
                                 if analysis is None and view == "relationships" and Path(path).suffix.lower() in JOERN_SOURCE_SUFFIXES else None),
             "analysis_backends": [a["backend"] for a in (analysis or {}).get("analyses", [])],
             "analysis_gaps": (analysis or {}).get("gaps", []),
+            "interface_contracts": contracts,
             "computations": [{"id": c["id"], "note_target": c["id"], "name": c["name"], "body_status": c["body_status"]} for c in computations],
             "note_target": path + '#' + _scope_key(computations[0]['name']) if len(computations) == 1 else None,
             "calculation": {"status": calculation['status'], "result_ids": calculation['result_ids'],
@@ -777,6 +802,8 @@ class ScienceStore:
                 candidate['calculation'] = detail.get('calculation', candidate.get('calculation', {}))
             if detail.get("analysis_backends"):
                 candidate["analysis_backends"] = detail["analysis_backends"]
+            if detail.get("interface_contracts"):
+                candidate["interface_contracts"] = detail["interface_contracts"]
         self.state["scientific_graph"] = graph
         self.save()
 

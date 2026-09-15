@@ -708,3 +708,77 @@ def test_first_expansion_supplies_usable_note_fields(tmp_path):
     assert store.record_note({"target": result["note_target"], "source_ids": result["note_source_ids"],
             "meaning": "Double the supplied value.", "expected_change": "Repair the reported behaviour.",
             "preserve": ["The scalar return type."]})["status"] == "recorded"
+
+
+def test_inspect_returns_dense_interface_contracts_from_analysis(tmp_path):
+    store = prepared_graph_store(tmp_path, unseen=True, unseen_path="unseen.cpp")
+    node = next(item for item in store.inspect("#graph")["nodes"] if item["name"] == "mystery")
+    vertices = [
+        {"id": "1", "label": "METHOD", "properties": {"NAME": "mystery", "FULL_NAME": "mystery",
+                                                      "SIGNATURE": "int(int)", "TYPE_FULL_NAME": "int", "LINE_NUMBER": 1}},
+        {"id": "2", "label": "METHOD_PARAMETER_IN", "properties": {"NAME": "value", "TYPE_FULL_NAME": "int", "ORDER": "1"}},
+        {"id": "3", "label": "CALL", "properties": {"NAME": "pthread_create",
+                                                     "METHOD_FULL_NAME": "pthread_create:int(pthread_t*,void*,void*(*)(void*),void*)",
+                                                     "CODE": "pthread_create(&t, NULL, run, NULL)",
+                                                     "LINE_NUMBER": 2, "DISPATCH_TYPE": "STATIC_DISPATCH"}},
+        {"id": "4", "label": "METHOD", "properties": {"NAME": "pthread_create", "FULL_NAME": "pthread_create",
+                                                      "IS_EXTERNAL": "true",
+                                                      "SIGNATURE": "int(pthread_t*, const pthread_attr_t*, void*(*)(void*), void*)"}},
+        {"id": "5", "label": "CONTROL_STRUCTURE", "properties": {"CONTROL_STRUCTURE_TYPE": "IF", "CODE": "if (value < 0)", "LINE_NUMBER": 3}},
+        {"id": "6", "label": "RETURN", "properties": {"CODE": "return 0;", "LINE_NUMBER": 4}},
+        {"id": "7", "label": "RETURN", "properties": {"CODE": "return value * 2;", "LINE_NUMBER": 5}},
+    ]
+    edges = [
+        {"outV": "1", "inV": "2", "label": "AST"},
+        {"outV": "1", "inV": "3", "label": "AST"},
+        {"outV": "3", "inV": "4", "label": "CALL"},
+        {"outV": "1", "inV": "5", "label": "AST"},
+        {"outV": "5", "inV": "6", "label": "AST"},
+        {"outV": "1", "inV": "7", "label": "AST"},
+    ]
+    nodes = {v["id"]: {"id": v["id"], "kind": v["label"], "properties": v["properties"], "line": v["properties"].get("LINE_NUMBER")} for v in vertices}
+    links = [{"source": e["outV"], "target": e["inV"], "role": e["label"]} for e in edges]
+    selection = {"methods": [{"id": "1", "name": "mystery", "node_ids": ["1", "2", "3", "5", "6", "7"], "start_line": 1, "end_line": 5}]}
+    analysis = {"analyses": [{"backend": "joern", "language": "cpp", "nodes": list(nodes.values()), "links": links,
+                              "selection": selection}], "gaps": [], "source_hashes": {}}
+    result = store.inspect(node["id"], analysis=analysis)
+    assert "interface_contracts" in result
+    contracts = result["interface_contracts"]
+    assert len(contracts) == 1
+    c = contracts[0]
+    assert c["name"] == "mystery"
+    assert c["external_calls"][0]["callee"] == "pthread_create"
+    assert c["external_calls"][0]["signature"] == "int(pthread_t*, const pthread_attr_t*, void*(*)(void*), void*)"
+    assert c["governing_conditions"][0]["condition"] == "value < 0"
+    assert len(c["return_expressions"]) == 2
+    assert result["evidence"]["interface_contracts"] == contracts
+
+
+def test_inspect_view_contracts_returns_distilled_contracts_view(tmp_path):
+    root = tmp_path / "task"
+    root.mkdir()
+    (root / "advance.f90").write_text(
+        "module test_mod\n"
+        "contains\n"
+        "function step(x, dt) result(y)\n"
+        "real, intent(in) :: x, dt\n"
+        "real :: y\n"
+        "if (x < 0) then\n"
+        "    y = 0\n"
+        "    return\n"
+        "end if\n"
+        "y = x + dt\n"
+        "end function\n"
+        "end module\n"
+    )
+    store = ScienceStore(root, tmp_path / "artifacts")
+    store.prepare()
+    res = store.inspect("advance.f90", view="contracts")
+    assert res["status"] == "ok"
+    assert "interface_contracts" in res
+    assert res["total_contracts"] >= 1
+    c = res["interface_contracts"][0]
+    assert c["name"] == "step"
+    assert c["return_type"] == "real"
+    assert any(p["name"] == "x" for p in c["parameters"])
+    assert any("if" in cond["type"].lower() for cond in c["governing_conditions"])
