@@ -230,7 +230,7 @@ class ScientificCodex(BaseAgent):
     async def run_stage(self, name, instruction, seconds):
         if name != "repair":
             raise RuntimeError("Interactive scientific preparation uses DeepSeekAgent")
-        prompt = instruction + f"\n\nTime allowance remaining: at most {max(1, int(seconds))} seconds."
+        prompt = instruction + f"\n\nTime allowance remaining: at most {max(60, int(seconds) // 60 * 60)} seconds."
         return await self._run_codex(name, prompt, seconds)
 
     async def _run_codex(self, name, prompt, seconds):

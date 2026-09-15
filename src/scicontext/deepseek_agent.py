@@ -33,7 +33,7 @@ API = "https://api.deepseek.com/chat/completions"
 API_ENDPOINTS = {"deepseek": API,
                  "zai-coding-plan": "https://api.z.ai/api/coding/paas/v4/chat/completions"}
 SCIENCE_STORE = REMOTE + "/context/science"
-HELPER = f"SCICONTEXT_CONTEXT_ROOT={REMOTE}/context PYTHONPATH={REMOTE}/src:{REMOTE}/deps python -m scicontext.tool_cli"
+HELPER = f"PYTHONHASHSEED=0 SCICONTEXT_CONTEXT_ROOT={REMOTE}/context PYTHONPATH={REMOTE}/src:{REMOTE}/deps python -m scicontext.tool_cli"
 MAX_OUTPUT_TOKENS = 65536
 MAX_TOOL_OUTPUT_CHARS = 60_000
 MAX_TOOL_SECONDS = 600
@@ -506,7 +506,7 @@ class DeepSeekAgent(ScientificCodex):
 
     async def _science_command(self, request, seconds, prepare=False, self_check=False):
         import base64, shlex
-        command = (f"PYTHONPATH={REMOTE}/src:{REMOTE}/deps PYTHONDONTWRITEBYTECODE=1 "
+        command = (f"PYTHONHASHSEED=0 PYTHONPATH={REMOTE}/src:{REMOTE}/deps PYTHONDONTWRITEBYTECODE=1 "
                    f"python -m scicontext.science_tools --root {shlex.quote(self.root)} "
                    f"--store {SCIENCE_STORE} ")
         if prepare:
@@ -599,7 +599,7 @@ class DeepSeekAgent(ScientificCodex):
     async def run_stage(self, name, instruction, seconds):
         if name in {"prepare", "extract"}:
             return await self.prepare(seconds)
-        prompt = instruction + f"\n\nTime allowance remaining: at most {max(1, int(seconds))} seconds."
+        prompt = instruction + f"\n\nTime allowance remaining: at most {max(60, int(seconds) // 60 * 60)} seconds."
         return await self._run_deepseek_repair(prompt, seconds)
 
     async def _execute_tool(self, call, seconds):

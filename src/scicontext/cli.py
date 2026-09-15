@@ -522,6 +522,8 @@ def pilot(workspace: Path, config_path: Path, output: Path, execute: bool,
                 if any(token in name.upper() for token in ("API_KEY", "AUTH_TOKEN", "BEARER", "SECRET")):
                     environment.pop(name, None)
             environment["PYTHONPATH"] = frozen_source["dir"]
+            # Deterministic serialization: set iteration order must not vary across runs.
+            environment["PYTHONHASHSEED"] = "0"
             item["phase"] = "pier"
             write_json(output / "schedule.json", plan)
             return command, environment, log
