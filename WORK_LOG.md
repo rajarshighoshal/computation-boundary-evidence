@@ -10,25 +10,23 @@ Preserve unrelated untracked PDF, REPRODUCTION.md, paper/, results, docs and wor
 Git, run receipts and this ledger take precedence over older model-written memory.
 
 ## Active: finish computation selection and validate the scientific treatment
-User approved the remaining targeted work and asked for speed (15Sep2026).
-- [verified] Root implemented result/dependency-first evidence selection before truncation; follow
-  wrapper paths into computations; make partial views expandable. Keep the current graph,
-  parsers/Joern, public-document evidence, query tools and harness. No task-ID rules, invented
-  science, mandatory gate, new agent framework or manual citation bookkeeping for the model.
-- [verified] 684 tests pass. New regressions cover setup distraction, wrapper routes, in-place
-  outputs/index producers, loop-carried candidates, native loop spans, natural-name queries,
-  attached docstrings and complete post-edit pagination. Independent reviewers reproduced
-  and verified the fixes; no new semantic certainty is claimed from selection metadata.
-- [active] Rebuild/review the same30 development tasks offline; compare actual calculation and
-  documented-context coverage with the saved initial snapshots. Preserve gaps/failures.
-- [next] DeepSeek V4.1 Flash/high matched paired E2E check, then the approved40-concurrent
-  development workload after the smaller check works. Verify tool delivery/use, outcomes,
-  input/output/reasoning tokens, retries and work/wall time. No commits while runs are live.
-- [pending] Freeze the corrected method/evaluation configuration, run the agreed evaluation,
-  analyze and produce the report/reproduction package. Do not substitute infrastructure results.
-Final verification: useful task-level computations and evidence in the30-task audit, paired
-official verifier results, actual full-pipeline capacity, independently recomputed receipts.
-Root is the sole writer; reviewer agents inspect bounded parts and do not change the checkout.
+## Active: omp session is the writer (Codex usage limit hit 15Sep2026)
+Codex weekly limit exhausted (resets 20Sep, after deadline); the omp harness session took over as
+sole writer at Rajarshi's request. DeepSeek V4.1 Flash reviewer agent and Fable advisor configured
+in that harness (outside this repo).
+- [verified] Selection/pagination/graph work and analyzer slot+deadline fixes completed and committed:
+  242c779 (result-producer ranking, partial views, workflow callee edges, graph pagination),
+  1b51cd9 (2-slot analyzer semaphore shared via repo-root .cache, deadline arithmetic including
+  queue wait and remote merge, typed analysis-gap reasons). 695 tests pass (was 684).
+- [active] Consolidate the 30-task offline recheck (runs/context-recheck-v8 has before/after
+  grounding for 001/016/114; reconcile remaining tasks against initial snapshots, exact task IDs,
+  preserve gaps). Then the approved DeepSeek V4.1 Flash/high paired E2E check.
+- [next] After the smaller check works: the approved 40-concurrent development workload; measure
+  real analyzer queue waits there before scaling slots. Then freeze config, run evaluation,
+  produce report/reproduction package. No commits while runs are live.
+- [pending] Locked-89 untouched until method frozen; no new task-specific tuning.
+Final verification: 30-task audit table with task IDs, paired official verifier results, actual
+40-way capacity, independently recomputed receipts.
 
 ## Completed: DeepSeek V4.1 Flash provider check
 User approved trying V4.1 Flash after confirming that original V4 Flash is retired on the direct API.

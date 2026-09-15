@@ -1,0 +1,28 @@
+{
+  "kind": "context-recheck-v10-content-audit",
+  "generated_utc": "2026-09-15T07:37:43Z",
+  "code_revision": "1b51cd9",
+  "recheck": "runs/context-recheck-v10 (30/30 tasks rebuilt from HEAD; evidence.py sha matches HEAD)",
+  "baseline": "immutable science-initial-state.json snapshots from runs/glm-development-e2e-40-v1",
+  "reviewer": {
+    "agent": "deepseek-reviewer (omp harness)",
+    "model": "deepseek/deepseek-flash:high",
+    "mode": "read-only; no edits, no model calls by the reviewed pipeline, no Docker",
+    "output": "agent://SelectionAudit"
+  },
+  "scope": "10 tasks: v7-flagged 027/073/076/019/058/024/025/051 plus spot-checks 016/028. Grounding counts do not establish scientific relevance; coverage verdicts are evidence-selection only.",
+  "verdict": "8 of 10 improved, 2 mixed (076, 058), 0 regressed. 027/073 restored; 016/028 confirmed improved. Remaining gaps trace to the pre-existing MAX_SOURCE_FILES=24 file-scan ceiling (packet.py), identical in the original GLM packets - a frozen-method limitation, not a v10 regression. Provenance: 10/10 before_snapshot sha256 verified against summary.json; all node source_ids resolve in both baseline and v10; before/after metrics reproduce from raw artifacts.",
+  "results": [
+    {"task_id": "027", "status": "improved", "central_computation_visible": "partial", "note": "MAB/PMA/ISAB/encoder producers restored incl. returns; mask consumption (model.py:55-56) and _process_peaks accumulation loop still not selected."},
+    {"task_id": "073", "status": "improved", "central_computation_visible": "true", "note": "get_structure + altloc/residue/segment/connectivity producers anchored (53 grounded nodes vs 9); PDBx container layer dropped as getter clutter."},
+    {"task_id": "076", "status": "mixed", "central_computation_visible": "partial", "note": "CVXPY failure-path producers strongly grounded (110 nodes), but the task module workflow/trajectory_tracking.py (build_problem/_solve_problem/evaluate_case) is rejected by the 24-file scan in both original and rebuilt packets."},
+    {"task_id": "019", "status": "improved", "central_computation_visible": "partial", "note": "Packet flipped import-heavy to producer returns, but no node anchors binarize_topics' body; view remains validation-heavy (17/20 nodes reproduce.py checks)."},
+    {"task_id": "058", "status": "mixed", "central_computation_visible": "false", "note": "Python workflow leg improved; transport kernel files (physics/simulation/eigenvalue.cpp) structurally unreachable via source_file_limit; C++ node set rotated alphabetically, boundary_condition handlers lost at node admission."},
+    {"task_id": "024", "status": "improved", "central_computation_visible": "partial", "note": "zerosum_default_transform/ZeroSumNormal.rv_op/Model.logp producers anchored; transforms.py ZeroSumTransform@301 body unreachable (source_file_limit)."},
+    {"task_id": "025", "status": "improved", "central_computation_visible": "partial", "note": "Both fit panels anchored with quantitative results; completeFit assembly line and ModelOutput accumulation not in source_ids; .m callees dropped by file limit."},
+    {"task_id": "051", "status": "improved", "central_computation_visible": "partial", "note": "ComputeDG82 recurrence + magnetic grid producers anchored; gravitational Fortran routines unreachable (source_file_limit); 64 packaging-clutter source ids."},
+    {"task_id": "016", "status": "improved", "central_computation_visible": "true", "note": "refine_peaks full producer shape (accumulator, guards, __close_peak calls, return) 6->19 ids; _bedGraphTrackI__close_peak@489 body not inspectable."},
+    {"task_id": "028", "status": "improved", "central_computation_visible": "true", "note": "compute_relative_responses documented semantics fully exposed incl. guarded fallback and subtraction; zero node losses."}
+  ],
+  "full_evidence": "agent://SelectionAudit output preserved in the omp session; per-task file/line citations available on request."
+}
