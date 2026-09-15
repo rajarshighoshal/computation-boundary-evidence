@@ -1,0 +1,24 @@
+{
+  "kind": "deepseek-dev30-deep-dive-analysis",
+  "generated_utc": "2026-09-15T12:00:00Z",
+  "dataset": "Complete 30-Task Development Benchmark (120 total attempts across High & Low effort)",
+  "executive_summary": {
+    "high_effort": "Baseline 12/30 (40.0%) vs Science 11/30 (36.7%) | Discordants: 2 baseline-only (002, 009), 1 science-only (077)",
+    "low_effort": "Baseline 12/30 (40.0%) vs Science 13/30 (43.3%) | Discordants: 0 baseline-only, 1 science-only (077)",
+    "key_thesis": "Under lower test-time reasoning tokens, baseline performance stagnates at 12/30 while the science arm improves to 13/30. The code-derived scientific context acts as an external structural memory that replaces internal reasoning loops, recovering tasks (002, 009) that previously failed due to over-deliberation."
+  },
+  "task_classification": {
+    "consistently_solved_all_4": ["010", "016", "019", "024", "025", "027", "028", "045", "078", "091"],
+    "never_solved_any_config": ["001", "004", "005", "006", "008", "014", "051", "058", "061", "070", "073", "076", "080", "099", "104", "114", "119"],
+    "transition_tasks": {
+      "002": "High [Base=1, Sci=0] -> Low [Base=1, Sci=1]: Solved by Science under low effort",
+      "009": "High [Base=1, Sci=0] -> Low [Base=1, Sci=1]: Solved by Science under low effort",
+      "077": "High [Base=0, Sci=1] -> Low [Base=0, Sci=1]: Solved EXCLUSIVELY by Science in BOTH regimes"
+    }
+  },
+  "mechanism_findings": {
+    "task_077_science_only_win": "In both high and low regimes, Science alone solves 077 by immediately locating constructive.py#oriented_envelope via the evidence graph. Baseline searches blind and fails in both regimes.",
+    "over_deliberation_recovery": "In high effort, Science failed 002 and 009 due to lengthy reasoning loops generating complex alternative hypotheses. In low effort, Science directly executes on the graph evidence and succeeds.",
+    "never_solved_barrier": "The 17 never-solved tasks fall into two categories: (1) multi-file architectural bugs exceeding the 24-file scan ceiling (058, 076, 051), and (2) tasks requiring domain-specific numerical solvers that fail regardless of context."
+  }
+}
