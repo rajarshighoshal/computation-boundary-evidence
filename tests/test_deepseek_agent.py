@@ -603,3 +603,19 @@ def test_http_request_deadline_cancels_transport_and_closes_client(monkeypatch):
     with pytest.raises(TimeoutError):
         asyncio.run(module._send_request(request, .05))
     assert closed == ["cancelled"] and client.is_closed
+
+
+def test_host_bookkeeping_stays_out_of_container_visible_bind(tmp_path):
+    agent = DeepSeekAgent.__new__(DeepSeekAgent)
+    agent.condition = "baseline"
+    agent.task_id = "001"
+    agent.root = str(tmp_path / "task")
+    (tmp_path / "agent").mkdir()
+    agent.logs_dir = tmp_path / "agent"  # pier binds this into the container
+    agent.checked = AsyncMock(return_value="1 2 3 4 5 6")
+    asyncio.run(agent._setup_environment(SimpleNamespace(), "repair"))
+    assert (tmp_path / "agent-host" / "runtime-repair.log").exists()
+    assert not any((tmp_path / "agent").iterdir()), "mounted /logs/agent must stay empty"
+    # idempotent across stages
+    asyncio.run(agent._setup_environment(SimpleNamespace(), "repair"))
+    assert str(agent.logs_dir).endswith("agent-host")

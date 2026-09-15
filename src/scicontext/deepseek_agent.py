@@ -318,7 +318,22 @@ class DeepSeekAgent(ScientificCodex):
                                                       "description": "Single bash command line to run."}},
                            "required": ["command"]}}}]
 
+    def _private_logs_dir(self):
+        """Keep host-side bookkeeping out of the container-visible bind.
+
+        Pier binds the trial's agent directory into the container at /logs/agent.
+        The host-API repair loop never runs in-container, so every receipt,
+        prompt, transcript and manifest is written to a sibling "-host" directory
+        instead: both arms' containers see an empty /logs/agent and cannot mine
+        harness metadata (setup manifests, prompts, session logs) from it.
+        """
+        if not str(self.logs_dir).endswith("-host"):
+            self.logs_dir = Path(str(self.logs_dir) + "-host")
+        self.logs_dir.mkdir(parents=True, exist_ok=True)
+        return self.logs_dir
+
     async def _setup_environment(self, environment, stage):
+        self._private_logs_dir()
         if self.condition == "science":
             await self.checked(environment, f"mkdir -p {CONTROL} {REMOTE}/src {REMOTE}/context {SCRATCH}/checkpoints {self.root}/outputs")
             await environment.upload_dir(self.helper_deps, REMOTE + "/deps")
