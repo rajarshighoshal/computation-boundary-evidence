@@ -27,7 +27,7 @@ PROVENANCE_FIELDS = (
     "selection_sha256", "dataset_revision", "benchmark_revision", "environment_image",
     "verifier_image", "runner_version", "implementation_revision", "uv_lock_sha256", "prompt_sha256",
 )
-OWNED_ARTIFACT_SUBTREES = {"agent", "artifacts", "extraction_environment", "verifier"}
+OWNED_ARTIFACT_SUBTREES = {"agent", "agent-host", "artifacts", "extraction_environment", "verifier"}
 
 
 class AnalysisError(ValueError):
