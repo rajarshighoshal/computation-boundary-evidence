@@ -23,5 +23,11 @@
       "tool_use_totals": "109 inspect, 34 find, 31 record_note; 29/30 queried before first edit"
     }
   },
-  "interpretation_guard": "Audit covers container-visible channels (binds, uploads, prompts, session transcripts). It cannot rule out unknown channels outside the harness; none were observed."
+  "interpretation_guard": "Audit covers container-visible channels (binds, uploads, prompts, session transcripts), plus environment checks for network, mounts and verifier timing. Model-side benchmark contamination remains possible and symmetric across arms.",
+  "environment_channel_checks": {
+    "network": "NetworkMode=none on live low-effort run containers; DNS resolution fails; agents are fully offline (strictest policy - resolves the internet-access debate)",
+    "mounts": "live container mounts are exactly three trial-dir binds (artifacts, verifier, agent); no docker socket, no host paths outside the trial directory",
+    "verifier_temporal_isolation": "0/20 sampled trials show verifier output predating the repair run end; verification is strictly post-repair, so agent and verifier never coexist with content",
+    "checked_at": "2026-09-15T11:05:00Z against live containers of runs/deepseek-development-e2e-40-low-v1 and artifacts of runs/deepseek-development-e2e-40-v1"
+  }
 }
