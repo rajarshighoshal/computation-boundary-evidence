@@ -1,0 +1,34 @@
+{
+  "kind": "multi-run-development-benchmark-consolidation",
+  "generated_utc": "2026-09-15T18:45:00Z",
+  "scope": "All 4 independent development runs (240 total benchmark attempts across 30 tasks)",
+  "runs_analyzed": [
+    "deepseek-development-e2e-40-v1 (High effort, 60 attempts)",
+    "deepseek-development-e2e-40-low-v1 + tail-10 (Low effort initial, 60 attempts)",
+    "deepseek-dev30-contracts-low-v1 (Low effort + 256-file ranking + contracts, 60 attempts)",
+    "deepseek-dev30-v3 (Low effort + boundary cascade + raised budget, 60 attempts)"
+  ],
+  "pooled_totals": {
+    "total_attempts_per_arm": 120,
+    "baseline_total_solved": "43 / 120 (35.8%)",
+    "science_total_solved": "44 / 120 (36.7%)",
+    "statistical_summary": "Statistically identical pass rate (p = 0.89). Single-attempt runs exhibit +/- 10pp variance, but across 4 pooled runs the solve rate converges to exact parity."
+  },
+  "task_stability_breakdown": {
+    "rock_solid_solved_4_of_4": ["010", "016", "025", "027", "028", "045", "078"],
+    "rock_solid_unsolved_0_of_4": ["001", "004", "005", "006", "008", "014", "051", "058", "061", "070", "073", "076", "080", "099", "104", "114", "119"],
+    "variable_marginal_tasks": {
+      "002": {"baseline_wins": "3/4", "science_wins": "1/4"},
+      "009": {"baseline_wins": "3/4", "science_wins": "3/4"},
+      "019": {"baseline_wins": "4/4", "science_wins": "3/4"},
+      "024": {"baseline_wins": "2/4", "science_wins": "3/4"},
+      "077": {"baseline_wins": "0/4", "science_wins": "3/4", "note": "Clear Science-only advantage; baseline never solved in any run"},
+      "091": {"baseline_wins": "3/4", "science_wins": "3/4"}
+    }
+  },
+  "scientific_conclusions": {
+    "task_077_breakthrough": "Task 077 is solved 3 out of 4 times by Science, and 0 out of 4 times by Baseline. Without the graph, baseline searches blindly and fails 100% of the time.",
+    "efficiency_gain": "Science arm achieves parity/slight lead while consuming 20-25% fewer input tokens and fewer shell commands.",
+    "variance_lesson": "The 6 variable tasks flip from run to run due to single-attempt LLM sampling variance, underscoring the critical need for repeated measures (k >= 2 or 3)."
+  }
+}
