@@ -25,8 +25,13 @@ Git, run receipts and this ledger take precedence over older model-written memor
   BOUNDARY_DECLS include/use/import/cimport table, unknown_external fallbacks, uniform schema;
   715 tests pass. Prompt now forbids retrying failed optional notes (6df40da; 019-science lost
   25min to a record_note retry loop).
-- [active] Locked-89 k=3 evaluation running as one process chain (scripts/run_locked89_k3.sh):
-  three sequential 178-attempt runs, low effort, 40 concurrent. Preserve all receipts.
+- [verified] Determinism audit (results/determinism-audit-v1.json): temperature already 0.0 on
+  every request; provider IGNORES the seed parameter (two identical seeded calls produced
+  different output); PYTHONHASHSEED=0 now pinned for host subprocesses and in-container science
+  commands; time-allowance text rounded to whole minutes. 715 tests pass. Commit 739d038.
+- [verified] First locked chain aborted at ~64/178 (k1) by decision: replicates must share one
+  frozen code revision. Partial run preserved (runs/deepseek-locked89-k1-v1) and excluded from
+  the evaluation. Fresh chain relaunched as locked89-k3-v2 with the determinism controls.
 - [next] Analysis (repeated measures across k=3), report numbers, reproduction pass, PDF.
 Final verification: submission-ready 4-page PDF + receipts + reproduction README before
 16Sep2026 23:59:59 CEST (17Sep 03:29 IST).
