@@ -28,13 +28,19 @@ def load_runs(run_dirs: list[Path]) -> dict[str, dict[str, list[dict[str, Any]]]
             seg = trial.parent.name
             _, task, arm = seg.split("-", 2)
             reward = None
+            private_passed = private_collected = None
             reward_path = trial / "verifier" / "reward.json"
             if reward_path.is_file():
                 try:
-                    reward = json.loads(reward_path.read_text()).get("reward")
+                    reward_payload = json.loads(reward_path.read_text())
+                    reward = reward_payload.get("reward")
+                    private = reward_payload.get("private") or {}
+                    private_passed = private.get("passed")
+                    private_collected = private.get("collected")
                 except ValueError:
                     reward = None
             usage = defaultdict(int)
+            work_seconds = 0.0
             record = {}
             if (trial / "run.json").is_file():
                 try:
@@ -45,11 +51,14 @@ def load_runs(run_dirs: list[Path]) -> dict[str, dict[str, list[dict[str, Any]]]
                 stage_usage = stage.get("usage") or {}
                 for key in ("input_tokens", "cached_input_tokens", "output_tokens"):
                     usage[key] += stage_usage.get(key) or 0
+                work_seconds += stage.get("work_seconds") or 0.0
             data[task][arm].append({
                 "reward": reward, "run": run_dir.name,
+                "private_passed": private_passed, "private_collected": private_collected,
                 "in": usage["input_tokens"], "cached": usage["cached_input_tokens"],
                 "out": usage["output_tokens"],
                 "seconds": record.get("duration_seconds") or 0,
+                "work_seconds": round(work_seconds, 1),
             })
     return data
 
@@ -116,6 +125,16 @@ def main() -> None:
                 per_arm[arm]["cached"] += r["cached"]
                 per_arm[arm]["out"] += r["out"]
                 per_arm[arm]["seconds"] += r["seconds"]
+                per_arm[arm]["work_seconds"] += r["work_seconds"]
+                if r["private_collected"]:
+                    per_arm[arm]["tests_passed"] += r["private_passed"] or 0
+                    per_arm[arm]["tests_collected"] += r["private_collected"]
+        # graded per-task detail (private-test fractions per arm, pooled over runs)
+        for arm in ("baseline", "science"):
+            passed = sum(r["private_passed"] or 0 for r in arms.get(arm, []) if r["private_collected"])
+            collected = sum(r["private_collected"] or 0 for r in arms.get(arm, []) if r["private_collected"])
+            if collected:
+                entry.setdefault(arm, {})["tests_passed_rate"] = round(passed / collected, 4)
 
     ci_low, ci_high = bootstrap_ci(diffs)
     mean_diff = sum(diffs) / len(diffs) if diffs else 0.0
@@ -131,15 +150,24 @@ def main() -> None:
         report["totals"][arm] = {
             "attempts_verified": totals["verified"], "attempts_solved": totals["solved"],
             "solve_rate": round(totals["solved"] / totals["verified"], 4) if totals["verified"] else None,
+            "private_tests_passed": totals["tests_passed"], "private_tests_collected": totals["tests_collected"],
+            "graded_test_rate": round(totals["tests_passed"] / totals["tests_collected"], 4)
+                                if totals["tests_collected"] else None,
             "input_tokens": totals["in"], "cached_input_tokens": totals["cached"],
-            "output_tokens": totals["out"], "work_seconds": round(totals["seconds"], 1),
+            "output_tokens": totals["out"],
+            "work_seconds_total": round(totals["work_seconds"], 1),
+            "duration_seconds_total": round(totals["seconds"], 1),
+            "mean_work_seconds_per_attempt": round(totals["work_seconds"] / totals["verified"], 1)
+                                             if totals["verified"] else None,
         }
     args.output.write_text(json.dumps(report, indent=1, sort_keys=True))
     print(f"k={k}; tasks with both arms: {len(diffs)}")
     for arm in ("baseline", "science"):
         t = report["totals"][arm]
-        print(f"  {arm}: {t['attempts_solved']}/{t['attempts_verified']} "
-              f"({t['solve_rate']:.1%}) in={t['input_tokens']/1e6:.1f}M out={t['output_tokens']/1e3:.0f}k")
+        print(f"  {arm}: {t['attempts_solved']}/{t['attempts_verified']} ({t['solve_rate']:.1%}) | "
+              f"graded tests {t['private_tests_passed']}/{t['private_tests_collected']} "
+              f"({t['graded_test_rate']:.1%}) | in={t['input_tokens']/1e6:.1f}M out={t['output_tokens']/1e3:.0f}k "
+              f"| work {t['mean_work_seconds_per_attempt']:.0f}s/attempt")
     print(f"  paired: science better {wins}, baseline better {losses}, ties {ties_zero}; "
           f"sign-test p={sign_test_p(wins, losses):.4f}")
     print(f"  mean rate difference {mean_diff:+.3f} "
