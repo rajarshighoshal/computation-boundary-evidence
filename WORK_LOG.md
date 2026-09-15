@@ -9,20 +9,23 @@ Rajarshi owns scientific decisions. Root is the only code writer; reviewers are 
 Preserve unrelated untracked PDF, REPRODUCTION.md, paper/, results, docs and workspace files.
 Git, run receipts and this ledger take precedence over older model-written memory.
 
-## Active: dev-30 paired result recorded; locked-89 decision pending
-- [verified] DeepSeek V4.1 Flash/high paired check v5 (task009): both arms reward1.0, zero retries,
-  receipts recomputed. runs/development-e2e-check-v5.
-- [verified] 40-concurrent dev-30 workload completed 60/60 in 66min, exit0, all containers cleaned.
-  Honest truth table recomputed from run.json+verifier rewards (results/deepseek-development-e2e-40-v1-analysis.json):
-  baseline 12/30 vs science 11/30 (12/27 vs 11/28 verified); discordant pairs 002+009 base-only,
-  077 sci-only; McNemar p~1.0 - no measurable success difference; science used -25% input tokens.
-  5 attempts (080 both, 099 base, 114 both) lost to non-retryable provider invalid_response
-  (task-correlated). 13 science trials mislabeled infrastructure_failure by a cleanup-timeout
-  accounting defect (20s cap under load); verified outcomes unaffected; documented, not fixed
-  mid-freeze. Commit ca7902a (with Niu-lineage citations in METHOD.md/report).
-- [decision-pending Rajarshi] locked-89 full run (~6-7h, powers a null) vs predeclared dev-30
-  subset framing (recommended: honest null + efficiency gain + audit + protocol rigor).
-- [next] Fill report slots, reproduction package, clean reproduction pass after the decision.
+## Active: locked-89 k=3 evaluation running; code/documentation cleanup in progress
+- [verified] Frozen-run semantics: trials execute from runs/<run>/frozen-source; HEAD drift is
+  recorded in receipts (head_at_launch/head_drift), never aborts (commit 39eef13). Same commit
+  raised the Joern export budget (16k nodes / 60k edges). Split-validation crash demoted to a
+  warning (11cf0e6) - it had aborted the first locked launch.
+- [verified] Four independent development evaluations (240 attempts): pooled baseline 43/120 vs
+  science 44/120; measured single-run noise floor ~±3/30 from the code-invariant baseline arm;
+  science consistently uses 17-25% fewer input tokens; 077 solved 3/4 with graph, 0/4 without.
+  results/dev30-four-run-consolidation.json. Dynamic ranking admitted previously-excluded kernels
+  (058/051/073/076 verified in prepared states).
+- [verified] Boundary cascade implemented and tested (commit af22a7c): Joern semantic layer,
+  BOUNDARY_DECLS include/use/import/cimport table, unknown_external fallbacks, uniform schema;
+  715 tests pass. Prompt now forbids retrying failed optional notes (6df40da; 019-science lost
+  25min to a record_note retry loop).
+- [active] Locked-89 k=3 evaluation running as one process chain (scripts/run_locked89_k3.sh):
+  three sequential 178-attempt runs, low effort, 40 concurrent. Preserve all receipts.
+- [next] Analysis (repeated measures across k=3), report numbers, reproduction pass, PDF.
 Final verification: submission-ready 4-page PDF + receipts + reproduction README before
 16Sep2026 23:59:59 CEST (17Sep 03:29 IST).
 
