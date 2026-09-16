@@ -1,0 +1,410 @@
+{
+ "kind": "swe-bench-science-task-domain-mapping",
+ "source": "arXiv:2608.19799v2 Appendix Table 5 (task-level inventory)",
+ "pdf_sha256": "83c0ef0e7b60c7f3f08dff57fe3eae51d799c954e85aa40307e4b39a6028fc9a",
+ "script_sha256": "ab8e065f5ca81deade65f555569ef82bcbfd7281a7a55e0bed1c7c315f8ff14a",
+ "validation": "per-domain counts reproduce Appendix Table 4 exactly over 119 tasks",
+ "canonical_counts": {
+  "Chemistry": 24,
+  "Materials Science and Engineering": 16,
+  "Biology": 13,
+  "Biomedical Engineering": 12,
+  "Physics": 11,
+  "Mathematics": 7,
+  "Astronomy": 7,
+  "Atmospheric Science": 5,
+  "Civil Engineering": 5,
+  "Surveying and Mapping Science and Technology": 3,
+  "Geophysics": 3,
+  "Mechanics": 3,
+  "Electrical Engineering": 2,
+  "Marine Science": 2,
+  "Geography": 1,
+  "Aeronautical and Astronautical Science and Technology": 1,
+  "Nuclear Science and Technology": 1,
+  "Computer Science and Technology": 1,
+  "Statistics": 1,
+  "Information and Communication Engineering": 1
+ },
+ "tasks": {
+  "001": {
+   "domain": "Chemistry"
+  },
+  "002": {
+   "domain": "Chemistry"
+  },
+  "003": {
+   "domain": "Materials Science and Engineering"
+  },
+  "004": {
+   "domain": "Biology"
+  },
+  "005": {
+   "domain": "Biomedical Engineering"
+  },
+  "006": {
+   "domain": "Biology"
+  },
+  "007": {
+   "domain": "Biomedical Engineering"
+  },
+  "008": {
+   "domain": "Physics"
+  },
+  "009": {
+   "domain": "Physics"
+  },
+  "010": {
+   "domain": "Physics"
+  },
+  "011": {
+   "domain": "Physics"
+  },
+  "012": {
+   "domain": "Physics"
+  },
+  "013": {
+   "domain": "Physics"
+  },
+  "014": {
+   "domain": "Physics"
+  },
+  "015": {
+   "domain": "Biomedical Engineering"
+  },
+  "016": {
+   "domain": "Biology"
+  },
+  "017": {
+   "domain": "Astronomy"
+  },
+  "018": {
+   "domain": "Biology"
+  },
+  "019": {
+   "domain": "Biology"
+  },
+  "020": {
+   "domain": "Materials Science and Engineering"
+  },
+  "021": {
+   "domain": "Chemistry"
+  },
+  "022": {
+   "domain": "Biomedical Engineering"
+  },
+  "023": {
+   "domain": "Chemistry"
+  },
+  "024": {
+   "domain": "Statistics"
+  },
+  "025": {
+   "domain": "Biomedical Engineering"
+  },
+  "026": {
+   "domain": "Atmospheric Science"
+  },
+  "027": {
+   "domain": "Chemistry"
+  },
+  "028": {
+   "domain": "Biology"
+  },
+  "029": {
+   "domain": "Biology"
+  },
+  "030": {
+   "domain": "Materials Science and Engineering"
+  },
+  "031": {
+   "domain": "Biomedical Engineering"
+  },
+  "032": {
+   "domain": "Chemistry"
+  },
+  "033": {
+   "domain": "Materials Science and Engineering"
+  },
+  "034": {
+   "domain": "Mathematics"
+  },
+  "035": {
+   "domain": "Mathematics"
+  },
+  "036": {
+   "domain": "Marine Science"
+  },
+  "037": {
+   "domain": "Biomedical Engineering"
+  },
+  "038": {
+   "domain": "Materials Science and Engineering"
+  },
+  "039": {
+   "domain": "Geography"
+  },
+  "040": {
+   "domain": "Geophysics"
+  },
+  "041": {
+   "domain": "Geophysics"
+  },
+  "042": {
+   "domain": "Astronomy"
+  },
+  "043": {
+   "domain": "Materials Science and Engineering"
+  },
+  "044": {
+   "domain": "Chemistry"
+  },
+  "045": {
+   "domain": "Marine Science"
+  },
+  "046": {
+   "domain": "Astronomy"
+  },
+  "047": {
+   "domain": "Information and Communication Engineering"
+  },
+  "048": {
+   "domain": "Chemistry"
+  },
+  "049": {
+   "domain": "Mathematics"
+  },
+  "050": {
+   "domain": "Physics"
+  },
+  "051": {
+   "domain": "Geophysics"
+  },
+  "052": {
+   "domain": "Materials Science and Engineering"
+  },
+  "053": {
+   "domain": "Biomedical Engineering"
+  },
+  "054": {
+   "domain": "Chemistry"
+  },
+  "055": {
+   "domain": "Astronomy"
+  },
+  "056": {
+   "domain": "Aeronautical and Astronautical Science and Technology"
+  },
+  "057": {
+   "domain": "Chemistry"
+  },
+  "058": {
+   "domain": "Nuclear Science and Technology"
+  },
+  "059": {
+   "domain": "Computer Science and Technology"
+  },
+  "060": {
+   "domain": "Biomedical Engineering"
+  },
+  "061": {
+   "domain": "Astronomy"
+  },
+  "062": {
+   "domain": "Materials Science and Engineering"
+  },
+  "063": {
+   "domain": "Biology"
+  },
+  "064": {
+   "domain": "Chemistry"
+  },
+  "065": {
+   "domain": "Astronomy"
+  },
+  "066": {
+   "domain": "Atmospheric Science"
+  },
+  "067": {
+   "domain": "Atmospheric Science"
+  },
+  "068": {
+   "domain": "Biology"
+  },
+  "069": {
+   "domain": "Biology"
+  },
+  "070": {
+   "domain": "Biology"
+  },
+  "071": {
+   "domain": "Physics"
+  },
+  "072": {
+   "domain": "Biomedical Engineering"
+  },
+  "073": {
+   "domain": "Biology"
+  },
+  "074": {
+   "domain": "Materials Science and Engineering"
+  },
+  "075": {
+   "domain": "Materials Science and Engineering"
+  },
+  "076": {
+   "domain": "Mathematics"
+  },
+  "077": {
+   "domain": "Mathematics"
+  },
+  "078": {
+   "domain": "Astronomy"
+  },
+  "079": {
+   "domain": "Chemistry"
+  },
+  "080": {
+   "domain": "Surveying and Mapping Science and Technology"
+  },
+  "081": {
+   "domain": "Biology"
+  },
+  "082": {
+   "domain": "Materials Science and Engineering"
+  },
+  "083": {
+   "domain": "Chemistry"
+  },
+  "084": {
+   "domain": "Materials Science and Engineering"
+  },
+  "085": {
+   "domain": "Chemistry"
+  },
+  "086": {
+   "domain": "Materials Science and Engineering"
+  },
+  "087": {
+   "domain": "Biomedical Engineering"
+  },
+  "088": {
+   "domain": "Atmospheric Science"
+  },
+  "089": {
+   "domain": "Chemistry"
+  },
+  "090": {
+   "domain": "Chemistry"
+  },
+  "091": {
+   "domain": "Materials Science and Engineering"
+  },
+  "092": {
+   "domain": "Chemistry"
+  },
+  "093": {
+   "domain": "Biomedical Engineering"
+  },
+  "094": {
+   "domain": "Physics"
+  },
+  "095": {
+   "domain": "Materials Science and Engineering"
+  },
+  "096": {
+   "domain": "Atmospheric Science"
+  },
+  "097": {
+   "domain": "Physics"
+  },
+  "098": {
+   "domain": "Surveying and Mapping Science and Technology"
+  },
+  "099": {
+   "domain": "Surveying and Mapping Science and Technology"
+  },
+  "100": {
+   "domain": "Chemistry"
+  },
+  "101": {
+   "domain": "Chemistry"
+  },
+  "102": {
+   "domain": "Materials Science and Engineering"
+  },
+  "103": {
+   "domain": "Mechanics"
+  },
+  "104": {
+   "domain": "Chemistry"
+  },
+  "105": {
+   "domain": "Chemistry"
+  },
+  "106": {
+   "domain": "Chemistry"
+  },
+  "107": {
+   "domain": "Mathematics"
+  },
+  "108": {
+   "domain": "Mathematics"
+  },
+  "109": {
+   "domain": "Mechanics"
+  },
+  "110": {
+   "domain": "Civil Engineering"
+  },
+  "111": {
+   "domain": "Mechanics"
+  },
+  "112": {
+   "domain": "Civil Engineering"
+  },
+  "113": {
+   "domain": "Electrical Engineering"
+  },
+  "114": {
+   "domain": "Electrical Engineering"
+  },
+  "115": {
+   "domain": "Civil Engineering"
+  },
+  "116": {
+   "domain": "Civil Engineering"
+  },
+  "117": {
+   "domain": "Civil Engineering"
+  },
+  "118": {
+   "domain": "Chemistry"
+  },
+  "119": {
+   "domain": "Chemistry"
+  }
+ },
+ "domain_counts": {
+  "Aeronautical and Astronautical Science and Technology": 1,
+  "Astronomy": 7,
+  "Atmospheric Science": 5,
+  "Biology": 13,
+  "Biomedical Engineering": 12,
+  "Chemistry": 24,
+  "Civil Engineering": 5,
+  "Computer Science and Technology": 1,
+  "Electrical Engineering": 2,
+  "Geography": 1,
+  "Geophysics": 3,
+  "Information and Communication Engineering": 1,
+  "Marine Science": 2,
+  "Materials Science and Engineering": 16,
+  "Mathematics": 7,
+  "Mechanics": 3,
+  "Nuclear Science and Technology": 1,
+  "Physics": 11,
+  "Statistics": 1,
+  "Surveying and Mapping Science and Technology": 3
+ }
+}

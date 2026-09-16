@@ -9,7 +9,28 @@ Rajarshi owns scientific decisions. Root is the only code writer; reviewers are 
 Preserve unrelated untracked PDF, REPRODUCTION.md, paper/, results, docs and workspace files.
 Git, run receipts and this ledger take precedence over older model-written memory.
 
-## Active: locked-89 k=3 evaluation running; code/documentation cleanup in progress
+## Active: report and figure set rebuilt from frozen receipts (16Sep2026)
+- [verified] Locked-89 k=3 is complete: baseline 60/262 (22.9%) vs science 60/260 (23.1%),
+  sign test p=1.00, 7 science-only / 8 baseline-only tasks; output tokens 12.01M -> 10.36M
+  (-13.7%, 1.65M saved); graded tests 73.1% -> 70.7%. Dev-30 k=4: 43/117 vs 44/118. Effort
+  matrix: high 12/30 vs 11/30, low 12/30 vs 13/30 (matched-20: 10/20 vs 8/20 -> 10/20 vs 10/20).
+- [verified] Domain mapping extracted from the benchmark paper's Appendix Table 5 and validated
+  against its published per-domain counts (analysis/benchmark_task_domains.py ->
+  results/benchmark-task-domains.json). Per-domain/language/ablation comparison rebuilt from
+  verifier receipts (analysis/domain_arm_analysis.py -> results/domain-arm-analysis.json),
+  recomputation reproducing the frozen locked-89 receipt exactly. Wins: mechanics +22.2,
+  astronomy +12.4, materials +9.7, civil +6.7 pp; losses: biomedical eng -16.7, biology -9.5 pp;
+  chemistry/physics/mathematics unchanged.
+- [verified] One facts receipt now backs all reported numbers (analysis/paper_facts.py ->
+  results/paper-facts.json; 757 verified attempts, 774 scheduled).
+- [verified] Figure factory rebuilt in the house plot language (paper/figures/theme.py mirrors
+  iclr2027_paper_theme.py); eight candidate figure sets render from receipts with a layout
+  assertion that fails on overflow or text overlap (make_all.py).
+- [verified] paper/latex/report.tex compiles to 4 main-content pages + 1 references page, zero
+  overfull boxes; uses figures fig_grounding_flow, fig_domains, fig_resources, fig_stability.
+- [next] Final reproduction pass and repository URL/commit in README before the deadline.
+
+## Prior: locked-89 k=3 evaluation launch; code/documentation cleanup
 - [verified] Frozen-run semantics: trials execute from runs/<run>/frozen-source; HEAD drift is
   recorded in receipts (head_at_launch/head_drift), never aborts (commit 39eef13). Same commit
   raised the Joern export budget (16k nodes / 60k edges). Split-validation crash demoted to a
