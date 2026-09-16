@@ -32,8 +32,8 @@ CBE draws on traceability~\citep{niu2023ablots,niu2023rat,niu2025tvr,pan2025cove
 \paragraph{Prepare.}
 Run the public \texttt{reproduce.py} under an observer. Observed functions guide file selection. Static extraction adds expressions, conditions, definitions, and call boundaries. No LLM call. Median duration: \MedianPreparation{}\,s of the 1800\,s budget.
 
-\begin{table}[t]
-\caption{Evidence fields, from task 103's saved records.}
+\begin{minipage}{\columnwidth}
+\captionof{table}{Evidence fields, from task 103's saved records.}
 \label{tab:representation}
 \smalltable
 \begin{tabularx}{\columnwidth}{@{}p{1.65cm}X@{}}
@@ -51,10 +51,10 @@ Boundary & \texttt{np.radians(thetad)} at line 979: provider \texttt{numpy}, cal
 \texttt{note} & Optional working model; never gates a repair. \\
 \bottomrule
 \end{tabularx}
-\end{table}
+\end{minipage}
 
 \paragraph{Represent.}
-Tree-sitter~\citep{treesitter2024} parses Python. Joern handles C, C++, Fortran, and Cython where available; explicit fallback otherwise. External calls are labelled with their provider and marked as interface assumptions, not correctness guarantees. Unresolved callees stay \texttt{unknown\_external}.
+Tree-sitter~\citep{treesitter2024} parses Python. Joern handles C, C++, Fortran, and Cython where available; explicit fallback otherwise. External calls are labelled with their provider as interface assumptions, not guarantees. Unresolved callees stay \texttt{unknown\_external}.
 
 \paragraph{Query and repair.}
 The agent gets the three endpoints from Table~\ref{tab:representation} plus its normal tools. Inspection refreshes edited text; the preparation trace is not re-executed on candidates.
@@ -64,8 +64,8 @@ The agent gets the three endpoints from Table~\ref{tab:representation} plus its 
 \label{sec:protocol}
 119 tasks, 98 repositories, 20 disciplines~\citep{xu2026science}. 30 for development, 89 locked for evaluation.
 
-\begin{table}[t]
-\caption{Shared conditions.}
+\begin{minipage}{\columnwidth}
+\captionof{table}{Shared conditions.}
 \label{tab:setup}
 \smalltable
 \begin{tabularx}{\columnwidth}{@{}p{1.65cm}X@{}}
@@ -81,13 +81,14 @@ Baseline & Shell tools + public task material. \\
 CBE & Same + evidence store + three query endpoints. \\
 \bottomrule
 \end{tabularx}
-\end{table}
+\end{minipage}
 
 A solve is the official verifier reward. Missing verdicts excluded, not failures. Paired test: bootstrap per-task rate differences (20k resamples, fixed seed). Sign test excludes ties.
 
+\newpage
 \section{Parity, fewer tokens}
-\begin{table}[t]
-\caption{Both arms solve 60. CBE generates 13.7\% fewer output tokens.}
+\begin{minipage}{\columnwidth}
+\captionof{table}{Both arms solve 60. CBE generates 13.7\% fewer output tokens.}
 \label{tab:main}
 \smalltable
 \begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}lrr@{}}
@@ -99,34 +100,19 @@ Metric & Baseline & CBE \\
 \vspace{3pt}
 {\fontsize{8.7}{10.5}\selectfont
 Paired task-rate diff: \TaskDelta{}\,pp; 95\% bootstrap $[\CILower,\CIUpper]$\,pp; sign $p=1.00$.}
-\end{table}
+\end{minipage}
 
 \vspace{4pt}
 74 tasks tie, 7 favour CBE, 8 favour baseline. Output drops \OutputReduction\% (10.36M vs.\ 12.01M tokens). Input rises \InputIncrease\%. Work takes \WorkIncrease\,s longer. The agent searches less --- it either finds the right computation or anchors on the wrong one.
 
-\begin{figure}[t]
+\begin{minipage}{\columnwidth}
 \centering
-\includegraphics[width=\linewidth]{figures/public_private_gap.pdf}
-\caption{Most attempts pass the public check but not the full verifier.}
+\includegraphics[width=\columnwidth]{figures/public_private_gap.pdf}
+\captionof{figure}{Most attempts pass the public check but not the full verifier.}
 \label{fig:gates}
-\end{figure}
+\end{minipage}
 
-\paragraph{Hidden partial changes.}
-Of 74 exact ties, \HiddenPrivateDifferences{} differ in private-test coverage (Table~\ref{tab:partial}).
-
-\begin{table}[t]
-\caption{Exact-rate ties crossed with private-test coverage.}
-\label{tab:partial}
-\smalltable
-\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}lrrr@{}}
-\toprule
-& \multicolumn{3}{c}{Private-test coverage} \\
-Exact rate & Base $>$ & Equal & CBE $>$ \\
-\midrule
-\input{generated/private_joint_table}
-\end{tabular*}
-\end{table}
-
+\clearpage
 \twocolumn[{\begin{minipage}{\textwidth}
 \section{Discipline split}
 \centering
@@ -139,16 +125,32 @@ Mechanics: +22.2\,pp, entirely task 103 (pyNastran). The agent inspects the ply-
 
 Biomedical engineering: $-$16.7\,pp across four tasks. Task 022 (nilearn): baseline solves 2/3, CBE 0/3. The trajectory reads projection mathematics before touching the atlas-label mapping. Biology: $-$9.5\,pp. The two $-$33.3\,pp domains are singletons.
 
-Chemistry (19 tasks), physics (7) and mathematics (5) do not move at all. The ablation flag shows no interaction: $-$0.3 pp on ablated tasks, $+$1.4 pp on knowledge-provided ones. Language strata are uninformative, since 81 of the 89 tasks are pure Python.
+Chemistry (19 tasks), physics (7) and mathematics (5) do not move. No interaction with the ablation flag: $-$0.3 pp on ablated tasks, $+$1.4 pp on knowledge-provided ones. 81 of 89 tasks are pure Python, so language strata are uninformative.
 
 When the defect is a computation, structure finds it. When an ordinary bug sits under scientific prose, structure distracts.
 
-\begin{figure}[t]
+\paragraph{Hidden partial changes.}
+Of 74 exact ties, \HiddenPrivateDifferences{} differ in private-test coverage (Table~\ref{tab:partial}).
+
+\begin{minipage}{\columnwidth}
+\captionof{table}{Exact-rate ties crossed with private-test coverage.}
+\label{tab:partial}
+\smalltable
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}lrrr@{}}
+\toprule
+& \multicolumn{3}{c}{Private-test coverage} \\
+Exact rate & Base $>$ & Equal & CBE $>$ \\
+\midrule
+\input{generated/private_joint_table}
+\end{tabular*}
+\end{minipage}
+
+\begin{minipage}{\columnwidth}
 \centering
-\includegraphics[width=\linewidth]{figures/replication.pdf}
-\caption{Most tasks never solved or always solved. About a fifth flip within an arm.}
+\includegraphics[width=\columnwidth]{figures/replication.pdf}
+\captionof{figure}{Most tasks never solved or always solved. About a fifth flip within an arm.}
 \label{fig:replication}
-\end{figure}
+\end{minipage}
 
 \clearpage
 \twocolumn[{\begin{minipage}{\textwidth}
@@ -172,7 +174,7 @@ Task & Baseline patches & CBE patches & What it shows \\
 \end{tabularx}
 \end{minipage}\vspace{9pt}}]
 
-Task 103 shows that covering the documented computation, not just the example discrepancy, is the repair obligation. Task 022 shows that preserving the existing interface while adding the requested case is. CBE helped with the first and hurt the second.
+Task 103: covering the full computation, not just the example, is the repair obligation. Task 022: preserving the existing interface while adding the new case. CBE helped with the first and hurt the second.
 
 \section{Limitations and conclusion}
 One model, one effort, one budget. Domain analyses are descriptive; singleton domains carry no weight. The store is approximate: unparseable expressions are recorded as unsupported, external calls are labelled rather than verified. No ablations isolate which part of CBE matters.
