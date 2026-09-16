@@ -110,6 +110,27 @@ A solve is a successful official verifier reward, not merely a passing public re
 \section{Results}
 \label{sec:results}
 
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/trial_test_matrix.pdf}
+\caption{Per-run private-test pass fractions for every task whose solve rate differs between arms. Outlined bold cells are official solves; bold task labels are the two cases below.}
+\label{fig:trials}
+\end{figure*}
+
+\begin{table*}[t]
+\caption{Comparison of generated patches for divergent case studies.}
+\label{tab:cases}
+{\fontsize{8}{9.5}\selectfont\setlength{\tabcolsep}{2.5pt}\renewcommand{\arraystretch}{1.05}
+\begin{tabularx}{\textwidth}{@{}p{1.1cm}XXX@{}}
+\toprule
+Task & Baseline & CBE & Insight \\
+\midrule
+103 pyNas\-tran & Expand ply iteration; keep original B/D accumulation. All pass public. & Two fix both expansion and B/D; third keeps old accumulation. & The public check passes both partial and complete repairs. \\
+\addlinespace[1pt]
+022 nilearn & Successful patches add label aggregation while preserving the nearest-neighbour path. & Two alter argument handling (11/12 private); the third passes 4/12. & Reaching the aggregation code did not preserve the interface. \\
+\bottomrule
+\end{tabularx}}
+\end{table*}
 \paragraph{Aggregate comparison.}
 Baseline solves 60 of 267 verified attempts; CBE solves 63 of 267 (Table~\ref{tab:main}). The paired interval spans zero.
 
@@ -155,27 +176,6 @@ Baseline and CBE never solve 60 and 59 tasks, respectively. Outcomes are mixed o
 \paragraph{Task-localized, not task-adaptive.}
 The reproducer guides CBE toward code exercised by the task, but the evidence schema is the same for all tasks. The repair agent still determines whether the extracted records explain the discrepancy and cover the behaviours a change must preserve. The following cases examine this gap.
 
-\begin{figure*}[t]
-\centering
-\includegraphics[width=\textwidth]{figures/trial_test_matrix.pdf}
-\caption{Per-run private-test pass fractions for every task whose solve rate differs between arms. Outlined bold cells are official solves; bold task labels are the two cases below.}
-\label{fig:trials}
-\end{figure*}
-
-\begin{table*}[t]
-\caption{Comparison of generated patches for divergent case studies.}
-\label{tab:cases}
-{\fontsize{8}{9.5}\selectfont\setlength{\tabcolsep}{2.5pt}\renewcommand{\arraystretch}{1.05}
-\begin{tabularx}{\textwidth}{@{}p{1.1cm}XXX@{}}
-\toprule
-Task & Baseline & CBE & Insight \\
-\midrule
-103 pyNas\-tran & Expand ply iteration; keep original B/D accumulation. All pass public. & Two fix both expansion and B/D; third keeps old accumulation. & The public check passes both partial and complete repairs. \\
-\addlinespace[1pt]
-022 nilearn & Successful patches add label aggregation while preserving the nearest-neighbour path. & Two alter argument handling (11/12 private); the third passes 4/12. & Reaching the aggregation code did not preserve the interface. \\
-\bottomrule
-\end{tabularx}}
-\end{table*}
 
 \section{Case studies}
 \label{sec:cases}
