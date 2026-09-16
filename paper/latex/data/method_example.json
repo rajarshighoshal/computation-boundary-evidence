@@ -1,0 +1,80 @@
+{
+  "source_file": "runs/deepseek-locked89-k1-v2/jobs/task-103-science/task_103__c7n8YcK/agent-host/science/views/9f51dd56634cdab5ab000c486e34872f4929086dcc6fc04d15a78d5f90e7c37b.json",
+  "source_sha256": "7dd219747cf03819d301373cfc02649450c6e8ea00a8c9625c813b5427aee006",
+  "boundary_record": {
+    "arguments": [
+      "np",
+      "thetad"
+    ],
+    "boundary": {
+      "assume": "correct_interface",
+      "basis": "layer1_is_external+layer2_import:numpy",
+      "kind": "external",
+      "provider": "numpy",
+      "repair_scope": "caller_file"
+    },
+    "callee": "radians",
+    "code": "np.radians(thetad)",
+    "external": true,
+    "full_name": "numpy.py:<module>.radians",
+    "line": 979,
+    "return_type": "ANY",
+    "signature": ""
+  },
+  "source_excerpts": [
+    {
+      "start_line": 979,
+      "end_line": 979,
+      "text": "theta = np.radians(thetad)",
+      "expression_text": "np.radians(thetad)",
+      "entity_symbols": [
+        "theta"
+      ],
+      "entity_role": "assignment",
+      "branch": []
+    },
+    {
+      "start_line": 987,
+      "end_line": 987,
+      "text": "assert len(z0) == len(z1)",
+      "expression_text": "len(z0) == len(z1)",
+      "entity_symbols": null,
+      "entity_role": null,
+      "branch": []
+    },
+    {
+      "start_line": 987,
+      "end_line": 987,
+      "text": "len(z0) == len(z1)",
+      "expression_text": "len(z0) == len(z1)",
+      "entity_symbols": null,
+      "entity_role": null,
+      "branch": []
+    },
+    {
+      "start_line": 1003,
+      "end_line": 1003,
+      "text": "D += Qbar * thickness * (z1i ** 3 - z0i ** 3)",
+      "expression_text": "Qbar * thickness * (z1i ** 3 - z0i ** 3)",
+      "entity_symbols": [
+        "D"
+      ],
+      "entity_role": "augmented_assignment",
+      "branch": [
+        "for@998:body"
+      ]
+    },
+    {
+      "start_line": 1015,
+      "end_line": 1015,
+      "text": "return ABD",
+      "expression_text": "ABD",
+      "entity_symbols": [
+        "ABD"
+      ],
+      "entity_role": "return",
+      "branch": []
+    }
+  ],
+  "display_note": "Schematic is a field-level summary, with a visual line break in the D expression; not a verbatim tool response."
+}

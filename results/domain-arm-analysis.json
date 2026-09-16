@@ -1,0 +1,2015 @@
+{
+ "kind": "cbe-domain-and-task-type-analysis",
+ "provenance": {
+  "verdicts": "per-attempt verifier reward.json + run.json usage under runs/",
+  "domains": "results/benchmark-task-domains.json (paper Appendix Table 5, validated)",
+  "task_metadata": "vendor/swe-bench-science/huggingface/tasks/task_*/metadata.json",
+  "split": "configs/interactive-science.split.json",
+  "validated_against": "results/locked89-k3-clean-analysis.json",
+  "arm_naming": {
+   "baseline": "baseline (ordinary shell tools)",
+   "cbe": "computational and boundary evidence tools; on-disk run suffix '-science', arm key 'science' in raw verifier receipts"
+  }
+ },
+ "partitions": {
+  "locked89_k3": {
+   "runs": [
+    "deepseek-locked89-k1-v2",
+    "deepseek-locked89-k2-v2",
+    "deepseek-locked89-k3-clean-v1"
+   ],
+   "replicate_runs": 3,
+   "n_tasks": 89,
+   "overall": {
+    "baseline": {
+     "solved": 60,
+     "verified": 262,
+     "rate": 0.229,
+     "wilson_95ci": [
+      0.1823,
+      0.2836
+     ]
+    },
+    "cbe": {
+     "solved": 60,
+     "verified": 260,
+     "rate": 0.2308,
+     "wilson_95ci": [
+      0.1837,
+      0.2857
+     ]
+    },
+    "delta_pp": 0.2
+   },
+   "by_domain": {
+    "axis": "scientific domain",
+    "groups": {
+     "Aeronautical and Astronautical Science and Technology": {
+      "n_tasks": 1,
+      "tasks": [
+       "056"
+      ],
+      "baseline": {
+       "solved": 3,
+       "verified": 3,
+       "rate": 1.0,
+       "wilson_95ci": [
+        0.4385,
+        1.0
+       ]
+      },
+      "cbe": {
+       "solved": 2,
+       "verified": 3,
+       "rate": 0.6667,
+       "wilson_95ci": [
+        0.2077,
+        0.9385
+       ]
+      },
+      "delta_pp": -33.3,
+      "paired": {
+       "tasks_compared": 1,
+       "science_better": 0,
+       "baseline_better": 1,
+       "ties": 0,
+       "sign_test_p": 1.0
+      }
+     },
+     "Astronomy": {
+      "n_tasks": 5,
+      "tasks": [
+       "017",
+       "042",
+       "046",
+       "055",
+       "065"
+      ],
+      "baseline": {
+       "solved": 2,
+       "verified": 14,
+       "rate": 0.1429,
+       "wilson_95ci": [
+        0.0401,
+        0.3994
+       ]
+      },
+      "cbe": {
+       "solved": 4,
+       "verified": 15,
+       "rate": 0.2667,
+       "wilson_95ci": [
+        0.109,
+        0.5195
+       ]
+      },
+      "delta_pp": 12.4,
+      "paired": {
+       "tasks_compared": 5,
+       "science_better": 1,
+       "baseline_better": 0,
+       "ties": 4,
+       "sign_test_p": 1.0
+      }
+     },
+     "Atmospheric Science": {
+      "n_tasks": 5,
+      "tasks": [
+       "026",
+       "066",
+       "067",
+       "088",
+       "096"
+      ],
+      "baseline": {
+       "solved": 3,
+       "verified": 15,
+       "rate": 0.2,
+       "wilson_95ci": [
+        0.0705,
+        0.4519
+       ]
+      },
+      "cbe": {
+       "solved": 3,
+       "verified": 14,
+       "rate": 0.2143,
+       "wilson_95ci": [
+        0.0757,
+        0.4759
+       ]
+      },
+      "delta_pp": 1.4,
+      "paired": {
+       "tasks_compared": 5,
+       "science_better": 1,
+       "baseline_better": 0,
+       "ties": 4,
+       "sign_test_p": 1.0
+      }
+     },
+     "Biology": {
+      "n_tasks": 6,
+      "tasks": [
+       "018",
+       "029",
+       "063",
+       "068",
+       "069",
+       "081"
+      ],
+      "baseline": {
+       "solved": 7,
+       "verified": 18,
+       "rate": 0.3889,
+       "wilson_95ci": [
+        0.2031,
+        0.6138
+       ]
+      },
+      "cbe": {
+       "solved": 5,
+       "verified": 17,
+       "rate": 0.2941,
+       "wilson_95ci": [
+        0.1328,
+        0.5313
+       ]
+      },
+      "delta_pp": -9.5,
+      "paired": {
+       "tasks_compared": 6,
+       "science_better": 0,
+       "baseline_better": 2,
+       "ties": 4,
+       "sign_test_p": 0.5
+      }
+     },
+     "Biomedical Engineering": {
+      "n_tasks": 10,
+      "tasks": [
+       "007",
+       "015",
+       "022",
+       "031",
+       "037",
+       "053",
+       "060",
+       "072",
+       "087",
+       "093"
+      ],
+      "baseline": {
+       "solved": 13,
+       "verified": 30,
+       "rate": 0.4333,
+       "wilson_95ci": [
+        0.2738,
+        0.608
+       ]
+      },
+      "cbe": {
+       "solved": 8,
+       "verified": 30,
+       "rate": 0.2667,
+       "wilson_95ci": [
+        0.1418,
+        0.4445
+       ]
+      },
+      "delta_pp": -16.7,
+      "paired": {
+       "tasks_compared": 10,
+       "science_better": 0,
+       "baseline_better": 4,
+       "ties": 6,
+       "sign_test_p": 0.125
+      }
+     },
+     "Chemistry": {
+      "n_tasks": 19,
+      "tasks": [
+       "021",
+       "023",
+       "032",
+       "044",
+       "048",
+       "054",
+       "057",
+       "064",
+       "079",
+       "083",
+       "085",
+       "089",
+       "090",
+       "092",
+       "100",
+       "101",
+       "105",
+       "106",
+       "118"
+      ],
+      "baseline": {
+       "solved": 12,
+       "verified": 56,
+       "rate": 0.2143,
+       "wilson_95ci": [
+        0.1271,
+        0.3382
+       ]
+      },
+      "cbe": {
+       "solved": 12,
+       "verified": 56,
+       "rate": 0.2143,
+       "wilson_95ci": [
+        0.1271,
+        0.3382
+       ]
+      },
+      "delta_pp": 0.0,
+      "paired": {
+       "tasks_compared": 19,
+       "science_better": 0,
+       "baseline_better": 0,
+       "ties": 19,
+       "sign_test_p": 1.0
+      }
+     },
+     "Civil Engineering": {
+      "n_tasks": 5,
+      "tasks": [
+       "110",
+       "112",
+       "115",
+       "116",
+       "117"
+      ],
+      "baseline": {
+       "solved": 6,
+       "verified": 15,
+       "rate": 0.4,
+       "wilson_95ci": [
+        0.1982,
+        0.6425
+       ]
+      },
+      "cbe": {
+       "solved": 7,
+       "verified": 15,
+       "rate": 0.4667,
+       "wilson_95ci": [
+        0.2481,
+        0.6988
+       ]
+      },
+      "delta_pp": 6.7,
+      "paired": {
+       "tasks_compared": 5,
+       "science_better": 1,
+       "baseline_better": 0,
+       "ties": 4,
+       "sign_test_p": 1.0
+      }
+     },
+     "Computer Science and Technology": {
+      "n_tasks": 1,
+      "tasks": [
+       "059"
+      ],
+      "baseline": {
+       "solved": 0,
+       "verified": 3,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.5615
+       ]
+      },
+      "cbe": {
+       "solved": 0,
+       "verified": 3,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.5615
+       ]
+      },
+      "delta_pp": 0.0,
+      "paired": {
+       "tasks_compared": 1,
+       "science_better": 0,
+       "baseline_better": 0,
+       "ties": 1,
+       "sign_test_p": 1.0
+      }
+     },
+     "Electrical Engineering": {
+      "n_tasks": 1,
+      "tasks": [
+       "113"
+      ],
+      "baseline": {
+       "solved": 0,
+       "verified": 3,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.5615
+       ]
+      },
+      "cbe": {
+       "solved": 0,
+       "verified": 3,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.5615
+       ]
+      },
+      "delta_pp": 0.0,
+      "paired": {
+       "tasks_compared": 1,
+       "science_better": 0,
+       "baseline_better": 0,
+       "ties": 1,
+       "sign_test_p": 1.0
+      }
+     },
+     "Geography": {
+      "n_tasks": 1,
+      "tasks": [
+       "039"
+      ],
+      "baseline": {
+       "solved": 0,
+       "verified": 3,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.5615
+       ]
+      },
+      "cbe": {
+       "solved": 0,
+       "verified": 3,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.5615
+       ]
+      },
+      "delta_pp": 0.0,
+      "paired": {
+       "tasks_compared": 1,
+       "science_better": 0,
+       "baseline_better": 0,
+       "ties": 1,
+       "sign_test_p": 1.0
+      }
+     },
+     "Geophysics": {
+      "n_tasks": 2,
+      "tasks": [
+       "040",
+       "041"
+      ],
+      "baseline": {
+       "solved": 0,
+       "verified": 5,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.4345
+       ]
+      },
+      "cbe": {
+       "solved": 0,
+       "verified": 5,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.4345
+       ]
+      },
+      "delta_pp": 0.0,
+      "paired": {
+       "tasks_compared": 2,
+       "science_better": 0,
+       "baseline_better": 0,
+       "ties": 2,
+       "sign_test_p": 1.0
+      }
+     },
+     "Information and Communication Engineering": {
+      "n_tasks": 1,
+      "tasks": [
+       "047"
+      ],
+      "baseline": {
+       "solved": 0,
+       "verified": 3,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.5615
+       ]
+      },
+      "cbe": {
+       "solved": 0,
+       "verified": 3,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.5615
+       ]
+      },
+      "delta_pp": 0.0,
+      "paired": {
+       "tasks_compared": 1,
+       "science_better": 0,
+       "baseline_better": 0,
+       "ties": 1,
+       "sign_test_p": 1.0
+      }
+     },
+     "Marine Science": {
+      "n_tasks": 1,
+      "tasks": [
+       "036"
+      ],
+      "baseline": {
+       "solved": 0,
+       "verified": 3,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.5615
+       ]
+      },
+      "cbe": {
+       "solved": 0,
+       "verified": 3,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.5615
+       ]
+      },
+      "delta_pp": 0.0,
+      "paired": {
+       "tasks_compared": 1,
+       "science_better": 0,
+       "baseline_better": 0,
+       "ties": 1,
+       "sign_test_p": 1.0
+      }
+     },
+     "Materials Science and Engineering": {
+      "n_tasks": 15,
+      "tasks": [
+       "003",
+       "020",
+       "030",
+       "033",
+       "038",
+       "043",
+       "052",
+       "062",
+       "074",
+       "075",
+       "082",
+       "084",
+       "086",
+       "095",
+       "102"
+      ],
+      "baseline": {
+       "solved": 8,
+       "verified": 44,
+       "rate": 0.1818,
+       "wilson_95ci": [
+        0.0951,
+        0.3196
+       ]
+      },
+      "cbe": {
+       "solved": 12,
+       "verified": 43,
+       "rate": 0.2791,
+       "wilson_95ci": [
+        0.1675,
+        0.4269
+       ]
+      },
+      "delta_pp": 9.7,
+      "paired": {
+       "tasks_compared": 15,
+       "science_better": 3,
+       "baseline_better": 0,
+       "ties": 12,
+       "sign_test_p": 0.25
+      }
+     },
+     "Mathematics": {
+      "n_tasks": 5,
+      "tasks": [
+       "034",
+       "035",
+       "049",
+       "107",
+       "108"
+      ],
+      "baseline": {
+       "solved": 1,
+       "verified": 14,
+       "rate": 0.0714,
+       "wilson_95ci": [
+        0.0127,
+        0.3147
+       ]
+      },
+      "cbe": {
+       "solved": 1,
+       "verified": 14,
+       "rate": 0.0714,
+       "wilson_95ci": [
+        0.0127,
+        0.3147
+       ]
+      },
+      "delta_pp": 0.0,
+      "paired": {
+       "tasks_compared": 5,
+       "science_better": 0,
+       "baseline_better": 0,
+       "ties": 5,
+       "sign_test_p": 1.0
+      }
+     },
+     "Mechanics": {
+      "n_tasks": 3,
+      "tasks": [
+       "103",
+       "109",
+       "111"
+      ],
+      "baseline": {
+       "solved": 0,
+       "verified": 9,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.2991
+       ]
+      },
+      "cbe": {
+       "solved": 2,
+       "verified": 9,
+       "rate": 0.2222,
+       "wilson_95ci": [
+        0.0632,
+        0.5474
+       ]
+      },
+      "delta_pp": 22.2,
+      "paired": {
+       "tasks_compared": 3,
+       "science_better": 1,
+       "baseline_better": 0,
+       "ties": 2,
+       "sign_test_p": 1.0
+      }
+     },
+     "Physics": {
+      "n_tasks": 7,
+      "tasks": [
+       "011",
+       "012",
+       "013",
+       "050",
+       "071",
+       "094",
+       "097"
+      ],
+      "baseline": {
+       "solved": 3,
+       "verified": 21,
+       "rate": 0.1429,
+       "wilson_95ci": [
+        0.0498,
+        0.3464
+       ]
+      },
+      "cbe": {
+       "solved": 3,
+       "verified": 21,
+       "rate": 0.1429,
+       "wilson_95ci": [
+        0.0498,
+        0.3464
+       ]
+      },
+      "delta_pp": 0.0,
+      "paired": {
+       "tasks_compared": 7,
+       "science_better": 0,
+       "baseline_better": 0,
+       "ties": 7,
+       "sign_test_p": 1.0
+      }
+     },
+     "Surveying and Mapping Science and Technology": {
+      "n_tasks": 1,
+      "tasks": [
+       "098"
+      ],
+      "baseline": {
+       "solved": 2,
+       "verified": 3,
+       "rate": 0.6667,
+       "wilson_95ci": [
+        0.2077,
+        0.9385
+       ]
+      },
+      "cbe": {
+       "solved": 1,
+       "verified": 3,
+       "rate": 0.3333,
+       "wilson_95ci": [
+        0.0615,
+        0.7923
+       ]
+      },
+      "delta_pp": -33.3,
+      "paired": {
+       "tasks_compared": 1,
+       "science_better": 0,
+       "baseline_better": 1,
+       "ties": 0,
+       "sign_test_p": 1.0
+      }
+     }
+    }
+   },
+   "by_language": {
+    "axis": "task language",
+    "groups": {
+     "c": {
+      "n_tasks": 2,
+      "tasks": [
+       "038",
+       "068"
+      ],
+      "baseline": {
+       "solved": 2,
+       "verified": 6,
+       "rate": 0.3333,
+       "wilson_95ci": [
+        0.0968,
+        0.7
+       ]
+      },
+      "cbe": {
+       "solved": 2,
+       "verified": 6,
+       "rate": 0.3333,
+       "wilson_95ci": [
+        0.0968,
+        0.7
+       ]
+      },
+      "delta_pp": 0.0,
+      "paired": {
+       "tasks_compared": 2,
+       "science_better": 0,
+       "baseline_better": 0,
+       "ties": 2,
+       "sign_test_p": 1.0
+      }
+     },
+     "c++": {
+      "n_tasks": 1,
+      "tasks": [
+       "075"
+      ],
+      "baseline": {
+       "solved": 0,
+       "verified": 3,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.5615
+       ]
+      },
+      "cbe": {
+       "solved": 0,
+       "verified": 3,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.5615
+       ]
+      },
+      "delta_pp": 0.0,
+      "paired": {
+       "tasks_compared": 1,
+       "science_better": 0,
+       "baseline_better": 0,
+       "ties": 1,
+       "sign_test_p": 1.0
+      }
+     },
+     "c-python": {
+      "n_tasks": 1,
+      "tasks": [
+       "063"
+      ],
+      "baseline": {
+       "solved": 1,
+       "verified": 3,
+       "rate": 0.3333,
+       "wilson_95ci": [
+        0.0615,
+        0.7923
+       ]
+      },
+      "cbe": {
+       "solved": 0,
+       "verified": 2,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.6576
+       ]
+      },
+      "delta_pp": -33.3,
+      "paired": {
+       "tasks_compared": 1,
+       "science_better": 0,
+       "baseline_better": 1,
+       "ties": 0,
+       "sign_test_p": 1.0
+      }
+     },
+     "fortran": {
+      "n_tasks": 1,
+      "tasks": [
+       "085"
+      ],
+      "baseline": {
+       "solved": 0,
+       "verified": 3,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.5615
+       ]
+      },
+      "cbe": {
+       "solved": 0,
+       "verified": 3,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.5615
+       ]
+      },
+      "delta_pp": 0.0,
+      "paired": {
+       "tasks_compared": 1,
+       "science_better": 0,
+       "baseline_better": 0,
+       "ties": 1,
+       "sign_test_p": 1.0
+      }
+     },
+     "matlab-octave": {
+      "n_tasks": 1,
+      "tasks": [
+       "015"
+      ],
+      "baseline": {
+       "solved": 3,
+       "verified": 3,
+       "rate": 1.0,
+       "wilson_95ci": [
+        0.4385,
+        1.0
+       ]
+      },
+      "cbe": {
+       "solved": 3,
+       "verified": 3,
+       "rate": 1.0,
+       "wilson_95ci": [
+        0.4385,
+        1.0
+       ]
+      },
+      "delta_pp": 0.0,
+      "paired": {
+       "tasks_compared": 1,
+       "science_better": 0,
+       "baseline_better": 0,
+       "ties": 1,
+       "sign_test_p": 1.0
+      }
+     },
+     "python": {
+      "n_tasks": 81,
+      "tasks": [
+       "003",
+       "007",
+       "011",
+       "012",
+       "013",
+       "017",
+       "020",
+       "021",
+       "022",
+       "023",
+       "026",
+       "029",
+       "030",
+       "031",
+       "032",
+       "033",
+       "034",
+       "035",
+       "036",
+       "037",
+       "039",
+       "040",
+       "041",
+       "042",
+       "043",
+       "044",
+       "046",
+       "047",
+       "048",
+       "049",
+       "050",
+       "052",
+       "053",
+       "054",
+       "055",
+       "056",
+       "057",
+       "059",
+       "060",
+       "062",
+       "064",
+       "065",
+       "066",
+       "067",
+       "069",
+       "071",
+       "072",
+       "074",
+       "079",
+       "081",
+       "082",
+       "083",
+       "084",
+       "086",
+       "087",
+       "088",
+       "089",
+       "090",
+       "092",
+       "093",
+       "094",
+       "095",
+       "096",
+       "097",
+       "098",
+       "100",
+       "101",
+       "102",
+       "103",
+       "106",
+       "107",
+       "108",
+       "109",
+       "110",
+       "111",
+       "112",
+       "113",
+       "115",
+       "116",
+       "117",
+       "118"
+      ],
+      "baseline": {
+       "solved": 54,
+       "verified": 238,
+       "rate": 0.2269,
+       "wilson_95ci": [
+        0.1783,
+        0.2842
+       ]
+      },
+      "cbe": {
+       "solved": 55,
+       "verified": 237,
+       "rate": 0.2321,
+       "wilson_95ci": [
+        0.1829,
+        0.2898
+       ]
+      },
+      "delta_pp": 0.5,
+      "paired": {
+       "tasks_compared": 81,
+       "science_better": 7,
+       "baseline_better": 7,
+       "ties": 67,
+       "sign_test_p": 1.0
+      }
+     },
+     "python-cpp": {
+      "n_tasks": 1,
+      "tasks": [
+       "105"
+      ],
+      "baseline": {
+       "solved": 0,
+       "verified": 3,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.5615
+       ]
+      },
+      "cbe": {
+       "solved": 0,
+       "verified": 3,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.5615
+       ]
+      },
+      "delta_pp": 0.0,
+      "paired": {
+       "tasks_compared": 1,
+       "science_better": 0,
+       "baseline_better": 0,
+       "ties": 1,
+       "sign_test_p": 1.0
+      }
+     },
+     "python-cython": {
+      "n_tasks": 1,
+      "tasks": [
+       "018"
+      ],
+      "baseline": {
+       "solved": 0,
+       "verified": 3,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.5615
+       ]
+      },
+      "cbe": {
+       "solved": 0,
+       "verified": 3,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.5615
+       ]
+      },
+      "delta_pp": 0.0,
+      "paired": {
+       "tasks_compared": 1,
+       "science_better": 0,
+       "baseline_better": 0,
+       "ties": 1,
+       "sign_test_p": 1.0
+      }
+     }
+    }
+   },
+   "by_ablation": {
+    "axis": "knowledge-ablation flag",
+    "groups": {
+     "knowledge-ablated": {
+      "n_tasks": 65,
+      "tasks": [
+       "003",
+       "007",
+       "011",
+       "012",
+       "013",
+       "015",
+       "017",
+       "018",
+       "020",
+       "021",
+       "022",
+       "023",
+       "026",
+       "029",
+       "030",
+       "031",
+       "032",
+       "033",
+       "034",
+       "035",
+       "036",
+       "037",
+       "038",
+       "039",
+       "040",
+       "041",
+       "042",
+       "043",
+       "044",
+       "046",
+       "047",
+       "048",
+       "049",
+       "050",
+       "052",
+       "053",
+       "054",
+       "055",
+       "056",
+       "057",
+       "059",
+       "060",
+       "062",
+       "063",
+       "064",
+       "065",
+       "066",
+       "067",
+       "068",
+       "069",
+       "071",
+       "072",
+       "074",
+       "075",
+       "079",
+       "081",
+       "082",
+       "084",
+       "086",
+       "090",
+       "097",
+       "098",
+       "100",
+       "101",
+       "111"
+      ],
+      "baseline": {
+       "solved": 48,
+       "verified": 190,
+       "rate": 0.2526,
+       "wilson_95ci": [
+        0.1962,
+        0.3189
+       ]
+      },
+      "cbe": {
+       "solved": 47,
+       "verified": 188,
+       "rate": 0.25,
+       "wilson_95ci": [
+        0.1935,
+        0.3165
+       ]
+      },
+      "delta_pp": -0.3,
+      "paired": {
+       "tasks_compared": 65,
+       "science_better": 5,
+       "baseline_better": 6,
+       "ties": 54,
+       "sign_test_p": 1.0
+      }
+     },
+     "knowledge-provided": {
+      "n_tasks": 24,
+      "tasks": [
+       "083",
+       "085",
+       "087",
+       "088",
+       "089",
+       "092",
+       "093",
+       "094",
+       "095",
+       "096",
+       "102",
+       "103",
+       "105",
+       "106",
+       "107",
+       "108",
+       "109",
+       "110",
+       "112",
+       "113",
+       "115",
+       "116",
+       "117",
+       "118"
+      ],
+      "baseline": {
+       "solved": 12,
+       "verified": 72,
+       "rate": 0.1667,
+       "wilson_95ci": [
+        0.098,
+        0.2691
+       ]
+      },
+      "cbe": {
+       "solved": 13,
+       "verified": 72,
+       "rate": 0.1806,
+       "wilson_95ci": [
+        0.1087,
+        0.2848
+       ]
+      },
+      "delta_pp": 1.4,
+      "paired": {
+       "tasks_compared": 24,
+       "science_better": 2,
+       "baseline_better": 2,
+       "ties": 20,
+       "sign_test_p": 1.0
+      }
+     }
+    }
+   }
+  },
+  "dev30_k4": {
+   "runs": [
+    "deepseek-development-e2e-40-v1",
+    "deepseek-development-e2e-40-low-v1",
+    "deepseek-development-e2e-tail-10-low-v1",
+    "deepseek-dev30-contracts-low-v1",
+    "deepseek-dev30-v3"
+   ],
+   "replicate_runs": 4,
+   "n_tasks": 30,
+   "overall": {
+    "baseline": {
+     "solved": 43,
+     "verified": 117,
+     "rate": 0.3675,
+     "wilson_95ci": [
+      0.2857,
+      0.4578
+     ]
+    },
+    "cbe": {
+     "solved": 44,
+     "verified": 118,
+     "rate": 0.3729,
+     "wilson_95ci": [
+      0.2909,
+      0.4628
+     ]
+    },
+    "delta_pp": 0.5
+   },
+   "by_domain": {
+    "axis": "scientific domain",
+    "groups": {
+     "Astronomy": {
+      "n_tasks": 2,
+      "tasks": [
+       "061",
+       "078"
+      ],
+      "baseline": {
+       "solved": 4,
+       "verified": 8,
+       "rate": 0.5,
+       "wilson_95ci": [
+        0.2152,
+        0.7848
+       ]
+      },
+      "cbe": {
+       "solved": 4,
+       "verified": 8,
+       "rate": 0.5,
+       "wilson_95ci": [
+        0.2152,
+        0.7848
+       ]
+      },
+      "delta_pp": 0.0,
+      "paired": {
+       "tasks_compared": 2,
+       "science_better": 0,
+       "baseline_better": 0,
+       "ties": 2,
+       "sign_test_p": 1.0
+      }
+     },
+     "Biology": {
+      "n_tasks": 7,
+      "tasks": [
+       "004",
+       "006",
+       "016",
+       "019",
+       "028",
+       "070",
+       "073"
+      ],
+      "baseline": {
+       "solved": 12,
+       "verified": 28,
+       "rate": 0.4286,
+       "wilson_95ci": [
+        0.2651,
+        0.6093
+       ]
+      },
+      "cbe": {
+       "solved": 11,
+       "verified": 28,
+       "rate": 0.3929,
+       "wilson_95ci": [
+        0.2357,
+        0.5759
+       ]
+      },
+      "delta_pp": -3.6,
+      "paired": {
+       "tasks_compared": 7,
+       "science_better": 0,
+       "baseline_better": 1,
+       "ties": 6,
+       "sign_test_p": 1.0
+      }
+     },
+     "Biomedical Engineering": {
+      "n_tasks": 2,
+      "tasks": [
+       "005",
+       "025"
+      ],
+      "baseline": {
+       "solved": 4,
+       "verified": 8,
+       "rate": 0.5,
+       "wilson_95ci": [
+        0.2152,
+        0.7848
+       ]
+      },
+      "cbe": {
+       "solved": 4,
+       "verified": 8,
+       "rate": 0.5,
+       "wilson_95ci": [
+        0.2152,
+        0.7848
+       ]
+      },
+      "delta_pp": 0.0,
+      "paired": {
+       "tasks_compared": 2,
+       "science_better": 0,
+       "baseline_better": 0,
+       "ties": 2,
+       "sign_test_p": 1.0
+      }
+     },
+     "Chemistry": {
+      "n_tasks": 5,
+      "tasks": [
+       "001",
+       "002",
+       "027",
+       "104",
+       "119"
+      ],
+      "baseline": {
+       "solved": 7,
+       "verified": 20,
+       "rate": 0.35,
+       "wilson_95ci": [
+        0.1812,
+        0.5671
+       ]
+      },
+      "cbe": {
+       "solved": 5,
+       "verified": 20,
+       "rate": 0.25,
+       "wilson_95ci": [
+        0.1119,
+        0.4687
+       ]
+      },
+      "delta_pp": -10.0,
+      "paired": {
+       "tasks_compared": 5,
+       "science_better": 0,
+       "baseline_better": 1,
+       "ties": 4,
+       "sign_test_p": 1.0
+      }
+     },
+     "Electrical Engineering": {
+      "n_tasks": 1,
+      "tasks": [
+       "114"
+      ],
+      "baseline": {
+       "solved": 0,
+       "verified": 3,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.5615
+       ]
+      },
+      "cbe": {
+       "solved": 0,
+       "verified": 3,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.5615
+       ]
+      },
+      "delta_pp": 0.0,
+      "paired": {
+       "tasks_compared": 1,
+       "science_better": 0,
+       "baseline_better": 0,
+       "ties": 1,
+       "sign_test_p": 1.0
+      }
+     },
+     "Geophysics": {
+      "n_tasks": 1,
+      "tasks": [
+       "051"
+      ],
+      "baseline": {
+       "solved": 0,
+       "verified": 4,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.4899
+       ]
+      },
+      "cbe": {
+       "solved": 0,
+       "verified": 4,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.4899
+       ]
+      },
+      "delta_pp": 0.0,
+      "paired": {
+       "tasks_compared": 1,
+       "science_better": 0,
+       "baseline_better": 0,
+       "ties": 1,
+       "sign_test_p": 1.0
+      }
+     },
+     "Marine Science": {
+      "n_tasks": 1,
+      "tasks": [
+       "045"
+      ],
+      "baseline": {
+       "solved": 4,
+       "verified": 4,
+       "rate": 1.0,
+       "wilson_95ci": [
+        0.5101,
+        1.0
+       ]
+      },
+      "cbe": {
+       "solved": 4,
+       "verified": 4,
+       "rate": 1.0,
+       "wilson_95ci": [
+        0.5101,
+        1.0
+       ]
+      },
+      "delta_pp": 0.0,
+      "paired": {
+       "tasks_compared": 1,
+       "science_better": 0,
+       "baseline_better": 0,
+       "ties": 1,
+       "sign_test_p": 1.0
+      }
+     },
+     "Materials Science and Engineering": {
+      "n_tasks": 1,
+      "tasks": [
+       "091"
+      ],
+      "baseline": {
+       "solved": 3,
+       "verified": 4,
+       "rate": 0.75,
+       "wilson_95ci": [
+        0.3006,
+        0.9544
+       ]
+      },
+      "cbe": {
+       "solved": 3,
+       "verified": 4,
+       "rate": 0.75,
+       "wilson_95ci": [
+        0.3006,
+        0.9544
+       ]
+      },
+      "delta_pp": 0.0,
+      "paired": {
+       "tasks_compared": 1,
+       "science_better": 0,
+       "baseline_better": 0,
+       "ties": 1,
+       "sign_test_p": 1.0
+      }
+     },
+     "Mathematics": {
+      "n_tasks": 2,
+      "tasks": [
+       "076",
+       "077"
+      ],
+      "baseline": {
+       "solved": 0,
+       "verified": 8,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.3244
+       ]
+      },
+      "cbe": {
+       "solved": 3,
+       "verified": 8,
+       "rate": 0.375,
+       "wilson_95ci": [
+        0.1368,
+        0.6943
+       ]
+      },
+      "delta_pp": 37.5,
+      "paired": {
+       "tasks_compared": 2,
+       "science_better": 1,
+       "baseline_better": 0,
+       "ties": 1,
+       "sign_test_p": 1.0
+      }
+     },
+     "Nuclear Science and Technology": {
+      "n_tasks": 1,
+      "tasks": [
+       "058"
+      ],
+      "baseline": {
+       "solved": 0,
+       "verified": 4,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.4899
+       ]
+      },
+      "cbe": {
+       "solved": 0,
+       "verified": 4,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.4899
+       ]
+      },
+      "delta_pp": 0.0,
+      "paired": {
+       "tasks_compared": 1,
+       "science_better": 0,
+       "baseline_better": 0,
+       "ties": 1,
+       "sign_test_p": 1.0
+      }
+     },
+     "Physics": {
+      "n_tasks": 4,
+      "tasks": [
+       "008",
+       "009",
+       "010",
+       "014"
+      ],
+      "baseline": {
+       "solved": 7,
+       "verified": 16,
+       "rate": 0.4375,
+       "wilson_95ci": [
+        0.231,
+        0.6682
+       ]
+      },
+      "cbe": {
+       "solved": 7,
+       "verified": 16,
+       "rate": 0.4375,
+       "wilson_95ci": [
+        0.231,
+        0.6682
+       ]
+      },
+      "delta_pp": 0.0,
+      "paired": {
+       "tasks_compared": 4,
+       "science_better": 0,
+       "baseline_better": 0,
+       "ties": 4,
+       "sign_test_p": 1.0
+      }
+     },
+     "Statistics": {
+      "n_tasks": 1,
+      "tasks": [
+       "024"
+      ],
+      "baseline": {
+       "solved": 2,
+       "verified": 4,
+       "rate": 0.5,
+       "wilson_95ci": [
+        0.15,
+        0.85
+       ]
+      },
+      "cbe": {
+       "solved": 3,
+       "verified": 4,
+       "rate": 0.75,
+       "wilson_95ci": [
+        0.3006,
+        0.9544
+       ]
+      },
+      "delta_pp": 25.0,
+      "paired": {
+       "tasks_compared": 1,
+       "science_better": 1,
+       "baseline_better": 0,
+       "ties": 0,
+       "sign_test_p": 1.0
+      }
+     },
+     "Surveying and Mapping Science and Technology": {
+      "n_tasks": 2,
+      "tasks": [
+       "080",
+       "099"
+      ],
+      "baseline": {
+       "solved": 0,
+       "verified": 6,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.3903
+       ]
+      },
+      "cbe": {
+       "solved": 0,
+       "verified": 7,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.3543
+       ]
+      },
+      "delta_pp": 0.0,
+      "paired": {
+       "tasks_compared": 2,
+       "science_better": 0,
+       "baseline_better": 0,
+       "ties": 2,
+       "sign_test_p": 1.0
+      }
+     }
+    }
+   },
+   "by_language": {
+    "axis": "task language",
+    "groups": {
+     "c++": {
+      "n_tasks": 2,
+      "tasks": [
+       "004",
+       "006"
+      ],
+      "baseline": {
+       "solved": 0,
+       "verified": 8,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.3244
+       ]
+      },
+      "cbe": {
+       "solved": 0,
+       "verified": 8,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.3244
+       ]
+      },
+      "delta_pp": 0.0,
+      "paired": {
+       "tasks_compared": 2,
+       "science_better": 0,
+       "baseline_better": 0,
+       "ties": 2,
+       "sign_test_p": 1.0
+      }
+     },
+     "fortran": {
+      "n_tasks": 1,
+      "tasks": [
+       "051"
+      ],
+      "baseline": {
+       "solved": 0,
+       "verified": 4,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.4899
+       ]
+      },
+      "cbe": {
+       "solved": 0,
+       "verified": 4,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.4899
+       ]
+      },
+      "delta_pp": 0.0,
+      "paired": {
+       "tasks_compared": 1,
+       "science_better": 0,
+       "baseline_better": 0,
+       "ties": 1,
+       "sign_test_p": 1.0
+      }
+     },
+     "matlab-octave": {
+      "n_tasks": 2,
+      "tasks": [
+       "005",
+       "025"
+      ],
+      "baseline": {
+       "solved": 4,
+       "verified": 8,
+       "rate": 0.5,
+       "wilson_95ci": [
+        0.2152,
+        0.7848
+       ]
+      },
+      "cbe": {
+       "solved": 4,
+       "verified": 8,
+       "rate": 0.5,
+       "wilson_95ci": [
+        0.2152,
+        0.7848
+       ]
+      },
+      "delta_pp": 0.0,
+      "paired": {
+       "tasks_compared": 2,
+       "science_better": 0,
+       "baseline_better": 0,
+       "ties": 2,
+       "sign_test_p": 1.0
+      }
+     },
+     "python": {
+      "n_tasks": 22,
+      "tasks": [
+       "001",
+       "002",
+       "008",
+       "009",
+       "010",
+       "014",
+       "019",
+       "024",
+       "027",
+       "028",
+       "045",
+       "070",
+       "073",
+       "076",
+       "077",
+       "078",
+       "080",
+       "091",
+       "099",
+       "104",
+       "114",
+       "119"
+      ],
+      "baseline": {
+       "solved": 35,
+       "verified": 85,
+       "rate": 0.4118,
+       "wilson_95ci": [
+        0.3132,
+        0.518
+       ]
+      },
+      "cbe": {
+       "solved": 36,
+       "verified": 86,
+       "rate": 0.4186,
+       "wilson_95ci": [
+        0.32,
+        0.5242
+       ]
+      },
+      "delta_pp": 0.7,
+      "paired": {
+       "tasks_compared": 22,
+       "science_better": 2,
+       "baseline_better": 2,
+       "ties": 18,
+       "sign_test_p": 1.0
+      }
+     },
+     "python-c": {
+      "n_tasks": 1,
+      "tasks": [
+       "061"
+      ],
+      "baseline": {
+       "solved": 0,
+       "verified": 4,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.4899
+       ]
+      },
+      "cbe": {
+       "solved": 0,
+       "verified": 4,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.4899
+       ]
+      },
+      "delta_pp": 0.0,
+      "paired": {
+       "tasks_compared": 1,
+       "science_better": 0,
+       "baseline_better": 0,
+       "ties": 1,
+       "sign_test_p": 1.0
+      }
+     },
+     "python-cpp": {
+      "n_tasks": 1,
+      "tasks": [
+       "058"
+      ],
+      "baseline": {
+       "solved": 0,
+       "verified": 4,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.4899
+       ]
+      },
+      "cbe": {
+       "solved": 0,
+       "verified": 4,
+       "rate": 0.0,
+       "wilson_95ci": [
+        0.0,
+        0.4899
+       ]
+      },
+      "delta_pp": 0.0,
+      "paired": {
+       "tasks_compared": 1,
+       "science_better": 0,
+       "baseline_better": 0,
+       "ties": 1,
+       "sign_test_p": 1.0
+      }
+     },
+     "python-cython": {
+      "n_tasks": 1,
+      "tasks": [
+       "016"
+      ],
+      "baseline": {
+       "solved": 4,
+       "verified": 4,
+       "rate": 1.0,
+       "wilson_95ci": [
+        0.5101,
+        1.0
+       ]
+      },
+      "cbe": {
+       "solved": 4,
+       "verified": 4,
+       "rate": 1.0,
+       "wilson_95ci": [
+        0.5101,
+        1.0
+       ]
+      },
+      "delta_pp": 0.0,
+      "paired": {
+       "tasks_compared": 1,
+       "science_better": 0,
+       "baseline_better": 0,
+       "ties": 1,
+       "sign_test_p": 1.0
+      }
+     }
+    }
+   },
+   "by_ablation": {
+    "axis": "knowledge-ablation flag",
+    "groups": {
+     "knowledge-ablated": {
+      "n_tasks": 26,
+      "tasks": [
+       "002",
+       "004",
+       "005",
+       "006",
+       "008",
+       "009",
+       "010",
+       "014",
+       "016",
+       "019",
+       "024",
+       "025",
+       "027",
+       "028",
+       "045",
+       "051",
+       "058",
+       "061",
+       "070",
+       "073",
+       "076",
+       "077",
+       "078",
+       "080",
+       "099",
+       "114"
+      ],
+      "baseline": {
+       "solved": 40,
+       "verified": 101,
+       "rate": 0.396,
+       "wilson_95ci": [
+        0.3062,
+        0.4935
+       ]
+      },
+      "cbe": {
+       "solved": 41,
+       "verified": 102,
+       "rate": 0.402,
+       "wilson_95ci": [
+        0.312,
+        0.499
+       ]
+      },
+      "delta_pp": 0.6,
+      "paired": {
+       "tasks_compared": 26,
+       "science_better": 2,
+       "baseline_better": 2,
+       "ties": 22,
+       "sign_test_p": 1.0
+      }
+     },
+     "knowledge-provided": {
+      "n_tasks": 4,
+      "tasks": [
+       "001",
+       "091",
+       "104",
+       "119"
+      ],
+      "baseline": {
+       "solved": 3,
+       "verified": 16,
+       "rate": 0.1875,
+       "wilson_95ci": [
+        0.0659,
+        0.4301
+       ]
+      },
+      "cbe": {
+       "solved": 3,
+       "verified": 16,
+       "rate": 0.1875,
+       "wilson_95ci": [
+        0.0659,
+        0.4301
+       ]
+      },
+      "delta_pp": 0.0,
+      "paired": {
+       "tasks_compared": 4,
+       "science_better": 0,
+       "baseline_better": 0,
+       "ties": 4,
+       "sign_test_p": 1.0
+      }
+     }
+    }
+   }
+  }
+ }
+}

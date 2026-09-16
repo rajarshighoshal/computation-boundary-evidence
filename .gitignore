@@ -10,8 +10,6 @@ __pycache__/
 build/
 dist/
 vendor/
-data/
-runs/
 tmp/
 .env
 .env.*
@@ -19,21 +17,21 @@ auth.json
 *.auth.json
 .DS_Store
 
-# Local working state, traces, and internal research scratchpads
+# Local working state, run trees, and internal research scratchpads
 workspace/
+submission/
 .opencode-memory/
-*.log
+runs/
+data/
+docs/
+prompts/
 AGENTS.md
 WORK_LOG.md
 RESEARCH_PLAN.md
-docs/
-results/
-analysis/
-prompts/
-
-# Paper workspace, drafts, PDFs, and media (kept locally on disk)
-paper/
 CBE_visual_paper_v2/
+*.log
+
+# Media and drafts stay local, except inside the submitted paper
 *.pdf
 *.png
 *.jpg
@@ -41,12 +39,28 @@ CBE_visual_paper_v2/
 *.svg
 *.webp
 
-# LaTeX build artifacts
-*.aux
-*.bbl
-*.blg
-*.out
-*.toc
-*.synctex.gz
-*.fls
-*.fdb_latexmk
+# The submitted paper is published whole: source, receipt exports, generated
+# macros, figures, and the PDF itself.
+paper/*
+!paper/latex/
+!paper/latex/data/
+!paper/latex/**
+paper/latex/**/*.aux
+paper/latex/**/*.bbl
+paper/latex/**/*.blg
+paper/latex/**/*.fdb_latexmk
+paper/latex/**/*.fls
+paper/latex/**/*.log
+paper/latex/**/*.out
+paper/latex/**/*.synctex.gz
+paper/latex/**/__pycache__/
+
+# Plot-ready evidence packet, plus the inputs its generator reads.
+results/*
+!results/evidence-packet.json
+!results/evidence-packet.md
+!results/benchmark-task-domains.json
+!results/domain-arm-analysis.json
+!results/paper-facts.json
+!results/complete-30-task-2x2-matrix.json
+!results/deepseek-2x2-matched-evaluation.json

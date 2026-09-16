@@ -12,26 +12,29 @@ Static extraction of computation graphs, conditions, and library boundaries from
 
 ## What it does
 
-CBE traces the public reproducer, extracts expressions, conditions, definitions, and call boundaries with Tree-sitter and Joern, and exposes three query endpoints (`find`, `inspect`, `note`) alongside the agent's normal shell tools. No model calls during preparation. Median extraction: 73 s of an 1800 s budget.
+CBE traces the public reproducer, extracts expressions, conditions, definitions, and call boundaries with Tree-sitter and Joern, and exposes three query endpoints (`find`, `inspect`, `note`) alongside the agent's normal shell tools. No model calls during preparation. Median extraction: 70 s of an 1800 s budget.
 
 The baseline gets the same model, budget, tools, and containers — minus the evidence store.
 
 ---
 
-## Results (89 locked tasks, k=3, 522 verified attempts)
+## Results (89 locked tasks, k=3, 534 verified attempts)
 
-Both arms solve 60 attempts (22.9% vs. 23.1%). The confidence interval spans zero: paired bootstrap Δ = +0.75 pp, 95% CI [−3.4, +4.9] pp.
+Baseline solves 60 attempts (22.5%), CBE solves 63 (23.6%). The confidence interval spans zero: paired bootstrap Δ = +1.12 pp, 95% CI [−2.6, +4.9] pp. CBE is ahead on 8 tasks and behind on 7; 74 tie.
 
 Discipline-level outcomes diverge:
 - Mechanics +22.2 pp (task 103, pyNastran: CBE exposes ply iteration + matrix accumulation)
-- Materials +9.7 pp, Astronomy +12.4 pp
+- Astronomy +13.3 pp, Materials +8.9 pp, Atmospheric science +6.7 pp, Civil engineering +6.7 pp, Chemistry +1.8 pp
 - Biomedical engineering −16.7 pp (task 022, nilearn: agent reads projection maths instead of preserving the atlas-label interface)
-- Biology −9.5 pp
-- Chemistry, physics, mathematics: 0.0 pp across 31 tasks
+- Biology −5.6 pp, and −33.3 pp on each of two singleton disciplines
 
-CBE uses 13.7% fewer output tokens (10.36M vs. 12.01M), 4.8% more input tokens, and 70 s more work time per attempt.
+Eight disciplines show no change, including physics (7 tasks) and mathematics (5).
+
+CBE uses 5.6% fewer output tokens (12.81M vs. 13.56M), 18.3% more input tokens, and 68 s more work time per attempt.
 
 About a fifth of tasks flip outcome between identical runs.
+
+Per-task outcomes for all 89 tasks are in [`paper/latex/data/`](paper/latex/data) (`attempts.csv`, `full_verdicts.json`, `split.json`), with the plot-ready aggregate in [`results/evidence-packet.json`](results/evidence-packet.json).
 
 ---
 
@@ -103,4 +106,10 @@ Frozen split in `configs/interactive-science.split.json`. Official SWE-bench Sci
 
 ## AI disclosure
 
-Rajarshi Ghoshal designed and directed the study. Oh My Pi and ChatGPT assisted with harness code, tests, figures, and prose. DeepSeek V4.1 Flash was the sole repair model. All trajectories, diffs, and verifier receipts are preserved.
+Rajarshi Ghoshal formulated the research question, designed the method and evaluation protocol, and owns every claim in the report.
+
+Oh My Pi implemented the extraction pipeline, the query tools, the agent harness, and the tests, and edited the report. ChatGPT (GPT-6 Astra Pro) assembled the analysis exports and plotting scripts, checked bibliographic records against primary sources, and compiled the PDF. Earlier development sessions used Codex (GPT-6 Astra) and GLM-5.3 before the current harness replaced them.
+
+DeepSeek V4.1 Flash was the only repair model evaluated. It also served as a read-only reviewer of source identity, evidence selection, and run isolation; those reviews are advisory, not correctness oracles. The official SWE-bench Science verifier decides every reported outcome, and no LLM judge was used.
+
+Source preparation makes no model calls. All 534 attempts, patches, trajectories, and verifier receipts are preserved in `paper/latex/data/`.

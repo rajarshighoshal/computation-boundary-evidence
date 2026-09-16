@@ -1,0 +1,38 @@
+diff --git a/source/pyNastran/bdf/cards/properties/shell.py b/source/pyNastran/bdf/cards/properties/shell.py
+index ddcdc9e..12af121 100644
+--- a/source/pyNastran/bdf/cards/properties/shell.py
++++ b/source/pyNastran/bdf/cards/properties/shell.py
+@@ -976,7 +976,7 @@ class PCOMP(CompositeShellProperty):
+         mids = self.get_material_ids()
+         thicknesses = self.get_thicknesses()
+         thetad = self.get_thetas()
+-        theta = np.radians(thetad)
++        theta = np.radians(thetad + theta_offset)
+ 
+         csum = np.cumsum(thicknesses)
+         z0 = self.z0 + np.hstack([0., csum[:-1]])
+@@ -994,9 +994,21 @@ class PCOMP(CompositeShellProperty):
+         D = np.zeros((3, 3), dtype='float64')
+         #Q = np.zeros((3, 3), dtype='float64')
+ 
+-        mids_ref = self.mids_ref
+-        for mid, mid_ref, thetai, thickness, zmean, z0i, z1i in zip(mids, mids_ref, theta,
+-                                                                    thicknesses, zmeans, z0, z1):
++        # get_material_ids()/get_thicknesses()/get_thetas() expand a
++        # symmetric laminate (Lam=SYM) to the full ply stack (e.g. 3 -> 6
++        # plies).  The cross-referenced materials only contain the plies
++        # explicitly written on the card, so they must be expanded in the
++        # same mirrored order before pairing them with the ply data.
++        # Otherwise ``zip`` quietly truncates the stacking sequence.
++        if self.mids_ref is None:
++            mids_ref = self.mids_ref
++        else:
++            mids_ref = [
++                self.mids_ref[self._adjust_ply_id(iply)]
++                for iply in range(self.nplies)
++            ]
++        for mid_ref, thetai, thickness, zmean, z0i, z1i in zip(
++                mids_ref, theta, thicknesses, zmeans, z0, z1):
+             Qbar = self.get_Qbar_matrix(mid_ref, thetai)
+             A += Qbar * thickness
+             B += Qbar * thickness * zmean

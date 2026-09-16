@@ -1,0 +1,28 @@
+% Editable vector schematic. Summarizes recorded task-103 fields; not a raw payload.
+% Source locations and original records are documented in data/method_example.json.
+\begin{tikzpicture}[x=1mm,y=1mm,
+  every node/.style={font=\fontsize{8.3}{10}\selectfont},
+  flow/.style={draw=baselineblue!70,fill=baselineblue!4,rounded corners=1mm,align=center,minimum height=11mm,inner sep=2mm},
+  arrow/.style={-{Stealth[length=1.6mm]},draw=baselineblue,line width=.65pt}]
+\useasboundingbox (0,0) rectangle (160,53);
+\node[flow,text width=43mm] (a) at (23.5,46) {\textbf{Observe public workflow}\\\texttt{reproduce.py} + repository source};
+\node[flow,text width=43mm] (b) at (80,46) {\textbf{Build evidence store}\\Trace + parsers; no LLM calls};
+\node[flow,text width=43mm] (c) at (136.5,46) {\textbf{Query during repair}\\\texttt{find / inspect / note} + shell};
+\draw[arrow] (a.east)--(b.west);\draw[arrow] (b.east)--(c.west);
+\draw[draw=cbeteal!70,fill=cbeteal!3,rounded corners=1mm] (0,1) rectangle (77,36);
+\draw[draw=cbeteal!70,fill=cbeteal!3,rounded corners=1mm] (83,1) rectangle (160,36);
+\node[anchor=north west,font=\fontsize{9}{10.5}\selectfont\bfseries] at (2,34.5) {Source-linked computation};
+\node[anchor=north west,align=left,font=\fontsize{8}{9.6}\selectfont\ttfamily] at (2,29) {shell.py / PCOMP.get\_ABD\_matrices\\
+979\quad theta = np.radians(thetad)\\
+987\quad assert len(z0) == len(z1)\\
+1003\quad D += Qbar * thickness *\\
+\phantom{1003\quad D += }(z1i ** 3 - z0i ** 3)\\
+1015\quad return ABD};
+\node[anchor=north west,font=\fontsize{9}{10.5}\selectfont\bfseries] at (85,34.5) {Recorded boundary fields};
+\node[anchor=north west,align=left,font=\fontsize{8}{9.6}\selectfont\ttfamily] at (85,29) {callee: radians\quad line: 979\\
+code: np.radians(thetad)\\
+boundary.kind: external\\
+boundary.provider: numpy\\
+boundary.assume: correct\_interface\\
+boundary.repair\_scope: caller\_file};
+\end{tikzpicture}

@@ -1,0 +1,43 @@
+{
+  "runs": [
+    "deepseek-locked89-k1-v2",
+    "deepseek-locked89-k2-v2",
+    "deepseek-locked89-k3-clean-v1"
+  ],
+  "python_source_hashes": {
+    "source_backends.py": "37ffd25266b90d24f6a21bc120b7cc61bcb2cc05a7659476eb2f5157601db9dd",
+    "fingerprint.py": "61745cf4e9106b26ab73e63540590d1878ca20a9ba71b63ba9bcf2b233b0ec0a",
+    "assets.py": "b4ecb02c886154595101886785374aea4e06c29c018650e87a1271598d776db3",
+    "controller.py": "4f70e574e69ad592b172d7aaaa6db812c1d477e30a9c3f3592272d70cb9ed917",
+    "representation.py": "0c21defcc9dc05195c993934392a2a35fa1fa82ccfb6c43b22ed3fa19646620f",
+    "io.py": "5b7f5c5eb07b811d00285fee854c2e8a3b6e9578b95499f1d6b6fd95f6d39ccf",
+    "task_slice.py": "1c4277e02618594333e3f979c522390e97d83f9340707c3cab1cccca2eecfe0c",
+    "cython_frontend.py": "e8d3188a4d352fc39439ef831a0171b5503e456987e9696f9ab781071db51e19",
+    "scientific_model.py": "9d9007e6aab7da06356d76692ac6c463161fb635bd0a3e59cd03146cc7da30f7",
+    "configuration.py": "42aec6f7932572a2cfaeebe07b8f8438bc583450cc6fc1225d059bde4a6d6848",
+    "workflow_retrieval.py": "0870393c10a452856a1cccb6883299b5b2a3072dc62ca512fc4342479b49ff47",
+    "scientific_graph.py": "d9817d0d9752a576c32aae8880bbb952de251d1985d8ebf09f60a63946260b16",
+    "tool_cli.py": "6f7361f30d9755e6131ba917a9fc100465f5718f5c28f1831fab5d5acc6ba256",
+    "trace_runtime.py": "f610bd9b0e830fafd5a7084f556c02ceb0fe6b39abffaab368f0280271dc7752",
+    "evidence.py": "cc698ef6252024163c9bb849af303aeb342f77387ef04b4e7963f795c037852b",
+    "__init__.py": "0aba189477c461f271a3c65dec90fc54ff805cfac439bee79d9974423da193ae",
+    "scientific_objects.py": "f68f4c58516c0376dc851b143951ba488b77a63a3dd6ca28e6c186a98bfdea3f",
+    "packet.py": "fdc571d5bb897d0e713e01f635f73df831a7c8ecfe14df18d1f9be39d7e062ff",
+    "language_frontends.py": "f465b8e1c919f261aee4ab8a3b3bd8adcb4696d82e62eaf72c141d5464e62dde",
+    "science_tools.py": "33f6dc709b95be8c537add62224ba9545ad15ea6ce94217f0e33873c8fc09396",
+    "cli.py": "f179be3a138698aa88e165529c0a9055ac357b93b013ea80dbd4584af3890ce7",
+    "dynamic_binding.py": "7ced86864d12db4d2c555e8b4090550439e2dd0e62ba7783fdd2b7a51ee43732",
+    "proc_observer.py": "4c27d657f136092a450788b9ec490caa60514b3ccbf1501ff58966c3fc4984da",
+    "results.py": "96ba7ed0fe835e81edd9188c3c853d8e4f9f104a741e0caf5c35a4732d2d672a",
+    "pier_agent.py": "8d3ed19427f49c116710c7d266ec849a2b5d6dcabec131b93050f22fd1ff8287",
+    "object_context.py": "1f6dae7cb9a2d99e6cfabc85a2eba4c5b8c68e822167aa6364eeba02d4775ddb",
+    "expressions.py": "954d51c6f0c11cb0a37ce92d51e9e670721c300a34af6a98b9de3ab90faecf8c",
+    "release.py": "36b3a348069bdfb26e25dd420a73a371a0ac31dfaac3a2f245f7cbec673b19a8",
+    "sampling.py": "e664dfa09da1ac70ee25c4c8516aab94a0bc747e579502bdafa1bdcd3d9b2e9f",
+    "deepseek_agent.py": "01f35d6e601e54eac68c3fe2c1498a3ec001171155cd0be509f5a8bf39628f07",
+    "execution_seed.py": "7d0655dcb6b049217021a7468ee412a3dc6ecc2e1ab3de50038c020857f20ae8",
+    "native_objects.py": "0344ed80e2cffaad4bda3026f056d62be51bc890fd051945e50394f3c38f14e0",
+    "relations.py": "3dd06d35effa808230e79693eaa52fb1686691379d2e602b3a1ea52e538e1b98"
+  },
+  "identical_python_sources": true
+}

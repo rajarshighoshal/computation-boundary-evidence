@@ -1,0 +1,124 @@
+diff --git a/source/nilearn/surface/surface.py b/source/nilearn/surface/surface.py
+index 4fbbfae..38a068a 100644
+--- a/source/nilearn/surface/surface.py
++++ b/source/nilearn/surface/surface.py
+@@ -550,6 +550,89 @@ def _interpolation_sampling(
+     return texture
+ 
+ 
++def _is_label_image(images):
++    """Return True if the image holds discrete labels rather than intensities.
++
++    A volumetric product distributed with an anatomical lookup table encodes
++    each voxel with a finite, integer label (``0``, ``10``, ``20``, ...).
++    Such data must not be averaged across samples: the mean of several
++    distinct labels is generally not a valid label and cannot be associated
++    with any row of the accompanying table.
++
++    This helper is intentionally data driven (any integer-valued volume is
++    treated as a label map) so that the behaviour is not tied to a particular
++    volume, surface or lookup table.
++
++    """
++    finite = np.asarray(images)[np.isfinite(images)]
++    if finite.size == 0:
++        return False
++    return bool(np.all(finite == np.round(finite)))
++
++
++def _label_sampling(
++    images,
++    mesh,
++    affine,
++    kind="auto",
++    radius=3.0,
++    n_points=None,
++    mask=None,
++    inner_mesh=None,
++    depth=None,
++):
++    """Project a label image onto the mesh without averaging labels.
++
++    For each :term:`vertex`, the labels read at the surviving sample positions
++    are combined with a majority vote instead of an arithmetic mean. The
++    result is therefore always one of the labels actually present in the
++    image -- and hence a value the downstream anatomical lookup table can be
++    joined on. Vertices for which every sample is masked or outside the image
++    are assigned ``numpy.nan``, as with the other sampling strategies.
++
++    A 2-d array is returned, where each row corresponds to an image and each
++    column to a mesh vertex.
++    See documentation of vol_to_surf for details.
++
++    """
++    sample_locations = _sample_locations(
++        mesh,
++        affine,
++        kind=kind,
++        radius=radius,
++        n_points=n_points,
++        inner_mesh=inner_mesh,
++        depth=depth,
++    )
++    sample_locations = np.asarray(np.round(sample_locations), dtype=int)
++    n_vertices, n_points, _ = sample_locations.shape
++    masked = _masked_indices(
++        np.vstack(sample_locations), images[0].shape, mask=mask
++    ).reshape(n_vertices, n_points)
++    sample_indices = np.ravel_multi_index(
++        sample_locations.reshape(-1, 3).T, images[0].shape, mode="clip"
++    ).reshape(n_vertices, n_points)
++    texture = np.empty((len(images), n_vertices), dtype=float)
++    for index, img in enumerate(images):
++        values = np.asarray(img).ravel()[sample_indices].astype(float)
++        # discard samples outside of the image or of the mask
++        values[masked] = np.nan
++        texture[index] = _nanmajority(values)
++    return texture
++
++
++def _nanmajority(values):
++    """Majority vote over the last axis, ignoring non-finite entries."""
++    texture = np.full(values.shape[0], np.nan)
++    for vertex, row in enumerate(values):
++        row = row[np.isfinite(row)]
++        if row.size == 0:
++            continue
++        labels, counts = np.unique(row, return_counts=True)
++        texture[vertex] = labels[np.argmax(counts)]
++    return texture
++
++
+ def vol_to_surf(
+     img,
+     surf_mesh,
+@@ -709,6 +792,15 @@ def vol_to_surf(
+     interpolated values are averaged to produce the value associated to this
+     particular :term:`mesh` vertex.
+ 
++    An exception is made for an image whose values are all integers: such a
++    volume is treated as a label map (for example an anatomical atlas
++    distributed with a lookup table). Averaging several distinct labels would
++    produce a value that does not belong to any row of the table, so the
++    labels read at the sample positions are combined with a majority vote
++    instead. The projected value is then always one of the labels present in
++    the image. Continuous intensity volumes keep the averaging behaviour
++    described above.
++
+     Examples
+     --------
+     When both the pial and white matter surface are available, the recommended
+@@ -761,6 +853,13 @@ def vol_to_surf(
+     if inner_mesh is not None:
+         inner_mesh = load_surf_mesh(inner_mesh)
+     sampling = sampling_schemes[interpolation]
++    # A label volume distributed with an anatomical lookup table must keep its
++    # labels: averaging several distinct labels produces a value that cannot
++    # be joined to the table. Label maps are therefore projected with a
++    # majority vote, while continuous intensity volumes keep the documented
++    # (interpolated) averaging behaviour.
++    if _is_label_image(frames):
++        sampling = _label_sampling
+     texture = sampling(
+         frames,
+         mesh,

@@ -49,6 +49,28 @@ export DEEPSEEK_API_KEY="your-key"
 bash scripts/run_locked89_k3.sh
 ```
 
+## Reproduce the reported numbers
+
+Everything the paper reports recomputes from the exports committed under `paper/latex/data/`. No API key, no Docker, and no repair trial is involved.
+
+```bash
+uv run --no-sync python paper/latex/scripts/analyze_results.py
+uv run --no-sync python paper/latex/scripts/analyze_visual_results.py
+uv run --no-sync python paper/latex/scripts/make_figures.py
+cd paper/latex && pdflatex main.tex && bibtex main && pdflatex main.tex && pdflatex main.tex
+```
+
+`analyze_results.py` writes `paper/latex/generated/numbers.tex` (every macro the text quotes), `main_table.tex`, and `results.json`. `analyze_visual_results.py` writes the public/private gate counts and the exact-versus-partial table. `make_figures.py` redraws the discipline and trial figures.
+
+Rebuilding those exports from scratch needs the run tree (14 GB, not shipped):
+
+```bash
+uv run --no-sync python paper/latex/scripts/extract_records.py --repo .
+uv run --no-sync python paper/latex/scripts/extract_visual_records.py --repo .
+```
+
+`extract_records.py` reads each trial's `run.json`, `verifier/reward.json`, and `agent-host/repair-session.json`. Twelve attempt slots whose primary run produced no verifier verdict are filled from `runs/rerun-missing-k3-v1`; every row names the run that produced it in its `run` column. The run tree itself is reconstructed by `bash scripts/run_locked89_k3.sh` plus the gap-fill config `configs/rerun-missing-k3.json`.
+
 ## Task partition
 
 Defined in `configs/interactive-science.split.json`.

@@ -1,0 +1,7410 @@
+{
+  "scope": "89 locked evaluation tasks, three scheduled attempts per arm",
+  "resource_scope": "Tokens: recorded completed API calls (in-flight usage unknown). Work: available run records, preparation+repair stages, excluding retry backoff and verifier.",
+  "totals": {
+    "baseline": {
+      "scheduled": 267,
+      "verified": 267,
+      "solved": 60,
+      "completed_calls": 17065,
+      "session_count": 267,
+      "run_record_count": 267,
+      "input_tokens": 952395455,
+      "output_tokens": 13562361,
+      "old_stage_input": 842958177,
+      "old_stage_output": 12044307,
+      "stage_usage_unknown_attempts": 27,
+      "explicit_unknown_inflight_attempts": 10,
+      "mean_recorded_work_seconds": 1203.4589176420022,
+      "private_passed": 2341,
+      "private_collected": 3219,
+      "never_solved": 60,
+      "mixed_outcomes": 18,
+      "all_verified_solved": 11,
+      "success_histogram": {
+        "0": 60,
+        "1": 9,
+        "2": 9,
+        "3": 11
+      },
+      "solve_rate": 0.2247191011235955,
+      "successes_per_scheduled": 0.2247191011235955
+    },
+    "cbe": {
+      "scheduled": 267,
+      "verified": 267,
+      "solved": 63,
+      "completed_calls": 14750,
+      "session_count": 266,
+      "run_record_count": 267,
+      "input_tokens": 1126477091,
+      "output_tokens": 12809403,
+      "old_stage_input": 895875848,
+      "old_stage_output": 10475770,
+      "stage_usage_unknown_attempts": 38,
+      "explicit_unknown_inflight_attempts": 8,
+      "mean_recorded_work_seconds": 1271.3769025563713,
+      "private_passed": 2282,
+      "private_collected": 3219,
+      "never_solved": 59,
+      "mixed_outcomes": 19,
+      "all_verified_solved": 11,
+      "success_histogram": {
+        "0": 59,
+        "1": 8,
+        "2": 11,
+        "3": 11
+      },
+      "solve_rate": 0.23595505617977527,
+      "successes_per_scheduled": 0.23595505617977527,
+      "median_prepare_seconds": 69.63040854106657
+    }
+  },
+  "comparison": {
+    "n_tasks": 89,
+    "cbe_better": 8,
+    "baseline_better": 7,
+    "tied": 74,
+    "mean_task_delta_pp": 1.1235955056179774,
+    "bootstrap_95ci_pp": [
+      -2.6217228464419473,
+      4.868913857677902
+    ],
+    "bootstrap_draws": 20000,
+    "bootstrap_seed": 20260916,
+    "sign_test_p": 1.0,
+    "mixed_either": 25,
+    "never_both": 54
+  },
+  "tasks": {
+    "003": {
+      "domain": "Materials Science and Engineering",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 3,
+            "collected": 6,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 3,
+            "collected": 6,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 3,
+            "collected": 6,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.5
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 3,
+            "collected": 6,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 3,
+            "collected": 6,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 2,
+            "collected": 6,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.4444444444444444
+      },
+      "delta_pp": 0.0,
+      "repository": "dpdata",
+      "title": "Repair extxyz stress and virial tensor-label preservation",
+      "private_delta_pp": -5.555555555555555
+    },
+    "007": {
+      "domain": "Biomedical Engineering",
+      "baseline": {
+        "solved": 2,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.6666666666666666,
+        "mixed": true,
+        "repeats": [
+          0,
+          1,
+          1
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 4,
+            "collected": 6,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 6,
+            "collected": 6,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 1,
+            "passed": 6,
+            "collected": 6,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.8888888888888888
+      },
+      "cbe": {
+        "solved": 2,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.6666666666666666,
+        "mixed": true,
+        "repeats": [
+          0,
+          1,
+          1
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 5,
+            "collected": 6,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 6,
+            "collected": 6,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 1,
+            "passed": 6,
+            "collected": 6,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.9444444444444444
+      },
+      "delta_pp": 0.0,
+      "repository": "suspect",
+      "title": "Repair unstable spectral registration for drifted MRS transients",
+      "private_delta_pp": 5.555555555555555
+    },
+    "011": {
+      "domain": "Physics",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 3,
+            "collected": 5,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 3,
+            "collected": 5,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 3,
+            "collected": 5,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.6
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 3,
+            "collected": 5,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 3,
+            "collected": 5,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 3,
+            "collected": 5,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.6
+      },
+      "delta_pp": 0.0,
+      "repository": "DESC",
+      "title": "Complete the Missing Response Capability",
+      "private_delta_pp": 0.0
+    },
+    "012": {
+      "domain": "Physics",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 9,
+            "collected": 10,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 9,
+            "collected": 10,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 9,
+            "collected": 10,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.9
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 9,
+            "collected": 10,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 8,
+            "collected": 10,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 9,
+            "collected": 10,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.8666666666666667
+      },
+      "delta_pp": 0.0,
+      "repository": "DESC",
+      "title": "Complete 3-D Cross-n FOURIN Spectral Coupling",
+      "private_delta_pp": -3.3333333333333335
+    },
+    "013": {
+      "domain": "Physics",
+      "baseline": {
+        "solved": 3,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 1.0,
+        "mixed": false,
+        "repeats": [
+          1,
+          1,
+          1
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 5,
+            "collected": 5,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 5,
+            "collected": 5,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 1,
+            "passed": 5,
+            "collected": 5,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 1.0
+      },
+      "cbe": {
+        "solved": 3,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 1.0,
+        "mixed": false,
+        "repeats": [
+          1,
+          1,
+          1
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 5,
+            "collected": 5,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 5,
+            "collected": 5,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 1,
+            "passed": 5,
+            "collected": 5,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 1.0
+      },
+      "delta_pp": 0.0,
+      "repository": "DESC",
+      "title": "Establish boundary-regime operator and energy closure in the TERPSICHORE-native path",
+      "private_delta_pp": 0.0
+    },
+    "015": {
+      "domain": "Biomedical Engineering",
+      "baseline": {
+        "solved": 3,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 1.0,
+        "mixed": false,
+        "repeats": [
+          1,
+          1,
+          1
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 31,
+            "collected": 31,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 31,
+            "collected": 31,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 1,
+            "passed": 31,
+            "collected": 31,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 1.0
+      },
+      "cbe": {
+        "solved": 3,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 1.0,
+        "mixed": false,
+        "repeats": [
+          1,
+          1,
+          1
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 31,
+            "collected": 31,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 31,
+            "collected": 31,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 1,
+            "passed": 31,
+            "collected": 31,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 1.0
+      },
+      "delta_pp": 0.0,
+      "repository": "Spinach",
+      "title": "Restore thermal-equilibrium invariants in a Liouville-space relaxation workflow",
+      "private_delta_pp": 0.0
+    },
+    "017": {
+      "domain": "Astronomy",
+      "baseline": {
+        "solved": 2,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.6666666666666666,
+        "mixed": true,
+        "repeats": [
+          1,
+          0,
+          1
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 12,
+            "collected": 12,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 10,
+            "collected": 12,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 1,
+            "passed": 12,
+            "collected": 12,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.9444444444444444
+      },
+      "cbe": {
+        "solved": 2,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.6666666666666666,
+        "mixed": true,
+        "repeats": [
+          1,
+          0,
+          1
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 12,
+            "collected": 12,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 10,
+            "collected": 12,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 1,
+            "passed": 12,
+            "collected": 12,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.9444444444444444
+      },
+      "delta_pp": 0.0,
+      "repository": "gammapy",
+      "title": "Repair dark-matter line-of-sight maps in Gammapy",
+      "private_delta_pp": 0.0
+    },
+    "018": {
+      "domain": "Biology",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 5,
+            "collected": 5,
+            "public": false
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 5,
+            "collected": 5,
+            "public": false
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 5,
+            "collected": 5,
+            "public": false
+          }
+        ],
+        "mean_private_fraction": 1.0
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 0,
+            "collected": 5,
+            "public": false
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 0,
+            "collected": 5,
+            "public": false
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 0,
+            "collected": 5,
+            "public": false
+          }
+        ],
+        "mean_private_fraction": 0.0
+      },
+      "delta_pp": 0.0,
+      "repository": "MACS",
+      "title": "Restore blacklist semantics in an HMMRATAC chromatin-accessibility workflow",
+      "private_delta_pp": -100.0
+    },
+    "020": {
+      "domain": "Materials Science and Engineering",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 10,
+            "collected": 12,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 10,
+            "collected": 12,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 11,
+            "collected": 12,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.8611111111111112
+      },
+      "cbe": {
+        "solved": 1,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.3333333333333333,
+        "mixed": true,
+        "repeats": [
+          0,
+          1,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 10,
+            "collected": 12,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 12,
+            "collected": 12,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 10,
+            "collected": 12,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.8888888888888888
+      },
+      "delta_pp": 33.33333333333333,
+      "repository": "deepmd-kit",
+      "title": "Complete an edge-graph geometry and force/virial capability for atomistic models",
+      "private_delta_pp": 2.7777777777777777
+    },
+    "021": {
+      "domain": "Chemistry",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 5,
+            "collected": 15,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 13,
+            "collected": 15,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 9,
+            "collected": 15,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.6
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 10,
+            "collected": 15,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 7,
+            "collected": 15,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 10,
+            "collected": 15,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.6
+      },
+      "delta_pp": 0.0,
+      "repository": "dpti",
+      "title": "Complete a missing atomic-liquid thermodynamic-integration capability",
+      "private_delta_pp": 0.0
+    },
+    "022": {
+      "domain": "Biomedical Engineering",
+      "baseline": {
+        "solved": 2,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.6666666666666666,
+        "mixed": true,
+        "repeats": [
+          1,
+          1,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 12,
+            "collected": 12,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 12,
+            "collected": 12,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 10,
+            "collected": 12,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.9444444444444444
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 4,
+            "collected": 12,
+            "public": false
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 11,
+            "collected": 12,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 11,
+            "collected": 12,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.7222222222222222
+      },
+      "delta_pp": -66.66666666666666,
+      "repository": "nilearn",
+      "title": "Repair an inconsistent volume-to-surface projection",
+      "private_delta_pp": -22.22222222222222
+    },
+    "023": {
+      "domain": "Chemistry",
+      "baseline": {
+        "solved": 3,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 1.0,
+        "mixed": false,
+        "repeats": [
+          1,
+          1,
+          1
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 8,
+            "collected": 8,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 8,
+            "collected": 8,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 1,
+            "passed": 8,
+            "collected": 8,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 1.0
+      },
+      "cbe": {
+        "solved": 3,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 1.0,
+        "mixed": false,
+        "repeats": [
+          1,
+          1,
+          1
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 8,
+            "collected": 8,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 8,
+            "collected": 8,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 1,
+            "passed": 8,
+            "collected": 8,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 1.0
+      },
+      "delta_pp": 0.0,
+      "repository": "mdanalysis",
+      "title": "Restore continuous NPT periodic-boundary unwrapping",
+      "private_delta_pp": 0.0
+    },
+    "026": {
+      "domain": "Atmospheric Science",
+      "baseline": {
+        "solved": 1,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.3333333333333333,
+        "mixed": true,
+        "repeats": [
+          0,
+          1,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 8,
+            "collected": 9,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 9,
+            "collected": 9,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 8,
+            "collected": 9,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.9259259259259259
+      },
+      "cbe": {
+        "solved": 1,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.3333333333333333,
+        "mixed": true,
+        "repeats": [
+          0,
+          1,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 8,
+            "collected": 9,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 9,
+            "collected": 9,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 8,
+            "collected": 9,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.9259259259259259
+      },
+      "delta_pp": 0.0,
+      "repository": "MetPy",
+      "title": "Restore isentropic interpolation for terrain-following model data",
+      "private_delta_pp": 0.0
+    },
+    "029": {
+      "domain": "Biology",
+      "baseline": {
+        "solved": 1,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.3333333333333333,
+        "mixed": true,
+        "repeats": [
+          1,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 29,
+            "collected": 29,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 14,
+            "collected": 29,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 27,
+            "collected": 29,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.8045977011494253
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 14,
+            "collected": 29,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 14,
+            "collected": 29,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 14,
+            "collected": 29,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.4827586206896552
+      },
+      "delta_pp": -33.33333333333333,
+      "repository": "biopython",
+      "title": "Restore annotation equivalence after circular-record orientation normalization",
+      "private_delta_pp": -32.18390804597701
+    },
+    "030": {
+      "domain": "Materials Science and Engineering",
+      "baseline": {
+        "solved": 3,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 1.0,
+        "mixed": false,
+        "repeats": [
+          1,
+          1,
+          1
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 10,
+            "collected": 10,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 10,
+            "collected": 10,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 1,
+            "passed": 10,
+            "collected": 10,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 1.0
+      },
+      "cbe": {
+        "solved": 3,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 1.0,
+        "mixed": false,
+        "repeats": [
+          1,
+          1,
+          1
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 10,
+            "collected": 10,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 10,
+            "collected": 10,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 1,
+            "passed": 10,
+            "collected": 10,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 1.0
+      },
+      "delta_pp": 0.0,
+      "repository": "pymatgen",
+      "title": "Repair format-conformant SHELX/AIRSS .res export in a crystallographic IO workflow",
+      "private_delta_pp": 0.0
+    },
+    "031": {
+      "domain": "Biomedical Engineering",
+      "baseline": {
+        "solved": 3,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 1.0,
+        "mixed": false,
+        "repeats": [
+          1,
+          1,
+          1
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 41,
+            "collected": 41,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 41,
+            "collected": 41,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 1,
+            "passed": 41,
+            "collected": 41,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 1.0
+      },
+      "cbe": {
+        "solved": 3,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 1.0,
+        "mixed": false,
+        "repeats": [
+          1,
+          1,
+          1
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 41,
+            "collected": 41,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 41,
+            "collected": 41,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 1,
+            "passed": 41,
+            "collected": 41,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 1.0
+      },
+      "delta_pp": 0.0,
+      "repository": "mne-python",
+      "title": "Restore documented average-reference semantics for mixed-modality recordings",
+      "private_delta_pp": 0.0
+    },
+    "032": {
+      "domain": "Chemistry",
+      "baseline": {
+        "solved": 3,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 1.0,
+        "mixed": false,
+        "repeats": [
+          1,
+          1,
+          1
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 6,
+            "collected": 6,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 6,
+            "collected": 6,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 1,
+            "passed": 6,
+            "collected": 6,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 1.0
+      },
+      "cbe": {
+        "solved": 3,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 1.0,
+        "mixed": false,
+        "repeats": [
+          1,
+          1,
+          1
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 6,
+            "collected": 6,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 6,
+            "collected": 6,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 1,
+            "passed": 6,
+            "collected": 6,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 1.0
+      },
+      "delta_pp": 0.0,
+      "repository": "openmm",
+      "title": "Repair an inconsistent peptide energy after topology import",
+      "private_delta_pp": 0.0
+    },
+    "033": {
+      "domain": "Materials Science and Engineering",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 6,
+            "collected": 10,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 5,
+            "collected": 10,
+            "public": false
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 5,
+            "collected": 10,
+            "public": false
+          }
+        ],
+        "mean_private_fraction": 0.5333333333333333
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 5,
+            "collected": 10,
+            "public": false
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 6,
+            "collected": 10,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 6,
+            "collected": 10,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.5666666666666667
+      },
+      "delta_pp": 0.0,
+      "repository": "pyscf",
+      "title": "Repair inconsistent energies across equivalent periodic representations",
+      "private_delta_pp": 3.3333333333333335
+    },
+    "034": {
+      "domain": "Mathematics",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 1,
+            "collected": 8,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 1,
+            "collected": 8,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 1,
+            "collected": 8,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.125
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 1,
+            "collected": 8,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 1,
+            "collected": 8,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 1,
+            "collected": 8,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.125
+      },
+      "delta_pp": 0.0,
+      "repository": "diffrax",
+      "title": "Repair an inconsistent stochastic trajectory calculation",
+      "private_delta_pp": 0.0
+    },
+    "035": {
+      "domain": "Mathematics",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 8,
+            "collected": 14,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 8,
+            "collected": 14,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 8,
+            "collected": 14,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.5714285714285714
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 8,
+            "collected": 14,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 8,
+            "collected": 14,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 8,
+            "collected": 14,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.5714285714285714
+      },
+      "delta_pp": 0.0,
+      "repository": "scipy",
+      "title": "Repair an incomplete stiff-kinetics campaign",
+      "private_delta_pp": 0.0
+    },
+    "036": {
+      "domain": "Marine Science",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 6,
+            "collected": 9,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 8,
+            "collected": 9,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 8,
+            "collected": 9,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.8148148148148148
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 7,
+            "collected": 9,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 6,
+            "collected": 9,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 8,
+            "collected": 9,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.7777777777777778
+      },
+      "delta_pp": 0.0,
+      "repository": "Parcels",
+      "title": "Repair inconsistent sampling on a spherical curvilinear ocean grid",
+      "private_delta_pp": -3.7037037037037037
+    },
+    "037": {
+      "domain": "Biomedical Engineering",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 3,
+            "collected": 13,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 3,
+            "collected": 13,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 3,
+            "collected": 13,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.23076923076923078
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 3,
+            "collected": 13,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 3,
+            "collected": 13,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 3,
+            "collected": 13,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.23076923076923078
+      },
+      "delta_pp": 0.0,
+      "repository": "nibabel",
+      "title": "Repair an inconsistent multiframe MR reconstruction",
+      "private_delta_pp": 0.0
+    },
+    "038": {
+      "domain": "Materials Science and Engineering",
+      "baseline": {
+        "solved": 2,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.6666666666666666,
+        "mixed": true,
+        "repeats": [
+          1,
+          0,
+          1
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 15,
+            "collected": 15,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 4,
+            "collected": 15,
+            "public": false
+          },
+          {
+            "repeat": 3,
+            "reward": 1,
+            "passed": 15,
+            "collected": 15,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.7555555555555555
+      },
+      "cbe": {
+        "solved": 2,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.6666666666666666,
+        "mixed": true,
+        "repeats": [
+          1,
+          0,
+          1
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 15,
+            "collected": 15,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 4,
+            "collected": 15,
+            "public": false
+          },
+          {
+            "repeat": 3,
+            "reward": 1,
+            "passed": 15,
+            "collected": 15,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.7555555555555555
+      },
+      "delta_pp": 0.0,
+      "repository": "spglib",
+      "title": "Repair inconsistent crystal classification across equivalent representations",
+      "private_delta_pp": 0.0
+    },
+    "039": {
+      "domain": "Geography",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 4,
+            "collected": 11,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 4,
+            "collected": 11,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 4,
+            "collected": 11,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.36363636363636365
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 4,
+            "collected": 11,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 4,
+            "collected": 11,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 4,
+            "collected": 11,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.36363636363636365
+      },
+      "delta_pp": 0.0,
+      "repository": "landlab",
+      "title": "Repair a river-network sediment transport calculation",
+      "private_delta_pp": 0.0
+    },
+    "040": {
+      "domain": "Geophysics",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 0,
+            "collected": 3,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 0,
+            "collected": 3,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 0,
+            "collected": 3,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.0
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 0,
+            "collected": 3,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 0,
+            "collected": 3,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 0,
+            "collected": 3,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.0
+      },
+      "delta_pp": 0.0,
+      "repository": "simpeg",
+      "title": "Restore consistent magnetic-dipole electromagnetic predictions",
+      "private_delta_pp": 0.0
+    },
+    "041": {
+      "domain": "Geophysics",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 7,
+            "collected": 24,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 8,
+            "collected": 24,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 3,
+            "collected": 24,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.25
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 3,
+            "collected": 24,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 3,
+            "collected": 24,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 7,
+            "collected": 24,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.18055555555555555
+      },
+      "delta_pp": 0.0,
+      "repository": "sunpy",
+      "title": "Repair an inconsistent near-Earth vector conversion",
+      "private_delta_pp": -6.944444444444445
+    },
+    "042": {
+      "domain": "Astronomy",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 15,
+            "collected": 16,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 15,
+            "collected": 16,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 6,
+            "collected": 16,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.75
+      },
+      "cbe": {
+        "solved": 2,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.6666666666666666,
+        "mixed": true,
+        "repeats": [
+          1,
+          0,
+          1
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 16,
+            "collected": 16,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 7,
+            "collected": 16,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 1,
+            "passed": 16,
+            "collected": 16,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.8125
+      },
+      "delta_pp": 66.66666666666666,
+      "repository": "sunpy",
+      "title": "Repair an inconsistent solar-coordinate archive workflow",
+      "private_delta_pp": 6.25
+    },
+    "043": {
+      "domain": "Materials Science and Engineering",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 4,
+            "collected": 8,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 4,
+            "collected": 8,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 4,
+            "collected": 8,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.5
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 4,
+            "collected": 8,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 4,
+            "collected": 8,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 4,
+            "collected": 8,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.5
+      },
+      "delta_pp": 0.0,
+      "repository": "porespy",
+      "title": "Repair an inconsistent porous-volume characterization",
+      "private_delta_pp": 0.0
+    },
+    "044": {
+      "domain": "Chemistry",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 8,
+            "collected": 15,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 14,
+            "collected": 15,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 8,
+            "collected": 15,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.6666666666666666
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 8,
+            "collected": 15,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 8,
+            "collected": 15,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 8,
+            "collected": 15,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.5333333333333333
+      },
+      "delta_pp": 0.0,
+      "repository": "PyBaMM",
+      "title": "Repair inconsistent lithium-ion discharge predictions",
+      "private_delta_pp": -13.333333333333334
+    },
+    "046": {
+      "domain": "Astronomy",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 6,
+            "collected": 10,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 6,
+            "collected": 10,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 6,
+            "collected": 10,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.6
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 6,
+            "collected": 10,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 6,
+            "collected": 10,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 6,
+            "collected": 10,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.6
+      },
+      "delta_pp": 0.0,
+      "repository": "stingray",
+      "title": "Repair an inconsistent X-ray spectral-timing analysis",
+      "private_delta_pp": 0.0
+    },
+    "047": {
+      "domain": "Information and Communication Engineering",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 2,
+            "collected": 7,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 4,
+            "collected": 7,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 4,
+            "collected": 7,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.47619047619047616
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 1,
+            "collected": 7,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 1,
+            "collected": 7,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 1,
+            "collected": 7,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.14285714285714285
+      },
+      "delta_pp": 0.0,
+      "repository": "scikit-rf",
+      "title": "Repair an inconsistent broadband microwave composite",
+      "private_delta_pp": -33.333333333333336
+    },
+    "048": {
+      "domain": "Chemistry",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 5,
+            "collected": 13,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 12,
+            "collected": 13,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 5,
+            "collected": 13,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.5641025641025641
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 12,
+            "collected": 13,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 12,
+            "collected": 13,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 5,
+            "collected": 13,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.7435897435897436
+      },
+      "delta_pp": 0.0,
+      "repository": "pycalphad",
+      "title": "Repair an inconsistent alloy equilibrium assessment",
+      "private_delta_pp": 17.94871794871795
+    },
+    "049": {
+      "domain": "Mathematics",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 11,
+            "collected": 13,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 11,
+            "collected": 13,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 11,
+            "collected": 13,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.8461538461538461
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 11,
+            "collected": 13,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 11,
+            "collected": 13,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 11,
+            "collected": 13,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.8461538461538461
+      },
+      "delta_pp": 0.0,
+      "repository": "py-pde",
+      "title": "Restore consistent stochastic-field behavior on nonuniform grids",
+      "private_delta_pp": 0.0
+    },
+    "050": {
+      "domain": "Physics",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 9,
+            "collected": 11,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 9,
+            "collected": 11,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 9,
+            "collected": 11,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.8181818181818182
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 9,
+            "collected": 11,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 9,
+            "collected": 11,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 9,
+            "collected": 11,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.8181818181818182
+      },
+      "delta_pp": 0.0,
+      "repository": "quimb",
+      "title": "Repair an inconsistent tensor-network state calculation",
+      "private_delta_pp": 0.0
+    },
+    "052": {
+      "domain": "Materials Science and Engineering",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 11,
+            "collected": 16,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 8,
+            "collected": 16,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 12,
+            "collected": 16,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.6458333333333334
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 8,
+            "collected": 16,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 8,
+            "collected": 16,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 12,
+            "collected": 16,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.5833333333333334
+      },
+      "delta_pp": 0.0,
+      "repository": "fipy",
+      "title": "Restore a nonuniform finite-volume phase-field workflow",
+      "private_delta_pp": -6.25
+    },
+    "053": {
+      "domain": "Biomedical Engineering",
+      "baseline": {
+        "solved": 1,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.3333333333333333,
+        "mixed": true,
+        "repeats": [
+          0,
+          1,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 2,
+            "collected": 6,
+            "public": false
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 6,
+            "collected": 6,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 2,
+            "collected": 6,
+            "public": false
+          }
+        ],
+        "mean_private_fraction": 0.5555555555555556
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 5,
+            "collected": 6,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 5,
+            "collected": 6,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 2,
+            "collected": 6,
+            "public": false
+          }
+        ],
+        "mean_private_fraction": 0.6666666666666666
+      },
+      "delta_pp": -33.33333333333333,
+      "repository": "MONAI",
+      "title": "Repair a representation-dependent physical surface Dice workflow",
+      "private_delta_pp": 11.11111111111111
+    },
+    "054": {
+      "domain": "Chemistry",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 3,
+            "collected": 7,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 3,
+            "collected": 7,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 3,
+            "collected": 7,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.42857142857142855
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 3,
+            "collected": 7,
+            "public": false
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 2,
+            "collected": 7,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 3,
+            "collected": 7,
+            "public": false
+          }
+        ],
+        "mean_private_fraction": 0.38095238095238093
+      },
+      "delta_pp": 0.0,
+      "repository": "matchms",
+      "title": "Repair an inconsistent tandem-mass spectral similarity workflow",
+      "private_delta_pp": -4.761904761904762
+    },
+    "055": {
+      "domain": "Astronomy",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 10,
+            "collected": 18,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 10,
+            "collected": 18,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 10,
+            "collected": 18,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.5555555555555556
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 10,
+            "collected": 18,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 8,
+            "collected": 18,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 8,
+            "collected": 18,
+            "public": false
+          }
+        ],
+        "mean_private_fraction": 0.48148148148148145
+      },
+      "delta_pp": 0.0,
+      "repository": "specutils",
+      "title": "Restore a scientific template-comparison workflow",
+      "private_delta_pp": -7.407407407407407
+    },
+    "056": {
+      "domain": "Aeronautical and Astronautical Science and Technology",
+      "baseline": {
+        "solved": 3,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 1.0,
+        "mixed": false,
+        "repeats": [
+          1,
+          1,
+          1
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 10,
+            "collected": 10,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 10,
+            "collected": 10,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 1,
+            "passed": 10,
+            "collected": 10,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 1.0
+      },
+      "cbe": {
+        "solved": 2,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.6666666666666666,
+        "mixed": true,
+        "repeats": [
+          1,
+          1,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 10,
+            "collected": 10,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 10,
+            "collected": 10,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 1,
+            "collected": 10,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.7
+      },
+      "delta_pp": -33.333333333333336,
+      "repository": "poliastro",
+      "title": "Repair a physically inconsistent orbital history export",
+      "private_delta_pp": -30.0
+    },
+    "057": {
+      "domain": "Chemistry",
+      "baseline": {
+        "solved": 2,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.6666666666666666,
+        "mixed": true,
+        "repeats": [
+          1,
+          1,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 11,
+            "collected": 11,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 11,
+            "collected": 11,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 8,
+            "collected": 11,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.9090909090909091
+      },
+      "cbe": {
+        "solved": 2,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.6666666666666666,
+        "mixed": true,
+        "repeats": [
+          1,
+          1,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 11,
+            "collected": 11,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 11,
+            "collected": 11,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 8,
+            "collected": 11,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.9090909090909091
+      },
+      "delta_pp": 0.0,
+      "repository": "mdtraj",
+      "title": "Investigate a periodic trajectory-processing anomaly",
+      "private_delta_pp": 0.0
+    },
+    "059": {
+      "domain": "Computer Science and Technology",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 4,
+            "collected": 9,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 2,
+            "collected": 9,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 7,
+            "collected": 9,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.48148148148148145
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 7,
+            "collected": 9,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 2,
+            "collected": 9,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 2,
+            "collected": 9,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.4074074074074074
+      },
+      "delta_pp": 0.0,
+      "repository": "scikit-image",
+      "title": "Restore physical consistency in calibrated cell morphometry",
+      "private_delta_pp": -7.407407407407407
+    },
+    "060": {
+      "domain": "Biomedical Engineering",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 4,
+            "collected": 11,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 4,
+            "collected": 11,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 4,
+            "collected": 11,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.36363636363636365
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 4,
+            "collected": 11,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 4,
+            "collected": 11,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 4,
+            "collected": 11,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.36363636363636365
+      },
+      "delta_pp": 0.0,
+      "repository": "spikeinterface",
+      "title": "Restore a complete cross-band drift-correction recording",
+      "private_delta_pp": 0.0
+    },
+    "062": {
+      "domain": "Materials Science and Engineering",
+      "baseline": {
+        "solved": 2,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.6666666666666666,
+        "mixed": true,
+        "repeats": [
+          1,
+          1,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 17,
+            "collected": 17,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 17,
+            "collected": 17,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 11,
+            "collected": 17,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.8823529411764706
+      },
+      "cbe": {
+        "solved": 2,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.6666666666666666,
+        "mixed": true,
+        "repeats": [
+          1,
+          1,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 17,
+            "collected": 17,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 17,
+            "collected": 17,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 11,
+            "collected": 17,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.8823529411764706
+      },
+      "delta_pp": 0.0,
+      "repository": "atomate2",
+      "title": "Repair an inconsistent archived elasticity workflow",
+      "private_delta_pp": 0.0
+    },
+    "063": {
+      "domain": "Biology",
+      "baseline": {
+        "solved": 1,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.3333333333333333,
+        "mixed": true,
+        "repeats": [
+          0,
+          1,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 9,
+            "collected": 18,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 18,
+            "collected": 18,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 7,
+            "collected": 18,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.6296296296296297
+      },
+      "cbe": {
+        "solved": 1,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.3333333333333333,
+        "mixed": true,
+        "repeats": [
+          0,
+          0,
+          1
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 7,
+            "collected": 18,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 9,
+            "collected": 18,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 1,
+            "passed": 18,
+            "collected": 18,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.6296296296296297
+      },
+      "delta_pp": 0.0,
+      "repository": "tskit",
+      "title": "Repair inconsistent population-history estimates after archive curation",
+      "private_delta_pp": 0.0
+    },
+    "064": {
+      "domain": "Chemistry",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 2,
+            "collected": 8,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 4,
+            "collected": 8,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 2,
+            "collected": 8,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.3333333333333333
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 2,
+            "collected": 8,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 4,
+            "collected": 8,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 2,
+            "collected": 8,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.3333333333333333
+      },
+      "delta_pp": 0.0,
+      "repository": "cclib",
+      "title": "Repair inconsistent molecular-energy interpretation in a quantum-chemistry log parser",
+      "private_delta_pp": 0.0
+    },
+    "065": {
+      "domain": "Astronomy",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 6,
+            "collected": 7,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 6,
+            "collected": 7,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 3,
+            "collected": 7,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.7142857142857143
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 3,
+            "collected": 7,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 6,
+            "collected": 7,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 3,
+            "collected": 7,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.5714285714285714
+      },
+      "delta_pp": 0.0,
+      "repository": "yt",
+      "title": "Repair inconsistent particle-field visualization results",
+      "private_delta_pp": -14.285714285714286
+    },
+    "066": {
+      "domain": "Atmospheric Science",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 4,
+            "collected": 6,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 5,
+            "collected": 6,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 1,
+            "collected": 6,
+            "public": false
+          }
+        ],
+        "mean_private_fraction": 0.5555555555555556
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 5,
+            "collected": 6,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 5,
+            "collected": 6,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 1,
+            "collected": 6,
+            "public": false
+          }
+        ],
+        "mean_private_fraction": 0.6111111111111112
+      },
+      "delta_pp": 0.0,
+      "repository": "iris",
+      "title": "Restore regional climate-model validation consistency",
+      "private_delta_pp": 5.555555555555555
+    },
+    "067": {
+      "domain": "Atmospheric Science",
+      "baseline": {
+        "solved": 2,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.6666666666666666,
+        "mixed": true,
+        "repeats": [
+          1,
+          1,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 6,
+            "collected": 6,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 6,
+            "collected": 6,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 3,
+            "collected": 6,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.8333333333333334
+      },
+      "cbe": {
+        "solved": 3,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 1.0,
+        "mixed": false,
+        "repeats": [
+          1,
+          1,
+          1
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 6,
+            "collected": 6,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 6,
+            "collected": 6,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 1,
+            "passed": 6,
+            "collected": 6,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 1.0
+      },
+      "delta_pp": 33.333333333333336,
+      "repository": "xclim",
+      "title": "Repair a seasonal fire-weather state transition",
+      "private_delta_pp": 16.666666666666668
+    },
+    "068": {
+      "domain": "Biology",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 0,
+            "collected": 3,
+            "public": false
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 0,
+            "collected": 3,
+            "public": false
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 0,
+            "collected": 3,
+            "public": false
+          }
+        ],
+        "mean_private_fraction": 0.0
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 0,
+            "collected": 3,
+            "public": false
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 0,
+            "collected": 3,
+            "public": false
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 0,
+            "collected": 3,
+            "public": false
+          }
+        ],
+        "mean_private_fraction": 0.0
+      },
+      "delta_pp": 0.0,
+      "repository": "htslib",
+      "title": "Restore biologically consistent retrieval from a VCF archive",
+      "private_delta_pp": 0.0
+    },
+    "069": {
+      "domain": "Biology",
+      "baseline": {
+        "solved": 2,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.6666666666666666,
+        "mixed": true,
+        "repeats": [
+          1,
+          1,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 4,
+            "collected": 4,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 4,
+            "collected": 4,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 1,
+            "collected": 4,
+            "public": false
+          }
+        ],
+        "mean_private_fraction": 0.75
+      },
+      "cbe": {
+        "solved": 2,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.6666666666666666,
+        "mixed": true,
+        "repeats": [
+          1,
+          1,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 4,
+            "collected": 4,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 4,
+            "collected": 4,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 1,
+            "collected": 4,
+            "public": false
+          }
+        ],
+        "mean_private_fraction": 0.75
+      },
+      "delta_pp": 0.0,
+      "repository": "cooltools",
+      "title": "Restore a complete Hi-C contact-decay analysis",
+      "private_delta_pp": 0.0
+    },
+    "071": {
+      "domain": "Physics",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 1,
+            "collected": 5,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 2,
+            "collected": 5,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 2,
+            "collected": 5,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.3333333333333333
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 2,
+            "collected": 5,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 2,
+            "collected": 5,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 2,
+            "collected": 5,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.4
+      },
+      "delta_pp": 0.0,
+      "repository": "pyFAI",
+      "title": "Repair an orientation-sensitive fiber-scattering reduction",
+      "private_delta_pp": 6.666666666666667
+    },
+    "072": {
+      "domain": "Biomedical Engineering",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 5,
+            "collected": 7,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 4,
+            "collected": 7,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 0,
+            "collected": 7,
+            "public": false
+          }
+        ],
+        "mean_private_fraction": 0.42857142857142855
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 4,
+            "collected": 7,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 4,
+            "collected": 7,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 0,
+            "collected": 7,
+            "public": false
+          }
+        ],
+        "mean_private_fraction": 0.38095238095238093
+      },
+      "delta_pp": 0.0,
+      "repository": "pydicom",
+      "title": "Repair an incomplete DICOM color image presentation workflow",
+      "private_delta_pp": -4.761904761904762
+    },
+    "074": {
+      "domain": "Materials Science and Engineering",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 9,
+            "collected": 10,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 9,
+            "collected": 10,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 2,
+            "collected": 10,
+            "public": false
+          }
+        ],
+        "mean_private_fraction": 0.6666666666666666
+      },
+      "cbe": {
+        "solved": 2,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.6666666666666666,
+        "mixed": true,
+        "repeats": [
+          1,
+          1,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 10,
+            "collected": 10,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 10,
+            "collected": 10,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 9,
+            "collected": 10,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.9666666666666667
+      },
+      "delta_pp": 66.66666666666666,
+      "repository": "DeePTB",
+      "title": "Repair an ill-conditioned overlap band-postprocessing workflow",
+      "private_delta_pp": 30.0
+    },
+    "075": {
+      "domain": "Materials Science and Engineering",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 1,
+            "collected": 8,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 1,
+            "collected": 8,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 1,
+            "collected": 8,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.125
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 1,
+            "collected": 8,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 1,
+            "collected": 8,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 1,
+            "collected": 8,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.125
+      },
+      "delta_pp": 0.0,
+      "repository": "deepmd-kit",
+      "title": "Restore consistent compressed Deep Potential tabulation",
+      "private_delta_pp": 0.0
+    },
+    "079": {
+      "domain": "Chemistry",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 13,
+            "collected": 14,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 13,
+            "collected": 14,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 13,
+            "collected": 14,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.9285714285714286
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 13,
+            "collected": 14,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 13,
+            "collected": 14,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 13,
+            "collected": 14,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.9285714285714286
+      },
+      "delta_pp": 0.0,
+      "repository": "selfies",
+      "title": "Repair molecular-string translation for catalogue workflows",
+      "private_delta_pp": 0.0
+    },
+    "081": {
+      "domain": "Biology",
+      "baseline": {
+        "solved": 3,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 1.0,
+        "mixed": false,
+        "repeats": [
+          1,
+          1,
+          1
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 5,
+            "collected": 5,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 5,
+            "collected": 5,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 1,
+            "passed": 5,
+            "collected": 5,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 1.0
+      },
+      "cbe": {
+        "solved": 3,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 1.0,
+        "mixed": false,
+        "repeats": [
+          1,
+          1,
+          1
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 5,
+            "collected": 5,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 5,
+            "collected": 5,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 1,
+            "passed": 5,
+            "collected": 5,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 1.0
+      },
+      "delta_pp": 0.0,
+      "repository": "anndata",
+      "title": "Repair local study workflow",
+      "private_delta_pp": 0.0
+    },
+    "082": {
+      "domain": "Materials Science and Engineering",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 1,
+            "collected": 7,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 1,
+            "collected": 7,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 1,
+            "collected": 7,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.14285714285714285
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 1,
+            "collected": 7,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 2,
+            "collected": 7,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 1,
+            "collected": 7,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.19047619047619047
+      },
+      "delta_pp": 0.0,
+      "repository": "dpgen",
+      "title": "Repair a workflow consistency bug",
+      "private_delta_pp": 4.761904761904762
+    },
+    "083": {
+      "domain": "Chemistry",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 1,
+            "collected": 3,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 1,
+            "collected": 3,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 1,
+            "collected": 3,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.3333333333333333
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 1,
+            "collected": 3,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 1,
+            "collected": 3,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 1,
+            "collected": 3,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.3333333333333333
+      },
+      "delta_pp": 0.0,
+      "repository": "reacnetgenerator",
+      "title": "Repair bond-order species reporting",
+      "private_delta_pp": 0.0
+    },
+    "084": {
+      "domain": "Materials Science and Engineering",
+      "baseline": {
+        "solved": 1,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.3333333333333333,
+        "mixed": true,
+        "repeats": [
+          0,
+          0,
+          1
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 5,
+            "collected": 7,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 5,
+            "collected": 7,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 1,
+            "passed": 7,
+            "collected": 7,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.8095238095238095
+      },
+      "cbe": {
+        "solved": 2,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.6666666666666666,
+        "mixed": true,
+        "repeats": [
+          1,
+          0,
+          1
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 7,
+            "collected": 7,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 5,
+            "collected": 7,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 1,
+            "passed": 7,
+            "collected": 7,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.9047619047619048
+      },
+      "delta_pp": 33.33333333333333,
+      "repository": "dpdata",
+      "title": "Repair ABACUS relaxation archive/reload semantics",
+      "private_delta_pp": 9.523809523809524
+    },
+    "085": {
+      "domain": "Chemistry",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 3,
+            "collected": 10,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 3,
+            "collected": 10,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 3,
+            "collected": 10,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.3
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 3,
+            "collected": 10,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 3,
+            "collected": 10,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 3,
+            "collected": 10,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.3
+      },
+      "delta_pp": 0.0,
+      "repository": "dftbplus",
+      "title": "Inconsistent archived observables",
+      "private_delta_pp": 0.0
+    },
+    "086": {
+      "domain": "Materials Science and Engineering",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 3,
+            "collected": 4,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 3,
+            "collected": 4,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 3,
+            "collected": 4,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.75
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 3,
+            "collected": 4,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 3,
+            "collected": 4,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 3,
+            "collected": 4,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.75
+      },
+      "delta_pp": 0.0,
+      "repository": "matgl",
+      "title": "Repair a silent MatGL fine-tuning incompatibility",
+      "private_delta_pp": 0.0
+    },
+    "087": {
+      "domain": "Biomedical Engineering",
+      "baseline": {
+        "solved": 1,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.3333333333333333,
+        "mixed": true,
+        "repeats": [
+          1,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 5,
+            "collected": 5,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 0,
+            "collected": 5,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 1,
+            "collected": 5,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.4
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 0,
+            "collected": 5,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 2,
+            "collected": 5,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 2,
+            "collected": 5,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.26666666666666666
+      },
+      "delta_pp": -33.33333333333333,
+      "repository": "dipy",
+      "title": "Repair a silent diffusion-MRI denoising inconsistency",
+      "private_delta_pp": -13.333333333333334
+    },
+    "088": {
+      "domain": "Atmospheric Science",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 3,
+            "collected": 5,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 3,
+            "collected": 5,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 3,
+            "collected": 5,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.6
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 3,
+            "collected": 5,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 3,
+            "collected": 5,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 3,
+            "collected": 5,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.6
+      },
+      "delta_pp": 0.0,
+      "repository": "xarray",
+      "title": "Repair a boundary aggregation failure",
+      "private_delta_pp": 0.0
+    },
+    "089": {
+      "domain": "Chemistry",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 3,
+            "collected": 4,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 3,
+            "collected": 4,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 3,
+            "collected": 4,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.75
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 3,
+            "collected": 4,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 3,
+            "collected": 4,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 3,
+            "collected": 4,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.75
+      },
+      "delta_pp": 0.0,
+      "repository": "cclib",
+      "title": "Repair inconsistent ORCA excited-state oscillator strengths",
+      "private_delta_pp": 0.0
+    },
+    "090": {
+      "domain": "Chemistry",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 5,
+            "collected": 6,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 3,
+            "collected": 6,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 3,
+            "collected": 6,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.6111111111111112
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 3,
+            "collected": 6,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 3,
+            "collected": 6,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 4,
+            "collected": 6,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.5555555555555556
+      },
+      "delta_pp": 0.0,
+      "repository": "nmrglue",
+      "title": "Restore multidimensional NMR acquisition grids",
+      "private_delta_pp": -5.555555555555555
+    },
+    "092": {
+      "domain": "Chemistry",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 8,
+            "collected": 9,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 8,
+            "collected": 9,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 8,
+            "collected": 9,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.8888888888888888
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 7,
+            "collected": 9,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 7,
+            "collected": 9,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 8,
+            "collected": 9,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.8148148148148148
+      },
+      "delta_pp": 0.0,
+      "repository": "chemprop",
+      "title": "Repair inconsistent Chemprop reaction observations",
+      "private_delta_pp": -7.407407407407407
+    },
+    "093": {
+      "domain": "Biomedical Engineering",
+      "baseline": {
+        "solved": 1,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.3333333333333333,
+        "mixed": true,
+        "repeats": [
+          1,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 4,
+            "collected": 4,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 2,
+            "collected": 4,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 2,
+            "collected": 4,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.6666666666666666
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 2,
+            "collected": 4,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 2,
+            "collected": 4,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 2,
+            "collected": 4,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.5
+      },
+      "delta_pp": -33.33333333333333,
+      "repository": "MONAI",
+      "title": "Repair a patient-space round trip in MONAI",
+      "private_delta_pp": -16.666666666666668
+    },
+    "094": {
+      "domain": "Physics",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 0,
+            "collected": 5,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 0,
+            "collected": 5,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 0,
+            "collected": 5,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.0
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 0,
+            "collected": 5,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 0,
+            "collected": 5,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 0,
+            "collected": 5,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.0
+      },
+      "delta_pp": 0.0,
+      "repository": "pymatgen",
+      "title": "Repair magnetic-space-group operations across archived settings",
+      "private_delta_pp": 0.0
+    },
+    "095": {
+      "domain": "Materials Science and Engineering",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 2,
+            "collected": 8,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 2,
+            "collected": 8,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 0,
+            "collected": 8,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.16666666666666666
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 0,
+            "collected": 8,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 4,
+            "collected": 8,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 0,
+            "collected": 8,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.16666666666666666
+      },
+      "delta_pp": 0.0,
+      "repository": "OpenPNM",
+      "title": "Repair a repeated porous-electrode transport workflow",
+      "private_delta_pp": 0.0
+    },
+    "096": {
+      "domain": "Atmospheric Science",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 5,
+            "collected": 8,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 5,
+            "collected": 8,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 5,
+            "collected": 8,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.625
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 5,
+            "collected": 8,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 5,
+            "collected": 8,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 5,
+            "collected": 8,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.625
+      },
+      "delta_pp": 0.0,
+      "repository": "climada_python",
+      "title": "Repair a wrapped tropical-cyclone hazard workflow",
+      "private_delta_pp": 0.0
+    },
+    "097": {
+      "domain": "Physics",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 0,
+            "collected": 7,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 0,
+            "collected": 7,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 0,
+            "collected": 7,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.0
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 0,
+            "collected": 7,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 0,
+            "collected": 7,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 0,
+            "collected": 7,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.0
+      },
+      "delta_pp": 0.0,
+      "repository": "deepmd-kit",
+      "title": "Repair spin-model consistency in DeePMD-kit",
+      "private_delta_pp": 0.0
+    },
+    "098": {
+      "domain": "Surveying and Mapping Science and Technology",
+      "baseline": {
+        "solved": 2,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.6666666666666666,
+        "mixed": true,
+        "repeats": [
+          1,
+          0,
+          1
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 11,
+            "collected": 11,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 8,
+            "collected": 11,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 1,
+            "passed": 11,
+            "collected": 11,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.9090909090909091
+      },
+      "cbe": {
+        "solved": 1,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.3333333333333333,
+        "mixed": true,
+        "repeats": [
+          0,
+          1,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 8,
+            "collected": 11,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 11,
+            "collected": 11,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 8,
+            "collected": 11,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.8181818181818182
+      },
+      "delta_pp": -33.33333333333333,
+      "repository": "satpy",
+      "title": "Repair inconsistent satellite parallax geolocation",
+      "private_delta_pp": -9.090909090909092
+    },
+    "100": {
+      "domain": "Chemistry",
+      "baseline": {
+        "solved": 1,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.3333333333333333,
+        "mixed": true,
+        "repeats": [
+          0,
+          0,
+          1
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 7,
+            "collected": 8,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 7,
+            "collected": 8,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 1,
+            "passed": 8,
+            "collected": 8,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.9166666666666666
+      },
+      "cbe": {
+        "solved": 1,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.3333333333333333,
+        "mixed": true,
+        "repeats": [
+          1,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 8,
+            "collected": 8,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 6,
+            "collected": 8,
+            "public": false
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 6,
+            "collected": 8,
+            "public": false
+          }
+        ],
+        "mean_private_fraction": 0.8333333333333334
+      },
+      "delta_pp": 0.0,
+      "repository": "autografs",
+      "title": "Repair calibrated framework embedding relaxation",
+      "private_delta_pp": -8.333333333333334
+    },
+    "101": {
+      "domain": "Chemistry",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 3,
+            "collected": 10,
+            "public": false
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 3,
+            "collected": 10,
+            "public": false
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 5,
+            "collected": 10,
+            "public": false
+          }
+        ],
+        "mean_private_fraction": 0.36666666666666664
+      },
+      "cbe": {
+        "solved": 1,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.3333333333333333,
+        "mixed": true,
+        "repeats": [
+          0,
+          1,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 3,
+            "collected": 10,
+            "public": false
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 10,
+            "collected": 10,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 3,
+            "collected": 10,
+            "public": false
+          }
+        ],
+        "mean_private_fraction": 0.5333333333333333
+      },
+      "delta_pp": 33.33333333333333,
+      "repository": "PyBaMM",
+      "title": "Repair an inconsistent battery-model reproduction",
+      "private_delta_pp": 16.666666666666668
+    },
+    "102": {
+      "domain": "Materials Science and Engineering",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 3,
+            "collected": 4,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 3,
+            "collected": 4,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 2,
+            "collected": 4,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.6666666666666666
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 3,
+            "collected": 4,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 3,
+            "collected": 4,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 3,
+            "collected": 4,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.75
+      },
+      "delta_pp": 0.0,
+      "repository": "polyply_1.0",
+      "title": "Repair an inconsistent polymer coordinate workflow",
+      "private_delta_pp": 8.333333333333334
+    },
+    "103": {
+      "domain": "Mechanics",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 2,
+            "collected": 4,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 2,
+            "collected": 4,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 2,
+            "collected": 4,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.5
+      },
+      "cbe": {
+        "solved": 2,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.6666666666666666,
+        "mixed": true,
+        "repeats": [
+          1,
+          1,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 4,
+            "collected": 4,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 4,
+            "collected": 4,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 2,
+            "collected": 4,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.8333333333333334
+      },
+      "delta_pp": 66.66666666666666,
+      "repository": "pyNastran",
+      "title": "Repair symmetric composite laminate ABD calculations",
+      "private_delta_pp": 33.333333333333336
+    },
+    "105": {
+      "domain": "Chemistry",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 2,
+            "collected": 4,
+            "public": false
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 2,
+            "collected": 4,
+            "public": false
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 2,
+            "collected": 4,
+            "public": false
+          }
+        ],
+        "mean_private_fraction": 0.5
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 2,
+            "collected": 4,
+            "public": false
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 2,
+            "collected": 4,
+            "public": false
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 2,
+            "collected": 4,
+            "public": false
+          }
+        ],
+        "mean_private_fraction": 0.5
+      },
+      "delta_pp": 0.0,
+      "repository": "rdkit",
+      "title": "Restore a stereo-preserving tautomer workflow",
+      "private_delta_pp": 0.0
+    },
+    "106": {
+      "domain": "Chemistry",
+      "baseline": {
+        "solved": 3,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 1.0,
+        "mixed": false,
+        "repeats": [
+          1,
+          1,
+          1
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 37,
+            "collected": 37,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 37,
+            "collected": 37,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 1,
+            "passed": 37,
+            "collected": 37,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 1.0
+      },
+      "cbe": {
+        "solved": 3,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 1.0,
+        "mixed": false,
+        "repeats": [
+          1,
+          1,
+          1
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 37,
+            "collected": 37,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 37,
+            "collected": 37,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 1,
+            "passed": 37,
+            "collected": 37,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 1.0
+      },
+      "delta_pp": 0.0,
+      "repository": "scikit-fingerprints",
+      "title": "Reproduce and extend a version-pinned MAP4/MAPC retrieval protocol",
+      "private_delta_pp": 0.0
+    },
+    "107": {
+      "domain": "Mathematics",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 0,
+            "collected": 3,
+            "public": false
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 2,
+            "collected": 3,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 2,
+            "collected": 3,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.4444444444444444
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 0,
+            "collected": 3,
+            "public": false
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 0,
+            "collected": 3,
+            "public": false
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 0,
+            "collected": 3,
+            "public": false
+          }
+        ],
+        "mean_private_fraction": 0.0
+      },
+      "delta_pp": 0.0,
+      "repository": "sympy",
+      "title": "Repair a public symbolic workflow",
+      "private_delta_pp": -44.44444444444444
+    },
+    "108": {
+      "domain": "Mathematics",
+      "baseline": {
+        "solved": 1,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.3333333333333333,
+        "mixed": true,
+        "repeats": [
+          1,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 23,
+            "collected": 23,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 18,
+            "collected": 23,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 22,
+            "collected": 23,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.9130434782608695
+      },
+      "cbe": {
+        "solved": 1,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.3333333333333333,
+        "mixed": true,
+        "repeats": [
+          1,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 23,
+            "collected": 23,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 22,
+            "collected": 23,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 21,
+            "collected": 23,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.9565217391304348
+      },
+      "delta_pp": 0.0,
+      "repository": "mpmath",
+      "title": "Restore stable Jacobi theta evaluations across difficult regimes",
+      "private_delta_pp": 4.3478260869565215
+    },
+    "109": {
+      "domain": "Mechanics",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 1,
+            "collected": 6,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 1,
+            "collected": 6,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 0,
+            "collected": 6,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.1111111111111111
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 1,
+            "collected": 6,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 0,
+            "collected": 6,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 1,
+            "collected": 6,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.1111111111111111
+      },
+      "delta_pp": 0.0,
+      "repository": "wrinkleFE",
+      "title": "Repair paired wrinkle FE analysis",
+      "private_delta_pp": 0.0
+    },
+    "110": {
+      "domain": "Civil Engineering",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 4,
+            "collected": 10,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 4,
+            "collected": 10,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 4,
+            "collected": 10,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.4
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 4,
+            "collected": 10,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 4,
+            "collected": 10,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 3,
+            "collected": 10,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.36666666666666664
+      },
+      "delta_pp": 0.0,
+      "repository": "section-properties",
+      "title": "Restore consistent cross-section analysis results",
+      "private_delta_pp": -3.3333333333333335
+    },
+    "111": {
+      "domain": "Mechanics",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 6,
+            "collected": 10,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 6,
+            "collected": 10,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 6,
+            "collected": 10,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.6
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 6,
+            "collected": 10,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 6,
+            "collected": 10,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 6,
+            "collected": 10,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.6
+      },
+      "delta_pp": 0.0,
+      "repository": "PyElastica",
+      "title": "Restore consistent tapered-filament free response",
+      "private_delta_pp": 0.0
+    },
+    "112": {
+      "domain": "Civil Engineering",
+      "baseline": {
+        "solved": 3,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 1.0,
+        "mixed": false,
+        "repeats": [
+          1,
+          1,
+          1
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 5,
+            "collected": 5,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 5,
+            "collected": 5,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 1,
+            "passed": 5,
+            "collected": 5,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 1.0
+      },
+      "cbe": {
+        "solved": 3,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 1.0,
+        "mixed": false,
+        "repeats": [
+          1,
+          1,
+          1
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 5,
+            "collected": 5,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 5,
+            "collected": 5,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 1,
+            "passed": 5,
+            "collected": 5,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 1.0
+      },
+      "delta_pp": 0.0,
+      "repository": "section-properties",
+      "title": "Repair an inconsistent hybrid-section plastic capacity workflow",
+      "private_delta_pp": 0.0
+    },
+    "113": {
+      "domain": "Electrical Engineering",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 7,
+            "collected": 13,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 9,
+            "collected": 13,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 7,
+            "collected": 13,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.5897435897435898
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 7,
+            "collected": 13,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 7,
+            "collected": 13,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 7,
+            "collected": 13,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.5384615384615384
+      },
+      "delta_pp": 0.0,
+      "repository": "pvlib-python",
+      "title": "Repair an inconsistent solar-resource workflow",
+      "private_delta_pp": -5.128205128205129
+    },
+    "115": {
+      "domain": "Civil Engineering",
+      "baseline": {
+        "solved": 3,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 1.0,
+        "mixed": false,
+        "repeats": [
+          1,
+          1,
+          1
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 97,
+            "collected": 97,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 97,
+            "collected": 97,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 1,
+            "passed": 97,
+            "collected": 97,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 1.0
+      },
+      "cbe": {
+        "solved": 3,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 1.0,
+        "mixed": false,
+        "repeats": [
+          1,
+          1,
+          1
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 1,
+            "passed": 97,
+            "collected": 97,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 97,
+            "collected": 97,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 1,
+            "passed": 97,
+            "collected": 97,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 1.0
+      },
+      "delta_pp": 0.0,
+      "repository": "Pynite",
+      "title": "Restore physically meaningful structural stability checks",
+      "private_delta_pp": 0.0
+    },
+    "116": {
+      "domain": "Civil Engineering",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 85,
+            "collected": 93,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 85,
+            "collected": 93,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 85,
+            "collected": 93,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.9139784946236559
+      },
+      "cbe": {
+        "solved": 1,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.3333333333333333,
+        "mixed": true,
+        "repeats": [
+          0,
+          1,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 85,
+            "collected": 93,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 1,
+            "passed": 93,
+            "collected": 93,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 85,
+            "collected": 93,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.942652329749104
+      },
+      "delta_pp": 33.33333333333333,
+      "repository": "Pynite",
+      "title": "Repair mode-dependent structural analysis observations",
+      "private_delta_pp": 2.867383512544803
+    },
+    "117": {
+      "domain": "Civil Engineering",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 2,
+            "collected": 6,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 3,
+            "collected": 6,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 2,
+            "collected": 6,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.3888888888888889
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 2,
+            "collected": 6,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 2,
+            "collected": 6,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 2,
+            "collected": 6,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.3333333333333333
+      },
+      "delta_pp": 0.0,
+      "repository": "Pynite",
+      "title": "Repair inconsistent lateral-frame member observations",
+      "private_delta_pp": -5.555555555555555
+    },
+    "118": {
+      "domain": "Chemistry",
+      "baseline": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 5,
+            "collected": 9,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 2,
+            "collected": 9,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 5,
+            "collected": 9,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.4444444444444444
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3,
+        "scheduled": 3,
+        "rate": 0.0,
+        "mixed": false,
+        "repeats": [
+          0,
+          0,
+          0
+        ],
+        "trials": [
+          {
+            "repeat": 1,
+            "reward": 0,
+            "passed": 5,
+            "collected": 9,
+            "public": true
+          },
+          {
+            "repeat": 2,
+            "reward": 0,
+            "passed": 5,
+            "collected": 9,
+            "public": true
+          },
+          {
+            "repeat": 3,
+            "reward": 0,
+            "passed": 5,
+            "collected": 9,
+            "public": true
+          }
+        ],
+        "mean_private_fraction": 0.5555555555555556
+      },
+      "delta_pp": 0.0,
+      "repository": "tblite",
+      "title": "Repair inconsistent periodic molecular energy representations",
+      "private_delta_pp": 11.11111111111111
+    }
+  },
+  "domains": [
+    {
+      "domain": "Aeronautical and Astronautical Science and Technology",
+      "n_tasks": 1,
+      "baseline": {
+        "solved": 3,
+        "verified": 3
+      },
+      "cbe": {
+        "solved": 2,
+        "verified": 3
+      },
+      "delta_pp": -33.333333333333336
+    },
+    {
+      "domain": "Astronomy",
+      "n_tasks": 5,
+      "baseline": {
+        "solved": 2,
+        "verified": 15
+      },
+      "cbe": {
+        "solved": 4,
+        "verified": 15
+      },
+      "delta_pp": 13.333333333333334
+    },
+    {
+      "domain": "Atmospheric Science",
+      "n_tasks": 5,
+      "baseline": {
+        "solved": 3,
+        "verified": 15
+      },
+      "cbe": {
+        "solved": 4,
+        "verified": 15
+      },
+      "delta_pp": 6.666666666666665
+    },
+    {
+      "domain": "Biology",
+      "n_tasks": 6,
+      "baseline": {
+        "solved": 7,
+        "verified": 18
+      },
+      "cbe": {
+        "solved": 6,
+        "verified": 18
+      },
+      "delta_pp": -5.555555555555558
+    },
+    {
+      "domain": "Biomedical Engineering",
+      "n_tasks": 10,
+      "baseline": {
+        "solved": 13,
+        "verified": 30
+      },
+      "cbe": {
+        "solved": 8,
+        "verified": 30
+      },
+      "delta_pp": -16.666666666666668
+    },
+    {
+      "domain": "Chemistry",
+      "n_tasks": 19,
+      "baseline": {
+        "solved": 12,
+        "verified": 57
+      },
+      "cbe": {
+        "solved": 13,
+        "verified": 57
+      },
+      "delta_pp": 1.7543859649122806
+    },
+    {
+      "domain": "Civil Engineering",
+      "n_tasks": 5,
+      "baseline": {
+        "solved": 6,
+        "verified": 15
+      },
+      "cbe": {
+        "solved": 7,
+        "verified": 15
+      },
+      "delta_pp": 6.666666666666665
+    },
+    {
+      "domain": "Computer Science and Technology",
+      "n_tasks": 1,
+      "baseline": {
+        "solved": 0,
+        "verified": 3
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3
+      },
+      "delta_pp": 0.0
+    },
+    {
+      "domain": "Electrical Engineering",
+      "n_tasks": 1,
+      "baseline": {
+        "solved": 0,
+        "verified": 3
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3
+      },
+      "delta_pp": 0.0
+    },
+    {
+      "domain": "Geography",
+      "n_tasks": 1,
+      "baseline": {
+        "solved": 0,
+        "verified": 3
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3
+      },
+      "delta_pp": 0.0
+    },
+    {
+      "domain": "Geophysics",
+      "n_tasks": 2,
+      "baseline": {
+        "solved": 0,
+        "verified": 6
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 6
+      },
+      "delta_pp": 0.0
+    },
+    {
+      "domain": "Information and Communication Engineering",
+      "n_tasks": 1,
+      "baseline": {
+        "solved": 0,
+        "verified": 3
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3
+      },
+      "delta_pp": 0.0
+    },
+    {
+      "domain": "Marine Science",
+      "n_tasks": 1,
+      "baseline": {
+        "solved": 0,
+        "verified": 3
+      },
+      "cbe": {
+        "solved": 0,
+        "verified": 3
+      },
+      "delta_pp": 0.0
+    },
+    {
+      "domain": "Materials Science and Engineering",
+      "n_tasks": 15,
+      "baseline": {
+        "solved": 8,
+        "verified": 45
+      },
+      "cbe": {
+        "solved": 12,
+        "verified": 45
+      },
+      "delta_pp": 8.888888888888888
+    },
+    {
+      "domain": "Mathematics",
+      "n_tasks": 5,
+      "baseline": {
+        "solved": 1,
+        "verified": 15
+      },
+      "cbe": {
+        "solved": 1,
+        "verified": 15
+      },
+      "delta_pp": 0.0
+    },
+    {
+      "domain": "Mechanics",
+      "n_tasks": 3,
+      "baseline": {
+        "solved": 0,
+        "verified": 9
+      },
+      "cbe": {
+        "solved": 2,
+        "verified": 9
+      },
+      "delta_pp": 22.22222222222222
+    },
+    {
+      "domain": "Physics",
+      "n_tasks": 7,
+      "baseline": {
+        "solved": 3,
+        "verified": 21
+      },
+      "cbe": {
+        "solved": 3,
+        "verified": 21
+      },
+      "delta_pp": 0.0
+    },
+    {
+      "domain": "Surveying and Mapping Science and Technology",
+      "n_tasks": 1,
+      "baseline": {
+        "solved": 2,
+        "verified": 3
+      },
+      "cbe": {
+        "solved": 1,
+        "verified": 3
+      },
+      "delta_pp": -33.33333333333333
+    }
+  ],
+  "sensitivity": {
+    "complete_tasks": {
+      "n_tasks": 89,
+      "baseline_solved": 60,
+      "cbe_solved": 63,
+      "attempts_per_arm": 267
+    }
+  },
+  "gates": {
+    "baseline": {
+      "verified": 267,
+      "public_pass": 245,
+      "private_pass": 63,
+      "exact": 60,
+      "both": 60,
+      "public_only": 185,
+      "private_only": 3,
+      "neither": 19
+    },
+    "cbe": {
+      "verified": 267,
+      "public_pass": 241,
+      "private_pass": 63,
+      "exact": 63,
+      "both": 63,
+      "public_only": 178,
+      "private_only": 0,
+      "neither": 26
+    }
+  },
+  "partial_analysis": {
+    "joint_counts": [
+      [
+        6,
+        0,
+        1
+      ],
+      [
+        20,
+        45,
+        9
+      ],
+      [
+        0,
+        0,
+        8
+      ]
+    ],
+    "row_order": [
+      "baseline higher",
+      "equal",
+      "CBE higher"
+    ],
+    "column_order": [
+      "baseline higher",
+      "equal",
+      "CBE higher"
+    ],
+    "exact_ties_private_different": 29,
+    "definition": "Per-task mean of private passed/collected across available verdicts; compare CBE minus baseline. No private-test counts are pooled across tasks for this view."
+  },
+  "plot_data_version": 2
+}

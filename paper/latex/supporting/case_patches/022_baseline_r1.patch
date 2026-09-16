@@ -1,0 +1,143 @@
+diff --git a/source/nilearn/surface/surface.py b/source/nilearn/surface/surface.py
+index 4fbbfae..503f602 100644
+--- a/source/nilearn/surface/surface.py
++++ b/source/nilearn/surface/surface.py
+@@ -13,7 +13,7 @@ import sklearn.cluster
+ import sklearn.preprocessing
+ from nibabel import freesurfer as fs
+ from nibabel import gifti, load, nifti1
+-from scipy import interpolate, sparse
++from scipy import interpolate, sparse, stats
+ from sklearn.exceptions import EfficiencyWarning
+ 
+ from nilearn import _utils
+@@ -550,6 +550,73 @@ def _interpolation_sampling(
+     return texture
+ 
+ 
++def _nearest_label_sampling(
++    images,
++    mesh,
++    affine,
++    kind="auto",
++    radius=3,
++    n_points=None,
++    mask=None,
++    inner_mesh=None,
++    depth=None,
++):
++    """In each image, measure the label at each node of the mesh.
++
++    Like :func:`_nearest_voxel_sampling`, the value measured at each sample
++    point is the intensity of the nearest voxel. The difference is the way the
++    samples associated with a mesh vertex are combined: instead of averaging
++    them, the value that is the most frequent among the samples (the mode) is
++    returned.
++
++    Averaging is the correct behaviour when the volume holds a continuous
++    quantity, but it is not meaningful for categorical data such as a
++    segmentation or an atlas distributed with an anatomical lookup table: an
++    average of several labels is generally not one of the labels, so it
++    cannot be associated with any row of the table used downstream.
++
++    A 2-d array is returned, where each row corresponds to an image and each
++    column to a mesh vertex. Vertices for which every sample falls outside of
++    the image, or outside of the mask if one is provided, are assigned
++    ``numpy.nan``.
++    See documentation of vol_to_surf for details.
++
++    """
++    sample_locations = _sample_locations(
++        mesh,
++        affine,
++        kind=kind,
++        radius=radius,
++        n_points=n_points,
++        inner_mesh=inner_mesh,
++        depth=depth,
++    )
++    n_vertices, n_points, _ = sample_locations.shape
++    sample_locations = np.asarray(np.round(sample_locations), dtype=int)
++    masked = _masked_indices(
++        np.vstack(sample_locations), images[0].shape, mask=mask
++    ).reshape((n_vertices, n_points))
++    image_shape = images[0].shape
++    coords = np.rollaxis(sample_locations, -1)
++    # Out of bounds samples are clipped so that they can be indexed without
++    # error; their values are then discarded through ``masked`` below.
++    coords = [
++        np.clip(coords[dim], 0, image_shape[dim] - 1) for dim in range(3)
++    ]
++    texture = np.empty((len(images), n_vertices))
++    with warnings.catch_warnings():
++        # ``stats.mode`` warns for vertices whose samples were all discarded;
++        # those vertices are legitimately assigned NaN.
++        warnings.simplefilter("ignore")
++        for index, img in enumerate(images):
++            values = np.asarray(img)[coords[0], coords[1], coords[2]]
++            values = values.astype(float)
++            values[masked] = np.nan
++            modes = stats.mode(values, axis=1, nan_policy="omit")
++            texture[index] = np.asarray(modes.mode).ravel()
++    return texture
++
++
+ def vol_to_surf(
+     img,
+     surf_mesh,
+@@ -582,13 +649,20 @@ def vol_to_surf(
+         The size (in mm) of the neighbourhood from which samples are drawn
+         around each node. Ignored if `inner_mesh` is provided.
+ 
+-    interpolation : {'linear', 'nearest'}, default='linear'
++    interpolation : {'linear', 'nearest', 'majority'}, default='linear'
+         How the image intensity is measured at a sample point.
+ 
+         - 'linear':
+             Use a trilinear interpolation of neighboring voxels.
+         - 'nearest':
+             Use the intensity of the nearest voxel.
++        - 'majority':
++            Use the intensity of the nearest voxel for each sample point and
++            then keep the value that is the most frequent among the samples
++            of a vertex, instead of averaging them. This is the appropriate
++            choice for a categorical volume (for example a segmentation or an
++            atlas distributed with an anatomical lookup table), because the
++            average of several labels is generally not one of the labels.
+ 
+         For one image, the speed difference is small, 'linear' takes about x1.5
+         more time. For many images, 'nearest' scales much better, up to x20
+@@ -697,7 +771,7 @@ def vol_to_surf(
+     this vertex will be ``numpy.nan``.
+ 
+     The 3d image then needs to be interpolated at each of the remaining points.
+-    Two options are available: 'nearest' selects the value of the nearest
++    Several options are available: 'nearest' selects the value of the nearest
+     voxel, and 'linear' performs trilinear interpolation of neighboring
+     voxels. 'linear' may give better results - for example, the projected
+     values are more stable when resampling the 3d image or applying affine
+@@ -707,7 +781,10 @@ def vol_to_surf(
+ 
+     Once the 3d image has been interpolated at each sample point, the
+     interpolated values are averaged to produce the value associated to this
+-    particular :term:`mesh` vertex.
++    particular :term:`mesh` vertex. For a categorical image (for example an
++    atlas distributed with an anatomical lookup table), this average is not
++    meaningful; use 'majority' instead, which keeps the most frequent of the
++    sample values so that the result stays a valid label.
+ 
+     Examples
+     --------
+@@ -733,6 +810,12 @@ def vol_to_surf(
+     sampling_schemes = {
+         "linear": _interpolation_sampling,
+         "nearest": _nearest_voxel_sampling,
++        # label-preserving alternatives for categorical volumes, such as an
++        # atlas distributed with an anatomical lookup table
++        "majority": _nearest_label_sampling,
++        "mode": _nearest_label_sampling,
++        "label": _nearest_label_sampling,
++        "nearest_label": _nearest_label_sampling,
+     }
+     if interpolation not in sampling_schemes:
+         raise ValueError(
