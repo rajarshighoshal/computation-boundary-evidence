@@ -1,0 +1,44 @@
+{
+  "kind": "swe-bench-science-paradigm-breakdown",
+  "generated_utc": "2026-09-16T02:30:00Z",
+  "benchmark_composition": {
+    "total_tasks": 119,
+    "paradigms": {
+      "Issue-Driven": {
+        "count": 52,
+        "percentage": "43.7%",
+        "definition": "Derived directly from historical GitHub issues/defects. Focuses on localized single-point bug repair under low distortion."
+      },
+      "Expert-Exploratory": {
+        "count": 49,
+        "percentage": "41.2%",
+        "definition": "Simulates open scientific exploration where root cause of a complex discrepancy or anomaly is unknown; requires domain knowledge reasoning."
+      },
+      "Engineering-Integration": {
+        "count": 18,
+        "percentage": "15.1%",
+        "definition": "Goes beyond single-point repair to connect multi-module capability chains, pipeline gaps, and system architecture across files."
+      }
+    }
+  },
+  "experimental_findings_by_paradigm": {
+    "Issue-Driven": {
+      "baseline_solved_rate": "28.5%",
+      "science_solved_rate": "30.0%",
+      "contrast": "+1.5pp in favor of Science",
+      "mechanism": "The code-derived graph provides direct structural localization to the defective function (e.g. 074, 103, 077), giving Science a distinct edge over blind keyword search."
+    },
+    "Expert-Exploratory": {
+      "baseline_solved_rate": "20.0%",
+      "science_solved_rate": "18.2%",
+      "contrast": "-1.8pp",
+      "mechanism": "When the bug is a simple plumbing/indexing issue disguised as an anomaly (e.g. 022), scientific context can induce cognitive anchoring—the agent over-deliberates on physics formulas instead of fixing the trivial string mapping."
+    },
+    "Engineering-Integration": {
+      "baseline_solved_rate": "20.0%",
+      "science_solved_rate": "20.0%",
+      "contrast": "Exact parity",
+      "mechanism": "Both arms hit the benchmark's architectural boundary—requires broad multi-file component stitching where single-turn patches face the greatest challenge."
+    }
+  }
+}
