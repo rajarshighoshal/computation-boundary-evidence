@@ -20,7 +20,7 @@ A repair agent with shell tools must reconstruct a repository's computational st
 \section{Introduction}
 Repairing a composite-laminate stiffness calculation requires changing both the ply iteration and the accumulation formula. Expanding one without the other passes the public check but fails the private tests. The patch is short; finding it means knowing which expression produces the returned matrix and what calls cross the repository boundary.
 
-We give the agent that knowledge as a prepared store and test whether it changes outcomes. CBE exposes source-linked computation structure; the baseline reconstructs the same information from grep and file reads. Same model, same budget.
+We evaluate whether providing this structure directly changes repair outcomes. CBE exposes source-linked computation structure; the baseline reconstructs the same context from grep and file reads. Same model, same budget.
 
 Contributions: the preparation pipeline, the query interface, and a replicated evaluation that separates discipline-level differences from aggregate noise.
 
@@ -30,10 +30,10 @@ CBE draws on traceability~\citep{niu2023ablots,niu2023rat,niu2025tvr,pan2025cove
 \section{What CBE provides}
 \label{sec:method}
 \paragraph{Prepare.}
-Run the public \texttt{reproduce.py} under an observer. Observed functions guide file selection. Static extraction adds expressions, conditions, definitions, and call boundaries. No LLM call. Median duration: \MedianPreparation{}\,s of the 1800\,s budget.
+Run the public \texttt{reproduce.py} under an observer. Observed functions guide file selection. Static extraction adds expressions, conditions, definitions, and call boundaries without model calls. Median duration: \MedianPreparation{}\,s of the 1800\,s budget.
 
 \begin{minipage}{\columnwidth}
-\captionof{table}{Evidence fields, from task 103's saved records.}
+\captionof{table}{CBE evidence records for task 103 (pyNastran).}
 \label{tab:representation}
 \smalltable
 \begin{tabularx}{\columnwidth}{@{}p{1.65cm}X@{}}
@@ -46,15 +46,15 @@ Definition & Documented public behavior (not execution trace). \\
 Boundary & \texttt{np.radians(thetad)} at line 979: provider \texttt{numpy}, caller-side scope. \\
 \midrule
 \multicolumn{2}{@{}l}{\textbf{Query interface (alongside ordinary shell)}} \\
-\texttt{find} & Targets and source excerpts. \\
-\texttt{inspect} & Relationships, source, definitions, or contracts. \\
-\texttt{note} & Optional working model; never gates a repair. \\
+\texttt{find} & Keyword search over symbols, docstrings, and expressions. \\
+\texttt{inspect} & Structured view: dependencies, conditions, boundaries. \\
+\texttt{note} & Scratchpad for working hypotheses; never gates repair. \\
 \bottomrule
 \end{tabularx}
 \end{minipage}
 
 \paragraph{Represent.}
-Tree-sitter~\citep{treesitter2024} parses Python ASTs to extract function scopes, assignment targets, binary expressions, return anchors, and conditional branches. Joern handles C, C++, Fortran, and Cython where available; explicit fallback otherwise. External calls are labelled with their provider as interface assumptions, not correctness guarantees. Unresolved callees stay \texttt{unknown\_external}.
+Tree-sitter~\citep{treesitter2024} parses Python ASTs for scopes, assignments, binary expressions, return anchors, and branches. Joern handles C, C++, Fortran, and Cython where available; explicit fallback otherwise. External calls are labelled with their provider as interface assumptions, not correctness guarantees. Unresolved callees stay \texttt{unknown\_external}.
 
 \paragraph{Query and repair.}
 The agent accesses three endpoints alongside shell utilities:
@@ -69,7 +69,7 @@ Inspection dynamically refreshes edited source lines, while preparation traces r
 119 tasks, 98 repositories, 20 disciplines~\citep{xu2026science}. 30 tasks held for development, 89 locked for evaluation.
 
 \begin{minipage}{\columnwidth}
-\captionof{table}{Shared conditions.}
+\captionof{table}{Shared evaluation parameters across both arms.}
 \label{tab:setup}
 \smalltable
 \begin{tabularx}{\columnwidth}{@{}p{1.65cm}X@{}}
@@ -115,7 +115,7 @@ Paired task-rate diff: \TaskDelta{}\,pp; 95\% bootstrap $[\CILower,\CIUpper]$\,p
 \begin{minipage}{\columnwidth}
 \centering
 \includegraphics[width=\columnwidth]{figures/public_private_gap.pdf}
-\captionof{figure}{Most attempts pass the public check without satisfying the full verifier.}
+\captionof{figure}{Public reproducer vs.\ private verifier pass rates. Most attempts pass the public check without satisfying the full verifier.}
 \label{fig:gates}
 \end{minipage}
 
@@ -146,7 +146,7 @@ Of the 74 exact ties, 30 show divergence on held-out private tests: CBE improves
 \label{sec:domains}
 \centering
 \includegraphics[width=\textwidth]{figures/domain_outcomes.pdf}
-\captionof{figure}{Parity hides opposing domain effects. All 18 represented disciplines; task counts in parentheses; right column is the percentage-point change.}
+\captionof{figure}{Official solve rate by scientific discipline across all 18 represented domains (task counts in parentheses; right column is percentage-point difference $\Delta$).}
 \label{fig:domains}
 \end{minipage}\vspace{9pt}}]
 
@@ -165,11 +165,11 @@ Most tasks never solve or always solve across repeated runs; about a fifth flip 
 \begin{minipage}{\columnwidth}
 \centering
 \includegraphics[width=\columnwidth]{figures/replication.pdf}
-\captionof{figure}{Most tasks never solved or always solved. About a fifth flip within an arm.}
+\captionof{figure}{Within-arm outcome stability across 3 repeated seeds. Most tasks are deterministically solved or unsolved; 18--20\% flip between runs.}
 \label{fig:replication}
 \end{minipage}
 
-Across the 89 tasks, 60 never solve in either arm, 11--12 solve in all three runs, and 16--18 yield mixed outcomes. This within-arm stochasticity bounds single-run benchmark resolution and shows aggregate parity is not an artifact of run-to-run noise.
+Across the 89 tasks, 60 never solve in either arm, 11--12 solve in all three runs, and 16--18 yield mixed outcomes. This within-arm stochasticity bounds single-run benchmark resolution: differences smaller than $\sim$5\,pp fall within stochastic run-to-run noise.
 
 \clearpage
 \twocolumn[{\begin{minipage}{\textwidth}
@@ -180,16 +180,16 @@ Across the 89 tasks, 60 never solve in either arm, 11--12 solve in all three run
 \captionof{figure}{Per-run private-test fractions for every task whose solve rate differs between arms. Outlined bold cells are official solves; bold task labels are the two cases below.}
 \label{fig:trials}
 \vspace{7pt}
-\captionof{table}{What changed in the patches.}
+\captionof{table}{Comparison of generated patches for divergent case studies.}
 \label{tab:cases}
 \smalltable
 \begin{tabularx}{\textwidth}{@{}p{1.25cm}XXX@{}}
 \toprule
 Task & Baseline patches & CBE patches & What it shows \\
 \midrule
-103\newline pyNastran & Expand ply iteration, keep original B/D accumulation. All three pass the public check. & Two change both material-reference expansion and B/D expressions; the third keeps the old accumulation. & The public check undertests. Covering the full computation, not just the example, separates the two complete patches from the three partial ones. \\
+103\newline pyNastran & Expand ply iteration, keep original B/D accumulation. All three pass the public check. & Two change both material-reference expansion and B/D expressions; the third keeps the old accumulation. & Public checks undertest multi-step calculations. Exposing complete computation structure separates full repairs from partial workarounds. \\
 \addlinespace[3pt]
-022\newline nilearn & Two add a label-aggregation option without altering the existing nearest-neighbour path. & Two add label-aware aggregation but also change how the existing path is selected or computed; 11/12 private tests pass. & Adding a capability while preserving the existing interface is the obligation. CBE's trajectory reads projection maths instead of the interface contract. \\
+022\newline nilearn & Add label-aggregation option without altering the existing nearest-neighbour path. & Add label-aware aggregation but alter argument handling in the existing path; 11/12 private tests pass. & Adding a capability while preserving the existing interface is the repair obligation. Focusing on internal mathematics caused the agent to alter the interface contract. \\
 \bottomrule
 \end{tabularx}
 \end{minipage}\vspace{9pt}}]
