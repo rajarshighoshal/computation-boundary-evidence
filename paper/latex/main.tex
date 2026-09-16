@@ -25,7 +25,8 @@ CBE organizes this repository-derived evidence before repair and exposes it thro
 
 Our research question is whether this additional representation improves complete repair. The contributions are the preparation pipeline, query interface, and replicated comparison. We analyze both successful and unsuccessful changes to understand when the representation helps.
 
-CBE draws on traceability~\citep{niu2023ablots,niu2023rat,niu2025tvr,pan2025coverage}, code property graphs~\citep{yamaguchi2014cpg}, scientific model extraction~\citep{pyarelal2020automates,skema2024gromet}, and incremental parsing~\citep{treesitter2024}. We evaluate on SWE-bench Science~\citep{xu2026science} with DeepSeek V4.1 Flash~\citep{deepseek2026}; SWE-bench~\citep{jimenez2024swebench,yang2024swebenchverified} and SciCode~\citep{tian2024scicode} are related benchmarks.
+\paragraph{Related work.}
+Bug localization through traceability links recovers connections between artifacts: RAT~\citep{niu2023rat} builds refactoring-aware trace models, ABLoTS~\citep{niu2023ablots} tests their replicability across projects, TVR~\citep{niu2025tvr} extends recovery to automotive requirements via retrieval-augmented generation, and Pan et al.~\citep{pan2025coverage} minimise natural-language test cases under coverage constraints. These approaches link artifacts but do not extract the computational structure of the code itself. Code property graphs~\citep{yamaguchi2014cpg} unify ASTs, control flow, and data flow for vulnerability analysis; CBE borrows the multi-view graph idea but targets scientific expressions and call boundaries rather than security patterns. AutoMATES~\citep{pyarelal2020automates} and GroMEt~\citep{skema2024gromet} extract scientific models from code and equations into intermediate representations; CBE stays closer to the source, indexing expressions and conditions without attempting semantic model assembly. Tree-sitter~\citep{treesitter2024} provides the incremental parsing layer. We evaluate on SWE-bench Science~\citep{xu2026science} with DeepSeek V4.1 Flash~\citep{deepseek2026}; SWE-bench~\citep{jimenez2024swebench,yang2024swebenchverified} and SciCode~\citep{tian2024scicode} are related benchmarks that target general software and research coding respectively.
 
 \section{What CBE provides}
 \label{sec:method}
@@ -185,6 +186,9 @@ Figure~\ref{fig:trials} separates incomplete fixes from complete repairs. All ba
 
 \paragraph{Task 022 (nilearn).}
 The successful baseline patches preserve the existing nearest-neighbour path while adding label aggregation. Two CBE patches alter argument handling and pass 11/12 private tests; the third passes 4/12. Reaching the aggregation code broke the existing interface.
+
+\paragraph{Mechanism.}
+The two cases illustrate a pattern visible across the discipline split. When the repair obligation is correcting a calculation, CBE's evidence directly exposes the relevant scope: in task~103, the agent sees the accumulation loop, its return anchor, and the conditions guarding it, and two of three runs produce complete patches. When the obligation is preserving an existing interface, the same evidence points the agent toward internal computations rather than the function contract it must keep stable: in task~022, the agent reaches the aggregation code but alters the argument path instead of preserving backward compatibility. The discipline-level gains (mechanics, astronomy, materials) concentrate in repositories whose failing tests check numerical outputs; the losses (biomedical, biology) concentrate where the test suite checks API behaviour. This asymmetry suggests that the representation's value depends on the match between what it indexes and what the repair must preserve.
 
 \section{Limitations and conclusion}
 \label{sec:conclusion}
