@@ -15,7 +15,7 @@
 \maketitle
 
 \begin{abstract}
-Scientific software repair requires identifying relevant computations while preserving expected behaviour. We ask whether making repository-derived computational evidence directly queryable improves repair under a matched agent budget. Computation and boundary evidence (CBE) combines public-reproducer tracing with static extraction of expressions, conditions, documented definitions, and library-call boundaries, without preprocessing model calls. On 89 SWE-bench Science tasks with three runs per arm, baseline and CBE solve 60/267 and 63/267 attempts; the paired confidence interval spans zero. CBE records \OutputReduction\% less output generation but greater input consumption and work time. Discipline-level summaries locate opposing changes, and contrasting patches illustrate incomplete calculation repair and interface-preservation failures. The principal limitation is that locating computational evidence does not establish that it covers the task's correctness requirements.
+Computation and boundary evidence (CBE) pre-computes expressions, conditions, definitions, and call boundaries from repository source and exposes them through query endpoints alongside ordinary shell tools. On 89 SWE-bench Science tasks (three runs per arm, 534 verified attempts), baseline solves 60 and CBE solves 63; the confidence interval spans zero. CBE generates \OutputReduction\% fewer output tokens with higher input consumption. Gains concentrate where the repair is a calculation; losses where it must preserve an interface. Two case studies trace this split to a scope gap: locating the relevant computation is necessary but not sufficient.
 \end{abstract}
 
 \section{Introduction}
@@ -37,7 +37,7 @@ The pipeline has three stages (Figure~\ref{fig:method}): trace, extract, query.
 Run the public \texttt{reproduce.py} under an observer. The observer records which functions execute, guiding file selection for extraction. No model calls. Median duration: \MedianPreparation{}\,s of the 1800\,s budget.
 
 \paragraph{Extract.}
-Tree-sitter~\citep{treesitter2024} parses Python ASTs for scopes, assignments, binary expressions, return anchors, and branches. Joern handles C, C++, Fortran, and Cython where available; explicit fallback otherwise. External calls are labelled with their provider as interface assumptions, not correctness guarantees. Unresolved callees stay \texttt{unknown\_external}.
+Tree-sitter~\citep{treesitter2024} parses Python ASTs for scopes, assignments, binary expressions, return anchors, and branches. Joern handles C, C++, Fortran, and Cython where available; explicit fallback otherwise. External calls are labelled with their provider as interface assumptions. Unresolved callees stay \texttt{unknown\_external}.
 
 Table~\ref{tab:representation} shows what CBE extracts for task 103 (pyNastran) --- the opening example. The computation record links the accumulation at line 1003 to its return anchor. The boundary record identifies the numpy call and its scope.
 
@@ -113,7 +113,7 @@ A solve is a successful official verifier reward, not merely a passing public re
 \label{sec:results}
 
 \paragraph{Aggregate comparison.}
-Baseline solves 60 of 267 verified attempts; CBE solves 63 of 267 (Table~\ref{tab:main}). The paired interval spans zero: the observed difference does not establish an aggregate benefit or equivalence.
+Baseline solves 60 of 267 verified attempts; CBE solves 63 of 267 (Table~\ref{tab:main}). The paired interval spans zero.
 
 \begin{minipage}{\columnwidth}
 \captionof{table}{Baseline solves 60, CBE solves 63. CBE generates \OutputReduction\% fewer output tokens.}
@@ -136,28 +136,28 @@ Paired task-rate diff: \TaskDelta{}\,pp; 95\% bootstrap $[\CILower,\CIUpper]$\,p
 \paragraph{Hidden partial changes.}
 Even among exact ties, behaviour differs: \HiddenPrivateDifferences{} of 74 differ in private-test pass fractions (baseline passes more on 20, CBE on 9, equal on 45). Among the 15 non-tie tasks, every CBE-favoured task also has CBE-higher private-test coverage, and six of seven baseline-favoured tasks have baseline-higher coverage.
 
-\clearpage
-\twocolumn[{\begin{minipage}{\textwidth}
 \section{Task-level variation and evidence scope}
 \label{sec:domains}
-\centering
-\includegraphics[width=\textwidth]{figures/domain_outcomes.pdf}
-\captionof{figure}{Solve-rate difference (CBE $-$ Baseline) for the ten disciplines with non-zero change. Task counts in parentheses. Eight disciplines with identical solve rates across arms are omitted.}
-\label{fig:domains}
-\end{minipage}\vspace{9pt}}]
 
-Figure~\ref{fig:domains} shows gains in six disciplines and losses in four. Mechanics' gain comes entirely from task 103, while the materials-science gain spans DeePTB, deepmd-kit, and dpdata. Biology's net loss comes from biopython. Each of the two largest negative differences represents one task. These groups locate changes; discipline alone does not explain them.
+\begin{minipage}{\columnwidth}
+\centering
+\includegraphics[width=\columnwidth]{figures/domain_outcomes.pdf}
+\captionof{figure}{Solve-rate difference (CBE $-$ Baseline) for the ten disciplines with non-zero change. Task counts in parentheses. Eight disciplines with identical solve rates are omitted.}
+\label{fig:domains}
+\end{minipage}
+
+\medskip
+Figure~\ref{fig:domains} shows gains in six disciplines and losses in four. Mechanics' gain comes entirely from task 103, while the materials-science gain spans DeePTB, deepmd-kit, and dpdata. Biology's net loss comes from biopython. Each of the two largest negative differences represents one task. These groups locate where the difference concentrates.
 
 \paragraph{Task demands and representation scope.}
-The benchmark distinguishes \emph{Issue-driven}, \emph{Expert-exploratory}, and \emph{Engineering-integration} tasks~\citep{xu2026science}. These describe how a problem is posed, not its scientific discipline or the obligations of its eventual patch. A known defect still requires regression preservation; investigating an anomaly requires comparing possible explanations; integration requires checking behaviour across modules. Computation and call records are relevant to all three but do not establish that the evidence is complete. We use these paradigms to discuss scope; our analysis does not include per-task paradigm annotations, so we report no subgroup rates.
+The benchmark distinguishes \emph{Issue-driven}, \emph{Expert-exploratory}, and \emph{Engineering-integration} tasks~\citep{xu2026science}. These describe how a problem is posed, not its scientific discipline or the obligations of its eventual patch. A known defect still requires regression preservation; investigating an anomaly requires comparing possible explanations; integration requires checking behaviour across modules. Computation and call records are relevant to all three; whether they suffice depends on the task. Our analysis lacks per-task paradigm annotations, so we report no subgroup rates.
 
 \paragraph{Replication.}
-Baseline and CBE never solve 60 and 59 tasks, respectively. Outcomes are mixed on 18 baseline and 19 CBE tasks; 11 tasks succeed in all three runs for each arm. The repeated outcomes make within-task variation visible without defining a fixed resolution threshold.
+Baseline and CBE never solve 60 and 59 tasks, respectively. Outcomes are mixed on 18 baseline and 19 CBE tasks; 11 tasks succeed in all three runs for each arm.
 
 \paragraph{Task-localized, not task-adaptive.}
-The reproducer guides CBE toward code exercised by the task, but the evidence schema does not adapt to these different demands. The repair agent must still determine whether the extracted records explain the discrepancy and cover the behaviours a change must preserve. The following cases examine this gap between access to relevant code and a complete repair.
+The reproducer guides CBE toward code exercised by the task, but the evidence schema is the same for all tasks. The repair agent still determines whether the extracted records explain the discrepancy and cover the behaviours a change must preserve. The following cases examine this gap.
 
-\clearpage
 \twocolumn[{\begin{minipage}{\textwidth}
 \section{Case studies}
 \label{sec:cases}
@@ -173,9 +173,9 @@ The reproducer guides CBE toward code exercised by the task, but the evidence sc
 \toprule
 Task & Baseline & CBE & Insight \\
 \midrule
-103 pyNas\-tran & Expand ply iteration; keep original B/D accumulation. All pass public. & Two fix both expansion and B/D; third keeps old accumulation. & The public check does not distinguish partial from complete repairs of this calculation. \\
+103 pyNas\-tran & Expand ply iteration; keep original B/D accumulation. All pass public. & Two fix both expansion and B/D; third keeps old accumulation. & The public check passes both partial and complete repairs. \\
 \addlinespace[1pt]
-022 nilearn & Successful patches add label aggregation while preserving the nearest-neighbour path. & Two alter argument handling (11/12 private); the third passes 4/12. & Reaching relevant aggregation code is not sufficient to preserve existing interface behaviour. \\
+022 nilearn & Successful patches add label aggregation while preserving the nearest-neighbour path. & Two alter argument handling (11/12 private); the third passes 4/12. & Reaching the aggregation code did not preserve the interface. \\
 \bottomrule
 \end{tabularx}}
 \end{minipage}\vspace{2pt}}]
@@ -184,13 +184,15 @@ Task & Baseline & CBE & Insight \\
 Figure~\ref{fig:trials} separates incomplete fixes from complete repairs. All baseline attempts pass the public check but only two of four private tests. The two successful CBE patches change both expansion and accumulation. Localization alone is not sufficient; the repair must also be complete.
 
 \paragraph{Task 022 (nilearn).}
-The successful baseline patches preserve the existing nearest-neighbour path while adding label aggregation. Two CBE patches also alter argument handling and pass 11/12 private tests; the third passes 4/12. The patches show that reaching the relevant code does not ensure the existing interface is preserved.
+The successful baseline patches preserve the existing nearest-neighbour path while adding label aggregation. Two CBE patches alter argument handling and pass 11/12 private tests; the third passes 4/12. Reaching the aggregation code broke the existing interface.
 
 \section{Limitations and conclusion}
 \label{sec:conclusion}
-The principal limitation is the extractor's scope. CBE prepares a task-localized view of repository evidence but does not determine which kinds of evidence the repair requires or whether the extracted view is sufficient. Documented definitions and predicates provide semantic cues, not a complete specification of scientific meaning or compatibility requirements. The agent must still form and test hypotheses and check the implications of edits across the relevant workflow.
+CBE indexes repository evidence by task but selects the same evidence regardless of repair type. Definitions and predicates are semantic cues, not specifications; the agent still forms hypotheses and checks edit implications across the workflow.
 
-The public trace covers observed execution; extraction fallbacks and unresolved calls limit structural coverage. External providers are interface assumptions. Three replicates do not demonstrate generalization; no ablation isolates individual components; most tasks are Python; one model and scaffold. CBE yields similar repair rates with a resource trade-off. Whether the evidence covers the repair obligation depends on the task; extending it to interface and compatibility requirements is the next step.
+The public trace covers observed execution; extraction fallbacks and unresolved calls limit structural coverage. External providers are interface assumptions. Three replicates are insufficient for generalization claims; no ablation isolates individual components; most tasks are Python; one model and scaffold.
+
+CBE yields similar repair rates with a resource trade-off. Whether the evidence covers the repair obligation depends on the task; extending it to interface and compatibility requirements is the next step.
 
 \section{AI Assistance}
 ChatGPT and Oh My Pi assisted with coding, debugging, analysis, and plotting. Code, receipts, and per-task outcomes: \url{https://github.com/rajarshighoshal/computation-boundary-evidence}.
