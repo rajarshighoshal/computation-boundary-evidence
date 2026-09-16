@@ -106,4 +106,4 @@ Frozen split in `configs/interactive-science.split.json`. Official SWE-bench Sci
 
 ## AI disclosure
 
-Rajarshi Ghoshal designed and directed the study. ChatGPT and Oh My Pi assisted with coding, debugging, analysis, and plotting. DeepSeek V4.1 Flash was the sole repair model. The detailed record is in [`docs/AI_DISCLOSURE.md`](docs/AI_DISCLOSURE.md).
+Rajarshi Ghoshal designed and directed the study. ChatGPT and Oh My Pi assisted with coding, debugging, analysis, and plotting. DeepSeek V4.1 Flash was the sole repair model.
