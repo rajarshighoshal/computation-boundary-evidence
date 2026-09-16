@@ -114,7 +114,7 @@ uv sync --python 3.12 --locked --extra test --extra runner
 uv run --no-sync pytest -q
 ```
 
-### 3. Run the Static Extractor (Zero Model Calls)
+### 2. Run the Static Extractor (Zero Model Invocations)
 
 Verify that the evidence extraction pipeline operates correctly on the development split without issuing model calls:
 
@@ -126,7 +126,7 @@ SCICONSORT_RESTRICTED_OPTIN=1 uv run --no-sync scicontext pilot \
   --execute --extract-only
 ```
 
-### 4. Paired Repair Trial
+### 3. Run a Paired Repair Trial
 
 Execute a single paired trial (Task 009) comparing baseline and CBE under identical conditions:
 
