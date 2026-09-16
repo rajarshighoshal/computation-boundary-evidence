@@ -273,3 +273,79 @@ Development tasks (4 runs per arm):
   place it at 6.5 in, or design at 6.5 in and place at natural size. Never shrink a figure.
 - No number may be typed into plot code: read it from this file or the receipts.
 
+
+## 11. Task paradigms (benchmark-defined, but no per-task labels published)
+
+The benchmark paper organises its 119 tasks into three paradigms:
+
+| paradigm | tasks | share | definition |
+|---|---|---|---|
+| Issue-driven | 52 | 43.7% | Localized single-point bug repair from a known issue/defect |
+| Expert-exploratory | 49 | 41.2% | Open exploration; root cause unknown, requires domain reasoning |
+| Engineering-integration | 18 | 15.1% | Multi-module architecture, pipeline gaps, cross-file stitching |
+
+**Important constraint**: the benchmark publishes these aggregate counts (in Figure 2a and Table 4
+of arXiv 2608.19799v2) but does NOT publish per-task paradigm labels anywhere — not in the HF
+dataset schema, not in tasks.csv, not in task.toml, not in metadata.json. So we can stratify
+results by the 20 scientific domains (per-task, verified) but CANNOT stratify by paradigm unless
+we classify tasks ourselves. If you want a domain × paradigm 2D figure, the paradigm axis must be
+our own classification, which should be disclosed as such.
+
+Other per-task axes that ARE available: language (python / c / c++ / fortran / cython / matlab-octave),
+and the `science_knowledge_ablation` flag (True/False). The language split is uninformative (81 of
+89 held-out tasks are pure Python). The ablation flag shows no interaction (−0.3 pp ablated,
++1.4 pp knowledge-provided).
+
+
+## 12. Case-study detail
+
+| task | title | domain | repo | baseline | CBE |
+|---|---|---|---|---|---|
+| 103 | Repair symmetric composite laminate ABD calculations | high-performance-fibers-and-composites | pyNastran | 0/3 | 2/3 |
+| 022 | Repair an inconsistent volume-to-surface projection | neuroimaging | nilearn | 2/3 | 0/3 |
+| 074 | Repair an ill-conditioned overlap band-postprocessing workflow | electronic-structure-nonorthogonal-eigenproblems | DeePTB | ?/3 | ?/3 |
+| 077 | Repair an inconsistent oriented-envelope fallback workflow | computational-geometry | shapely | 0/3 | 3/3 |
+
+Task 103 (pyNastran): repair the symmetric composite laminate ABD stiffness matrix calculation.
+CBE solved it 2 of 3 times (baseline 0/3). The saved trajectory shows the agent inspecting the
+ply-angle computation and its numpy boundaries before editing, instead of scanning the parser layer.
+
+Task 022 (nilearn): repair an inconsistent volume-to-surface projection. Baseline solved it 2/3,
+CBE 0/3. The trajectory shows the CBE arm reading projection mathematics before touching the atlas
+label mapping the instruction actually describes — the representation distracted it.
+
+Task 074 (DeePTB): repair an ill-conditioned overlap band-postprocessing workflow. CBE solved it
+3/3 (baseline 0/3). The largest single-task gain in the held-out partition.
+
+Task 077 (shapely): repair an inconsistent oriented-envelope fallback workflow. Development only:
+CBE 3/4, baseline 0/4.
+
+
+## 13. Evidence-store statistics (for the method figure)
+
+Across the 94 tasks with frozen preparation bundles:
+- median scientific objects per task: 296; maximum: 10,887
+- call boundaries recorded during held-out runs: 12,794 external, 1,890 unknown_external, 534 internal
+- top external providers: numpy (1,554), cclib.parser (156), re (120), elastica.utils (108)
+- external providers are treated as assumed-correct interfaces with an explicit repair scope
+- unresolved callees are labelled `unknown_external`, never guessed
+
+The three query endpoints:
+- `science_find(query)` → targets and source excerpts (lexical discovery, not a relevance verdict)
+- `science_inspect(target, view)` → relationships, definitions, source, or contracts
+- `science_note(model)` → optional, never gates repair
+
+
+## 14. Recommended figures and their purpose
+
+| figure | reader question | recommended encoding | data keys in this file |
+|---|---|---|---|
+| Fig 1: method diagram | "What does the agent get?" | Schematic cards: extraction → store → endpoints, with one real payload and the baseline grep. NOT a data figure. | §2, §13 |
+| Fig 2: domain split | "Where does it help/hurt?" | Grouped horizontal bars: baseline bar + CBE bar per domain, sorted by delta, with the delta annotated. Maybe split rows into two groups: gains (green) above a zero line, losses (red) below. | §6 |
+| Fig 3: replication | "Can I trust the numbers?" | Grouped bars: tasks by # of replicates that solved them (0,1,2,3), per arm. The mass at 0 and 3 is the story. | §7 |
+| Table 1: headline | "What's the headline?" | Partition, baseline solved/verified, CBE solved/verified, contrast column | §4, §5 |
+
+Optional figures:
+- Movers chart: diverging horizontal bars of the 15 tasks that changed outcome. Data: the 7 gain tasks and 8 loss tasks from §9.
+- Token comparison: two bars (12.01M vs 10.36M output tokens). Simple; may fit better as a table row.
+- Effort matrix: 4 cells; a sentence + table row is cleaner than a figure.
