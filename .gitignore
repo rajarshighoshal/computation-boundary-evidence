@@ -26,3 +26,20 @@ workspace/
 
 # External paper copy (URL is in docs); not part of the repo artifacts
 2608.19799v2.pdf
+
+# Local visual paper workspace
+CBE_visual_paper_v2/
+
+# LaTeX build artifacts and logs
+*.aux
+*.bbl
+*.blg
+*.out
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+paper/latex/*.log
+paper/latex/figures/*.png
+paper/latex/figures/support_partial_comparison.*
+paper/figures/
