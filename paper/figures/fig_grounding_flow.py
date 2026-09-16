@@ -119,19 +119,22 @@ def main() -> None:
             ax.axis("off")
 
         scene(flow, "A", "Preparation and query path", y=0.965)
-        box(flow, 0.01, 0.665, 0.98, 0.280, "static extraction, no model call",
+        box(flow, 0.01, 0.690, 0.98, 0.258, "static extraction: parsers only, no model call",
             ["parsers rank files and resolve imports;",
              "Tree-sitter and Joern supply structure"],
             face=LIGHT_BLUE, edge="#2468A0", line_size=6.0)
-        arrow(flow, (0.50, 0.660), (0.50, 0.630))
-        box(flow, 0.01, 0.345, 0.98, 0.280, "queryable evidence store",
+        arrow(flow, (0.50, 0.685), (0.50, 0.663))
+        box(flow, 0.01, 0.345, 0.98, 0.280, "queryable store, filled once per task",
             ["computations and result anchors; conditions;",
              "definitions; call boundaries with providers"],
             face=LIGHT_TEAL, edge=TEAL, line_size=6.0)
-        arrow(flow, (0.50, 0.340), (0.50, 0.310))
-        box(flow, 0.01, 0.115, 0.98, 0.190, "endpoints, beside shell tools",
+        arrow(flow, (0.50, 0.340), (0.50, 0.318))
+        box(flow, 0.01, 0.115, 0.98, 0.190, "endpoints beside the ordinary shell tools",
             ["science_find / inspect / note"],
             face=LIGHT_GRAY, edge=INK_SOFT, line_size=6.0)
+        flow.text(0.0, 0.045,
+                  "Prepared once per task, queried on demand, same budget as the baseline arm.",
+                  fontsize=6.2, color=INK_SOFT, ha="left", va="center", style="italic")
 
         scene(quote, "B", "Recorded payloads", y=0.90)
         quote.add_patch(FancyBboxPatch((0.012, 0.455), 0.976, 0.430,
@@ -151,7 +154,7 @@ def main() -> None:
         quote.add_patch(FancyBboxPatch((0.012, 0.175), 0.976, 0.250,
                                        boxstyle="round,pad=0.010,rounding_size=0.02",
                                        facecolor=LIGHT_GRAY, edgecolor=INK_SOFT, linewidth=0.7))
-        quote.text(0.030, 0.390, "search response (keys verbatim)", fontsize=6.4,
+        quote.text(0.030, 0.390, "search response: targets first, no verdict", fontsize=6.4,
                    fontweight="bold", color=INK, va="top")
         quote.text(0.030, 0.337,
                    '{"status": "ok", "matches": [{"target": ...,\n'
@@ -162,7 +165,7 @@ def main() -> None:
         quote.add_patch(FancyBboxPatch((0.012, 0.020), 0.976, 0.130,
                                        boxstyle="round,pad=0.010,rounding_size=0.02",
                                        facecolor="white", edgecolor=RUST, linewidth=0.7))
-        quote.text(0.030, 0.115, "same call in the baseline arm", fontsize=6.4,
+        quote.text(0.030, 0.115, "the same call without the store", fontsize=6.4,
                    fontweight="bold", color=RUST, va="top")
         quote.text(0.030, 0.070,
                    'grep -rn "radians" .    # provider inferred by hand',

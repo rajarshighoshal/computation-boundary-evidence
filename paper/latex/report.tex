@@ -114,16 +114,16 @@ regenerates from verifier receipts through one analysis script.
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{../figures/out/fig_parity.pdf}
-  \caption{The headline comparison. \textbf{A}~every held-out task whose solve rate differs between
-  the arms, as CBE minus baseline in percentage points (task 074 gains a full point; task 022 loses
-  two thirds of one); the remaining 74 tasks are unchanged. \textbf{B}~output tokens generated over
-  the 522 verified attempts. A circle is always the baseline arm, a square always CBE.}
+  \caption{Only fifteen of the 89 held-out tasks change outcome. \textbf{A}~each of them, as CBE
+  minus baseline solve rate in percentage points: task 074 gains a full point, task 022 loses two
+  thirds of one, and the other 74 tasks do not move. \textbf{B}~output tokens generated over the
+  522 verified attempts.}
   \label{fig:parity}
 \end{figure}
 \begin{table}[t]
 \centering
-\caption{Reported outcomes. Every value regenerates from verifier receipts through
-\texttt{analysis/paper\_facts.py}; the receipts record each attempt individually.}
+\caption{Solve counts, cost and partial credit for both arms. The two arms reach the same solve
+count; CBE spends 13.7\% fewer generated tokens and slightly more wall-clock time.}
 \label{tab:main}
 \footnotesize
 \begin{tabular}{@{}llrr@{}}
@@ -154,10 +154,10 @@ narrower search: the agent either finds the right computation or stops before it
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{../figures/out/fig_domains.pdf}
-  \caption{Outcomes by scientific domain for the held-out partition (\textbf{A}) and the development
-  partition (\textbf{B}); row labels give the task count, the right column the difference in percentage
-  points. Circles are the baseline arm and squares CBE; the two markers coincide where a domain does
-  not move, and per-domain counts are in the results receipt.}
+  \caption{Wins and losses separate by discipline. \textbf{A}~held-out tasks; \textbf{B}~development
+  tasks. Each row is one domain, labelled with its task count: circles are the baseline arm, squares
+  CBE, and the right column gives the difference in percentage points. Where the two markers
+  coincide the domain did not move at all.}
   \label{fig:domains}
 \end{figure}
 Aggregate parity hides opposing effects (Figure~\ref{fig:domains}). Mechanics gains 22.2 percentage points,
@@ -180,8 +180,10 @@ structure distracts from it.
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{../figures/out/fig_stability.pdf}
-  \caption{Replication structure of the held-out partition. \textbf{A}~tasks by the number of replicate
-  runs that solved them, per arm. \textbf{B}~share of tasks solved by at least one of $k$ pooled runs.}
+  \caption{Most tasks never move. \textbf{A}~held-out tasks by the number of replicate runs that
+  solved them: 60 (baseline) and 61 (CBE) are never solved, 11 and 10 are always solved.
+  \textbf{B}~share of tasks solved by at least one of $k$ pooled runs, $k \le 3$. Across arms,
+  eighteen tasks flip inside one arm and fifteen differ between arms.}
   \label{fig:stability}
 \end{figure}
 Three replicates make the measurement problem visible (Figure~\ref{fig:stability}). Sixty tasks are never

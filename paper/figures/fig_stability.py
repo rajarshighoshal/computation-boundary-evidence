@@ -55,11 +55,12 @@ def panel_counts(ax: Any, data: dict[str, Any], replicates: int) -> Counter:
         xs = list(range(replicates + 1))
         ax.bar([x + offset for x in xs], [counter.get(x, 0) for x in xs], width=WIDTH,
                color=colour, edgecolor="white", linewidth=0.5, zorder=2)
-        ax.text(0 + offset, counter.get(0, 0) + 2.2, f"{counter.get(0, 0)}", ha="center",
-                va="bottom", fontsize=6.8, color=colour, fontweight="bold")
-        ax.text(replicates + offset, counter.get(replicates, 0) + 2.2,
-                f"{counter.get(replicates, 0)}", ha="center", va="bottom", fontsize=6.8,
-                color=colour, fontweight="bold")
+        for x in xs:
+            value = counter.get(x, 0)
+            if not value:
+                continue
+            ax.text(x + offset, value + 1.6, str(value), ha="center", va="bottom", fontsize=6.6,
+                    color=colour, fontweight="bold")
         del label
     ax.set_xticks(list(range(replicates + 1)))
     ax.set_xlabel(f"replicates that solved the task (of {replicates})", fontsize=7.2)
@@ -78,8 +79,8 @@ def panel_pass(ax: Any, datasets: list[tuple[str, dict[str, Any], int]]) -> None
             marker = "o" if arm == "baseline" else "s"
             ax.plot(xs, ys, color=colour, lw=1.2, marker=marker, ms=3.4, zorder=3,
                     markeredgecolor="white", markeredgewidth=0.5)
-            ends.append({"x": xs[-1] + 0.12, "y": ys[-1], "colour": colour,
-                         "text": f"{name} {label} {ys[-1]:.0f}%"})
+            ends.append({"x": xs[-1] + 0.10, "y": ys[-1], "colour": colour,
+                         "text": f"{label} {ys[-1]:.1f}%"})
     ends.sort(key=lambda item: item["y"])
     for index in range(1, len(ends)):
         if ends[index]["y"] - ends[index - 1]["y"] < 3.4:
@@ -87,10 +88,10 @@ def panel_pass(ax: Any, datasets: list[tuple[str, dict[str, Any], int]]) -> None
     for item in ends:
         ax.text(item["x"], item["y"], item["text"], fontsize=6.6, color=item["colour"],
                 va="center", ha="left")
-    ax.set_xticks([1, 2, 3, 4])
-    ax.set_xlim(0.7, 5.0)
+    ax.set_xticks([1, 2, 3])
+    ax.set_xlim(0.75, 4.0)
     ax.set_ylim(20, 40)
-    ax.set_xlabel("k (pooled replicates, solved at least once)", fontsize=7.2)
+    ax.set_xlabel("k: pooled replicate runs, solved at least once", fontsize=7.2)
     ax.set_ylabel("tasks solved (%)", fontsize=7.2)
     ax.grid(axis="y", color=GRID, lw=0.45, zorder=0)
     viz.baseline_axis(ax)
