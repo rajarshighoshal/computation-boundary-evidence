@@ -1,13 +1,12 @@
 # Computation and Boundary Evidence for Scientific Software Repair
 
-[![Paper](https://img.shields.io/badge/Paper-PDF-blue.svg)](paper/latex/main.pdf)
 [![Benchmark](https://img.shields.io/badge/Benchmark-SWE--bench%20Science-orange.svg)](https://github.com/OpenMOSS/SWE-bench-Science)
 [![Python](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
 
 This repository contains the complete implementation, evaluation artifacts, and research report for the PhD applicant research task at the **Institute of Software Engineering and Artificial Intelligence, Graz University of Technology (TU Graz)**.
 
 **Author:** Rajarshi Ghoshal (`rajarshi.ghoshal1@gmail.com`)  
-**Research Report:** [paper/latex/main.pdf](paper/latex/main.pdf) (4 content pages + 1 references page)
+**Research Report:** *"Computation and Boundary Evidence for Scientific Software Repair"* (4 content pages + 1 references page, submitted via email to TU Graz).
 
 ---
 
@@ -74,13 +73,6 @@ We conducted a replicated evaluation across **89 held-out SWE-bench Science task
 
 ```
 .
-├── paper/
-│   └── latex/               # LaTeX source, style, and figures for 5-page report
-│       ├── main.tex         # Typeset research paper
-│       ├── main.pdf         # Compiled PDF (4 content pages + 1 references page)
-│       ├── figures/         # Vector PDF charts and TikZ diagrams
-│       ├── generated/       # Receipt-derived numbers and LaTeX tables
-│       └── scripts/         # Figure and table generation scripts
 ├── src/
 │   └── scicontext/          # Core CBE implementation
 │       ├── evidence.py      # Evidence packet schema & extraction
@@ -93,8 +85,9 @@ We conducted a replicated evaluation across **89 held-out SWE-bench Science task
 ├── scripts/                 # Execution, evaluation, and reproduction runners
 │   ├── run_locked89_k3.sh   # Replicate locked-89 evaluation (k=3)
 │   └── compare_dev_runs.py  # Receipt aggregation and statistics
-├── results/                 # Verified evaluation receipts and audit JSONs
-├── docs/                    # Architectural specifications and method details
+├── tests/                   # Test suite (680+ tests)
+├── pyproject.toml           # Project metadata and dependencies
+├── uv.lock                  # Pinned dependency lockfile
 ├── README.md                # This document
 └── REPRODUCTION.md          # Step-by-step reproduction instructions
 ```
@@ -121,17 +114,6 @@ uv sync --python 3.12 --locked --extra test --extra runner
 uv run --no-sync pytest -q
 ```
 
-### 2. Build the Research Report
-
-```bash
-cd paper/latex
-pdflatex -interaction=nonstopmode main.tex
-bibtex main
-pdflatex -interaction=nonstopmode main.tex
-pdflatex -interaction=nonstopmode main.tex
-# Generates paper/latex/main.pdf (5 pages)
-```
-
 ### 3. Run the Static Extractor (Zero Model Calls)
 
 Verify that the evidence extraction pipeline operates correctly on the development split without issuing model calls:
@@ -155,18 +137,6 @@ SCICONSORT_RESTRICTED_OPTIN=1 uv run --no-sync scicontext pilot \
   --config configs/development-e2e-check.json \
   --output runs/development-e2e-check-v5 \
   --execute
-```
-
-### 5. Re-compute Paper Statistics from Durable Receipts
-
-All tables and figures in the report are deterministically generated from trial receipts:
-
-```bash
-# Verify evaluation statistics
-python3 paper/latex/scripts/analyze_results.py
-
-# Regenerate vector figures
-python3 paper/latex/scripts/make_figures.py
 ```
 
 ---

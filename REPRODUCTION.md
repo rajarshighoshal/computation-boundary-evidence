@@ -97,4 +97,4 @@ script here reads those, not the labels.
   (`head_at_launch`/`head_drift`), never aborted.
 - Restricted-license tasks require `SCICONSORT_RESTRICTED_OPTIN=1`; the frozen split lists
   them.
-- Provider disclosure and the division of work: see `docs/AI_DISCLOSURE.md`.
+- Provider disclosure and the division of work: see the AI & Tool Disclosure section in `README.md`.

@@ -1,3 +1,4 @@
+# Python & virtual environments
 .venv/
 .cache/
 .serena/
@@ -17,20 +18,30 @@ tmp/
 auth.json
 *.auth.json
 .DS_Store
-.cache/
 
-# Working state and traces (kept on disk, not in git)
+# Local working state, traces, and internal research scratchpads
 workspace/
 .opencode-memory/
 *.log
+AGENTS.md
+WORK_LOG.md
+RESEARCH_PLAN.md
+docs/
+results/
+analysis/
+prompts/
 
-# External paper copy (URL is in docs); not part of the repo artifacts
-2608.19799v2.pdf
-
-# Local visual paper workspace
+# Paper workspace, drafts, PDFs, and media (kept locally on disk)
+paper/
 CBE_visual_paper_v2/
+*.pdf
+*.png
+*.jpg
+*.jpeg
+*.svg
+*.webp
 
-# LaTeX build artifacts and logs
+# LaTeX build artifacts
 *.aux
 *.bbl
 *.blg
@@ -39,7 +50,3 @@ CBE_visual_paper_v2/
 *.synctex.gz
 *.fls
 *.fdb_latexmk
-paper/latex/*.log
-paper/latex/figures/*.png
-paper/latex/figures/support_partial_comparison.*
-paper/figures/
