@@ -20,6 +20,7 @@ RUST = "#B5523A"
 INK = "#171717"
 INK_SOFT = "#555555"
 GRID = "#D9D9D9"
+TIE = "#C9CED3"   # neutral tie line (baseline equals CBE)
 WHITE = "#FFFFFF"
 
 LIGHT_BLUE = "#EAF4FA"
@@ -61,6 +62,7 @@ RC = {
 }
 
 __all__ = [
+    "TIE",
     "BLUE",
     "FIGURE_WIDTH",
     "GRAY",

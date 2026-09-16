@@ -16,6 +16,7 @@ from typing import Any
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import matplotlib.transforms as transforms
 from matplotlib.figure import Figure
 
 HERE = Path(__file__).resolve().parent
@@ -75,11 +76,12 @@ def wilson(solved: int, verified: int) -> tuple[float, float]:
 
 
 def scene(ax: Any, letter: str, title: str, *, x: float = 0.0, y: float = 1.02) -> None:
-    """Panel letter above a left-anchored title; legible at any panel width."""
-    ax.text(x, y + 0.075, letter, transform=ax.transAxes, ha="left", va="bottom",
-            fontsize=8.6, fontweight="bold", color=INK)
+    """Panel letter above a left-anchored title; offset in points so it holds at any panel size."""
     ax.text(x, y, title, transform=ax.transAxes, ha="left", va="bottom",
             fontsize=8.0, fontweight="bold", color=INK)
+    lifted = transforms.offset_copy(ax.transAxes, fig=ax.figure, x=0, y=9, units="points")
+    ax.text(x, y, letter, transform=lifted, ha="left", va="bottom",
+            fontsize=8.6, fontweight="bold", color=INK)
 
 
 def assert_layout(fig: Figure) -> None:
@@ -111,8 +113,13 @@ def assert_layout(fig: Figure) -> None:
         raise SystemExit("figure layout problems:\n  " + "\n  ".join(problems))
 
 
-def save(fig: Figure, name: str, *, dpi: int = 300) -> None:
+def save(fig: Figure, name: str, *, dpi: int = 300, claim: str = "") -> None:
+    import requirements
+
     assert_layout(fig)
+    problems = requirements.check(fig, name, claim)
+    if problems:
+        raise SystemExit(f"{name} fails figure requirements:\n  " + "\n  ".join(problems))
     OUT.mkdir(parents=True, exist_ok=True)
     fig.savefig(OUT / f"{name}.pdf", format="pdf")
     fig.savefig(OUT / f"{name}.png", format="png", dpi=dpi)

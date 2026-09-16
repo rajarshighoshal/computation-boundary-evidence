@@ -1,7 +1,11 @@
-"""Domain / task-type stratified analysis of the science-context intervention.
+"""Domain / task-type stratified analysis of the CBE intervention.
 
 Produces the per-domain and per-task-type performance comparison between the two arms
-(baseline shell tools vs. science evidence tools) from raw run receipts.
+(baseline shell tools vs. computation-and-boundary evidence, CBE) from raw run receipts.
+
+Naming: the published arm name is CBE (computation and boundary evidence). The frozen
+run directories encode that arm with the suffix "-science"; receipts written here use the
+published name and record the mapping under provenance.arm_naming.
 
 Partitions
 ----------
@@ -59,6 +63,9 @@ DEV_RUNS = [
 
 Z95 = 1.959963984540054
 
+# On-disk run directories label the intervention arm "science"; the published name is CBE.
+ON_DISK_ARM = {"baseline": "baseline", "cbe": "science"}
+
 
 def wilson(solved: int, verified: int) -> list[float]:
     """Wilson score interval for a binomial rate."""
@@ -110,7 +117,7 @@ def stratify(
             "n_tasks": len(tasks),
             "tasks": sorted(tasks),
             "baseline": base,
-            "science": sci,
+            "cbe": sci,
             "delta_pp": round((sci["rate"] - base["rate"]) * 100, 1),
             "paired": {
                 "tasks_compared": len(diffs),
@@ -162,37 +169,38 @@ def main() -> int:
             "n_tasks": len(ids),
             "overall": {
                 "baseline": arm_stats(data, ids, "baseline"),
-                "science": arm_stats(data, ids, "science"),
+                "cbe": arm_stats(data, ids, ON_DISK_ARM["cbe"]),
             },
             "by_domain": stratify(data, groups_axis("domain", ids), "scientific domain"),
             "by_language": stratify(data, groups_axis("language", ids), "task language"),
             "by_ablation": stratify(data, groups_axis("ablation", ids), "knowledge-ablation flag"),
         }
         overall = partition["overall"]
-        overall["delta_pp"] = round((overall["science"]["rate"] - overall["baseline"]["rate"]) * 100, 1)
+        overall["delta_pp"] = round((overall["cbe"]["rate"] - overall["baseline"]["rate"]) * 100, 1)
         partitions[name] = partition
         frozen[name] = data
 
     # --- validation against the frozen locked-89 receipt -------------------------------
     receipt = json.loads(FROZEN_LOCKED.read_text())
     problems: list[str] = []
-    for arm in ("baseline", "science"):
-        got = partitions["locked89_k3"]["overall"][arm]
-        want = receipt["totals"][arm]
+    for label, on_disk in ON_DISK_ARM.items():
+        got = partitions["locked89_k3"]["overall"][label]
+        want = receipt["totals"][on_disk]
         if got["solved"] != want["attempts_solved"] or got["verified"] != want["attempts_verified"]:
             problems.append(
-                f"[{arm}] recomputed {got['solved']}/{got['verified']} != frozen "
+                f"[{label}] recomputed {got['solved']}/{got['verified']} != frozen "
                 f"{want['attempts_solved']}/{want['attempts_verified']}"
             )
     for task, entry in receipt["tasks"].items():
-        got = partitions["locked89_k3"]["by_domain"]["groups"]  # presence check only
-        del got
         recomputed = {
-            arm: arm_stats(frozen["locked89_k3"], [task], arm)["solved"] for arm in ("baseline", "science")
+            label: arm_stats(frozen["locked89_k3"], [task], on_disk)["solved"]
+            for label, on_disk in ON_DISK_ARM.items()
         }
-        for arm in ("baseline", "science"):
-            if recomputed[arm] != entry[arm]["solved"]:
-                problems.append(f"task {task} [{arm}] recomputed {recomputed[arm]} != frozen {entry[arm]['solved']}")
+        for label, on_disk in ON_DISK_ARM.items():
+            if recomputed[label] != entry[on_disk]["solved"]:
+                problems.append(
+                    f"task {task} [{label}] recomputed {recomputed[label]} != frozen {entry[on_disk]['solved']}"
+                )
     if problems:
         print("VALIDATION FAILED against frozen locked-89 receipt:", file=sys.stderr)
         for problem in problems[:20]:
@@ -200,13 +208,16 @@ def main() -> int:
         return 1
 
     payload = {
-        "kind": "science-context-domain-and-task-type-analysis",
+        "kind": "cbe-domain-and-task-type-analysis",
         "provenance": {
             "verdicts": "per-attempt verifier reward.json + run.json usage under runs/",
             "domains": "results/benchmark-task-domains.json (paper Appendix Table 5, validated)",
             "task_metadata": "vendor/swe-bench-science/huggingface/tasks/task_*/metadata.json",
             "split": str(SPLIT.relative_to(REPO)),
             "validated_against": str(FROZEN_LOCKED.relative_to(REPO)),
+            "arm_naming": {"baseline": "baseline (ordinary shell tools)",
+                           "cbe": "computational and boundary evidence tools; on-disk run suffix "
+                                  "'-science', arm key 'science' in raw verifier receipts"},
         },
         "partitions": partitions,
     }
@@ -214,10 +225,10 @@ def main() -> int:
 
     for name, partition in partitions.items():
         print(f"\n=== {name} ({partition['replicate_runs']} replicate runs, {partition['n_tasks']} tasks)")
-        base, sci = partition["overall"]["baseline"], partition["overall"]["science"]
+        base, sci = partition["overall"]["baseline"], partition["overall"]["cbe"]
         print(
             f"overall: baseline {base['solved']}/{base['verified']} ({base['rate']:.1%}) vs "
-            f"science {sci['solved']}/{sci['verified']} ({sci['rate']:.1%}) "
+            f"CBE {sci['solved']}/{sci['verified']} ({sci['rate']:.1%}) "
             f"[{partition['overall']['delta_pp']:+.1f} pp]"
         )
         for axis in ("by_domain", "by_language", "by_ablation"):
@@ -226,7 +237,7 @@ def main() -> int:
                 print(
                     f"     {group:<46} n={row['n_tasks']:<3} "
                     f"base {row['baseline']['rate']:.1%} ({row['baseline']['solved']}/{row['baseline']['verified']})  "
-                    f"sci {row['science']['rate']:.1%} ({row['science']['solved']}/{row['science']['verified']})  "
+                    f"CBE {row['cbe']['rate']:.1%} ({row['cbe']['solved']}/{row['cbe']['verified']})  "
                     f"delta {row['delta_pp']:+5.1f} pp"
                 )
     print(f"\nWrote {OUT.relative_to(REPO)}")

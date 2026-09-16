@@ -20,6 +20,10 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+CLAIM = (
+    "CBE reaches the same solve count with fewer generated tokens and slightly more wall-clock work."
+)
 from plotting import (  # noqa: E402
     DEV_RUNS, LOCKED_RUNS, RC, attempts, locked_receipt, save, scene,
 )
@@ -86,7 +90,7 @@ def panel_output_ecdf(ax: Any, data: dict[str, Any], letter: str, title: str) ->
     for arm, ls in (("baseline", (0, (4, 2))), ("science", "-")):
         samples = values(data, arm, "out")
         median = sorted(samples)[len(samples) // 2] / 1000
-        ecdf(ax, samples, COLORS[arm], ls=ls, label=f"{arm} arm (median {median:.0f}k)")
+        ecdf(ax, samples, COLORS[arm], ls=ls, label=f"{'baseline' if arm == 'baseline' else 'CBE'} arm (median {median:.0f}k)")
     ax.set_xscale("log")
     ax.set_xlim(2, 900)
     ax.set_ylim(0, 102)
@@ -115,9 +119,9 @@ def panel_solved_cost(ax: Any, groups: list[tuple[str, dict[str, Any]]], letter:
                    zorder=2)
             ax.text(x, mean + 1.6, f"{mean:.0f}k", ha="center", va="bottom", fontsize=6.4,
                     color=COLORS[arm], fontweight="bold")
-            ax.text(x, 3, f"n={len(samples)}", ha="center", va="bottom", fontsize=5.8, color="white")
+            ax.text(x, 3, f"n={len(samples)}", ha="center", va="bottom", fontsize=6.2, color="white")
             positions.append(x)
-            labels.append("base" if arm == "baseline" else "sci")
+            labels.append("base" if arm == "baseline" else "CBE")
     ax.set_xticks(positions)
     ax.set_xticklabels(labels, fontsize=6.4)
     ax.set_xlim(-0.55, 3.55)
@@ -170,22 +174,18 @@ def main() -> None:
     dev = attempts(DEV_RUNS)
 
     with plt.rc_context(RC):
-        fig, axes = plt.subplots(1, 4, figsize=(7.0, 2.35),
-                                 gridspec_kw={"width_ratios": [0.72, 1.0, 1.03, 1.0], "wspace": 0.58})
+        fig, axes = plt.subplots(1, 2, figsize=(6.5, 2.4),
+                                 gridspec_kw={"wspace": 0.42})
         panel_tokens(axes[0], receipt, "A", "Token totals")
-        panel_output_ecdf(axes[1], locked, "B", "Per-attempt output tokens")
-        panel_solved_cost(axes[2], [("locked-89", locked), ("dev-30", dev)], "C", "Cost of a solve")
-        panel_work(axes[3], locked, "D", "Wall-clock work")
+        panel_solved_cost(axes[1], [("locked-89", locked), ("dev-30", dev)], "B", "Cost of a solve")
 
         handles = [
             Line2D([0], [0], color=BLUE, lw=2.0, label="baseline arm"),
-            Line2D([0], [0], color=TEAL, lw=2.0, label="science arm"),
+            Line2D([0], [0], color=TEAL, lw=2.0, label="CBE arm"),
             Line2D([0], [0], color="#9CC3DE", lw=2.0, label="uncached input"),
         ]
-        fig.legend(handles=handles, loc="upper center", ncol=3, frameon=False, fontsize=7.2,
-                   bbox_to_anchor=(0.5, 1.12), handletextpad=0.4, columnspacing=1.2)
-        fig.subplots_adjust(left=0.065, right=0.99, top=0.83, bottom=0.19)
-        save(fig, "fig_resources")
+        fig.subplots_adjust(left=0.10, right=0.985, top=0.855, bottom=0.135)
+        save(fig, "fig_resources", claim=CLAIM)
 
 
 if __name__ == "__main__":

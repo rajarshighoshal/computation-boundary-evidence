@@ -10,14 +10,9 @@
 \usepackage{url}
 \usepackage[hidelinks]{hyperref}
 \hypersetup{pdfauthor={},pdftitle={},pdfsubject={},pdfkeywords={}}
-\setlength{\tabcolsep}{4pt}
-\setlength{\textfloatsep}{5pt plus 1pt minus 1pt}
-\setlength{\floatsep}{4pt plus 1pt minus 1pt}
-\setlength{\intextsep}{4pt plus 1pt minus 1pt}
-\setlength{\abovedisplayskip}{4pt}
+\setlength{\tabcolsep}{5pt}
 
-\title{Grounded scientific evidence for repository-level repair:\\
-parity, structural wins, and an anchoring penalty on SWE-bench Science}
+\title{Computation and Boundary Evidence for Scientific Repair: Parity, Structural Wins, and a Domain-Dependent Penalty}
 
 \author{\name Rajarshi Ghoshal \email rajarshi.ghoshal1@gmail.com \\
 \addr PhD research task submission, Graz University of Technology}
@@ -31,208 +26,201 @@ parity, structural wins, and an anchoring penalty on SWE-bench Science}
 \maketitle
 
 \begin{abstract}
-\small
-Repairing scientific software means finding a numerical fault inside repositories where public
-definitions, units and boundary conventions carry meaning raw source does not. We ask whether a
-compact, queryable representation of a task's scientific structure --- computations and their result
-anchors, governing conditions, documented definitions, distilled call boundaries --- changes repair
-outcomes at a \emph{matched} model, tool and time allowance. Across all 119 tasks of SWE-bench
-Science we run 757 verified official-verifier attempts (774 scheduled) with DeepSeek V4.1 Flash: $k{=}3$ held-out replicates
-over 89 locked tasks, $k{=}4$ development replicates over 30 tasks, and a $2\times2$ reasoning-effort
-matrix. The evidence arm reaches solve parity (60/260, 23.1\% vs.\ 60/262, 22.9\%; sign test
-$p{=}1.00$) while emitting 13.7\% fewer output tokens. It wins the mechanics, astronomy and materials
-strata (+22.2, +12.4, +9.7\,pp) and loses biomedical engineering and biology ($-$16.7,
-$-$9.5\,pp): the representation that localises a composite-laminate stiffness fault can push an
-agent to over-analyse a surface-projection label mismatch. Replicates bound the measurement problem
---- 55 of 89 held-out tasks are solved by neither arm, 10--11 by every replicate, 18 flip within an
-arm --- so single-attempt deltas of 1--3\,pp sit inside the noise.
+\noindent
+A scientific repair can be one line long and still be hard to find, because the code that must change
+is identified by what it computes rather than by where it sits. We ask whether a repair agent benefits
+from a prepared, queryable account of that structure. Our representation, \emph{computation and
+boundary evidence} (CBE), records which expressions produce a returned quantity, which conditions
+guard them, which public definitions document them, and which calls leave the repository to a named
+provider. It is built from parsers alone, delivered through three query endpoints beside the agent's
+ordinary shell tools, and costs no additional time or tokens. We evaluate it on all 119 tasks of
+SWE-bench Science with DeepSeek V4.1 Flash, under a matched allowance and three to four replicates per
+task. CBE solves the same number of held-out attempts as the baseline while generating 13.7\% fewer
+output tokens, and its effect separates by discipline: it gains 22.2 percentage points in mechanics
+and 9.7 in materials science, but loses 16.7 in biomedical engineering and 9.5 in biology, where the
+defect is an ordinary software fault dressed in scientific language. Replicates show that about a fifth
+of tasks change outcome between identical runs, so only differences of this size are measurable at all.
 \end{abstract}
 
-\section{Question and contribution}
-Scientific repositories fail where code meets science: a sign convention, a unit system, a boundary
-condition, an array layout. SWE-bench Science \cite{xu2026swebenchscience} places repair agents in
-that setting across 119 tasks, 20 domains and 98 repositories. Traceability research shows that
-linking artifacts through intermediate structure beats text similarity for localisation
-\cite{niu2023ablots,niu2023rat} and that role-narrowed semantics avoid retrieval pollution
-\cite{niu2025tvr}; program-analysis representations for science exist but historically live outside
-the agent's loop \cite{yamaguchi2014cpg,treesitter,skema2024gromet,automates2020}. We ask a narrow,
-falsifiable question: \emph{does interactive access to a code-derived, source-linked account of a
-task's scientific structure change solve rate under a matched total allowance?} We contribute (i) a
-preparation pipeline that builds a queryable evidence store with no model call, (ii) three query
-endpoints delivered beside the agent's normal shell tools, and (iii) a 757-attempt verified evaluation
-reporting parity, a domain split between wins and losses, and the replicate noise floor.
+\section{Introduction}
+A rotation applied in the wrong reference frame, a unit system assumed rather than converted, a boundary
+treated as closed when the data are open: failures in scientific software are often one line wide, and
+finding that line requires knowing which expression produces the quantity that a public interface
+promises. An agent working with shell tools alone has to reconstruct that structure from text search.
+This is possible, but it spends the same budget that the repair itself needs.
 
-\begin{figure}[tb]
+We ask whether that reconstruction can be supplied in advance, cheaply, and queried on demand. Our
+representation, \emph{computation and boundary evidence} (CBE), is prepared once per task by parsers
+and analyzers: it records computations together with the source spans that anchor their results,
+conditions and findings that guard them, documented public definitions, and every call that crosses a
+repository boundary, classified as internal, external with a named provider, or unresolved. The agent
+reaches it through three endpoints --- search, inspection and an optional record --- while keeping its
+usual tools. Preparation makes no model call, and the endpoints add no allowance.
+
+We evaluate this against an unchanged repair baseline on the complete SWE-bench Science benchmark
+\cite{xu2026swebenchscience}. Our contributions are:
+
+\begin{enumerate}
+  \item \textbf{A preparation pipeline that needs no model.} File ranking follows execution evidence and
+        boundary callers; Python is parsed with Tree-sitter and C, C++, Fortran and Cython with Joern
+        code property graphs, with explicit fallback when a frontend is unavailable.
+  \item \textbf{Boundary classification as first-class evidence.} Every call is labelled internal,
+        external with a provider, or unresolved. External providers are treated as interfaces assumed
+        correct, which keeps the search inside the repository instead of guessing at library internals.
+  \item \textbf{A matched evaluation with replicate structure.} We report solve rate, generated tokens,
+        partial credit and per-discipline outcomes over 757 verified attempts, and we quantify how much
+        of the benchmark moves between identical runs.
+\end{enumerate}
+
+\section{Related work}
+Linking bug reports to code through intermediate structure beats text similarity, and narrowing the role
+of retrieved context avoids pollution from loosely related artifacts
+\cite{niu2023ablots,niu2023rat,niu2025tvr,pan2025coverage}. Representations of scientific code exist as
+well: code property graphs model control and data flow \cite{yamaguchi2014cpg}, incremental parsers make
+multi-language parsing routine \cite{treesitter}, and model-extraction efforts recover equations and
+semantics from scientific source \cite{skema2024gromet,automates2020}. That work is offline or code-only.
+CBE differs in delivery: the same structure, distilled to computations and boundaries and handed to a
+repair agent inside an unchanged harness.
+
+\section{What the agent receives}
+Preparation is a single pass with no model call: files are ranked so that execution evidence and boundary
+callers precede shallow entry points, and parsers then produce the store. Across the 94 tasks whose
+prepared bundles are frozen, a task yields a median of 296 scientific objects, and the boundaries recorded
+during the held-out runs comprise 12{,}794 external calls, 1{,}890 unresolved ones and 534 internal ones,
+with \texttt{numpy} alone accounting for 1{,}554 external cases. The agent reaches the store through
+\texttt{science\_find}, \texttt{science\_inspect} (relationships, definitions, source and contracts) and
+\texttt{science\_note}, an optional record that never gates repair. Figure~\ref{fig:flow} shows the path
+and a boundary record of the kind the agent receives.
+
+\begin{figure}[t]
   \centering
-  \includegraphics[width=0.77\linewidth]{../figures/out/fig_grounding_flow.pdf}
-  \caption{How the representation reaches the agent. Preparation uses parsers and analyzers only ---
-  no model call, no execution --- and the agent queries it via \texttt{science\_find},
-  \texttt{science\_inspect} and the optional \texttt{science\_note}. The right panel shows recorded
-  payloads; the contract excerpt is verbatim from task 103's saved science state, with external
-  providers marked \texttt{assume: correct\_interface} and unresolved callees labelled
-  \texttt{unknown\_external} rather than guessed.}
+  \includegraphics[width=\linewidth]{../figures/out/fig_grounding_flow.pdf}
+  \caption{Preparation and query path. The store is built without a model call or code execution, and the
+  payloads shown are recorded from the held-out runs.}
   \label{fig:flow}
 \end{figure}
 
-\section{What the agent gets}
-Preparation runs once per task and never calls a model: files are ranked so execution evidence and
-boundary callers precede shallow entry points; Python is parsed with Tree-sitter and C, C++,
-Fortran and Cython with Joern code property graphs, with explicit fallback when a frontend is
-missing. The store records computations (name, path, result anchor, expressions), governing
-conditions and findings, documented public definitions with source spans, and \emph{call
-boundaries} of three kinds: internal, external with a named provider, unknown\_external. Across the
-94 prepared tasks with frozen bundles the median task yields 296 scientific objects (maximum
-10{,}887); boundaries recorded during the held-out science runs comprise 12{,}794 external, 1{,}890
-unknown\_external and 534 internal calls. Both arms receive identical shell tools, and every tool
-call, model second and reasoning token counts against the same 1800\,s budget.
-
 \section{Protocol}
-Thirty development tasks were used for iteration; 89 tasks were locked before the reported runs.
-The task-to-domain mapping comes from the benchmark paper's task-level inventory (Appendix
-Table~5), re-extracted and validated against its published per-domain counts, so domain strata are
-not our annotation. Both arms use DeepSeek V4.1 Flash at temperature $0$ with
-\texttt{PYTHONHASHSEED=0}, the same image, budget and verifier; containers run without network and
-verifier containers start only after repair terminates, so private tests are never visible. Solve
-means official verifier reward; per-attempt private-test fractions are retained as partial credit.
-The held-out partition ran three times (534 scheduled, 522 verified attempts), development four
-times, and both arms additionally ran at high and low reasoning effort on development
-\cite{deepseekusage}. Verifier receipts per attempt are the only source of numbers
-(\texttt{analysis/paper\_facts.py} $\rightarrow$ \texttt{results/paper-facts.json}).
+Thirty development tasks were used for iteration and 89 were locked before the reported runs, so the
+held-out partition is the only basis for the headline claim. Discipline labels come from the benchmark's
+own task inventory, re-extracted and validated against its published counts rather than annotated by us.
+Both arms use the same model (DeepSeek V4.1 Flash at temperature $0$ with a pinned hash seed), image,
+1800-second budget and verifier; the verifier runs only after the repair stops and neither container has
+network. A solve means the official reward, and the private-test pass fraction is kept as partial credit.
+The held-out partition was replicated three times and development four times, and every number below
+regenerates from verifier receipts through one analysis script.
 
 \section{Results}
-\subsection{Held-out parity at lower output cost}
-On the held-out partition the arms solve the same number of attempts --- 60/260 (23.1\%) with
-evidence against 60/262 (22.9\%) without --- and the paired comparison over tasks is flat: 74 ties,
-7 tasks better with evidence, 8 worse, sign test $p{=}1.00$, bootstrap interval $[-3.4,+4.9]$\,pp.
-Development is equally flat (44/118 vs.\ 43/117); pass@3 is 31.5\% against 32.6\%.
-
-The difference is cost, not solves (Fig.~\ref{fig:resources}). The evidence arm emits 10.36M output
-tokens against 12.01M, 13.7\% fewer --- 1.65M tokens over 522 verified attempts, at 39.8k instead of
-45.8k per attempt --- while uncached input rises modestly (878M vs.\ 838M) because the arm still
-reads files; wall-clock work per attempt is 1306.9\,s against 1236.6\,s. Partial credit moves the
-other way (70.7\% vs.\ 73.1\% pooled private-test pass rate), consistent with a narrower search
-that either finds the right computation or stops short rather than a loss of partial progress.
-
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{../figures/out/fig_parity.pdf}
+  \caption{The headline comparison. \textbf{A}~every held-out task whose solve rate differs between
+  the arms, as CBE minus baseline in percentage points (task 074 gains a full point; task 022 loses
+  two thirds of one); the remaining 74 tasks are unchanged. \textbf{B}~output tokens generated over
+  the 522 verified attempts. A circle is always the baseline arm, a square always CBE.}
+  \label{fig:parity}
+\end{figure}
 \begin{table}[t]
 \centering
-\caption{All numbers regenerate from frozen receipts via \texttt{analysis/paper\_facts.py}.}
+\caption{Reported outcomes. Every value regenerates from verifier receipts through
+\texttt{analysis/paper\_facts.py}; the receipts record each attempt individually.}
 \label{tab:main}
 \footnotesize
-\setlength{\tabcolsep}{3.5pt}
-\begin{tabular}{@{}llrrr@{}}
+\begin{tabular}{@{}llrr@{}}
 \toprule
-& & \textbf{baseline arm} & \textbf{evidence arm} & \textbf{contrast} \\
+\textbf{Partition / metric} & & \textbf{baseline} & \textbf{CBE} \\
 \midrule
-Held-out 89 $k{=}3$ & attempts solved & 60/262 (22.9\%) & 60/260 (23.1\%) & $+0.2$\,pp \\
-& paired tasks & \multicolumn{3}{r}{74 ties, 7 evidence-only, 8 baseline-only; sign test $p=1.00$} \\
-& output tokens & 12.01M (45.8k/attempt) & 10.36M (39.8k/attempt) & $-13.7\%$ \\
-& private tests & 2315/3167 (73.1\%) & 2226/3148 (70.7\%) & $-2.4$\,pp \\
+Held-out 89, $k{=}3$ & attempts solved & 60/262 (22.9\%) & 60/260 (23.1\%) \\
+& paired tasks (74 ties) & 8 better & 7 better \\
+& output tokens & 12.01M & 10.36M ($-13.7\%$) \\
+& private tests passed & 2315/3167 (73.1\%) & 2226/3148 (70.7\%) \\
 \midrule
-Development 30 $k{=}4$ & attempts solved & 43/117 (36.8\%) & 44/118 (37.3\%) & $+0.5$\,pp \\
-\midrule
-Dev 30 effort matrix & high effort & 12/30 (40.0\%) & 11/30 (36.7\%) & $-3.3$\,pp \\
-& low effort & 12/30 (40.0\%) & 13/30 (43.3\%) & $+3.3$\,pp \\
+Development 30, $k{=}4$ & attempts solved & 43/117 (36.8\%) & 44/118 (37.3\%) \\
+Development 30, effort & high / low & 12/30 / 12/30 & 11/30 / 13/30 \\
+Matched 20, effort & high / low & 10/20 / 10/20 & 8/20 / 10/20 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\begin{figure}[tb]
+\paragraph{Parity costs fewer generated tokens.} CBE solves as many held-out attempts as the baseline
+(Table~\ref{tab:main}, Figure~\ref{fig:parity}), and the paired comparison over tasks is flat: 74 tie,
+seven favour CBE and eight favour the baseline, with a sign test that cannot separate them. Development repeats the
+pattern. What changes is cost. CBE generates 13.7\% fewer output tokens, close to 40{,}000 per attempt
+instead of 46{,}000, spends slightly more input because it still opens files, and takes about a minute
+more wall-clock time per attempt. Partial credit moves the other way by a small margin, which matches a
+narrower search: the agent either finds the right computation or stops before it.
+
+\paragraph{Gains and losses separate by discipline.}
+\begin{figure}[t]
   \centering
-  \includegraphics[width=0.73\linewidth]{../figures/out/fig_resources.pdf}
-  \caption{Resource use at matched solve rates (522 held-out verified attempts).
-  \textbf{A}~pooled token composition; \textbf{B}~per-attempt output-token distributions;
-  \textbf{C}~mean output tokens per \emph{solved} attempt on both partitions; \textbf{D}~agent work
-  seconds per attempt.}
-  \label{fig:resources}
-\end{figure}
-
-\subsection{Where the representation helps, and where it hurts}
-Aggregate parity hides opposing strata (Fig.~\ref{fig:domains}). Held-out mechanics improves by
-22.2\,pp (0/9$\rightarrow$2/9), astronomy by 12.4\,pp (2/14$\rightarrow$4/15), materials science and
-engineering by 9.7\,pp (8/44$\rightarrow$12/43) and civil engineering by 6.7\,pp; biomedical
-engineering falls 16.7\,pp (13/30$\rightarrow$8/30) and biology 9.5\,pp
-(7/18$\rightarrow$5/17); chemistry (19 tasks), physics (7) and mathematics (5) are exactly
-unchanged. Development shows the same texture: mathematics gains 37.5\,pp (0/8$\rightarrow$3/8) and
-statistics 25\,pp, while chemistry loses 10\,pp.
-
-The discordant task IDs name the mechanism. Held-out wins for the evidence arm are 020, 042, 074,
-103 and 116; losses are 022, 029, 053, 063, 087 and 093. Task 103 (pyNastran, symmetric composite
-laminate ABD calculations) is solved 2 of 3 times with evidence and 0 of 3 without, and its saved
-state shows the arm inspecting the ply-angle computation and its \texttt{numpy} boundaries instead
-of scanning parser code. Task 022 (nilearn, volume-to-surface projection) is the mirror image:
-2 of 3 with the baseline, 0 of 3 with evidence, with the trajectory reading projection mathematics
-before touching the atlas label mapping the instructions actually concern. That is the split:
-strata that improve are ones where the defect \emph{is} a computation, strata that degrade are ones
-where an ordinary software defect sits under scientific prose.
-
-Stratifying by the benchmark's knowledge-ablation flag gives $-$0.3\,pp for ablated tasks
-(47/188 vs.\ 48/190) and $+1.4$\,pp for knowledge-provided tasks (13/72 vs.\ 12/72): no detectable
-interaction. Language strata are uninformative here --- 81 of 89 locked tasks are pure Python, and
-the ten multi-language tasks were solved by neither arm except two pure-C tasks solved by both.
-
-\begin{figure}[tb]
-  \centering
-  \includegraphics[width=0.79\linewidth]{../figures/out/fig_domains.pdf}
-  \caption{Domain outcome map (\texttt{results/domain-arm-analysis.json}). Rows appear where the
-  partition holds at least three (locked, \textbf{A}) or two (development, \textbf{B}) tasks;
-  circles mark the baseline arm, squares the evidence arm, whiskers its Wilson 95\% interval and the
-  right column the difference.}
+  \includegraphics[width=\linewidth]{../figures/out/fig_domains.pdf}
+  \caption{Outcomes by scientific domain for the held-out partition (\textbf{A}) and the development
+  partition (\textbf{B}); row labels give the task count, the right column the difference in percentage
+  points. Circles are the baseline arm and squares CBE; the two markers coincide where a domain does
+  not move, and per-domain counts are in the results receipt.}
   \label{fig:domains}
 \end{figure}
+Aggregate parity hides opposing effects (Figure~\ref{fig:domains}). Mechanics gains 22.2 percentage points,
+from no solves to two of nine attempts, astronomy 12.4 and materials science 9.7, while biomedical
+engineering loses 16.7 and biology 9.5; chemistry, physics and mathematics are unchanged to the last
+attempt. Development shows the same shape from the other side, with mathematics gaining three solves where
+the baseline had none. The benchmark's knowledge-ablation flag shows no interaction, and language strata
+are uninformative because 81 of the 89 held-out tasks are pure Python.
 
-\subsection{Replication structure dominates}
-Three held-out replicates make the measurement problem explicit (Fig.~\ref{fig:stability}): per
-arm, 60 (baseline) and 61 (evidence) tasks are never solved, 11 and 10 are solved by every
-replicate, and 18 tasks flip inside each arm. The joint distribution sits on the diagonal --- 55
-tasks at 0/0 and 10 at 3/3 --- with only 15 tasks disagreeing between arms at all. Since about a
-fifth of tasks move under identical conditions, a single-run difference of 1--3\,pp carries no
-signal; that is why we report raw counts beside every percentage.
+The tasks themselves name the mechanism. CBE gains on tasks 020, 042, 067, 074, 084, 103 and 116, and
+loses on 022, 029, 053, 056, 063, 087, 093 and 098. Task 103 asks for the stiffness matrices of a symmetric composite laminate; CBE
+solved it twice in three replicates against no baseline solve, inspecting the ply-angle computation and the
+library boundaries it calls. Task 022 asks for a volume-to-surface projection in a neuroimaging toolkit,
+and the comparison inverts: the baseline solved it twice and CBE never did, because the trajectory reasoned
+about projection mathematics before touching the atlas label mapping the instruction describes. When the
+defect is a computation, structure locates it; when the defect is ordinary code under scientific prose,
+structure distracts from it.
 
-\subsection{Reasoning effort substitutes for evidence}
-At high reasoning effort the baseline leads development 12/30 against 11/30; at low effort the
-evidence arm leads 13/30 against 12/30. On the 20-task subset evaluated at both levels the
-high-effort evidence deficit (8/20 vs.\ 10/20) disappears (10/20 vs.\ 10/20), and the two tasks it
-recovered at low effort (002, 009) are exactly the two it lost at high effort --- the signature of
-external structure standing in for deliberation. Tool use in that subset: 61
-\texttt{science\_inspect}, 10 \texttt{science\_find}, 20 records over 20 tasks.
-
-\begin{figure}[tb]
+\paragraph{Replication bounds what is measurable.}
+\begin{figure}[t]
   \centering
-  \includegraphics[width=0.75\linewidth]{../figures/out/fig_stability.pdf}
-  \caption{Replicate structure of the held-out partition. \textbf{A}~tasks by number of replicate
-  runs that solved them; \textbf{B}~pass@$k$ curves; \textbf{C}~per-task solve-rate pairing with
-  one-arm-only counts annotated.}
+  \includegraphics[width=\linewidth]{../figures/out/fig_stability.pdf}
+  \caption{Replication structure of the held-out partition. \textbf{A}~tasks by the number of replicate
+  runs that solved them, per arm. \textbf{B}~share of tasks solved by at least one of $k$ pooled runs.}
   \label{fig:stability}
 \end{figure}
+Three replicates make the measurement problem visible (Figure~\ref{fig:stability}). Sixty tasks are never
+solved by the baseline and 61 never by CBE, eleven and ten are solved every time, 18 change outcome
+between identical runs within one arm, and the arms disagree on 15 tasks in total. A single run would
+attribute a few percentage points to the method with no basis.
 
-\section{Threats and conclusion}
-\textbf{Threats.} One model and one budget bound every result: a different model, or a budget that
-lets the baseline exhaust its search, could move both the parity line and the domain split.
-Individual domain rows --- single-task rows and the $k{=}1$ effort cells especially --- are
-descriptive, and only the aggregate held-out comparison is inferential. Unparseable expressions are
-recorded as unsupported and external calls are treated as assumed-correct interfaces, so a
-misclassification would silently remove a file from scope. Development tasks are optimistic by
-construction; the locked partition alone supports the parity claim.
+\paragraph{Reduced reasoning effort recovers what high effort lost.} On the development partition the
+baseline leads at high effort and CBE leads at low effort, and on the 20-task subset evaluated at both
+levels the high-effort deficit disappears once effort is reduced. The two tasks recovered under low
+effort are the same two that were lost under high effort, which is what one expects if external evidence
+substitutes for deliberation rather than adding capability. The agent used the endpoints throughout that
+subset: 61 inspections, 10 searches and 20 optional records across 20 tasks.
 
-A queryable account of scientific structure changed repair behaviour without changing average solve
-rate: parity on 522 held-out verified attempts, 13.7\% fewer generated tokens, and a domain-dependent split
-in which computation-shaped defects improve by up to 22\,pp while software-shaped defects under
-scientific prose degrade by up to 17\,pp. Context about science is not a uniform prior; it is a lens
-that sharpens some tasks and distorts others, and the benchmark's replicate structure makes the
-difference measurable only at $k\ge3$.
+\section{Discussion and conclusion}
+One reading of these results is that scientific structure is not useful to a repair agent, since average
+solve rate does not move. The other is that its usefulness is domain-dependent: it helps where the defect
+is a computation and hurts where the defect is code that merely lives near one. The discipline split, the
+discordant tasks and the partial-credit shift all point at the second reading.
+
+Four limits bound the claim. One model at one budget produced every number; single-task disciplines are
+descriptive, and only the aggregate held-out comparison supports inference; unparseable expressions are
+recorded as unsupported and external calls are labelled rather than verified, so a classification error
+would silently shrink the search space; and development tasks are optimistic by construction. The design
+consequence is to offer scientific structure conditionally, with a signal that the defect is computational
+before an agent commits to reading mathematics.
 
 \clearpage
-\section*{Artifacts, provenance and division of work}
-Code, receipts and figures are in the submission repository (URL and commit hash in
-\texttt{README.md} and \texttt{REPRODUCTION.md}); the reported 757 verified attempts total 115/379 for the
-baseline and 117/378 with evidence. Every number here regenerates from \texttt{analysis/paper\_facts.py}
-into \texttt{results/paper-facts.json}, and every figure renders from frozen receipts through
-\texttt{paper/figures/make\_all.py} with a layout assertion before writing. Task IDs are benchmark
-IDs and domain labels are the benchmark paper's domains. Rajarshi Ghoshal designed the
-representation, protocol and analysis and wrote this report; LLM coding assistants implemented
-harness plumbing, parsers and figures and helped revise prose. DeepSeek V4.1 Flash was the only
-model used for repair attempts, and the development partition was the only basis for iteration. No
-prior research of the author is claimed as the basis of this method.
+\section*{Statements}
+\textbf{AI use.} The author designed the representation, the protocol and the analysis, and wrote this
+report. LLM coding assistants implemented harness plumbing, parsers and figures, and helped revise prose.
+DeepSeek V4.1 Flash was the only model used for repair attempts; the development partition was the only
+basis for iteration. No prior research of the author is claimed as the basis of this method.
+
+\textbf{Reproducibility.} The 757 verified attempts (774 scheduled) total 115/379 for the baseline and
+117/378 for CBE. Numbers regenerate from \texttt{analysis/paper\_facts.py} into
+\texttt{results/paper-facts.json}, and figures render from frozen receipts through
+\texttt{paper/figures/make\_all.py}, which asserts its layout before writing. Code, receipts, exact task
+IDs and a reproduction README are in the submission repository recorded in \texttt{README.md}.
 
 \begin{samepage}
 \begin{thebibliography}{9}

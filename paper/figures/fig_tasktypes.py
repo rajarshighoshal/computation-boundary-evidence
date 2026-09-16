@@ -13,6 +13,10 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+CLAIM = (
+    "Language and knowledge-ablation strata do not separate the arms."
+)
 from plotting import (  # noqa: E402
     RC, domain_receipt, dotted_grid, save, scene, wilson,
 )
@@ -23,14 +27,14 @@ DATA_FRAC = 0.62
 
 LANGUAGE_LABELS = {
     "python": "Python only",
-    "python-cpp": "Python + C++",
-    "python-c": "Python + C",
-    "python-cython": "Python + Cython",
+    "python-cpp": "Py + C++",
+    "python-c": "Py + C",
+    "python-cython": "Py + Cython",
     "c": "C",
     "c++": "C++",
-    "c-python": "C + Python",
+    "c-python": "C + Py",
     "fortran": "Fortran",
-    "matlab-octave": "MATLAB/Octave",
+    "matlab-octave": "MATLAB",
 }
 ABLATION_LABELS = {
     "knowledge-ablated": "knowledge ablated",
@@ -45,7 +49,7 @@ def panel(ax: Any, groups: dict[str, Any], order: list[str], labels: dict[str, s
         row = groups.get(key)
         if row is None or row["n_tasks"] < min_tasks:
             continue
-        rows.append((labels.get(key, key), row["baseline"], row["science"], row["n_tasks"]))
+        rows.append((labels.get(key, key), row["baseline"], row["cbe"], row["n_tasks"]))
     rows.sort(key=lambda r: r[2]["rate"] - r[1]["rate"])
 
     ys = list(range(len(rows)))
@@ -87,7 +91,7 @@ def main() -> None:
     locked = payload["partitions"]["locked89_k3"]
 
     with plt.rc_context(RC):
-        fig, axes = plt.subplots(1, 2, figsize=(7.0, 2.9),
+        fig, axes = plt.subplots(1, 2, figsize=(6.5, 2.5),
                                  gridspec_kw={"width_ratios": [1.0, 0.72], "wspace": 0.52})
         panel(axes[0], locked["by_language"]["groups"],
               ["python", "c", "c++", "c-python", "python-c", "python-cpp", "python-cython",
@@ -101,14 +105,14 @@ def main() -> None:
             Line2D([0], [0], marker="o", ms=3.4, ls="none", color=BLUE, markeredgecolor="white",
                    markeredgewidth=0.5, label="baseline arm"),
             Line2D([0], [0], marker="s", ms=3.4, ls="none", color=TEAL, markeredgecolor="white",
-                   markeredgewidth=0.5, label="science arm, gain"),
+                   markeredgewidth=0.5, label="CBE arm, gain"),
             Line2D([0], [0], marker="s", ms=3.4, ls="none", color=RUST, markeredgecolor="white",
-                   markeredgewidth=0.5, label="science arm, loss"),
+                   markeredgewidth=0.5, label="CBE arm, loss"),
         ]
         fig.legend(handles=handles, loc="upper center", ncol=3, frameon=False, fontsize=7.2,
                    bbox_to_anchor=(0.5, 1.10), handletextpad=0.4, columnspacing=1.2)
-        fig.subplots_adjust(left=0.155, right=0.99, top=0.845, bottom=0.135)
-        save(fig, "fig_tasktypes")
+        fig.subplots_adjust(left=0.165, right=0.99, top=0.80, bottom=0.155)
+        save(fig, "fig_tasktypes", claim=CLAIM)
 
 
 if __name__ == "__main__":

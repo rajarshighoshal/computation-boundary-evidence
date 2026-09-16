@@ -17,6 +17,10 @@ from typing import Any
 import matplotlib.pyplot as plt
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+CLAIM = (
+    "Reduced reasoning effort recovers exactly the tasks the evidence arm lost at high effort."
+)
 from plotting import RC, attempts, load_json, save, scene  # noqa: E402
 from theme import BLUE, GRID, INK_SOFT, TEAL  # noqa: E402
 
@@ -44,7 +48,7 @@ def panel_matrix(ax: Any, receipt: dict[str, Any], letter: str, title: str) -> N
     ax.set_xlim(-0.6, 3.6)
     ax.set_ylim(0, 56)
     ax.set_xticks(positions)
-    ax.set_xticklabels(["high\nbase", "high\nsci", "low\nbase", "low\nsci"], fontsize=6.4)
+    ax.set_xticklabels(["high\nbase", "high\nCBE", "low\nbase", "low\nCBE"], fontsize=6.4)
     ax.set_ylabel("tasks solved (% of 30)", fontsize=7.4)
     ax.grid(axis="y", color=GRID, lw=0.45, zorder=0)
     ax.set_axisbelow(True)
@@ -68,7 +72,7 @@ def panel_matched(ax: Any, receipt: dict[str, Any], letter: str, title: str) -> 
     ax.set_xlim(-0.6, 3.6)
     ax.set_ylim(0, 62)
     ax.set_xticks(positions)
-    ax.set_xticklabels(["base", "sci", "base", "sci"], fontsize=6.8)
+    ax.set_xticklabels(["base", "CBE", "base", "CBE"], fontsize=6.8)
     ax.set_ylabel("tasks solved (% of 20)", fontsize=7.4)
     ax.grid(axis="y", color=GRID, lw=0.45, zorder=0)
     ax.set_axisbelow(True)
@@ -95,7 +99,7 @@ def panel_effort_tokens(ax: Any, means_k: list[float], letter: str, title: str) 
         ax.text(x, mean + 0.8, f"{mean:.0f}k", ha="center", va="bottom", fontsize=6.6,
                 color=colours[x], fontweight="bold")
     ax.set_xticks(xs)
-    ax.set_xticklabels(["high\nbase", "high\nsci", "low\nbase", "low\nsci"], fontsize=6.4)
+    ax.set_xticklabels(["high\nbase", "high\nCBE", "low\nbase", "low\nCBE"], fontsize=6.4)
     ax.set_ylabel("mean output tokens per attempt (k)", fontsize=7.4)
     ax.set_ylim(0, max(means) * 1.25)
     ax.grid(axis="y", color=GRID, lw=0.45, zorder=0)
@@ -110,6 +114,7 @@ def panel_effort_tokens(ax: Any, means_k: list[float], letter: str, title: str) 
 def main() -> None:
     full = load_json("results/complete-30-task-2x2-matrix.json")
     matched = load_json("results/deepseek-2x2-matched-evaluation.json")
+    del matched  # the matched subset is reported in the table, not here
 
     high = attempts(["deepseek-development-e2e-40-v1"])
     low = attempts(["deepseek-development-e2e-40-low-v1", "deepseek-development-e2e-tail-10-low-v1"])
@@ -117,13 +122,12 @@ def main() -> None:
                mean_output_tokens(low, "baseline") / 1000, mean_output_tokens(low, "science") / 1000]
 
     with plt.rc_context(RC):
-        fig, axes = plt.subplots(1, 3, figsize=(7.0, 2.5),
-                                 gridspec_kw={"width_ratios": [1.0, 0.85, 1.0], "wspace": 0.5})
-        panel_matrix(axes[0], full, "A", "Dev-30, all four cells")
-        panel_matched(axes[1], matched, "B", "Matched subset ($n=20$)")
-        panel_effort_tokens(axes[2], means_k, "C", "Tokens per attempt by cell")
+        fig, axes = plt.subplots(1, 2, figsize=(5.5, 2.5),
+                                 gridspec_kw={"wspace": 0.45})
+        panel_matrix(axes[0], full, "A", "Dev-30, four cells")
+        panel_effort_tokens(axes[1], means_k, "B", "Tokens per attempt")
         fig.subplots_adjust(left=0.075, right=0.99, top=0.80, bottom=0.16)
-        save(fig, "fig_effort")
+        save(fig, "fig_effort", claim=CLAIM)
 
 
 if __name__ == "__main__":

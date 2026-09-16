@@ -17,7 +17,11 @@
   "domain_mapping": "results/benchmark-task-domains.json",
   "effort_matrix": "results/complete-30-task-2x2-matrix.json",
   "matched_effort": "results/deepseek-2x2-matched-evaluation.json",
-  "consolidation": "results/dev30-four-run-consolidation.json"
+  "consolidation": "results/dev30-four-run-consolidation.json",
+  "arm_naming": {
+   "baseline": "ordinary shell tools",
+   "cbe": "computation and boundary evidence (CBE) tools; frozen runs and verifier receipts encode this arm as 'science'"
+  }
  },
  "model": "DeepSeek V4.1 Flash (temperature 0, PYTHONHASHSEED=0, no container network)",
  "locked89_k3": {
@@ -30,7 +34,7 @@
     0.2836
    ]
   },
-  "science": {
+  "cbe": {
    "solved": 60,
    "verified": 260,
    "rate": 0.2308,
@@ -103,7 +107,7 @@
      "112",
      "115"
     ],
-    "science": [
+    "cbe": [
      "013",
      "015",
      "023",
@@ -264,7 +268,7 @@
      "100",
      "108"
     ],
-    "science": [
+    "cbe": [
      "007",
      "017",
      "020",
@@ -300,13 +304,32 @@
     "087",
     "093"
    ],
+   "rate_gain_tasks": [
+    "020",
+    "042",
+    "067",
+    "074",
+    "084",
+    "103",
+    "116"
+   ],
+   "rate_loss_tasks": [
+    "022",
+    "029",
+    "053",
+    "056",
+    "063",
+    "087",
+    "093",
+    "098"
+   ],
    "pass_at_k": {
     "baseline": {
      "1": 0.2584,
      "2": 0.3034,
      "3": 0.3258
     },
-    "science": {
+    "cbe": {
      "1": 0.2584,
      "2": 0.3146,
      "3": 0.3146
@@ -381,7 +404,7 @@
     0.4578
    ]
   },
-  "science": {
+  "cbe": {
    "solved": 44,
    "verified": 118,
    "rate": 0.3729,
@@ -397,7 +420,7 @@
     "3": 0.4,
     "4": 0.4
    },
-   "science": {
+   "cbe": {
     "1": 0.3929,
     "2": 0.4333,
     "3": 0.4333,
@@ -488,21 +511,21 @@
    "domain": "Mechanics",
    "locked": {
     "baseline": 0,
-    "science": 2
+    "cbe": 2
    }
   },
   "077": {
    "domain": "Mathematics",
    "dev": {
     "baseline": 0,
-    "science": 3
+    "cbe": 3
    }
   },
   "022": {
    "domain": "Biomedical Engineering",
    "locked": {
     "baseline": 2,
-    "science": 0
+    "cbe": 0
    }
   }
  }

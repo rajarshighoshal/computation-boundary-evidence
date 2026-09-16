@@ -1,5 +1,9 @@
 """Assemble every number the report quotes into one durable receipt.
 
+Naming: the intervention arm is published as CBE (computation and boundary evidence). Frozen
+run directories and the frozen locked-89 receipt encode it as "science"; this receipt reports the
+published name and records that mapping under provenance.arm_naming.
+
 Sources: the frozen locked-89 k=3 receipt, the dev-30 consolidation, the matched
 2x2 effort evaluation, and per-attempt verifier records under runs/. Writes
 results/paper-facts.json; the report text is written from that file only.
@@ -21,6 +25,9 @@ from analyze_locked_k3 import load_runs, sign_test_p  # noqa: E402
 from domain_arm_analysis import DEV_RUNS, LOCKED_RUNS, Z95  # noqa: E402
 
 OUT = REPO / "results" / "paper-facts.json"
+
+# Published arm name for the on-disk "science" arm.
+ON_DISK_ARM = {"baseline": "baseline", "cbe": "science"}
 
 
 def wilson(solved: int, verified: int) -> list[float]:
@@ -82,8 +89,22 @@ def main() -> int:
     b_dev = solve_count_map(dev, "baseline")
     s_dev = solve_count_map(dev, "science")
 
+    # Two mover definitions, both reported: by raw solve count, and by solve rate (the definition
+    # the paired sign test uses, since verified attempt counts differ between arms).
     science_only = [t for t in sorted(b_locked) if s_locked[t] and not b_locked[t]]
     baseline_only = [t for t in sorted(b_locked) if b_locked[t] and not s_locked[t]]
+    rate_gains: list[str] = []
+    rate_losses: list[str] = []
+    for task in sorted(b_locked):
+        base = [int(r["reward"]) for r in locked[task].get("baseline", []) if r["reward"] is not None]
+        cbe = [int(r["reward"]) for r in locked[task].get("science", []) if r["reward"] is not None]
+        if not base or not cbe:
+            continue
+        base_rate, cbe_rate = sum(base) / len(base), sum(cbe) / len(cbe)
+        if cbe_rate > base_rate:
+            rate_gains.append(task)
+        elif cbe_rate < base_rate:
+            rate_losses.append(task)
 
     facts = {
         "kind": "report-facts",
@@ -95,11 +116,14 @@ def main() -> int:
             "effort_matrix": "results/complete-30-task-2x2-matrix.json",
             "matched_effort": "results/deepseek-2x2-matched-evaluation.json",
             "consolidation": "results/dev30-four-run-consolidation.json",
+            "arm_naming": {"baseline": "ordinary shell tools",
+                           "cbe": "computation and boundary evidence (CBE) tools; frozen runs and "
+                                  "verifier receipts encode this arm as 'science'"},
         },
         "model": "DeepSeek V4.1 Flash (temperature 0, PYTHONHASHSEED=0, no container network)",
         "locked89_k3": {
-            "baseline": arm_summary(locked, "baseline"),
-            "science": arm_summary(locked, "science"),
+            "baseline": arm_summary(locked, ON_DISK_ARM["baseline"]),
+            "cbe": arm_summary(locked, ON_DISK_ARM["cbe"]),
             "token_totals": {
                 arm: {
                     "input": frozen["totals"][arm]["input_tokens"],
@@ -112,7 +136,7 @@ def main() -> int:
                     "graded_tests_passed": frozen["totals"][arm]["private_tests_passed"],
                     "graded_tests_collected": frozen["totals"][arm]["private_tests_collected"],
                 }
-                for arm in ("baseline", "science")
+                for arm in (ON_DISK_ARM["baseline"], ON_DISK_ARM["cbe"])
             },
             "output_token_delta_pct": round(
                 (frozen["totals"]["science"]["output_tokens"] / frozen["totals"]["baseline"]["output_tokens"] - 1) * 100, 1),
@@ -122,25 +146,28 @@ def main() -> int:
             "replication": {
                 "joint_solve_counts_baseline_science": {f"{b}/{s}": n for (b, s), n in sorted(joint.items())},
                 "tasks_solved_all_3": {"baseline": sorted(t for t in b_locked if b_locked[t] == 3),
-                                       "science": sorted(t for t in s_locked if s_locked[t] == 3)},
+                                       "cbe": sorted(t for t in s_locked if s_locked[t] == 3)},
                 "tasks_solved_none": {"baseline": [t for t in sorted(b_locked) if b_locked[t] == 0],
                                       "science": [t for t in sorted(s_locked) if s_locked[t] == 0]},
                 "tasks_flipping": {
                     "baseline": [t for t in sorted(b_locked) if 0 < b_locked[t] < 3],
-                    "science": [t for t in sorted(s_locked) if 0 < s_locked[t] < 3],
+                    "cbe": [t for t in sorted(s_locked) if 0 < s_locked[t] < 3],
                 },
                 "science_only_tasks": science_only,
                 "baseline_only_tasks": baseline_only,
+                "rate_gain_tasks": rate_gains,
+                "rate_loss_tasks": rate_losses,
                 "pass_at_k": {
-                    arm: {k: pass_at_k(locked, arm, k) for k in (1, 2, 3)} for arm in ("baseline", "science")
+                    label: {k: pass_at_k(locked, arm, k) for k in (1, 2, 3)}
+                    for label, arm in ON_DISK_ARM.items()
                 },
             },
         },
         "dev30_k4": {
-            "baseline": arm_summary(dev, "baseline"),
-            "science": arm_summary(dev, "science"),
-            "pass_at_k": {arm: {k: pass_at_k(dev, arm, k) for k in (1, 2, 3, 4)}
-                          for arm in ("baseline", "science")},
+            "baseline": arm_summary(dev, ON_DISK_ARM["baseline"]),
+            "cbe": arm_summary(dev, ON_DISK_ARM["cbe"]),
+            "pass_at_k": {label: {k: pass_at_k(dev, arm, k) for k in (1, 2, 3, 4)}
+                          for label, arm in ON_DISK_ARM.items()},
             "science_only_tasks": [t for t in sorted(b_dev) if s_dev[t] and not b_dev[t]],
             "baseline_only_tasks": [t for t in sorted(b_dev) if b_dev[t] and not s_dev[t]],
             "tokens": {
@@ -149,7 +176,7 @@ def main() -> int:
                     "output": sum(r["out"] for t in dev for r in dev[t].get(arm, []) if r["reward"] is not None),
                     "attempts": sum(1 for t in dev for r in dev[t].get(arm, []) if r["reward"] is not None),
                 }
-                for arm in ("baseline", "science")
+                for arm in (ON_DISK_ARM["baseline"], ON_DISK_ARM["cbe"])
             },
             "consolidation_claim": consolidation["pooled_totals"],
         },
@@ -160,15 +187,15 @@ def main() -> int:
         "task_examples": {
             "103": {
                 "domain": domains["103"]["domain"],
-                "locked": {"baseline": b_locked.get("103"), "science": s_locked.get("103")},
+                "locked": {"baseline": b_locked.get("103"), "cbe": s_locked.get("103")},
             },
             "077": {
                 "domain": domains["077"]["domain"] if "077" in domains else None,
-                "dev": {"baseline": b_dev.get("077"), "science": s_dev.get("077")},
+                "dev": {"baseline": b_dev.get("077"), "cbe": s_dev.get("077")},
             },
             "022": {
                 "domain": domains.get("022", {}).get("domain"),
-                "locked": {"baseline": b_locked.get("022"), "science": s_locked.get("022")},
+                "locked": {"baseline": b_locked.get("022"), "cbe": s_locked.get("022")},
             },
         },
     }
@@ -179,11 +206,12 @@ def main() -> int:
     OUT.write_text(json.dumps(facts, indent=1) + "\n")
     print(f"Wrote {OUT.relative_to(REPO)}")
     print(json.dumps(facts["locked89_k3"]["comparison"], indent=1))
-    print("locked:", facts["locked89_k3"]["baseline"], facts["locked89_k3"]["science"])
-    print("dev:", facts["dev30_k4"]["baseline"], facts["dev30_k4"]["science"])
+    print("locked:", facts["locked89_k3"]["baseline"], facts["locked89_k3"]["cbe"])
+    print("dev:", facts["dev30_k4"]["baseline"], facts["dev30_k4"]["cbe"])
     print("joint solve counts:", facts["locked89_k3"]["replication"]["joint_solve_counts_baseline_science"])
     print("pass@k locked:", facts["locked89_k3"]["replication"]["pass_at_k"])
-    print("science-only:", science_only, "baseline-only:", baseline_only)
+    print("science-only (count):", science_only, "baseline-only (count):", baseline_only)
+    print("rate gains:", rate_gains, "| rate losses:", rate_losses)
     print("examples:", json.dumps(facts["task_examples"], indent=1))
     return 0
 

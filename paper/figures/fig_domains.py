@@ -1,8 +1,10 @@
-"""Domain-level outcome map: where the evidence tools help, and where they hurt.
+"""Where the evidence tools help and where they hurt.
 
-One dumbbell row per scientific domain (the benchmark paper's Appendix Table 5
-domains) for the held-out locked-89 partition and the development dev-30 partition.
-Both panels read ``results/domain-arm-analysis.json``.
+Dumbbell per scientific domain: the baseline rate as a circle, the CBE rate as a square, and the
+signed difference as a number. No intervals are drawn --- with two or three attempts per task the
+honest annotation is the count, so each row also carries solved/verified for both arms.
+
+Rows are the benchmark paper's scientific domains; the partition decides which rows appear.
 """
 
 from __future__ import annotations
@@ -12,18 +14,19 @@ from pathlib import Path
 from typing import Any
 
 import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from plotting import RC, domain_receipt, dotted_grid, save, scene, wilson  # noqa: E402
-from theme import BLUE, RUST, TEAL  # noqa: E402
+from plotting import RC, domain_receipt, save
+from theme import GRID, INK_SOFT
+import viz
 
-RATE_MAX = 0.80
-DATA_FRAC = 0.62
+CLAIM = ("CBE gains in mechanics, astronomy and materials science and loses in biomedical "
+         "engineering and biology, while chemistry, physics and mathematics do not move.")
 
-SHORT_NAMES = {
+RATE_MAX = 1.0
+SHORT = {
     "Aeronautical and Astronautical Science and Technology": "Aeronautical & astronautical eng.",
-    "Surveying and Mapping Science and Technology": "Surveying & mapping sci.",
+    "Surveying and Mapping Science and Technology": "Surveying & mapping",
     "Information and Communication Engineering": "Information & comm. eng.",
     "Computer Science and Technology": "Computer science",
     "Materials Science and Engineering": "Materials sci. & eng.",
@@ -41,67 +44,65 @@ def rows(partition: dict[str, Any], min_tasks: int) -> list[dict[str, Any]]:
     for group, row in partition["by_domain"]["groups"].items():
         if row["n_tasks"] < min_tasks:
             continue
+        base, cbe = row["baseline"], row["cbe"]
         out.append({
-            "domain": SHORT_NAMES.get(group, group),
-            "n": row["n_tasks"],
-            "baseline": row["baseline"],
-            "science": row["science"],
+            "label": f"{SHORT.get(group, group)} ({row['n_tasks']})",
+            "base": base["rate"],
+            "cbe": cbe["rate"],
             "delta": row["delta_pp"],
+            "counts": f"{base['solved']}/{base['verified']} → {cbe['solved']}/{cbe['verified']}",
         })
-    out.sort(key=lambda item: (item["delta"], item["domain"]))
+    out.sort(key=lambda item: (item["delta"], item["label"]))
     return out
 
 
-def panel(ax: Any, data_rows: list[dict[str, Any]], overall: dict[str, Any],
-          letter: str, title: str) -> None:
+def panel(ax: Any, data_rows: list[dict[str, Any]], overall: dict[str, Any], letter: str,
+          title: str) -> None:
     count = len(data_rows)
-    ys = list(range(count)) + [count + 0.6]
+    ys = list(range(count)) + [count + 0.75]
     ax.set_yticks(ys)
-    ax.set_yticklabels([f"{row['domain']} ({row['n']})" for row in data_rows] + ["overall"],
-                       fontsize=7.2)
+    ax.set_yticklabels([row["label"] for row in data_rows] + ["overall"], fontsize=7.0)
     ax.get_yticklabels()[-1].set_fontweight("bold")
 
-    for x in (0.0, 0.2, 0.4, 0.6, 0.8):
-        ax.plot([x / RATE_MAX * DATA_FRAC] * 2, [0.0, 1.0], transform=ax.transAxes,
-                color="#D9D9D9", lw=0.45, zorder=0)
-    ax.plot([0.66, 0.66], [0.0, 1.0], transform=ax.transAxes, color="#D9D9D9", lw=0.6)
+    # gridlines span the data rows only; the right band is reserved for the difference column
+    ax.vlines([0.0, 0.25, 0.5, 0.75, 1.0], ymin=-0.7, ymax=count - 0.3, color=GRID, lw=0.45,
+              zorder=0)
+    ax.vlines([0.0], ymin=-0.7, ymax=count - 0.3, color=INK_SOFT, lw=0.7, zorder=1)
 
     for y, row in zip(ys[:count], data_rows):
-        base, sci = row["baseline"], row["science"]
-        delta = row["delta"]
-        colour = TEAL if delta > 0 else (RUST if delta < 0 else "#555555")
-        ax.plot([base["rate"], sci["rate"]], [y, y], color=colour, lw=1.4, alpha=0.5, zorder=2)
-        ax.plot([base["rate"]], [y], marker="o", ms=3.4, color=BLUE, zorder=3,
-                markeredgecolor="white", markeredgewidth=0.5, ls="none")
-        ax.plot([sci["rate"]], [y], marker="s", ms=3.4, color=colour, zorder=3,
-                markeredgecolor="white", markeredgewidth=0.5, ls="none")
-        low, high = wilson(sci["solved"], sci["verified"])
-        ax.plot([low, high], [y, y], color=colour, lw=0.7, alpha=0.45, zorder=1)
-        ax.text(0.68, y, f"{delta:+.1f}", fontsize=7.0, va="center", ha="left", color=colour,
-                fontweight="bold", transform=ax.get_yaxis_transform())
+        kind = "gain" if row["delta"] > 0 else ("loss" if row["delta"] < 0 else "tie")
+        line_colour = viz.COLOUR["line"] if kind == "tie" else viz.COLOUR[kind]
+        ax.plot([row["base"], row["cbe"]], [y, y], color=line_colour, lw=1.3,
+                alpha=1.0 if kind == "tie" else 0.55, zorder=2)
+        if kind == "tie":
+            # coincident values: separate the markers by a hair so both read
+            viz.dot(ax, row["base"] - 0.022, y, "baseline", size=4.2)
+            viz.dot(ax, row["cbe"] + 0.022, y, kind, size=3.4)
+        else:
+            viz.dot(ax, row["base"], y, "baseline", size=3.5)
+            viz.dot(ax, row["cbe"], y, kind, size=3.5)
+        ax.text(1.05, y, f"{row['delta']:+.1f}", fontsize=7.0, va="center", ha="left",
+                color=viz.COLOUR[kind], fontweight="bold", clip_on=True)
 
     y0 = ys[-1]
-    base, sci = overall["baseline"], overall["science"]
-    colour = TEAL if sci["rate"] >= base["rate"] else RUST
-    ax.plot([0.0, 1.0], [count + 0.28, count + 0.28], transform=ax.get_yaxis_transform(),
-            color="#D9D9D9", lw=0.6)
-    ax.plot([base["rate"], sci["rate"]], [y0, y0], color=colour, lw=1.6, zorder=2)
-    ax.plot([base["rate"]], [y0], marker="o", ms=3.8, color=BLUE, zorder=3,
-            markeredgecolor="white", markeredgewidth=0.5, ls="none")
-    ax.plot([sci["rate"]], [y0], marker="s", ms=3.8, color=colour, zorder=3,
-            markeredgecolor="white", markeredgewidth=0.5, ls="none")
-    ax.text(0.68, y0, f"{overall['delta_pp']:+.1f}", fontsize=7.2, va="center", ha="left",
-            color=colour, fontweight="bold", transform=ax.get_yaxis_transform())
+    base, cbe = overall["baseline"], overall["cbe"]
+    kind = "gain" if overall["delta_pp"] > 0 else ("loss" if overall["delta_pp"] < 0 else "tie")
+    ax.axhline(count + 0.35, color=GRID, lw=0.7, xmin=0.0, xmax=1.0)
+    ax.plot([base["rate"], cbe["rate"]], [y0, y0], color=viz.COLOUR[kind], lw=1.6, zorder=2)
+    viz.dot(ax, base["rate"], y0, "baseline", size=4.0)
+    viz.dot(ax, cbe["rate"], y0, kind, size=4.0)
+    ax.text(1.05, y0, f"{overall['delta_pp']:+.1f}", fontsize=7.2, va="center", ha="left",
+            color=viz.COLOUR[kind], fontweight="bold", clip_on=True)
 
-    ax.set_xlim(0.0, RATE_MAX / DATA_FRAC)
-    ax.set_ylim(-0.8, count + 1.4)
-    ax.set_xticks([0.0, 0.2, 0.4, 0.6, 0.8])
-    ax.set_xticklabels(["0", "20", "40", "60", "80"])
-    ax.set_xlabel("official verifier solve rate per attempt (%)", fontsize=7.4)
-    ax.text(0.68, count + 1.05, "$\\Delta$ pp", fontsize=7.2, color="#555555", fontweight="bold",
-            transform=ax.get_yaxis_transform())
-    dotted_grid(ax)
-    scene(ax, letter, title)
+    ax.set_xlim(0.0, 1.30)
+    ax.set_ylim(-0.8, count + 1.95)
+    ax.set_xticks([0.0, 0.25, 0.5, 0.75, 1.0])
+    ax.set_xticklabels(["0", "25", "50", "75", "100"])
+    ax.set_xlabel("official verifier solve rate per attempt (%)", fontsize=7.2)
+    ax.text(1.05, count + 1.20, "Δ pp", fontsize=7.0, color=INK_SOFT, ha="left")
+    ax.text(0.02, count + 1.20, "● baseline   ■ CBE", fontsize=7.0, color=INK_SOFT, ha="left")
+    viz.panel(ax, letter, title)
+    viz.baseline_axis(ax)
 
 
 def main() -> None:
@@ -110,23 +111,13 @@ def main() -> None:
     dev = payload["partitions"]["dev30_k4"]
 
     with plt.rc_context(RC):
-        fig, axes = plt.subplots(1, 2, figsize=(7.0, 3.4),
-                                 gridspec_kw={"width_ratios": [1.18, 1.0], "wspace": 0.78})
-        panel(axes[0], rows(locked, 3), locked["overall"], "A", "Locked-89, held out ($k=3$)")
-        panel(axes[1], rows(dev, 2), dev["overall"], "B", "Dev-30, pooled ($k=4$)")
-
-        handles = [
-            Line2D([0], [0], marker="o", ms=3.4, ls="none", color=BLUE, markeredgecolor="white",
-                   markeredgewidth=0.5, label="baseline arm"),
-            Line2D([0], [0], marker="s", ms=3.4, ls="none", color=TEAL, markeredgecolor="white",
-                   markeredgewidth=0.5, label="science arm, gain (whiskers: Wilson 95%)"),
-            Line2D([0], [0], marker="s", ms=3.4, ls="none", color=RUST, markeredgecolor="white",
-                   markeredgewidth=0.5, label="science arm, loss"),
-        ]
-        fig.legend(handles=handles, loc="upper center", ncol=2, frameon=False, fontsize=7.2,
-                   bbox_to_anchor=(0.5, 1.10), handletextpad=0.4, columnspacing=1.4)
-        fig.subplots_adjust(left=0.215, right=0.995, top=0.815, bottom=0.115)
-        save(fig, "fig_domains")
+        fig = viz.figure(5.5, 3.05)
+        left = fig.add_axes((0.210, 0.115, 0.340, 0.740))
+        right = fig.add_axes((0.695, 0.115, 0.235, 0.740))
+        panel(left, rows(locked, 3), locked["overall"], "A", "Held out ($k=3$)")
+        panel(right, rows(dev, 2), dev["overall"], "B", "Development ($k=4$)")
+        save(fig, "fig_domains", claim=CLAIM)
+    print(f"  locked rows: {len(rows(locked, 3))}, dev rows: {len(rows(dev, 2))}")
 
 
 if __name__ == "__main__":

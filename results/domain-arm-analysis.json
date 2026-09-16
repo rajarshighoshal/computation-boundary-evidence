@@ -1,11 +1,15 @@
 {
- "kind": "science-context-domain-and-task-type-analysis",
+ "kind": "cbe-domain-and-task-type-analysis",
  "provenance": {
   "verdicts": "per-attempt verifier reward.json + run.json usage under runs/",
   "domains": "results/benchmark-task-domains.json (paper Appendix Table 5, validated)",
   "task_metadata": "vendor/swe-bench-science/huggingface/tasks/task_*/metadata.json",
   "split": "configs/interactive-science.split.json",
-  "validated_against": "results/locked89-k3-clean-analysis.json"
+  "validated_against": "results/locked89-k3-clean-analysis.json",
+  "arm_naming": {
+   "baseline": "baseline (ordinary shell tools)",
+   "cbe": "computational and boundary evidence tools; on-disk run suffix '-science', arm key 'science' in raw verifier receipts"
+  }
  },
  "partitions": {
   "locked89_k3": {
@@ -26,7 +30,7 @@
       0.2836
      ]
     },
-    "science": {
+    "cbe": {
      "solved": 60,
      "verified": 260,
      "rate": 0.2308,
@@ -54,7 +58,7 @@
         1.0
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 2,
        "verified": 3,
        "rate": 0.6667,
@@ -90,7 +94,7 @@
         0.3994
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 4,
        "verified": 15,
        "rate": 0.2667,
@@ -126,7 +130,7 @@
         0.4519
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 3,
        "verified": 14,
        "rate": 0.2143,
@@ -163,7 +167,7 @@
         0.6138
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 5,
        "verified": 17,
        "rate": 0.2941,
@@ -204,7 +208,7 @@
         0.608
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 8,
        "verified": 30,
        "rate": 0.2667,
@@ -254,7 +258,7 @@
         0.3382
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 12,
        "verified": 56,
        "rate": 0.2143,
@@ -290,7 +294,7 @@
         0.6425
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 7,
        "verified": 15,
        "rate": 0.4667,
@@ -322,7 +326,7 @@
         0.5615
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 0,
        "verified": 3,
        "rate": 0.0,
@@ -354,7 +358,7 @@
         0.5615
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 0,
        "verified": 3,
        "rate": 0.0,
@@ -386,7 +390,7 @@
         0.5615
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 0,
        "verified": 3,
        "rate": 0.0,
@@ -419,7 +423,7 @@
         0.4345
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 0,
        "verified": 5,
        "rate": 0.0,
@@ -451,7 +455,7 @@
         0.5615
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 0,
        "verified": 3,
        "rate": 0.0,
@@ -483,7 +487,7 @@
         0.5615
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 0,
        "verified": 3,
        "rate": 0.0,
@@ -529,7 +533,7 @@
         0.3196
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 12,
        "verified": 43,
        "rate": 0.2791,
@@ -565,7 +569,7 @@
         0.3147
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 1,
        "verified": 14,
        "rate": 0.0714,
@@ -599,7 +603,7 @@
         0.2991
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 2,
        "verified": 9,
        "rate": 0.2222,
@@ -637,7 +641,7 @@
         0.3464
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 3,
        "verified": 21,
        "rate": 0.1429,
@@ -669,7 +673,7 @@
         0.9385
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 1,
        "verified": 3,
        "rate": 0.3333,
@@ -707,7 +711,7 @@
         0.7
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 2,
        "verified": 6,
        "rate": 0.3333,
@@ -739,7 +743,7 @@
         0.5615
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 0,
        "verified": 3,
        "rate": 0.0,
@@ -771,7 +775,7 @@
         0.7923
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 0,
        "verified": 2,
        "rate": 0.0,
@@ -803,7 +807,7 @@
         0.5615
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 0,
        "verified": 3,
        "rate": 0.0,
@@ -835,7 +839,7 @@
         1.0
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 3,
        "verified": 3,
        "rate": 1.0,
@@ -947,7 +951,7 @@
         0.2842
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 55,
        "verified": 237,
        "rate": 0.2321,
@@ -979,7 +983,7 @@
         0.5615
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 0,
        "verified": 3,
        "rate": 0.0,
@@ -1011,7 +1015,7 @@
         0.5615
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 0,
        "verified": 3,
        "rate": 0.0,
@@ -1112,7 +1116,7 @@
         0.3189
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 47,
        "verified": 188,
        "rate": 0.25,
@@ -1167,7 +1171,7 @@
         0.2691
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 13,
        "verified": 72,
        "rate": 0.1806,
@@ -1208,7 +1212,7 @@
       0.4578
      ]
     },
-    "science": {
+    "cbe": {
      "solved": 44,
      "verified": 118,
      "rate": 0.3729,
@@ -1237,7 +1241,7 @@
         0.7848
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 4,
        "verified": 8,
        "rate": 0.5,
@@ -1275,7 +1279,7 @@
         0.6093
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 11,
        "verified": 28,
        "rate": 0.3929,
@@ -1308,7 +1312,7 @@
         0.7848
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 4,
        "verified": 8,
        "rate": 0.5,
@@ -1344,7 +1348,7 @@
         0.5671
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 5,
        "verified": 20,
        "rate": 0.25,
@@ -1376,7 +1380,7 @@
         0.5615
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 0,
        "verified": 3,
        "rate": 0.0,
@@ -1408,7 +1412,7 @@
         0.4899
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 0,
        "verified": 4,
        "rate": 0.0,
@@ -1440,7 +1444,7 @@
         1.0
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 4,
        "verified": 4,
        "rate": 1.0,
@@ -1472,7 +1476,7 @@
         0.9544
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 3,
        "verified": 4,
        "rate": 0.75,
@@ -1505,7 +1509,7 @@
         0.3244
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 3,
        "verified": 8,
        "rate": 0.375,
@@ -1537,7 +1541,7 @@
         0.4899
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 0,
        "verified": 4,
        "rate": 0.0,
@@ -1572,7 +1576,7 @@
         0.6682
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 7,
        "verified": 16,
        "rate": 0.4375,
@@ -1604,7 +1608,7 @@
         0.85
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 3,
        "verified": 4,
        "rate": 0.75,
@@ -1637,7 +1641,7 @@
         0.3903
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 0,
        "verified": 7,
        "rate": 0.0,
@@ -1675,7 +1679,7 @@
         0.3244
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 0,
        "verified": 8,
        "rate": 0.0,
@@ -1707,7 +1711,7 @@
         0.4899
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 0,
        "verified": 4,
        "rate": 0.0,
@@ -1740,7 +1744,7 @@
         0.7848
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 4,
        "verified": 8,
        "rate": 0.5,
@@ -1793,7 +1797,7 @@
         0.518
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 36,
        "verified": 86,
        "rate": 0.4186,
@@ -1825,7 +1829,7 @@
         0.4899
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 0,
        "verified": 4,
        "rate": 0.0,
@@ -1857,7 +1861,7 @@
         0.4899
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 0,
        "verified": 4,
        "rate": 0.0,
@@ -1889,7 +1893,7 @@
         1.0
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 4,
        "verified": 4,
        "rate": 1.0,
@@ -1951,7 +1955,7 @@
         0.4935
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 41,
        "verified": 102,
        "rate": 0.402,
@@ -1986,7 +1990,7 @@
         0.4301
        ]
       },
-      "science": {
+      "cbe": {
        "solved": 3,
        "verified": 16,
        "rate": 0.1875,

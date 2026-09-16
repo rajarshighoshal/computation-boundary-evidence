@@ -17,6 +17,10 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+CLAIM = (
+    "Partial credit is close between the arms, and unsolved attempts are mostly near-complete."
+)
 from plotting import LOCKED_RUNS, RC, attempts, locked_receipt, save, scene  # noqa: E402
 from theme import BLUE, GRID, INK_SOFT, LIGHT_BLUE, LIGHT_TEAL, TEAL  # noqa: E402
 
@@ -37,12 +41,12 @@ def panel_hist(ax: Any, data: dict[str, Any], letter: str, title: str) -> None:
     for arm, colour in (("baseline", BLUE), ("science", TEAL)):
         samples = fractions(data, arm)
         ax.hist(samples, bins=BINS, color=colour, alpha=0.45, zorder=2, edgecolor="white",
-                linewidth=0.3, label=f"{arm} arm (n={len(samples)})")
+                linewidth=0.3, label=f"{'baseline' if arm == 'baseline' else 'CBE'} arm (n={len(samples)})")
         mean = sum(samples) / len(samples)
         ax.plot([mean], [ax.get_ylim()[1] * 0.9], marker="v", ms=5, color=colour, zorder=4)
     for index, (arm, colour) in enumerate((("baseline", BLUE), ("science", TEAL))):
         mean = sum(fractions(data, arm)) / len(fractions(data, arm))
-        ax.text(0.03, 0.96 - index * 0.09, f"{arm} mean {mean * 100:.1f}%", transform=ax.transAxes,
+        ax.text(0.03, 0.96 - index * 0.09, f"{'baseline' if arm == 'baseline' else 'CBE'} mean {mean * 100:.1f}%", transform=ax.transAxes,
                 fontsize=6.6, color=colour, fontweight="bold", va="top")
     ax.set_xticks([0, 0.25, 0.5, 0.75, 1.0])
     ax.set_xticklabels(["0", "25", "50", "75", "100"])
@@ -70,7 +74,7 @@ def panel_by_outcome(ax: Any, data: dict[str, Any], letter: str, title: str) -> 
             means.append(sum(samples) / len(samples) * 100 if samples else 0.0)
         ax.bar([index + offset for _, _, index in groups], means, width=width, color=colour,
                alpha=alpha, edgecolor="white", linewidth=0.5, zorder=2,
-               label=f"{arm} arm")
+               label=f"{'baseline' if arm == 'baseline' else 'CBE'} arm")
         for (_, _, index), mean in zip(groups, means):
             ax.text(index + offset, mean + 1.6, f"{mean:.0f}", ha="center", va="bottom",
                     fontsize=6.6, color=colour, fontweight="bold")
@@ -96,7 +100,7 @@ def main() -> None:
     print(f"  pooled graded test rate: baseline {baseline_rate:.1f}% vs science {science_rate:.1f}%")
 
     with plt.rc_context(RC):
-        fig, axes = plt.subplots(1, 2, figsize=(6.0, 2.5),
+        fig, axes = plt.subplots(1, 2, figsize=(5.5, 2.5),
                                  gridspec_kw={"width_ratios": [1.25, 1.0], "wspace": 0.42})
         panel_hist(axes[0], data, "A", "Grading distribution, 522 attempts")
         panel_by_outcome(axes[1], data, "B", "Partial credit vs outcome")
@@ -108,7 +112,7 @@ def main() -> None:
         ]
         del handles
         fig.subplots_adjust(left=0.085, right=0.985, top=0.82, bottom=0.17)
-        save(fig, "fig_partial")
+        save(fig, "fig_partial", claim=CLAIM)
 
 
 if __name__ == "__main__":
