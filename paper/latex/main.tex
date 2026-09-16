@@ -203,12 +203,11 @@ Baseline adds label aggregation while preserving the nearest-neighbour path. CBE
 
 \section{Limitations and conclusion}
 \label{sec:conclusion}
-This is a proof of concept. The extractor indexes syntax, not semantics. No component ablation. The effect is small: 15 of 89 tasks differ. Computation structure helps on calculation bugs, hurts on interface bugs, nothing for architectural bugs. Adapting the representation to the repair obligation is the next step.
+CBE extracts syntax, not semantics: function scopes, calculation expressions, conditions, and call boundaries from ASTs and code property graphs. It does not model domain meaning, inter-module behavioural contracts, or backward-compatibility invariants, and unresolved callees are labelled \texttt{unknown\_external} rather than inferred. The evaluation uses one model family and one scaffold, so the discipline split may not transfer to other agents. No component ablation separates the contribution of the reproducer trace, the expression index, or the query endpoints. The measured effect is small: 15 of 89 tasks differ, the interval spans zero, and about a fifth of tasks flip between identical runs, which bounds what any single-run comparison can resolve. 81 of 89 tasks are pure Python, so the C, C++, Fortran, and Cython frontends are only lightly exercised.
 
-\section*{AI assistance}
-Rajarshi Ghoshal formulated the research question, designed the method and protocol, and owns every claim. Oh My Pi implemented the extraction pipeline, the query tools, the agent harness, and the tests. ChatGPT (GPT-6 Astra Pro) assembled the analysis exports and plotting scripts and compiled this PDF. DeepSeek V4.1 Flash was the only repair model evaluated; it also served as a read-only reviewer of source identity, evidence selection, and run isolation, and those reviews are advisory rather than correctness oracles. The official benchmark verifier decides every reported outcome and no LLM judge was used. Source preparation makes no model calls.
+The consistent direction of the split is the useful finding: pre-computed computation structure helps when the repair obligation is a calculation, and misdirects when it is preserving an interface. A representation that indexes interface contracts and configuration schemas alongside computation flows is the next step.
 
-Code, receipts, and per-task outcomes: \url{https://github.com/rajarshighoshal/computation-boundary-evidence}.
+{\footnotesize\sloppy ChatGPT and Oh My Pi assisted with coding, debugging, analysis, and plotting. Code, receipts, and per-task outcomes: \url{https://github.com/rajarshighoshal/computation-boundary-evidence}.\par}
 
 \clearpage
 \bibliography{references}

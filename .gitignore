@@ -23,7 +23,8 @@ submission/
 .opencode-memory/
 runs/
 data/
-docs/
+docs/*
+!docs/AI_DISCLOSURE.md
 prompts/
 AGENTS.md
 WORK_LOG.md

@@ -106,10 +106,4 @@ Frozen split in `configs/interactive-science.split.json`. Official SWE-bench Sci
 
 ## AI disclosure
 
-Rajarshi Ghoshal formulated the research question, designed the method and evaluation protocol, and owns every claim in the report.
-
-Oh My Pi implemented the extraction pipeline, the query tools, the agent harness, and the tests, and edited the report. ChatGPT (GPT-6 Astra Pro) assembled the analysis exports and plotting scripts, checked bibliographic records against primary sources, and compiled the PDF. Earlier development sessions used Codex (GPT-6 Astra) and GLM-5.3 before the current harness replaced them.
-
-DeepSeek V4.1 Flash was the only repair model evaluated. It also served as a read-only reviewer of source identity, evidence selection, and run isolation; those reviews are advisory, not correctness oracles. The official SWE-bench Science verifier decides every reported outcome, and no LLM judge was used.
-
-Source preparation makes no model calls. All 534 attempts, patches, trajectories, and verifier receipts are preserved in `paper/latex/data/`.
+Rajarshi Ghoshal designed and directed the study. ChatGPT and Oh My Pi assisted with coding, debugging, analysis, and plotting. DeepSeek V4.1 Flash was the sole repair model. The detailed record is in [`docs/AI_DISCLOSURE.md`](docs/AI_DISCLOSURE.md).
