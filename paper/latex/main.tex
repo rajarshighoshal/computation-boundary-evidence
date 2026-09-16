@@ -32,8 +32,8 @@ CBE draws on traceability~\citep{niu2023ablots,niu2023rat,niu2025tvr,pan2025cove
 \paragraph{Prepare.}
 Run the public \texttt{reproduce.py} under an observer. Observed functions guide file selection. Static extraction adds expressions, conditions, definitions, and call boundaries. No LLM call. Median duration: \MedianPreparation{}\,s of the 1800\,s budget.
 
-\begin{minipage}{\columnwidth}
-\captionof{table}{Evidence fields, from task 103's saved records.}
+\begin{table}[t]
+\caption{Evidence fields, from task 103's saved records.}
 \label{tab:representation}
 \smalltable
 \begin{tabularx}{\columnwidth}{@{}p{1.65cm}X@{}}
@@ -51,7 +51,7 @@ Boundary & \texttt{np.radians(thetad)} at line 979: provider \texttt{numpy}, cal
 \texttt{note} & Optional working model; never gates a repair. \\
 \bottomrule
 \end{tabularx}
-\end{minipage}
+\end{table}
 
 \paragraph{Represent.}
 Tree-sitter~\citep{treesitter2024} parses Python. Joern handles C, C++, Fortran, and Cython where available; explicit fallback otherwise. External calls are labelled with their provider and marked as interface assumptions, not correctness guarantees. Unresolved callees stay \texttt{unknown\_external}.
@@ -64,8 +64,8 @@ The agent gets the three endpoints from Table~\ref{tab:representation} plus its 
 \label{sec:protocol}
 119 tasks, 98 repositories, 20 disciplines~\citep{xu2026science}. 30 for development, 89 locked for evaluation.
 
-\begin{minipage}{\columnwidth}
-\captionof{table}{Shared conditions.}
+\begin{table}[t]
+\caption{Shared conditions.}
 \label{tab:setup}
 \smalltable
 \begin{tabularx}{\columnwidth}{@{}p{1.65cm}X@{}}
@@ -81,14 +81,13 @@ Baseline & Shell tools + public task material. \\
 CBE & Same + evidence store + three query endpoints. \\
 \bottomrule
 \end{tabularx}
-\end{minipage}
+\end{table}
 
 A solve is the official verifier reward. Missing verdicts excluded, not failures. Paired test: bootstrap per-task rate differences (20k resamples, fixed seed). Sign test excludes ties.
 
-\newpage
 \section{Parity, fewer tokens}
-\begin{minipage}{\columnwidth}
-\captionof{table}{Both arms solve 60. CBE generates 13.7\% fewer output tokens.}
+\begin{table}[t]
+\caption{Both arms solve 60. CBE generates 13.7\% fewer output tokens.}
 \label{tab:main}
 \smalltable
 \begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}lrr@{}}
@@ -100,23 +99,23 @@ Metric & Baseline & CBE \\
 \vspace{3pt}
 {\fontsize{8.7}{10.5}\selectfont
 Paired task-rate diff: \TaskDelta{}\,pp; 95\% bootstrap $[\CILower,\CIUpper]$\,pp; sign $p=1.00$.}
-\end{minipage}
+\end{table}
 
 \vspace{4pt}
 74 tasks tie, 7 favour CBE, 8 favour baseline. Output drops \OutputReduction\% (10.36M vs.\ 12.01M tokens). Input rises \InputIncrease\%. Work takes \WorkIncrease\,s longer. The agent searches less --- it either finds the right computation or anchors on the wrong one.
 
-\begin{minipage}{\columnwidth}
+\begin{figure}[t]
 \centering
-\includegraphics[width=\columnwidth]{figures/public_private_gap.pdf}
-\captionof{figure}{Most attempts pass the public check but not the full verifier.}
+\includegraphics[width=\linewidth]{figures/public_private_gap.pdf}
+\caption{Most attempts pass the public check but not the full verifier.}
 \label{fig:gates}
-\end{minipage}
+\end{figure}
 
 \paragraph{Hidden partial changes.}
 Of 74 exact ties, \HiddenPrivateDifferences{} differ in private-test coverage (Table~\ref{tab:partial}).
 
-\begin{minipage}{\columnwidth}
-\captionof{table}{Exact-rate ties crossed with private-test coverage.}
+\begin{table}[t]
+\caption{Exact-rate ties crossed with private-test coverage.}
 \label{tab:partial}
 \smalltable
 \begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}lrrr@{}}
@@ -126,7 +125,7 @@ Exact rate & Base $>$ & Equal & CBE $>$ \\
 \midrule
 \input{generated/private_joint_table}
 \end{tabular*}
-\end{minipage}
+\end{table}
 
 \twocolumn[{\begin{minipage}{\textwidth}
 \section{Discipline split}
@@ -144,12 +143,12 @@ Chemistry (19 tasks), physics (7) and mathematics (5) do not move at all. The ab
 
 When the defect is a computation, structure finds it. When an ordinary bug sits under scientific prose, structure distracts.
 
-\begin{minipage}{\columnwidth}
+\begin{figure}[t]
 \centering
-\includegraphics[width=\columnwidth]{figures/replication.pdf}
-\captionof{figure}{Most tasks never solved or always solved. About a fifth flip within an arm.}
+\includegraphics[width=\linewidth]{figures/replication.pdf}
+\caption{Most tasks never solved or always solved. About a fifth flip within an arm.}
 \label{fig:replication}
-\end{minipage}
+\end{figure}
 
 \clearpage
 \twocolumn[{\begin{minipage}{\textwidth}
