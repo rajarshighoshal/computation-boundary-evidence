@@ -11,7 +11,6 @@
 \captionsetup{hypcap=false}
 \newcommand{\smalltable}{\fontsize{8.7}{10.7}\selectfont\setlength{\tabcolsep}{3pt}\renewcommand{\arraystretch}{1.12}}
 \begin{document}
-\raggedbottom
 \maketitle
 
 \begin{abstract}
@@ -41,8 +40,8 @@ Tree-sitter~\citep{treesitter2024} parses Python ASTs for scopes, assignments, b
 
 Table~\ref{tab:representation} shows what CBE extracts for task 103 (pyNastran) --- the opening example. The computation record links the accumulation at line 1003 to its return anchor. The boundary record identifies the numpy call and its scope.
 
-\begin{minipage}{\columnwidth}
-\captionof{table}{CBE evidence records for task 103 (pyNastran).}
+\begin{table}[t]
+\caption{CBE evidence records for task 103 (pyNastran).}
 \label{tab:representation}
 \smalltable
 \begin{tabularx}{\columnwidth}{@{}p{1.65cm}X@{}}
@@ -60,13 +59,12 @@ Boundary & \texttt{np.radians(thetad)} at line 979: provider \texttt{numpy}, cal
 \texttt{note} & Scratchpad for working hypotheses; never gates repair. \\
 \bottomrule
 \end{tabularx}
-\end{minipage}
+\end{table}
 
 \paragraph{Query and repair.}
 The agent accesses the three endpoints alongside its normal shell utilities. \texttt{find} searches the indexed structure; \texttt{inspect} retrieves computation scopes and boundary details; \texttt{note} records a working hypothesis without blocking repair. Inspection refreshes after each edit; the preparation trace stays fixed.
 
-\vspace{4pt}
-\begin{minipage}{\columnwidth}
+\begin{figure}[t]
 \centering
 \begin{tikzpicture}[x=1mm,y=1mm,
   every node/.style={font=\fontsize{7.5}{9}\selectfont},
@@ -79,17 +77,17 @@ The agent accesses the three endpoints alongside its normal shell utilities. \te
 \node[box,text width=20mm] (e) at (28,-12) {\textbf{Repair}\\edit + test};
 \draw[arr] (a)--(b); \draw[arr] (b)--(c); \draw[arr] (c)--(d); \draw[arr] (d)--(e);
 \end{tikzpicture}
-\captionof{figure}{CBE pipeline: trace the reproducer, extract computation structure, store it, then the agent queries and repairs.}
+\caption{CBE pipeline: trace the reproducer, extract computation structure, store it, then the agent queries and repairs.}
 \label{fig:method}
-\end{minipage}
+\end{figure}
 
 \section{Protocol}
 \label{sec:protocol}
 
 SWE-bench Science contains 119 tasks across 20 disciplines~\citep{xu2026science}. We use 30 tasks for development and evaluate the remaining 89, spanning 18 disciplines. Each task runs three times per arm (534 verified attempts). Both arms share the conditions in Table~\ref{tab:setup}.
 
-\begin{minipage}{\columnwidth}
-\captionof{table}{Shared evaluation parameters.}
+\begin{table}[t]
+\caption{Shared evaluation parameters.}
 \label{tab:setup}
 \smalltable
 \begin{tabularx}{\columnwidth}{@{}p{1.65cm}X@{}}
@@ -105,7 +103,7 @@ Baseline & Shell tools + public task material. \\
 CBE & Same + evidence store + three query endpoints. \\
 \bottomrule
 \end{tabularx}
-\end{minipage}
+\end{table}
 
 A solve is a successful official verifier reward, not merely a passing public reproducer or private-test subset. All reported attempts have verdicts. We bootstrap per-task rate differences with 20,000 resamples and a fixed analysis seed; the paired sign test excludes ties.
 
@@ -115,8 +113,8 @@ A solve is a successful official verifier reward, not merely a passing public re
 \paragraph{Aggregate comparison.}
 Baseline solves 60 of 267 verified attempts; CBE solves 63 of 267 (Table~\ref{tab:main}). The paired interval spans zero.
 
-\begin{minipage}{\columnwidth}
-\captionof{table}{Baseline solves 60, CBE solves 63. CBE generates \OutputReduction\% fewer output tokens.}
+\begin{table}[t]
+\caption{Baseline solves 60, CBE solves 63. CBE generates \OutputReduction\% fewer output tokens.}
 \label{tab:main}
 \smalltable
 \begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}lrr@{}}
@@ -128,7 +126,7 @@ Metric & Baseline & CBE \\
 \vspace{3pt}
 {\fontsize{8.2}{9.8}\selectfont
 Paired task-rate diff: \TaskDelta{}\,pp; 95\% bootstrap $[\CILower,\CIUpper]$\,pp; sign $p=1.00$. All 534 attempts verified (267 per arm); mean work averages runtime across attempts with usage records.}
-\end{minipage}
+\end{table}
 
 \paragraph{Resource shift.}
 74 tasks tie, 8 favour CBE, 7 favour baseline. Output drops \OutputReduction\% (12.81M vs.\ 13.56M tokens); input rises \InputIncrease\%; work takes \WorkIncrease\,s longer.
@@ -139,14 +137,13 @@ Even among exact ties, behaviour differs: \HiddenPrivateDifferences{} of 74 diff
 \section{Task-level variation and evidence scope}
 \label{sec:domains}
 
-\begin{minipage}{\columnwidth}
+\begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{figures/domain_outcomes.pdf}
-\captionof{figure}{Solve-rate difference (CBE $-$ Baseline) for the ten disciplines with non-zero change. Task counts in parentheses. Eight disciplines with identical solve rates are omitted.}
+\caption{Solve-rate difference (CBE $-$ Baseline) for the ten disciplines with non-zero change. Task counts in parentheses. Eight disciplines with identical solve rates are omitted.}
 \label{fig:domains}
-\end{minipage}
+\end{figure}
 
-\medskip
 Figure~\ref{fig:domains} shows gains in six disciplines and losses in four. Mechanics' gain comes entirely from task 103, while the materials-science gain spans DeePTB, deepmd-kit, and dpdata. Biology's net loss comes from biopython. Each of the two largest negative differences represents one task. These groups locate where the difference concentrates.
 
 \paragraph{Task demands and representation scope.}
@@ -158,15 +155,15 @@ Baseline and CBE never solve 60 and 59 tasks, respectively. Outcomes are mixed o
 \paragraph{Task-localized, not task-adaptive.}
 The reproducer guides CBE toward code exercised by the task, but the evidence schema is the same for all tasks. The repair agent still determines whether the extracted records explain the discrepancy and cover the behaviours a change must preserve. The following cases examine this gap.
 
-\twocolumn[{\begin{minipage}{\textwidth}
-\section{Case studies}
-\label{sec:cases}
+\begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/trial_test_matrix.pdf}
-\captionof{figure}{Per-run private-test pass fractions for every task whose solve rate differs between arms. Outlined bold cells are official solves; bold task labels are the two cases below.}
+\caption{Per-run private-test pass fractions for every task whose solve rate differs between arms. Outlined bold cells are official solves; bold task labels are the two cases below.}
 \label{fig:trials}
-\vspace{3pt}
-\captionof{table}{Comparison of generated patches for divergent case studies.}
+\end{figure*}
+
+\begin{table*}[t]
+\caption{Comparison of generated patches for divergent case studies.}
 \label{tab:cases}
 {\fontsize{8}{9.5}\selectfont\setlength{\tabcolsep}{2.5pt}\renewcommand{\arraystretch}{1.05}
 \begin{tabularx}{\textwidth}{@{}p{1.1cm}XXX@{}}
@@ -178,7 +175,10 @@ Task & Baseline & CBE & Insight \\
 022 nilearn & Successful patches add label aggregation while preserving the nearest-neighbour path. & Two alter argument handling (11/12 private); the third passes 4/12. & Reaching the aggregation code did not preserve the interface. \\
 \bottomrule
 \end{tabularx}}
-\end{minipage}\vspace{2pt}}]
+\end{table*}
+
+\section{Case studies}
+\label{sec:cases}
 
 \paragraph{Task 103 (pyNastran).}
 Figure~\ref{fig:trials} separates incomplete fixes from complete repairs. All baseline attempts pass the public check but only two of four private tests. The two successful CBE patches change both expansion and accumulation. Localization alone is not sufficient; the repair must also be complete.
