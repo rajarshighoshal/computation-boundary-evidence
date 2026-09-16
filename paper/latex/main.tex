@@ -14,7 +14,7 @@
 \maketitle
 
 \begin{abstract}
-Computation and boundary evidence (CBE) pre-computes expressions, conditions, definitions, and call boundaries from repository source and exposes them through query endpoints alongside ordinary shell tools. On 89 SWE-bench Science tasks (three runs per arm, 534 verified attempts), baseline solves 60 and CBE solves 63; the confidence interval spans zero. CBE generates \OutputReduction\% fewer output tokens with higher input consumption. Gains concentrate where the repair is a calculation; losses where it must preserve an interface. Two case studies trace this split to a scope gap: locating the relevant computation is necessary but not sufficient.
+Repairing scientific software requires understanding the computations a change must preserve. We pre-compute expressions, conditions, definitions, and call boundaries from repository source and expose them through three query endpoints alongside the agent's ordinary tools --- a representation we call computation and boundary evidence (CBE). On 89 SWE-bench Science tasks with three runs per arm (534 verified attempts), CBE and a matched baseline solve 63 and 60 attempts respectively; the confidence interval spans zero. The discipline-level breakdown is more informative: gains concentrate where the repair corrects a calculation, losses where it must preserve an interface. Two case studies trace this asymmetry to a scope gap --- locating the relevant computation is necessary but not sufficient for a complete repair.
 \end{abstract}
 
 \section{Introduction}
