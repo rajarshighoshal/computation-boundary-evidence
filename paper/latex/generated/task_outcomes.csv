@@ -1,0 +1,90 @@
+task,domain,baseline_solved,baseline_verified,cbe_solved,cbe_verified,delta_pp
+003,Materials Science and Engineering,0,3,0,3,0.0
+007,Biomedical Engineering,2,3,2,3,0.0
+011,Physics,0,3,0,3,0.0
+012,Physics,0,3,0,3,0.0
+013,Physics,3,3,3,3,0.0
+015,Biomedical Engineering,3,3,3,3,0.0
+017,Astronomy,2,3,2,3,0.0
+018,Biology,0,3,0,3,0.0
+020,Materials Science and Engineering,0,3,1,3,33.33333333333333
+021,Chemistry,0,3,0,3,0.0
+022,Biomedical Engineering,2,3,0,3,-66.66666666666666
+023,Chemistry,3,3,3,3,0.0
+026,Atmospheric Science,1,3,1,3,0.0
+029,Biology,1,3,0,3,-33.33333333333333
+030,Materials Science and Engineering,3,3,3,3,0.0
+031,Biomedical Engineering,3,3,3,3,0.0
+032,Chemistry,3,3,3,3,0.0
+033,Materials Science and Engineering,0,3,0,3,0.0
+034,Mathematics,0,2,0,2,0.0
+035,Mathematics,0,3,0,3,0.0
+036,Marine Science,0,3,0,3,0.0
+037,Biomedical Engineering,0,3,0,3,0.0
+038,Materials Science and Engineering,2,3,2,3,0.0
+039,Geography,0,3,0,3,0.0
+040,Geophysics,0,2,0,2,0.0
+041,Geophysics,0,3,0,3,0.0
+042,Astronomy,0,3,2,3,66.66666666666666
+043,Materials Science and Engineering,0,3,0,3,0.0
+044,Chemistry,0,3,0,3,0.0
+046,Astronomy,0,3,0,3,0.0
+047,Information and Communication Engineering,0,3,0,3,0.0
+048,Chemistry,0,3,0,3,0.0
+049,Mathematics,0,3,0,3,0.0
+050,Physics,0,3,0,3,0.0
+052,Materials Science and Engineering,0,2,0,2,0.0
+053,Biomedical Engineering,1,3,0,3,-33.33333333333333
+054,Chemistry,0,2,0,3,0.0
+055,Astronomy,0,2,0,3,0.0
+056,Aeronautical and Astronautical Science and Technology,3,3,2,3,-33.333333333333336
+057,Chemistry,2,3,2,3,0.0
+059,Computer Science and Technology,0,3,0,3,0.0
+060,Biomedical Engineering,0,3,0,3,0.0
+062,Materials Science and Engineering,2,3,2,3,0.0
+063,Biology,1,3,0,2,-33.33333333333333
+064,Chemistry,0,3,0,3,0.0
+065,Astronomy,0,3,0,3,0.0
+066,Atmospheric Science,0,3,0,3,0.0
+067,Atmospheric Science,2,3,2,2,33.333333333333336
+068,Biology,0,3,0,3,0.0
+069,Biology,2,3,2,3,0.0
+071,Physics,0,3,0,3,0.0
+072,Biomedical Engineering,0,3,0,3,0.0
+074,Materials Science and Engineering,0,3,2,2,100.0
+075,Materials Science and Engineering,0,3,0,3,0.0
+079,Chemistry,0,3,0,3,0.0
+081,Biology,3,3,3,3,0.0
+082,Materials Science and Engineering,0,3,0,3,0.0
+083,Chemistry,0,3,0,3,0.0
+084,Materials Science and Engineering,1,3,2,3,33.33333333333333
+085,Chemistry,0,3,0,3,0.0
+086,Materials Science and Engineering,0,3,0,3,0.0
+087,Biomedical Engineering,1,3,0,3,-33.33333333333333
+088,Atmospheric Science,0,3,0,3,0.0
+089,Chemistry,0,3,0,3,0.0
+090,Chemistry,0,3,0,3,0.0
+092,Chemistry,0,3,0,3,0.0
+093,Biomedical Engineering,1,3,0,3,-33.33333333333333
+094,Physics,0,3,0,3,0.0
+095,Materials Science and Engineering,0,3,0,3,0.0
+096,Atmospheric Science,0,3,0,3,0.0
+097,Physics,0,3,0,3,0.0
+098,Surveying and Mapping Science and Technology,2,3,1,3,-33.33333333333333
+100,Chemistry,1,3,1,3,0.0
+101,Chemistry,0,3,0,2,0.0
+102,Materials Science and Engineering,0,3,0,3,0.0
+103,Mechanics,0,3,2,3,66.66666666666666
+105,Chemistry,0,3,0,3,0.0
+106,Chemistry,3,3,3,3,0.0
+107,Mathematics,0,3,0,3,0.0
+108,Mathematics,1,3,1,3,0.0
+109,Mechanics,0,3,0,3,0.0
+110,Civil Engineering,0,3,0,3,0.0
+111,Mechanics,0,3,0,3,0.0
+112,Civil Engineering,3,3,3,3,0.0
+113,Electrical Engineering,0,3,0,3,0.0
+115,Civil Engineering,3,3,3,3,0.0
+116,Civil Engineering,0,3,1,3,33.33333333333333
+117,Civil Engineering,0,3,0,3,0.0
+118,Chemistry,0,3,0,3,0.0

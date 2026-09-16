@@ -1,0 +1,187 @@
+\documentclass[11pt,a4paper,twocolumn]{article}
+\usepackage{paperstyle}
+\input{generated/numbers}
+\input{generated/visual_numbers}
+\hypersetup{pdftitle={Computation and Boundary Evidence for Scientific Software Repair},pdfauthor={Rajarshi Ghoshal}}
+\title{Computation and Boundary Evidence\\for Scientific Software Repair}
+\author{Rajarshi Ghoshal\\\texttt{rajarshi.ghoshal1@gmail.com}\\PhD applicant research task --- Graz University of Technology}
+\date{}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{2pt}
+\captionsetup{hypcap=false}
+\newcommand{\smalltable}{\fontsize{8.7}{10.7}\selectfont\setlength{\tabcolsep}{3pt}\renewcommand{\arraystretch}{1.12}}
+\begin{document}
+\raggedbottom
+\maketitle
+\begin{abstract}
+A repair agent with shell tools must reconstruct a repository's computational structure from text search. CBE (computation and boundary evidence) prepares that structure once and lets the agent query it during repair, under the same model and budget. On 89 held-out SWE-bench Science tasks ($k{=}3$), both arms solve 60 attempts (22.9\% vs.\ 23.1\%). Aggregate parity masks a discipline-level split: mechanics +22.2\,pp, materials +9.7\,pp, astronomy +12.4\,pp; biomedical engineering $-$16.7\,pp, biology $-$9.5\,pp. CBE generates 13.7\% fewer output tokens. About a fifth of tasks flip between identical runs, bounding what any single-run comparison can resolve.
+\end{abstract}
+
+\section{Introduction}
+Repairing a composite-laminate stiffness calculation requires changing both the ply iteration and the accumulation formula. Expanding one without the other passes the public check but fails the private tests. The patch is short; finding it means knowing which expression produces the returned matrix and what calls cross the repository boundary.
+
+We give the agent that knowledge as a prepared store and test whether it changes outcomes. CBE exposes source-linked computation structure; the baseline reconstructs the same information from grep and file reads. Same model, same budget.
+
+Contributions: the preparation pipeline, the query interface, and a replicated evaluation that separates discipline-level differences from aggregate noise.
+
+CBE draws on traceability~\citep{niu2023ablots,niu2023rat,niu2025tvr,pan2025coverage}, code property graphs~\citep{yamaguchi2014cpg}, scientific model extraction~\citep{pyarelal2020automates,skema2024gromet}, and incremental parsing~\citep{treesitter2024}. We evaluate on SWE-bench Science~\citep{xu2026science} with DeepSeek V4.1 Flash~\citep{deepseek2026}; SWE-bench~\citep{jimenez2024swebench,yang2024swebenchverified} and SciCode~\citep{tian2024scicode} are related benchmarks.
+
+\newpage
+\section{What CBE provides}
+\label{sec:method}
+\paragraph{Prepare.}
+Run the public \texttt{reproduce.py} under an observer. Observed functions guide file selection. Static extraction adds expressions, conditions, definitions, and call boundaries. No LLM call. Median duration: \MedianPreparation{}\,s of the 1800\,s budget.
+
+\begin{minipage}{\columnwidth}
+\captionof{table}{Evidence fields, from task 103's saved records.}
+\label{tab:representation}
+\smalltable
+\begin{tabularx}{\columnwidth}{@{}p{1.65cm}X@{}}
+\toprule
+Record & Content \\
+\midrule
+Computation & Scope, expressions, result anchors: accumulation at line 1003 $\to$ \texttt{return ABD} at 1015. \\
+Condition & \texttt{len(z0) == len(z1)} at line 987. \\
+Definition & Documented public behavior (not execution trace). \\
+Boundary & \texttt{np.radians(thetad)} at line 979: provider \texttt{numpy}, caller-side scope. \\
+\midrule
+\multicolumn{2}{@{}l}{\textbf{Query interface (alongside ordinary shell)}} \\
+\texttt{find} & Targets and source excerpts. \\
+\texttt{inspect} & Relationships, source, definitions, or contracts. \\
+\texttt{note} & Optional working model; never gates a repair. \\
+\bottomrule
+\end{tabularx}
+\end{minipage}
+
+\paragraph{Represent.}
+Tree-sitter~\citep{treesitter2024} parses Python. Joern handles C, C++, Fortran, and Cython where available; explicit fallback otherwise. External calls are labelled with their provider and marked as interface assumptions, not correctness guarantees. Unresolved callees stay \texttt{unknown\_external}.
+
+\paragraph{Query and repair.}
+The agent gets the three endpoints from Table~\ref{tab:representation} plus its normal tools. Inspection refreshes edited text; the preparation trace is not re-executed on candidates.
+
+\clearpage
+\section{Protocol}
+\label{sec:protocol}
+119 tasks, 98 repositories, 20 disciplines~\citep{xu2026science}. 30 for development, 89 locked for evaluation.
+
+\begin{minipage}{\columnwidth}
+\captionof{table}{Shared conditions.}
+\label{tab:setup}
+\smalltable
+\begin{tabularx}{\columnwidth}{@{}p{1.65cm}X@{}}
+\toprule
+Component & Detail \\
+\midrule
+Model & DeepSeek V4.1 Flash~\citep{deepseek2026}; temperature 0; \texttt{PYTHONHASHSEED=0}. \\
+Replicates & 89 tasks $\times$ 3 runs = 267 scheduled per arm; 522 verified. \\
+Budget & 1800\,s, including preparation. \\
+Verification & Separate container, 1800\,s, runs after repair ends. Private tests not visible. \\
+Network & None. \\
+Baseline & Shell tools + public task material. \\
+CBE & Same + evidence store + three query endpoints. \\
+\bottomrule
+\end{tabularx}
+\end{minipage}
+
+A solve is the official verifier reward. Missing verdicts excluded, not failures. Paired test: bootstrap per-task rate differences (20k resamples, fixed seed). Sign test excludes ties.
+
+\newpage
+\section{Parity, fewer tokens}
+\begin{minipage}{\columnwidth}
+\captionof{table}{Both arms solve 60. CBE generates 13.7\% fewer output tokens.}
+\label{tab:main}
+\smalltable
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}lrr@{}}
+\toprule
+Metric & Baseline & CBE \\
+\midrule
+\input{generated/main_table}
+\end{tabular*}
+\vspace{3pt}
+{\fontsize{8.7}{10.5}\selectfont
+Paired task-rate diff: \TaskDelta{}\,pp; 95\% bootstrap $[\CILower,\CIUpper]$\,pp; sign $p=1.00$.}
+\end{minipage}
+
+\vspace{4pt}
+74 tasks tie, 7 favour CBE, 8 favour baseline. Output drops \OutputReduction\% (10.36M vs.\ 12.01M tokens). Input rises \InputIncrease\%. Work takes \WorkIncrease\,s longer. The agent searches less --- it either finds the right computation or anchors on the wrong one.
+
+\begin{minipage}{\columnwidth}
+\centering
+\includegraphics[width=\columnwidth]{figures/public_private_gap.pdf}
+\captionof{figure}{Most attempts pass the public check but not the full verifier.}
+\label{fig:gates}
+\end{minipage}
+
+\clearpage
+\twocolumn[{\begin{minipage}{\textwidth}
+\section{Discipline split}
+\centering
+\includegraphics[width=\textwidth]{figures/domain_outcomes.pdf}
+\captionof{figure}{Parity hides opposing domain effects. All 18 represented disciplines shown; task counts in parentheses.}
+\label{fig:domains}
+\end{minipage}\vspace{9pt}}]
+
+Mechanics: +22.2\,pp, entirely task 103 (pyNastran). The agent inspects the ply-angle computation and its numpy boundaries, then edits --- 2/3 solves vs.\ 0 baseline. Materials: +9.7\,pp across three tasks. Astronomy: +12.4\,pp.
+
+Biomedical engineering: $-$16.7\,pp across four tasks. Task 022 (nilearn): baseline solves 2/3, CBE 0/3. The trajectory reads projection mathematics before touching the atlas-label mapping. Biology: $-$9.5\,pp. The two $-$33.3\,pp domains are singletons.
+
+When the defect is a computation, structure finds it. When an ordinary bug sits under scientific prose, structure distracts.
+
+\paragraph{Hidden partial changes.}
+Of 74 exact ties, \HiddenPrivateDifferences{} differ in private-test coverage (Table~\ref{tab:partial}).
+
+\begin{minipage}{\columnwidth}
+\captionof{table}{Exact-rate ties crossed with private-test coverage.}
+\label{tab:partial}
+\smalltable
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}lrrr@{}}
+\toprule
+& \multicolumn{3}{c}{Private-test coverage} \\
+Exact rate & Base $>$ & Equal & CBE $>$ \\
+\midrule
+\input{generated/private_joint_table}
+\end{tabular*}
+\end{minipage}
+
+\begin{minipage}{\columnwidth}
+\centering
+\includegraphics[width=\columnwidth]{figures/replication.pdf}
+\captionof{figure}{Most tasks never solved or always solved. About a fifth flip within an arm.}
+\label{fig:replication}
+\end{minipage}
+
+\clearpage
+\twocolumn[{\begin{minipage}{\textwidth}
+\section{Case studies}
+\centering
+\includegraphics[width=\textwidth]{figures/trial_test_matrix.pdf}
+\captionof{figure}{Per-run test fractions for every task whose arms differ. Outlined bold = official solve.}
+\label{fig:trials}
+\vspace{7pt}
+\captionof{table}{What changed in the patches.}
+\label{tab:cases}
+\smalltable
+\begin{tabularx}{\textwidth}{@{}p{1.25cm}XXX@{}}
+\toprule
+Task & Baseline patches & CBE patches & Point \\
+\midrule
+103\newline pyNastran & Expand ply iteration, keep original B/D accumulation. All pass public. & Two change both expansion and B/D expressions; third keeps old accumulation. & The public check undertests. Covering the full computation --- not just the example --- separates the two complete patches from the three partial ones. \\
+\addlinespace[3pt]
+022\newline nilearn & Two add a label-aggregation option without altering the existing path. & Two add label-aware aggregation but also change how the existing path works. 11/12 private tests pass. & Preserve the interface while adding the case. CBE's trajectory reads projection maths instead of the interface contract. \\
+\bottomrule
+\end{tabularx}
+\end{minipage}\vspace{9pt}}]
+
+Task 103 shows that covering the documented computation, not just the example discrepancy, is the repair obligation. Task 022 shows that preserving the existing interface while adding the requested case is. CBE helped with the first and hurt the second.
+
+\section{Limitations and conclusion}
+One model, one effort, one budget. Domain analyses are descriptive; singleton domains carry no weight. The store is approximate: unparseable expressions are recorded as unsupported, external calls are labelled rather than verified. No ablations isolate which part of CBE matters.
+
+CBE reaches parity, generates fewer tokens, and splits the benchmark by discipline. Scientific structure helps when the defect is a computation and hurts when it is ordinary code.
+
+\paragraph{Artifacts and AI use.}
+The author designed the study. LLM coding assistants (Oh My Pi, ChatGPT) helped implement the harness, generate figures, and revise prose. DeepSeek V4.1 Flash~\citep{deepseek2026} was the only repair model. Receipts, task IDs, source hashes, and scripts accompany the repository.
+
+\clearpage
+\bibliography{references}
+\end{document}

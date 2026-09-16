@@ -1,0 +1,35 @@
+diff --git a/source/pyNastran/bdf/cards/properties/shell.py b/source/pyNastran/bdf/cards/properties/shell.py
+index ddcdc9e..e6274b7 100644
+--- a/source/pyNastran/bdf/cards/properties/shell.py
++++ b/source/pyNastran/bdf/cards/properties/shell.py
+@@ -185,7 +185,7 @@ class CompositeShellProperty(Property):
+         nplies = len(self.thicknesses)
+         if iply >= nplies:
+             if iply < self.nplies:
+-                iply = nplies - iply - 1
++                iply = self.nplies - iply - 1
+             else:
+                 raise IndexError('invalid value for nplies=%s iply=%r (iply is 0-based)\n%s' % (
+                     nplies, iply, str(self)))
+@@ -994,7 +994,10 @@ class PCOMP(CompositeShellProperty):
+         D = np.zeros((3, 3), dtype='float64')
+         #Q = np.zeros((3, 3), dtype='float64')
+ 
+-        mids_ref = self.mids_ref
++        # mids_ref only stores the defined plies (half the stack for LAM=SYM),
++        # so expand it to the full stack using the same ply-index mirroring
++        # that get_material_ids/get_thicknesses/get_thetas already apply.
++        mids_ref = [self.Material(iply) for iply in range(self.nplies)]
+         for mid, mid_ref, thetai, thickness, zmean, z0i, z1i in zip(mids, mids_ref, theta,
+                                                                     thicknesses, zmeans, z0, z1):
+             Qbar = self.get_Qbar_matrix(mid_ref, thetai)
+@@ -1237,8 +1240,8 @@ class PCOMPG(CompositeShellProperty):
+         CompositeShellProperty.__init__(self)
+         if comment:
+             self.comment = comment
++        nplies = len(mids)
+         if thetas is None:
+-            nplies = len(mids)
+             thetas = [0.] * nplies
+         if souts is None:
+             souts = ['NO'] * nplies
