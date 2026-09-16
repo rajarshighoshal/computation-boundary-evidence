@@ -15,7 +15,7 @@
 \maketitle
 
 \begin{abstract}
-Scientific software repair requires identifying relevant computations while preserving expected behaviour. We ask whether making repository-derived computational evidence directly queryable improves repair under a matched agent budget. Computation and boundary evidence (CBE) combines public-reproducer tracing with static extraction of expressions, conditions, documented definitions, and library-call boundaries, without preprocessing model calls. On 89 SWE-bench Science tasks with three runs per arm, baseline and CBE solve 60/267 and 63/267 attempts; the paired confidence interval spans zero. CBE records \OutputReduction\% less output generation but greater input consumption and work time. Discipline-level summaries locate opposing changes, and contrasting patches illustrate incomplete calculation repair and interface-preservation failures. This proof of concept exposes a design limitation: locating computational evidence does not establish that it covers the task's correctness requirements. We discuss this limitation through the benchmark's task paradigms, without claiming unmeasured paradigm-specific effects.
+Scientific software repair requires identifying relevant computations while preserving expected behaviour. We ask whether making repository-derived computational evidence directly queryable improves repair under a matched agent budget. Computation and boundary evidence (CBE) combines public-reproducer tracing with static extraction of expressions, conditions, documented definitions, and library-call boundaries, without preprocessing model calls. On 89 SWE-bench Science tasks with three runs per arm, baseline and CBE solve 60/267 and 63/267 attempts; the paired confidence interval spans zero. CBE records \OutputReduction\% less output generation but greater input consumption and work time. Discipline-level summaries locate opposing changes, and contrasting patches illustrate incomplete calculation repair and interface-preservation failures. The principal limitation is that locating computational evidence does not establish that it covers the task's correctness requirements.
 \end{abstract}
 
 \section{Introduction}
@@ -24,7 +24,7 @@ Task 103 in SWE-bench Science asks an agent to repair a composite-laminate stiff
 
 CBE organizes this repository-derived evidence before repair and exposes it through three query endpoints beside the usual shell tools. Public execution observations guide source selection; static extraction links computations, conditions, definitions, and call boundaries. The baseline uses the same model, budget, and containers without this evidence store.
 
-Our research question is whether this additional representation improves complete repair. The contributions are the preparation pipeline, query interface, and replicated comparison. We analyze both successful and unsuccessful changes to understand the representation's scope, not to assume that every scientific task requires the same evidence.
+Our research question is whether this additional representation improves complete repair. The contributions are the preparation pipeline, query interface, and replicated comparison. We analyze both successful and unsuccessful changes to understand when the representation helps.
 
 CBE draws on traceability~\citep{niu2023ablots,niu2023rat,niu2025tvr,pan2025coverage}, code property graphs~\citep{yamaguchi2014cpg}, scientific model extraction~\citep{pyarelal2020automates,skema2024gromet}, and incremental parsing~\citep{treesitter2024}. We evaluate on SWE-bench Science~\citep{xu2026science} with DeepSeek V4.1 Flash~\citep{deepseek2026}; SWE-bench~\citep{jimenez2024swebench,yang2024swebenchverified} and SciCode~\citep{tian2024scicode} are related benchmarks.
 
@@ -64,6 +64,24 @@ Boundary & \texttt{np.radians(thetad)} at line 979: provider \texttt{numpy}, cal
 
 \paragraph{Query and repair.}
 The agent accesses the three endpoints alongside its normal shell utilities. \texttt{find} searches the indexed structure; \texttt{inspect} retrieves computation scopes and boundary details; \texttt{note} records a working hypothesis without blocking repair. Inspection refreshes after each edit; the preparation trace stays fixed.
+
+\vspace{4pt}
+\begin{minipage}{\columnwidth}
+\centering
+\begin{tikzpicture}[x=1mm,y=1mm,
+  every node/.style={font=\fontsize{7.5}{9}\selectfont},
+  box/.style={draw=baselineblue!60,fill=baselineblue!4,rounded corners=.8mm,align=center,minimum height=7mm,inner sep=1.5mm},
+  arr/.style={-{Stealth[length=1.2mm]},draw=baselineblue!70,line width=.5pt}]
+\node[box,text width=20mm] (a) at (0,0) {\textbf{Trace}\\reproducer};
+\node[box,text width=20mm] (b) at (28,0) {\textbf{Extract}\\AST + CPG};
+\node[box,text width=20mm] (c) at (56,0) {\textbf{Store}\\evidence};
+\node[box,text width=20mm,draw=cbeteal!60,fill=cbeteal!4] (d) at (56,-12) {\textbf{Query}\\find / inspect / note};
+\node[box,text width=20mm] (e) at (28,-12) {\textbf{Repair}\\edit + test};
+\draw[arr] (a)--(b); \draw[arr] (b)--(c); \draw[arr] (c)--(d); \draw[arr] (d)--(e);
+\end{tikzpicture}
+\captionof{figure}{CBE pipeline: trace the reproducer, extract computation structure, store it, then the agent queries and repairs.}
+\label{fig:method}
+\end{minipage}
 
 \section{Protocol}
 \label{sec:protocol}
@@ -113,23 +131,10 @@ Paired task-rate diff: \TaskDelta{}\,pp; 95\% bootstrap $[\CILower,\CIUpper]$\,p
 \end{minipage}
 
 \paragraph{Resource shift.}
-74 tasks tie, 8 favour CBE, 7 favour baseline. Output drops \OutputReduction\% (12.81M vs.\ 13.56M tokens); input rises \InputIncrease\%; work takes \WorkIncrease\,s longer. These recorded resource changes describe a trade-off, not an overall efficiency improvement or a measurement of search behaviour.
+74 tasks tie, 8 favour CBE, 7 favour baseline. Output drops \OutputReduction\% (12.81M vs.\ 13.56M tokens); input rises \InputIncrease\%; work takes \WorkIncrease\,s longer.
 
 \paragraph{Hidden partial changes.}
-Even among exact ties, behaviour differs: \HiddenPrivateDifferences{} of 74 differ in private-test pass fractions (Table~\ref{tab:partial}). CBE passes more tests on nine tasks; baseline passes more on 20.
-
-\begin{minipage}{\columnwidth}
-\captionof{table}{Task counts by the direction of exact-repair and private-test pass-fraction differences.}
-\label{tab:partial}
-\smalltable
-\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}lrrr@{}}
-\toprule
-& \multicolumn{3}{c}{Private-test pass fractions} \\
-Exact rate & Baseline higher & Equal & CBE higher \\
-\midrule
-\input{generated/private_joint_table}
-\end{tabular*}
-\end{minipage}
+Even among exact ties, behaviour differs: \HiddenPrivateDifferences{} of 74 differ in private-test pass fractions (baseline passes more on 20, CBE on 9, equal on 45). Among the 15 non-tie tasks, every CBE-favoured task also has CBE-higher private-test coverage, and six of seven baseline-favoured tasks have baseline-higher coverage.
 
 \clearpage
 \twocolumn[{\begin{minipage}{\textwidth}
@@ -141,34 +146,16 @@ Exact rate & Baseline higher & Equal & CBE higher \\
 \label{fig:domains}
 \end{minipage}\vspace{9pt}}]
 
-Figure~\ref{fig:domains} shows gains in six disciplines and losses in four. Mechanics' gain comes entirely from task 103, while the materials-science gain spans DeePTB, deepmd-kit, and dpdata. Biology's net loss comes from biopython in the current comparison. Each of the two largest negative differences represents one task. These descriptive groups locate the observed changes; discipline alone does not explain why a repair succeeds or fails.
+Figure~\ref{fig:domains} shows gains in six disciplines and losses in four. Mechanics' gain comes entirely from task 103, while the materials-science gain spans DeePTB, deepmd-kit, and dpdata. Biology's net loss comes from biopython. Each of the two largest negative differences represents one task. These groups locate changes; discipline alone does not explain them.
 
 \paragraph{Task demands and representation scope.}
-The benchmark distinguishes \emph{Issue-driven}, \emph{Expert-exploratory}, and \emph{Engineering-integration} tasks~\citep{xu2026science}. These describe how a problem is posed, not its scientific discipline or the obligations of its eventual patch. A known defect still requires regression preservation; investigating an anomaly requires comparing possible explanations; integration requires checking behaviour across modules. Computation and call records may support all three, but do not by themselves establish that the relevant evidence is complete. We use these paradigms to discuss scope; our analysis does not include per-task paradigm annotations, so we report no subgroup rates.
+The benchmark distinguishes \emph{Issue-driven}, \emph{Expert-exploratory}, and \emph{Engineering-integration} tasks~\citep{xu2026science}. These describe how a problem is posed, not its scientific discipline or the obligations of its eventual patch. A known defect still requires regression preservation; investigating an anomaly requires comparing possible explanations; integration requires checking behaviour across modules. Computation and call records are relevant to all three but do not establish that the evidence is complete. We use these paradigms to discuss scope; our analysis does not include per-task paradigm annotations, so we report no subgroup rates.
 
 \paragraph{Replication.}
 Baseline and CBE never solve 60 and 59 tasks, respectively. Outcomes are mixed on 18 baseline and 19 CBE tasks; 11 tasks succeed in all three runs for each arm. The repeated outcomes make within-task variation visible without defining a fixed resolution threshold.
 
 \paragraph{Task-localized, not task-adaptive.}
-The reproducer guides CBE toward code exercised by the task, but the evidence schema does not explicitly adapt to these different demands. The repair agent must still determine whether the extracted records explain the discrepancy and cover the behaviours a change must preserve. The following cases examine this gap between access to relevant code and a complete repair.
-
-\vspace{4pt}
-\begin{minipage}{\columnwidth}
-\centering
-\begin{tikzpicture}[x=1mm,y=1mm,
-  every node/.style={font=\fontsize{7.5}{9}\selectfont},
-  box/.style={draw=baselineblue!60,fill=baselineblue!4,rounded corners=.8mm,align=center,minimum height=7mm,inner sep=1.5mm},
-  arr/.style={-{Stealth[length=1.2mm]},draw=baselineblue!70,line width=.5pt}]
-\node[box,text width=20mm] (a) at (0,0) {\textbf{Trace}\\reproducer};
-\node[box,text width=20mm] (b) at (28,0) {\textbf{Extract}\\AST + CPG};
-\node[box,text width=20mm] (c) at (56,0) {\textbf{Store}\\evidence};
-\node[box,text width=20mm,draw=cbeteal!60,fill=cbeteal!4] (d) at (56,-12) {\textbf{Query}\\find / inspect / note};
-\node[box,text width=20mm] (e) at (28,-12) {\textbf{Repair}\\edit + test};
-\draw[arr] (a)--(b); \draw[arr] (b)--(c); \draw[arr] (c)--(d); \draw[arr] (d)--(e);
-\end{tikzpicture}
-\captionof{figure}{CBE pipeline: trace the reproducer, extract computation structure, store it, then the agent queries and repairs.}
-\label{fig:method}
-\end{minipage}
+The reproducer guides CBE toward code exercised by the task, but the evidence schema does not adapt to these different demands. The repair agent must still determine whether the extracted records explain the discrepancy and cover the behaviours a change must preserve. The following cases examine this gap between access to relevant code and a complete repair.
 
 \clearpage
 \twocolumn[{\begin{minipage}{\textwidth}
@@ -194,18 +181,16 @@ Task & Baseline & CBE & Insight \\
 \end{minipage}\vspace{2pt}}]
 
 \paragraph{Task 103 (pyNastran).}
-Figure~\ref{fig:trials} separates incomplete fixes from complete repairs. All baseline attempts pass the public check but only two of four private tests. The two successful CBE patches change both expansion and accumulation. This contrast supports examining repair completeness, rather than treating localization as the only obstacle.
+Figure~\ref{fig:trials} separates incomplete fixes from complete repairs. All baseline attempts pass the public check but only two of four private tests. The two successful CBE patches change both expansion and accumulation. Localization alone is not sufficient; the repair must also be complete.
 
 \paragraph{Task 022 (nilearn).}
-The successful baseline patches preserve the existing nearest-neighbour path while adding label aggregation. Two CBE patches also alter argument handling and pass 11/12 private tests; the third passes 4/12. These post-hoc patch comparisons suggest a compatibility concern, but do not establish that reading computational evidence caused it.
+The successful baseline patches preserve the existing nearest-neighbour path while adding label aggregation. Two CBE patches also alter argument handling and pass 11/12 private tests; the third passes 4/12. The patches show that reaching the relevant code does not ensure the existing interface is preserved.
 
 \section{Limitations and conclusion}
 \label{sec:conclusion}
-The principal limitation is the extractor's scope. CBE prepares a task-localized view of repository evidence, but does not explicitly determine which kinds of evidence the repair requires or whether the extracted view is sufficient. Documented definitions and predicates provide semantic cues, not a complete specification of scientific meaning or compatibility requirements. The agent must still form and test hypotheses and check the implications of edits across the relevant workflow.
+The principal limitation is the extractor's scope. CBE prepares a task-localized view of repository evidence but does not determine which kinds of evidence the repair requires or whether the extracted view is sufficient. Documented definitions and predicates provide semantic cues, not a complete specification of scientific meaning or compatibility requirements. The agent must still form and test hypotheses and check the implications of edits across the relevant workflow.
 
-The public trace covers observed execution, while extraction fallbacks and unresolved calls limit structural coverage. A named external provider is an interface assumption, not verification. Nor does observing three successful attempts demonstrate generalization beyond the verifier. No component ablation isolates tracing, extraction, or querying. Most evaluated tasks are Python, and the comparison uses one model and scaffold.
-
-CBE yields similar observed repair rates with a resource trade-off. The cases motivate investigating whether the evidence supplied covers the repair obligation; they do not establish universal benefits for calculation tasks or harms for interface tasks. Extending evidence relevance and completeness is a design direction, not a result of this evaluation.
+The public trace covers observed execution; extraction fallbacks and unresolved calls limit structural coverage. External providers are interface assumptions. Three replicates do not demonstrate generalization; no ablation isolates individual components; most tasks are Python; one model and scaffold. CBE yields similar repair rates with a resource trade-off. Whether the evidence covers the repair obligation depends on the task; extending it to interface and compatibility requirements is the next step.
 
 \section{AI Assistance}
 ChatGPT and Oh My Pi assisted with coding, debugging, analysis, and plotting. Code, receipts, and per-task outcomes: \url{https://github.com/rajarshighoshal/computation-boundary-evidence}.
