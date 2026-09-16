@@ -1,85 +1,214 @@
-# Interactive scientific understanding for repair
+# Computation and Boundary Evidence for Scientific Software Repair
 
-This study asks whether a compact, queryable scientific-code representation helps a repair agent
-understand and repair SWE-bench Science tasks under the same total allowance as ordinary repair.
+[![Paper](https://img.shields.io/badge/Paper-PDF-blue.svg)](paper/latex/main.pdf)
+[![Benchmark](https://img.shields.io/badge/Benchmark-SWE--bench%20Science-orange.svg)](https://github.com/OpenMOSS/SWE-bench-Science)
+[![Python](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
 
-## Current method
-Preparation runs the public workflow under an observer, builds a source packet with dynamic
-file ranking (trace-executed files first, then callee/caller boundaries, then task mentions; the
-former 24-file alphabetical cutoff is gone) and merges a connected task graph before the model
-starts. The same agent uses science_find and science_inspect to retrieve quantities, expressions,
-conditions and source definitions on demand — including distilled, language-agnostic interface
-contracts for C/C++/Fortran/MATLAB/Cython code (boundary signatures, external-library calls with
-provider attribution and explicit `unknown_external` labels, governing conditions, return
-expressions). science_note optionally saves a revisable, source-linked working model. Both arms
-have ordinary repair tools from the start.
+This repository contains the complete implementation, evaluation artifacts, and research report for the PhD applicant research task at the **Institute of Software Engineering and Artificial Intelligence, Graz University of Technology (TU Graz)**.
 
-There is no separate interpretation model, hard planning gate or second task container.
-Python/native/Cython parsers supply structure; Joern supplies parsing, dataflow and the semantic
-layer of boundary classification on demand (C/C++/Python; Fortran/MATLAB use the tree-sitter
-frontends and declarative `use`/`include` parsing). Unsupported analysis is explicit. Scientific
-interpretation belongs to the agent; source IDs and tool use do not prove scientific correctness.
+**Author:** Rajarshi Ghoshal (`rajarshi.ghoshal1@gmail.com`)  
+**Research Report:** [paper/latex/main.pdf](paper/latex/main.pdf) (4 content pages + 1 references page)
 
-The ordinary baseline has no extra scientific-planning instruction. The comparison measures the
-whole added workflow, not an isolated component effect.
+---
 
-## Install and verify
-Use Python3.12, uv, Docker linux/amd64 support, and the pinned dependencies:
+## Research Question
+
+> *Does a compact, queryable representation of scientific code and its public definitions help an autonomous repair agent form an accurate task model and repair software under the same total allowance as ordinary repair?*
+
+Standard coding agents navigate repositories as raw text, relying on speculative `grep` searches and file reads. In scientific software, where correctness depends on mathematical pipelines, numerical constraints, and library interfaces, flat text search often misses the governing calculation or boundaries.
+
+**Computation and Boundary Evidence (CBE)** statically indexes expressions, conditional guards, and external library interfaces, providing a targeted query interface (`find`, `inspect`, `note`) that the agent queries during repair under matched models and budgets.
+
+---
+
+## Core Findings
+
+We conducted a replicated evaluation across **89 held-out SWE-bench Science tasks** with $k{=}3$ repeated seeds (522 verified Docker attempts), paired against an identical baseline (same model, tools, budget, and containers):
+
+1. **Aggregate Parity:** Both arms solve exactly 60 attempts across the evaluation set (22.9% baseline vs. 23.1% CBE; paired bootstrap $\Delta = +0.75$\,pp, 95% CI $[-3.4, +4.9]$\,pp; two-sided sign test $p = 1.00$).
+2. **Sharp Discipline Split:** Aggregate parity conceals opposing domain effects:
+   - **Mechanics:** $+22.2$\,pp (driven by task 103, `pyNastran`, where CBE exposes both ply iteration and matrix accumulation).
+   - **Materials Science:** $+9.7$\,pp across 15 tasks.
+   - **Astronomy:** $+12.4$\,pp across 5 tasks.
+   - **Biomedical Engineering:** $-16.7$\,pp across 10 tasks (in task 022, `nilearn`, the agent anchored on coordinate projection mathematics instead of preserving the atlas-label interface contract).
+   - **Biology:** $-9.5$\,pp across 6 tasks.
+   - **Chemistry, Physics, Mathematics:** $0.0$\,pp difference across 31 tasks.
+3. **Token Efficiency:** CBE generates **13.7% fewer output tokens** (10.36M vs. 12.01M tokens). Direct graph queries eliminate speculative exploratory script writing.
+4. **Outcome Stochasticity:** Approximately 18–20% of tasks yield mixed verdicts across identical seeds, bounding single-run benchmark resolution: differences smaller than $\sim$5\,pp fall within stochastic noise.
+
+**Core Insight:** *When the defect is a computation, structure finds it. When an ordinary bug sits under scientific prose, structure distracts.*
+
+---
+
+## Method Overview
+
+```
+[ Public reproduce.py ]
+         │
+         ▼
+[ Dynamic Trace Observer ] ──► Identifies active source files
+         │
+         ▼
+[ Static Multi-Language Extractor ]
+   ├── Tree-sitter (Python AST: expressions, returns, condition chains)
+   ├── Joern CPG (C / C++ / Fortran / Cython semantic boundaries)
+   └── Public docstring & interface parser
+         │
+         ▼
+[ Evidence Store ] ──► Indexed computation graphs & boundary signatures
+         │
+         ▼
+[ Repair Agent Interface ]
+   ├── find(query)    : Search symbols, docstrings, and expressions
+   ├── inspect(target): Retrieve computation scopes, dependencies, boundaries
+   └── note(text)     : Scratchpad for working hypotheses (non-gating)
+```
+
+- **Zero model calls during preparation:** Static extraction runs entirely offline in a median of 73\,s (out of the 1800\,s trial budget).
+- **Matched baseline:** Both arms use DeepSeek V4.1 Flash, temperature 0, 1800\,s timeout, 8 CPUs, 16\,GiB RAM, identical prompt templates, and standard shell tools.
+- **Strict isolation:** Verifier runs in a clean, separate container after repair completes. Private test suites are never visible during repair.
+
+---
+
+## Repository Structure
+
+```
+.
+├── paper/
+│   └── latex/               # LaTeX source, style, and figures for 5-page report
+│       ├── main.tex         # Typeset research paper
+│       ├── main.pdf         # Compiled PDF (4 content pages + 1 references page)
+│       ├── figures/         # Vector PDF charts and TikZ diagrams
+│       ├── generated/       # Receipt-derived numbers and LaTeX tables
+│       └── scripts/         # Figure and table generation scripts
+├── src/
+│   └── scicontext/          # Core CBE implementation
+│       ├── evidence.py      # Evidence packet schema & extraction
+│       ├── language_frontends.py # Tree-sitter & native AST parsers
+│       ├── scientific_graph.py   # Computation graph construction
+│       ├── science_tools.py # find, inspect, note query endpoints
+│       └── deepseek_agent.py# Repair loop & tool dispatch
+├── configs/                 # Task splits, pilot configs, and model parameters
+│   └── interactive-science.split.json # 30 dev / 89 locked task partition
+├── scripts/                 # Execution, evaluation, and reproduction runners
+│   ├── run_locked89_k3.sh   # Replicate locked-89 evaluation (k=3)
+│   └── compare_dev_runs.py  # Receipt aggregation and statistics
+├── results/                 # Verified evaluation receipts and audit JSONs
+├── docs/                    # Architectural specifications and method details
+├── README.md                # This document
+└── REPRODUCTION.md          # Step-by-step reproduction instructions
+```
+
+---
+
+## Quick Start & Reproduction
+
+Detailed, step-by-step reproduction guidelines are in [REPRODUCTION.md](REPRODUCTION.md).
+
+### 1. Environment Setup
+
+Requirements: macOS or Linux, Python 3.12, [uv](https://docs.astral.sh/uv/), and Docker Desktop (8 CPUs, 16\,GiB RAM allocated).
 
 ```bash
+# Clone the repository
+git clone https://github.com/rajarshighoshal/computation-boundary-evidence.git
+cd computation-boundary-evidence
+
+# Install pinned dependencies
 uv sync --python 3.12 --locked --extra test --extra runner
+
+# Run test suite (680+ tests)
 uv run --no-sync pytest -q
 ```
 
-Joern is an optional host analyzer; unavailable frontends are reported, not silently replaced by
-scientific claims. Native source frontends do not execute candidate code.
-
-## Frozen development/evaluation split
-configs/interactive-science.split.json fixes30 development tasks and89 locked evaluation tasks.
-It includes13 documented design cases and17 seeded random unrestricted cases. Historical pipeline
-activity, method-development use and private-diagnostic exposure are distinct metadata.
-The locked set is not claimed to be historically untouched. License gates remain explicit.
-
-## Runs so far (interim, all receipts preserved under runs/)
-Four independent development evaluations of the fixed30-task set (240 official-verifier
-attempts; DeepSeek V4.1 Flash) plus a k=3 locked-89 evaluation:
+### 2. Build the Research Report
 
 ```bash
-# Paired check, one task, both arms
-SCICONSORT_RESTRICTED_OPTIN=1 uv run --no-sync scicontext pilot --config configs/development-e2e-check.json --output runs/development-e2e-check-v5 --execute
-# Full development workload (30 tasks x 2 arms, 40 concurrent)
-SCICONSORT_RESTRICTED_OPTIN=1 uv run --no-sync scicontext pilot --config configs/deepseek-locked89-k1.json --output runs/deepseek-locked89-k1-v1 --execute
-# Locked-89 evaluation, three replicate runs (k=3) for repeated measures
-bash scripts/run_locked89_k3.sh
+cd paper/latex
+pdflatex -interaction=nonstopmode main.tex
+bibtex main
+pdflatex -interaction=nonstopmode main.tex
+pdflatex -interaction=nonstopmode main.tex
+# Generates paper/latex/main.pdf (5 pages)
 ```
 
-Consolidated evidence (all with exact task IDs and recomputable receipts):
-`results/dev30-four-run-consolidation.json` (task stability across runs), 
-`results/context-recheck-v10-audit.json` (selection content audit), 
-`results/isolation-delivery-audit-v1.json` (arm isolation and delivery verification).
+### 3. Run the Static Extractor (Zero Model Calls)
 
-Honest headline: across the four development evaluations the arms are statistically identical in
-solve rate (43 vs 44 of 120 paired attempts, within a measured ±3/30 single-run noise floor); at
-low effort the science arm pays ≈30% more input tokens for its graph queries (it was 25% cheaper
-at high effort), and task 077 is solved 3/4 times with the graph and 0/4 without it. No efficiency
-savings are claimed at the effort level of the locked evaluation.
-
-## What to inspect
-Each trial preserves the agent conversation/tool results, model submission, scientific-store
-artifacts, patch, verifier output, token accounting and timing. Inspect what the agent actually
-queries and receives: correct scientific relationships, useful implementation links, no invented
-cause. A missing optional model is not a failed trial; graph availability does not prove tool use.
+Verify that the evidence extraction pipeline operates correctly on the development split without issuing model calls:
 
 ```bash
-uv run --no-sync scicontext summarize /path/to/run/jobs --output /path/to/summary
+SCICONSORT_RESTRICTED_OPTIN=1 uv run --no-sync scicontext pilot \
+  --workspace . \
+  --config configs/extractor-validation-30.json \
+  --output runs/extractor-validation-30 \
+  --execute --extract-only
 ```
 
-Cached input is part of input tokens; reasoning is part of output tokens. Missing costs remain
-unknown. Apparent statuses from the scheduler can mislabel cleanup timeouts; verifier receipts and
-`run.json` stage records are the authority.
+### 4. Paired Repair Trial
 
-The approved design is in [RESEARCH_PLAN.md](RESEARCH_PLAN.md), current method details in
-[docs/METHOD.md](docs/METHOD.md), frozen-run and boundary-contract design in
-[docs/FROZEN_RUNS_AND_BOUNDARY_CONTRACTS.md](docs/FROZEN_RUNS_AND_BOUNDARY_CONTRACTS.md), and live
-progress in [WORK_LOG.md](WORK_LOG.md). Old one-shot/probe-first experiments are preserved
-separately and are not results of this method.
+Execute a single paired trial (Task 009) comparing baseline and CBE under identical conditions:
+
+```bash
+export DEEPSEEK_API_KEY="your-api-key"
+SCICONSORT_RESTRICTED_OPTIN=1 uv run --no-sync scicontext pilot \
+  --workspace . \
+  --config configs/development-e2e-check.json \
+  --output runs/development-e2e-check-v5 \
+  --execute
+```
+
+### 5. Re-compute Paper Statistics from Durable Receipts
+
+All tables and figures in the report are deterministically generated from trial receipts:
+
+```bash
+# Verify evaluation statistics
+python3 paper/latex/scripts/analyze_results.py
+
+# Regenerate vector figures
+python3 paper/latex/scripts/make_figures.py
+```
+
+---
+
+## Evaluated Tasks (SWE-bench Science)
+
+The dataset is partitioned into a **frozen split** (`configs/interactive-science.split.json`):
+
+### Development Split (30 tasks)
+Used during system development and sanity checking:
+`001`, `002`, `004`, `005`, `006`, `008`, `009`, `010`, `014`, `016`, `019`, `024`, `025`, `027`, `028`, `045`, `051`, `058`, `061`, `070`, `073`, `076`, `077`, `078`, `080`, `091`, `099`, `104`, `114`, `119`.
+
+### Locked Evaluation Split (89 tasks)
+Evaluated with $k{=}3$ replicates (522 verified attempts) under frozen code:
+`003`, `007`, `011`, `012`, `013`, `015`, `017`, `018`, `020`, `021`, `022`, `023`, `026`, `029`, `030`, `031`, `032`, `033`, `034`, `035`, `036`, `037`, `038`, `039`, `040`, `041`, `042`, `043`, `044`, `046`, `047`, `048`, `049`, `050`, `052`, `053`, `054`, `055`, `056`, `057`, `059`, `060`, `062`, `063`, `064`, `065`, `066`, `067`, `068`, `069`, `071`, `072`, `074`, `075`, `079`, `081`, `082`, `083`, `084`, `085`, `086`, `087`, `088`, `089`, `090`, `092`, `093`, `094`, `095`, `096`, `097`, `098`, `100`, `101`, `102`, `103`, `105`, `106`, `107`, `108`, `109`, `110`, `111`, `112`, `113`, `115`, `116`, `117`, `118`.
+
+All task IDs correspond to the official SWE-bench Science release (commit `42e7e97`).
+
+---
+
+## AI & Tool Disclosure
+
+In compliance with the TU Graz task guidelines:
+- **Study Conceptualization & Architecture:** Conceived, designed, and directed by Rajarshi Ghoshal.
+- **AI Coding Assistants:** Oh My Pi and ChatGPT (GPT-5.6 Sol Pro) assisted with harness scaffolding, test development, matplotlib figure styling, and prose editing.
+- **Repair Model:** DeepSeek V4.1 Flash (`deepseek-chat`) served as the sole experimental model evaluated across both baseline and CBE arms.
+- **Provenance:** All execution trajectories, prompt templates, tool call transcripts, diffs, and container logs are preserved in trial receipts.
+
+---
+
+## Citation & Contact
+
+If you find this work relevant, please cite the accompanying report:
+
+```bibtex
+@article{ghoshal2026cbe,
+  author    = {Rajarshi Ghoshal},
+  title     = {Computation and Boundary Evidence for Scientific Software Repair},
+  journal   = {PhD Research Task Report, Graz University of Technology},
+  year      = {2026}
+}
+```
+
+For questions regarding this submission, contact:
+**Rajarshi Ghoshal** — `rajarshi.ghoshal1@gmail.com`
