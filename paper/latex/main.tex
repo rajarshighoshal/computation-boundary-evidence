@@ -163,7 +163,7 @@ The reproducer guides CBE toward code exercised by the task, but the evidence sc
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/trial_test_matrix.pdf}
-\caption{Per-run private-test pass fractions for every task whose solve rate differs between arms. Outlined bold cells are official solves; bold task labels are the two cases below.}
+\caption{Per-run private-test pass fractions for every task whose solve rate differs between arms. Outlined bold cells are official solves; bold task labels are the two case studies.}
 \label{fig:trials}
 \end{figure*}
 
@@ -199,7 +199,7 @@ CBE indexes repository evidence by task but uses the same evidence schema across
 
 The public trace covers observed execution; extraction fallbacks and unresolved calls limit structural coverage. External providers are interface assumptions. Three replicates are insufficient for generalization claims; no ablation isolates individual components; most tasks are Python; one model and scaffold.
 
-CBE yields similar repair rates with a resource trade-off. Whether the evidence covers the repair obligation depends on the task; extending it to interface and compatibility requirements is the next step.
+CBE yields similar repair rates with a resource trade-off. Whether the evidence covers the repair obligation depends on the task; extending it to cover interface and compatibility requirements is next.
 
 \section{AI Assistance}
 ChatGPT and Oh My Pi assisted with coding, debugging, analysis, and plotting. Code, receipts, and per-task outcomes: \url{https://github.com/rajarshighoshal/computation-boundary-evidence}.
