@@ -26,7 +26,6 @@ Contributions: the preparation pipeline, the query interface, and a replicated e
 
 CBE draws on traceability~\citep{niu2023ablots,niu2023rat,niu2025tvr,pan2025coverage}, code property graphs~\citep{yamaguchi2014cpg}, scientific model extraction~\citep{pyarelal2020automates,skema2024gromet}, and incremental parsing~\citep{treesitter2024}. We evaluate on SWE-bench Science~\citep{xu2026science} with DeepSeek V4.1 Flash~\citep{deepseek2026}; SWE-bench~\citep{jimenez2024swebench,yang2024swebenchverified} and SciCode~\citep{tian2024scicode} are related benchmarks.
 
-\newpage
 \section{What CBE provides}
 \label{sec:method}
 \paragraph{Prepare.}
@@ -59,7 +58,6 @@ Tree-sitter~\citep{treesitter2024} parses Python. Joern handles C, C++, Fortran,
 \paragraph{Query and repair.}
 The agent gets the three endpoints from Table~\ref{tab:representation} plus its normal tools. Inspection refreshes edited text; the preparation trace is not re-executed on candidates.
 
-\clearpage
 \section{Protocol}
 \label{sec:protocol}
 119 tasks, 98 repositories, 20 disciplines~\citep{xu2026science}. 30 for development, 89 locked for evaluation.
@@ -85,7 +83,6 @@ CBE & Same + evidence store + three query endpoints. \\
 
 A solve is the official verifier reward. Missing verdicts excluded, not failures. Paired test: bootstrap per-task rate differences (20k resamples, fixed seed). Sign test excludes ties.
 
-\newpage
 \section{Parity, fewer tokens}
 \begin{minipage}{\columnwidth}
 \captionof{table}{Both arms solve 60. CBE generates 13.7\% fewer output tokens.}
@@ -105,12 +102,12 @@ Paired task-rate diff: \TaskDelta{}\,pp; 95\% bootstrap $[\CILower,\CIUpper]$\,p
 \vspace{4pt}
 74 tasks tie, 7 favour CBE, 8 favour baseline. Output drops \OutputReduction\% (10.36M vs.\ 12.01M tokens). Input rises \InputIncrease\%. Work takes \WorkIncrease\,s longer. The agent searches less --- it either finds the right computation or anchors on the wrong one.
 
-\begin{minipage}{\columnwidth}
+\begin{figure}[t]
 \centering
-\includegraphics[width=\columnwidth]{figures/public_private_gap.pdf}
-\captionof{figure}{Most attempts pass the public check but not the full verifier.}
+\includegraphics[width=\linewidth]{figures/public_private_gap.pdf}
+\caption{Most attempts pass the public check but not the full verifier.}
 \label{fig:gates}
-\end{minipage}
+\end{figure}
 
 \clearpage
 \twocolumn[{\begin{minipage}{\textwidth}
@@ -139,7 +136,7 @@ Of 74 exact ties, \HiddenPrivateDifferences{} differ in private-test coverage (T
 \begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}lrrr@{}}
 \toprule
 & \multicolumn{3}{c}{Private-test coverage} \\
-Exact rate & Base $>$ & Equal & CBE $>$ \\
+Exact rate & Base wins & Equal & CBE wins \\
 \midrule
 \input{generated/private_joint_table}
 \end{tabular*}
