@@ -95,17 +95,24 @@ def read_gray_png(path: Path) -> tuple[int, int, bytes, int]:
 
 def page_metrics(path: Path) -> dict[str, Any]:
     width, height, pixels, channels = read_gray_png(path)
-    if channels != 1:  # keep the row profile cheap on colour renders
-        pixels = pixels[::channels]
     row_ink = []
     col_ink = [0] * width
     for y in range(height):
-        row = pixels[y * width:(y + 1) * width]
+        start = y * width * channels
+        row = pixels[start:start + width * channels]
         count = 0
-        for x, value in enumerate(row):
-            if value < DARK:
-                count += 1
-                col_ink[x] += 1
+        if channels == 1:
+            for x, value in enumerate(row):
+                if value < DARK:
+                    count += 1
+                    col_ink[x] += 1
+        else:
+            # de-interleave per row; slicing the concatenated buffer would corrupt the stride
+            for x in range(width):
+                value = row[x * channels]
+                if value < DARK:
+                    count += 1
+                    col_ink[x] += 1
         row_ink.append(count)
 
     def first_last(values: list[int]) -> tuple[int, int, int]:
@@ -128,7 +135,9 @@ def page_metrics(path: Path) -> dict[str, Any]:
                 gaps.append(((run_start + y) / 2 / DPI, (y - run_start) / DPI))
             run_start = None
 
-    interior_ink = sum(row_ink[top_blank:height - bottom_blank])
+    # the footer sits below the text block; exclude it so trailing space is measured on the body
+    footer_top = int(0.94 * height)
+    interior_ink = sum(row_ink[top_blank:footer_top])
     return {
         "left_in": left_blank / DPI,
         "right_in": right_blank / DPI,
@@ -136,6 +145,8 @@ def page_metrics(path: Path) -> dict[str, Any]:
         "bottom_in": bottom_blank / DPI,
         "ink_pct": 100.0 * interior_ink / (content_height * width) if content_height else 0.0,
         "holes": sorted(gaps, key=lambda item: -item[1])[:3],
+        "body_end_in": max((i for i, value in enumerate(row_ink) if value > 0 and i < footer_top),
+                           default=0) / DPI,
     }
 
 
